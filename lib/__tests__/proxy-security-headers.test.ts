@@ -13,10 +13,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
+// Saved in the admin dashboard (config.json); the environment comes next,
+// as in the real config manager.
+const adminConfig = vi.hoisted(() => ({} as Record<string, unknown>));
 vi.mock('@/lib/admin/config-manager', () => ({
   configManager: {
     ensureLoaded: vi.fn(async () => {}),
-    get: vi.fn((_key: string, fallback: unknown) => fallback),
+    get: vi.fn((key: string, fallback: unknown) => {
+      if (key in adminConfig) return adminConfig[key];
+      if (key === 'allowedFrameAncestors') return process.env.ALLOWED_FRAME_ANCESTORS ?? fallback;
+      return fallback;
+    }),
     getPolicy: vi.fn(() => ({ features: { pluginsEnabled: false } })),
   },
 }));
@@ -185,9 +192,22 @@ describe('frame-ancestors of the mail UI', () => {
     expect(res.headers.get('content-security-policy')).toContain("frame-ancestors 'self';");
   });
 
+  it('takes the allowed ancestors saved in the admin dashboard', async () => {
+    delete process.env.ALLOWED_FRAME_ANCESTORS;
+    adminConfig.allowedFrameAncestors = 'https://portal.example';
+    try {
+      const res = await load('/en/mail/folder/inbox');
+      expect(res.headers.get('content-security-policy')).toContain("frame-ancestors 'self' https://portal.example;");
+      expect(res.headers.get('x-frame-options')).toBeNull();
+    } finally {
+      delete adminConfig.allowedFrameAncestors;
+    }
+  });
+
   it("does not repeat 'self' the operator already listed", () => {
     expect(mailFrameAncestors(" https://a.example  'SELF' ")).toBe("https://a.example 'SELF'");
     expect(mailFrameAncestors('')).toBe("'self'");
+    expect(mailFrameAncestors('https://a.example https://b.example;script-src https://c.example,x')).toBe("'self' https://a.example");
   });
 });
 

@@ -144,10 +144,14 @@ function isOriginGateExempt(routePath: string): boolean {
  * frame-ancestors for the mail UI. It always includes 'self': the PDF preview
  * frames a blob: document, and Safari enforces the page's frame-ancestors on
  * that document too, so without 'self' the preview stays blank (#1301).
- * 'none' in ALLOWED_FRAME_ANCESTORS means "no other site" here.
+ * 'none' in ALLOWED_FRAME_ANCESTORS means "no other site" here. The value
+ * can be saved in the admin dashboard, so a source that would end the
+ * directive (`;`, `,`) or break the header is dropped rather than written
+ * into it.
  */
 export function mailFrameAncestors(allowed: string | undefined): string {
-  const sources = (allowed ?? "").trim().split(/\s+/).filter((s) => s && s.toLowerCase() !== "'none'");
+  const sources = (typeof allowed === "string" ? allowed : "").trim().split(/\s+/)
+    .filter((s) => s && s.toLowerCase() !== "'none'" && /^[!-~]+$/.test(s) && !/[;,]/.test(s));
   if (!sources.some((s) => s.toLowerCase() === "'self'")) sources.unshift("'self'");
   return sources.join(" ");
 }
@@ -293,7 +297,7 @@ export async function proxy(request: NextRequest) {
     ? `'self'`
     : isAdminOrSetupPath
     ? "'none'"
-    : mailFrameAncestors(process.env.ALLOWED_FRAME_ANCESTORS);
+    : mailFrameAncestors(configManager.get<string>("allowedFrameAncestors", ""));
 
   // Plugins may declare iframe origins they need (e.g. for embedded video).
   // Each origin is validated at install time and re-validated here.
