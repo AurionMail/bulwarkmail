@@ -164,7 +164,7 @@ describe('reconcileSelectedIds with unloaded accounts', () => {
 // active account's calendars went hidden and another's showed.
 describe('raw selected ids when the merged list loads', () => {
   it("map onto the active login's calendars", async () => {
-    useCalendarStore.setState({ calendars: [], selectedCalendarIds: ['b', 'ca:b'] });
+    useCalendarStore.setState({ calendars: [], selectedCalendarIds: ['b', 'ca:b'], knownCalendarIds: null });
     const list = () => clientReturning({ calendars: [cal({ id: 'b', accountId: 'x' }), cal({ id: 'ca:b', accountId: 'ca', isShared: true })] });
 
     await useCalendarStore.getState().fetchAllAccountsCalendars(
@@ -173,5 +173,68 @@ describe('raw selected ids when the merged list loads', () => {
     );
 
     expect(useCalendarStore.getState().selectedCalendarIds).toEqual(['B@h::b', 'B@h::ca:b']);
+  });
+});
+
+// A calendar shared with the user, or made in another client, after the list
+// loaded once started hidden: the kept selection never named it (#1372).
+describe('a calendar that appears after the first load', () => {
+  const shared = cal({ id: 'team:x', accountId: 'team', isShared: true });
+
+  beforeEach(() => {
+    useCalendarStore.setState({ calendars: [], selectedCalendarIds: [], calendarSelectionChosen: false, knownCalendarIds: null, error: null });
+  });
+
+  it('starts shown, while one the user hid stays hidden', async () => {
+    await useCalendarStore.getState().fetchCalendars(clientReturning({ calendars: own }));
+    useCalendarStore.getState().toggleCalendarVisibility('b');
+
+    await useCalendarStore.getState().fetchCalendars(clientReturning({ calendars: [...own, shared] }));
+
+    expect(useCalendarStore.getState().selectedCalendarIds).toEqual(['a', 'team:x']);
+  });
+
+  it('starts shown after the user hid every calendar', async () => {
+    await useCalendarStore.getState().fetchCalendars(clientReturning({ calendars: own }));
+    useCalendarStore.getState().toggleCalendarVisibility('a');
+    useCalendarStore.getState().toggleCalendarVisibility('b');
+
+    await useCalendarStore.getState().fetchCalendars(clientReturning({ calendars: [...own, shared] }));
+
+    expect(useCalendarStore.getState().selectedCalendarIds).toEqual(['team:x']);
+  });
+
+  it('stays hidden when the server says it is not visible, or it holds only tasks', async () => {
+    await useCalendarStore.getState().fetchCalendars(clientReturning({ calendars: own }));
+
+    await useCalendarStore.getState().fetchCalendars(clientReturning({ calendars: [
+      ...own,
+      cal({ id: 'team:x', accountId: 'team', isShared: true, isVisible: false }),
+      cal({ id: 'todo', accountId: 'me', isTasksOnly: true }),
+    ] }));
+
+    expect(useCalendarStore.getState().selectedCalendarIds).toEqual(['a', 'b']);
+  });
+
+  it('leaves a selection from before the calendars were recorded as it is', async () => {
+    // Saved by a version that did not record the calendars it had seen: every
+    // calendar not in the selection may be one the user hid.
+    useCalendarStore.setState({ selectedCalendarIds: ['a'], knownCalendarIds: null });
+
+    await useCalendarStore.getState().fetchCalendars(clientReturning({ calendars: [...own, shared] }));
+    expect(useCalendarStore.getState().selectedCalendarIds).toEqual(['a']);
+
+    await useCalendarStore.getState().fetchCalendars(clientReturning({ calendars: [...own, shared, cal({ id: 'c', accountId: 'me' })] }));
+    expect(useCalendarStore.getState().selectedCalendarIds).toEqual(['a', 'c']);
+  });
+
+  it('starts shown in the merged list of several logins', async () => {
+    const list = (calendars: Calendar[]) => [{ localAccountId: 'A@h', client: clientReturning({ calendars }) }];
+    await useCalendarStore.getState().fetchAllAccountsCalendars(list(own), 'A@h');
+    useCalendarStore.getState().toggleCalendarVisibility('A@h::b');
+
+    await useCalendarStore.getState().fetchAllAccountsCalendars(list([...own, shared]), 'A@h');
+
+    expect(useCalendarStore.getState().selectedCalendarIds).toEqual(['A@h::a', 'A@h::team:x']);
   });
 });
