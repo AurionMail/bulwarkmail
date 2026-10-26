@@ -11,7 +11,8 @@
 import type { EmailReadView, EmailSummary, MailboxView } from '../plugin-types';
 import type { Email, Mailbox } from '../jmap/types';
 import type { IJMAPClient } from '../jmap/client-interface';
-import { resolveEmailBlobContext, useEmailStore } from '@/stores/email-store';
+import { isAggregateListView, resolveEmailBlobContext, useEmailStore } from '@/stores/email-store';
+import { useAuthStore } from '@/stores/auth-store';
 import { emailSummary, emailToReadView } from '../plugin-projection';
 import { MAX_PLUGIN_FETCH_BYTES, readBoolean, readId, readInteger, readObject, readString, sessionClient, withinRate } from './host-api-input';
 
@@ -205,6 +206,22 @@ function readIdList(value: unknown, method: string): string[] {
 }
 
 /**
+ * The store moves in the account of the list that is open. A plugin names
+ * messages of the signed-in account by bare id, and ids repeat across
+ * accounts, so with a shared or group folder, another login or a unified,
+ * tag or all-folders view open, the move filed that account's messages
+ * with the same ids instead.
+ */
+function assertOwnFolderOpen(method: string): void {
+  const state = useEmailStore.getState();
+  const open = state.mailboxes.find((m) => m.id === state.selectedMailbox);
+  const otherLogin = !!state.viewingAccountId && state.viewingAccountId !== useAuthStore.getState().activeAccountId;
+  if (open?.isShared || otherLogin || isAggregateListView()) {
+    throw new Error(`${method}: open a folder of this account first; the open list belongs to another account or several`);
+  }
+}
+
+/**
  * Move messages of the signed-in account into one of its folders, through
  * the store, so the list updates and onBeforeEmailMove / onEmailMove (and the
  * archive hooks for the archive folder) run like for a move the user made.
@@ -217,6 +234,7 @@ export async function doEmailMove(pluginId: string, emailIdsArg: unknown, mailbo
   if (!store.mailboxes.some((m) => m.id === mailboxId && !m.isShared)) {
     throw new Error(`${method}: no folder with id "${mailboxId}" in this account`);
   }
+  assertOwnFolderOpen(method);
   if (!withinRate('email.move', pluginId, MAX_PLUGIN_MOVES_PER_MINUTE)) throw new Error(`${method}: too many moves, try again in a minute`);
   await store.moveEmailsToMailbox(sessionClient(method), emailIds, mailboxId);
 }
@@ -227,6 +245,7 @@ export async function doEmailArchive(pluginId: string, emailIdsArg: unknown): Pr
   const emailIds = readIdList(emailIdsArg, method);
   const archive = useEmailStore.getState().mailboxes.find((m) => m.role === 'archive' && !m.isShared);
   if (!archive) throw new Error(`${method}: this account has no Archive folder`);
+  assertOwnFolderOpen(method);
   if (!withinRate('email.move', pluginId, MAX_PLUGIN_MOVES_PER_MINUTE)) throw new Error(`${method}: too many moves, try again in a minute`);
   await useEmailStore.getState().moveEmailsToMailbox(sessionClient(method), emailIds, archive.id);
 }
