@@ -1,6 +1,6 @@
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { StateChange } from '@/lib/jmap/types';
-import type { PushStateListener } from '@/lib/push-events';
+import { changesAnyType, type PushStateListener } from '@/lib/push-events';
 
 export interface MailPushHandlers<Built> {
   /** Full handling for the login on screen (list, scheduled, filters...). */
@@ -10,11 +10,16 @@ export interface MailPushHandlers<Built> {
   buildPopulatedUnifiedAccounts: () => Promise<Built>;
   refreshCrossCounts: (built: Built) => void;
   refreshUnifiedCounts: (built: Built) => void;
+  /** True while the list shows a unified or cross-account view. */
+  isUnifiedView: () => boolean;
+  /** Re-reads the list on screen. */
+  refreshList: () => unknown;
 }
 
 /**
  * The mail view's share of push. The active login gets the full handler;
- * background logins only re-project the unified counters.
+ * background logins re-project the unified counters, and refresh the list
+ * when it is a unified view, which includes their mail (#1350).
  *
  * Handlers are read at event time, so a subscription never holds a stale
  * closure.
@@ -30,6 +35,7 @@ export function createMailPushListener<Built>(handlers: () => MailPushHandlers<B
       void h.handleStateChange(change, client);
       return;
     }
+    if (h.isUnifiedView() && changesAnyType(change, ['Email'])) void h.refreshList();
     h.buildPopulatedUnifiedAccounts()
       .then((built) => {
         h.refreshCrossCounts(built);

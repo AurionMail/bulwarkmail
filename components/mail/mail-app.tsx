@@ -201,6 +201,15 @@ const MV_CONVERSATION_WAIT_MS = 800;
 /** Plugin buttons in the top bar are not about any one item. */
 const TOP_BAR_CONTEXT: Record<string, unknown> = {};
 
+/** The unified views list every login's mail, so a background login's push reaches the list (#1350). */
+const UNIFIED_LIST_PUSH = {
+  isUnifiedView: () => useEmailStore.getState().isUnifiedView,
+  refreshList: () => {
+    const active = useAuthStore.getState().client;
+    return active ? useEmailStore.getState().refreshCurrentMailbox(active) : undefined;
+  },
+};
+
 export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // Static Lite build: the route params are empty, read the link from the URL.
   const linkSegments = useLiteLinkSegments('mail', routeSegments);
@@ -1582,8 +1591,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // too (#1349). The mail view handles them while it is mounted.
   // Handlers are read at event time, so the subscription never holds a stale
   // closure and never has to be re-created because a callback changed identity.
-  const pushHandlersRef = useRef({ handleStateChange, invalidateUnifiedMailboxes, buildPopulatedUnifiedAccounts, refreshCrossCounts, refreshUnifiedCounts });
-  pushHandlersRef.current = { handleStateChange, invalidateUnifiedMailboxes, buildPopulatedUnifiedAccounts, refreshCrossCounts, refreshUnifiedCounts };
+  const pushHandlersRef = useRef({ handleStateChange, invalidateUnifiedMailboxes, buildPopulatedUnifiedAccounts, refreshCrossCounts, refreshUnifiedCounts, ...UNIFIED_LIST_PUSH });
+  pushHandlersRef.current = { handleStateChange, invalidateUnifiedMailboxes, buildPopulatedUnifiedAccounts, refreshCrossCounts, refreshUnifiedCounts, ...UNIFIED_LIST_PUSH };
   useEffect(() => subscribePushStateChanges(createMailPushListener(() => pushHandlersRef.current)), []);
 
   // Keep unified mailbox counts in sync when the feature is enabled and more
