@@ -37,7 +37,7 @@ import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
 import { messagePriorityFromHeaders, type MessagePriority } from "@/lib/message-priority";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
-import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, isAggregateListView, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
+import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, resolveEmailActionContext, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, isAggregateListView, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
 import { findDraftIdentityIdForLogin, listRowSource, resolveDraftSource, type DraftSource } from "@/lib/draft-source";
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
@@ -2813,20 +2813,25 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const handleDelete = async (emailToDelete: Email | null = selectedEmail) => {
     if (!client || !emailToDelete) return;
 
-    // In unified view the trash destination and current-folder check must come
-    // from the email's own account, not the active one. The owning account's
-    // mailbox list is cached under its JMAP id (`sourceAccountId`). (#281)
-    const actionMailboxes =
-      isUnifiedView && emailToDelete.sourceAccountId
-        ? (accountMailboxes[emailToDelete.sourceAccountId] ?? mailboxes)
-        : mailboxes;
+    // The trash destination and current-folder check come from the email's own
+    // login and account, as the delete itself is routed: its source in a list
+    // that mixes accounts, else the folder being browsed. Never the list cached
+    // under the bare account id, which can be another server's account. (#281)
+    let action: ReturnType<typeof resolveEmailActionContext>;
+    try {
+      action = resolveEmailActionContext(emailToDelete, client);
+    } catch (error) {
+      toast.error(t('notifications.error_deleting'), error instanceof Error ? error.message : undefined);
+      return;
+    }
+    const actionMailboxes = action.mailboxes;
 
     // Check if we're currently in the trash or junk folder. In unified view the
     // "current folder" is the unified role within the email's account.
     const currentMailbox = isUnifiedView
       ? (actionMailboxes.find(m => m.role === unifiedRole && emailToDelete.mailboxIds?.[m.id])
           ?? actionMailboxes.find(m => m.role === unifiedRole))
-      : mailboxes.find(m => m.id === selectedMailbox);
+      : actionMailboxes.find(m => m.id === selectedMailbox);
     const isInTrash = currentMailbox?.role === 'trash';
     const isInJunk = currentMailbox?.role === 'junk';
     const permanentlyDeleteJunk = useSettingsStore.getState().permanentlyDeleteJunk;
@@ -2853,9 +2858,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       // the trash lookup to the email's account: for a shared/group source every
       // mailbox in the list is `isShared`, so we match by accountId instead of
       // excluding shared (otherwise no trash is found and the delete fails). (#281)
-      const sourceAccountId = isUnifiedView ? emailToDelete.sourceAccountId : undefined;
       const matchesScope = (m: Mailbox) =>
-        sourceAccountId ? m.accountId === sourceAccountId : !m.isShared;
+        action.accountId ? m.accountId === action.accountId : !m.isShared;
       const trashMailbox =
         actionMailboxes.find(m => m.role === 'trash' && matchesScope(m)) ??
         actionMailboxes.find(m => {
@@ -2879,27 +2883,27 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const handleArchive = async (emailToArchive: Email | null = selectedEmail) => {
     if (!client || !emailToArchive || !isArchiveActionEnabled()) return;
 
-    // In unified view the archive folder (and any year/month subfolders we
-    // create) must live in the email's own account, reached through the login it
-    // is reachable via (`sourceClientAccountId`) and routed to its owning JMAP
-    // account (`sourceAccountId`). For personal sources these resolve to the
-    // account itself, so behavior is unchanged. (#281)
-    const archiveClientId = isUnifiedView ? emailToArchive.sourceClientAccountId : undefined;
-    const archiveAccountId = isUnifiedView ? emailToArchive.sourceAccountId : undefined;
-    const archiveClient = archiveClientId
-      ? (useAuthStore.getState().getClientForAccount(archiveClientId) ?? client)
-      : client;
+    // In a list that mixes accounts (the unified views, a tag view) the archive
+    // folder (and any year/month subfolders we create) must live in the email's
+    // own account, reached through the login it is reachable via
+    // (`sourceClientAccountId`) and routed to its owning JMAP account
+    // (`sourceAccountId`), with that source's own folder list. For personal
+    // sources these resolve to the account itself, so behavior is unchanged. (#281)
+    const archiveClientId = emailToArchive.sourceAccountId ? emailToArchive.sourceClientAccountId : undefined;
+    const archiveAccountId = archiveClientId ? emailToArchive.sourceAccountId : undefined;
+    const archiveClient = archiveClientId ? useAuthStore.getState().getClientForAccount(archiveClientId) : client;
+    if (!archiveClient) {
+      toast.error(t('notifications.error_archiving'), 'Not connected');
+      return;
+    }
     // Read fresh mailboxes from the store – batch archive calls this in a loop,
     // and each iteration needs to see folders created by prior iterations.
-    const readMailboxes = () => {
-      const s = useEmailStore.getState();
-      return archiveAccountId
-        ? (s.accountMailboxes[archiveAccountId] ?? s.mailboxes)
-        : s.mailboxes;
-    };
+    const readMailboxes = () => archiveAccountId
+      ? resolveEmailActionContext(emailToArchive, client).mailboxes
+      : useEmailStore.getState().mailboxes;
     const refreshMailboxes = () =>
       archiveAccountId
-        ? useEmailStore.getState().fetchAccountMailboxes(archiveClient, archiveAccountId)
+        ? useEmailStore.getState().fetchAccountMailboxes(archiveClient, archiveAccountId, archiveClientId)
         : fetchMailboxes(client);
 
     const currentMailboxes = readMailboxes();

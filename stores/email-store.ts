@@ -274,9 +274,11 @@ interface EmailStore {
   /**
    * Fetch mailboxes via the supplied client and store them under
    * `accountMailboxes[accountId]`. Used by the Pro shell to populate the
-   * sidebar's per-account groups for every connected account.
+   * sidebar's per-account groups for every connected account. With
+   * `clientAccountId`, `accountId` is a JMAP account reached through that
+   * login, and the list is also stored as that source's (sourceMailboxes).
    */
-  fetchAccountMailboxes: (client: IJMAPClient, accountId: string) => Promise<void>;
+  fetchAccountMailboxes: (client: IJMAPClient, accountId: string, clientAccountId?: string) => Promise<void>;
   selectEmail: (email: Email | null) => void;
   /**
    * Shows a list row in the viewer while its body is on its way: selects it
@@ -1448,7 +1450,7 @@ export function resolveEmailActionContext(
   if (email.sourceClientAccountId && email.sourceAccountId) {
     return {
       client: stampedClient(email.sourceClientAccountId),
-      mailboxes: sourceMailboxes(state, email.sourceClientAccountId, email.sourceAccountId) ?? state.mailboxes,
+      mailboxes: sourceMailboxes(state, email.sourceClientAccountId, email.sourceAccountId),
       accountId: email.sourceAccountId,
     };
   }
@@ -1920,36 +1922,32 @@ function sourceMailboxesKey(clientAccountId: string, jmapAccountId: string): str
   return `${clientAccountId}|${jmapAccountId}`;
 }
 
-/** The cached folder list of a source of an aggregate list, if any (see sourceMailboxesKey). */
+/**
+ * The folders a source's role-based destinations (Archive, Junk, Inbox,
+ * Deleted Items) come from: the list cached for its login and account, else
+ * that login's folder list narrowed to the account: a tag view and an "All
+ * folders" search stamp their rows too, but only the unified views fill that
+ * cache. Never the list cached under the bare account id, which holds
+ * whichever login's list was fetched last when two logins share account ids.
+ */
 function sourceMailboxes(
-  state: { accountMailboxes: Record<string, Mailbox[]> },
-  clientAccountId: string | undefined,
+  state: Pick<EmailStore, 'accountMailboxes' | 'mailboxes'>,
+  clientAccountId: string,
   jmapAccountId: string,
-): Mailbox[] | undefined {
-  return (clientAccountId ? state.accountMailboxes[sourceMailboxesKey(clientAccountId, jmapAccountId)] : undefined)
-    ?? state.accountMailboxes[jmapAccountId];
+): Mailbox[] {
+  const cached = state.accountMailboxes[sourceMailboxesKey(clientAccountId, jmapAccountId)];
+  if (cached) return cached;
+  const loginMailboxes = clientAccountId === useAuthStore.getState().activeAccountId
+    ? state.mailboxes
+    : state.accountMailboxes[clientAccountId];
+  return (loginMailboxes ?? []).filter((mailbox) => mailbox.accountId === jmapAccountId);
 }
 
-/**
- * The folders a SourceBatch's role-based destinations (Archive, Junk, Inbox,
- * Deleted Items) come from: its source's own list, or the viewed account's
- * for undecorated messages. A source's list is the one cached for its login
- * and account, else that login's folder list narrowed to the account: a tag
- * view and an "All folders" search stamp their rows too, but only the
- * unified views fill that cache. Never the list cached under the bare
- * account id, which holds whichever login's list was fetched last when two
- * logins share account ids.
- */
+/** sourceMailboxes of a SourceBatch, or the viewed account's for undecorated messages. */
 function sourceBatchMailboxes(batch: SourceBatch): Mailbox[] {
   if (!batch.accountId) return resolveActionMailboxes();
   if (!batch.clientAccountId) return [];
-  const state = useEmailStore.getState();
-  const cached = state.accountMailboxes[sourceMailboxesKey(batch.clientAccountId, batch.accountId)];
-  if (cached) return cached;
-  const loginMailboxes = batch.clientAccountId === useAuthStore.getState().activeAccountId
-    ? state.mailboxes
-    : state.accountMailboxes[batch.clientAccountId];
-  return (loginMailboxes ?? []).filter((mailbox) => mailbox.accountId === batch.accountId);
+  return sourceMailboxes(useEmailStore.getState(), batch.clientAccountId, batch.accountId);
 }
 
 /** A folder that messages of an aggregate list are moved to (resolveMoveDestination). */
@@ -2913,7 +2911,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     unifiedRole: null,
     crossView: null,
   })),
-  fetchAccountMailboxes: async (client, accountId) => {
+  fetchAccountMailboxes: async (client, accountId, clientAccountId) => {
     try {
       // `accountId` is overloaded across callers:
       //  - a real login (AccountEntry.id, e.g. per-account sidebar / cross-account
@@ -2931,7 +2929,11 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       // Re-check the cache after the await to avoid stomping a more recent
       // fetch that finished while this one was in flight.
       set((state) => ({
-        accountMailboxes: { ...state.accountMailboxes, [accountId]: mailboxes },
+        accountMailboxes: {
+          ...state.accountMailboxes,
+          [accountId]: mailboxes,
+          ...(clientAccountId ? { [sourceMailboxesKey(clientAccountId, accountId)]: mailboxes } : {}),
+        },
       }));
     } catch (error) {
       console.error(`Failed to fetch mailboxes for account ${accountId}:`, error);
@@ -5906,7 +5908,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       if (listEmail?.sourceClientAccountId && listEmail?.sourceAccountId) {
         undoClient = stampedClient(listEmail.sourceClientAccountId);
         accountId = listEmail.sourceAccountId;
-        inboxMailboxes = sourceMailboxes(get(), listEmail.sourceClientAccountId, listEmail.sourceAccountId) ?? mailboxes;
+        inboxMailboxes = sourceMailboxes(get(), listEmail.sourceClientAccountId, listEmail.sourceAccountId);
       } else {
         const currentMailbox = mailboxes.find(m => m.id === selectedMailbox);
         accountId = currentMailbox?.accountId;
