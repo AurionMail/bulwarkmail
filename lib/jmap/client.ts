@@ -6078,15 +6078,15 @@ export class JMAPClient implements IJMAPClient {
     return submission?.sendAt;
   }
 
-  private async getEmailSubmissionForReschedule(submissionId: string, accountId?: string): Promise<{ envelope?: { rcptTo?: Array<{ email: string }> }; sendAt?: string } | undefined> {
+  private async getEmailSubmissionForReschedule(submissionId: string, accountId?: string): Promise<{ identityId?: string; envelope?: { rcptTo?: Array<{ email: string }> }; sendAt?: string } | undefined> {
     const response = await this.request([
       ['EmailSubmission/get', {
         accountId: accountId ?? await this.resolveSubmissionAccountId(submissionId),
         ids: [submissionId],
-        properties: ['envelope', 'sendAt'],
+        properties: ['identityId', 'envelope', 'sendAt'],
       }, '0'],
     ]);
-    return response.methodResponses?.[0]?.[1]?.list?.[0] as { envelope?: { rcptTo?: Array<{ email: string }> }; sendAt?: string } | undefined;
+    return response.methodResponses?.[0]?.[1]?.list?.[0] as { identityId?: string; envelope?: { rcptTo?: Array<{ email: string }> }; sendAt?: string } | undefined;
   }
 
   /**
@@ -11058,6 +11058,12 @@ export class JMAPClient implements IJMAPClient {
     const mailboxes = await this.getMailboxes(submissionAccountId);
     const draftsMailbox = mailboxes.find(mb => mb.role === 'drafts');
     const sentMailbox = mailboxes.find(mb => mb.role === 'sent');
+    const original = await this.getEmailSubmissionForReschedule(submissionId, submissionAccountId);
+    // The original's identity is one of the submission account's. The caller's
+    // may be the composer's, from the login's own account: for a group
+    // identity's message that id names nothing in the group account, or
+    // another identity.
+    const submissionIdentityId = original?.identityId || identityId;
     // The identity and the Email live beside the submission, so look both up in
     // the owning account. getIdentities() only knows the primary account's
     // identities; a shared identity missing there would silently put the login
@@ -11065,14 +11071,13 @@ export class JMAPClient implements IJMAPClient {
     let identity: Identity | undefined;
     try {
       const identityResponse = await this.request([
-        ['Identity/get', { accountId: submissionAccountId, ids: [identityId], properties: ['id', 'email'] }, '0'],
+        ['Identity/get', { accountId: submissionAccountId, ids: [submissionIdentityId], properties: ['id', 'email'] }, '0'],
       ]);
       identity = ((identityResponse.methodResponses?.[0]?.[1]?.list ?? []) as Identity[])
-        .find(item => item.id === identityId);
+        .find(item => item.id === submissionIdentityId);
     } catch (error) {
       console.error('Failed to get identity for reschedule:', error);
     }
-    const original = await this.getEmailSubmissionForReschedule(submissionId, submissionAccountId);
     const existingEnvelope = original?.envelope;
     const email = existingEnvelope?.rcptTo?.length ? undefined : await this.getEmail(emailId, submissionAccountId);
     const envelopeRecipients = existingEnvelope?.rcptTo?.length
@@ -11091,7 +11096,7 @@ export class JMAPClient implements IJMAPClient {
         return this.request([
           ['EmailSubmission/set', {
             accountId: submissionAccountId,
-            create: { replacement: { emailId, identityId, ...(envelope ? { envelope } : {}) } },
+            create: { replacement: { emailId, identityId: submissionIdentityId, ...(envelope ? { envelope } : {}) } },
             ...(draftsMailbox && sentMailbox ? {
               onSuccessUpdateEmail: {
                 '#replacement': {
