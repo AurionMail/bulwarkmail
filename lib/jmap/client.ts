@@ -557,10 +557,13 @@ function isTaskObject(obj: { '@type'?: string; progress?: unknown; due?: unknown
 /**
  * Whether a calendar method error means the account grants this user no
  * calendar access at all - the expected answer from a shared account the
- * fan-out probed on suspicion (see getCalendarCapableAccountIds).
+ * fan-out probed on suspicion (see getCalendarCapableAccountIds). Stalwart
+ * 1.0 answers `accountNotSupportedByMethod` for an account that only shared
+ * a mail folder, where 0.16 says `forbidden`.
  */
 function isCalendarAccessDenial(type: string | undefined, message: string | undefined): boolean {
-  return type === 'forbidden' || type === 'accountNotFound' || /not have access/i.test(message ?? '');
+  return type === 'forbidden' || type === 'accountNotFound' || type === 'accountNotSupportedByMethod'
+    || /not have access/i.test(message ?? '');
 }
 
 // Stalwart 1.0 fails a CalendarEvent/get that asks for `recurrenceOverrides`
