@@ -1021,7 +1021,7 @@ export const useContactStore = create<ContactStore>()(
           const group = get().contacts.find(c => c.id === groupId);
           const originalId = group?.originalId || groupId;
           const accountId = group?.isShared ? group.accountId : undefined;
-          await client.updateContact(originalId, updates, accountId);
+          await resolveAccountClient(client, group?.localAccountId).updateContact(originalId, updates, accountId);
         }
         set((state) => ({
           contacts: state.contacts.map(c =>
@@ -1049,7 +1049,7 @@ export const useContactStore = create<ContactStore>()(
         if (client && get().supportsSync) {
           const originalId = group.originalId || groupId;
           const accountId = group.isShared ? group.accountId : undefined;
-          await client.updateContact(originalId, updates, accountId);
+          await resolveAccountClient(client, group.localAccountId).updateContact(originalId, updates, accountId);
         }
         set((state) => ({
           contacts: state.contacts.map(c =>
@@ -1098,7 +1098,7 @@ export const useContactStore = create<ContactStore>()(
         if (client && get().supportsSync) {
           const originalId = group.originalId || groupId;
           const accountId = group.isShared ? group.accountId : undefined;
-          await client.updateContact(originalId, updates, accountId);
+          await resolveAccountClient(client, group.localAccountId).updateContact(originalId, updates, accountId);
         }
         set((state) => ({
           contacts: state.contacts.map(c =>
@@ -1115,7 +1115,7 @@ export const useContactStore = create<ContactStore>()(
           const group = get().contacts.find(c => c.id === groupId);
           const originalId = group?.originalId || groupId;
           const accountId = group?.isShared ? group.accountId : undefined;
-          await client.deleteContact(originalId, accountId);
+          await resolveAccountClient(client, group?.localAccountId).deleteContact(originalId, accountId);
         }
         set((state) => ({
           contacts: state.contacts.filter(c => c.id !== groupId),
@@ -1167,7 +1167,7 @@ export const useContactStore = create<ContactStore>()(
               const contact = contacts.find(c => c.id === id);
               const originalId = contact?.originalId || id;
               const accountId = contact?.isShared ? contact.accountId : undefined;
-              await client.deleteContact(originalId, accountId);
+              await resolveAccountClient(client, contact?.localAccountId).deleteContact(originalId, accountId);
             } catch (error) {
               console.error(`Failed to delete contact ${id}:`, error);
               deletedIds.delete(id);
@@ -1202,7 +1202,10 @@ export const useContactStore = create<ContactStore>()(
         const { contacts } = get();
         const targetBookOriginalId = addressBook.originalId || addressBook.id;
         const targetAccountId = addressBook.accountId;
-        const primaryAccountId = client.getContactsAccountId();
+        // Each card and the book are written through the login they belong
+        // to: card ids repeat across logins.
+        const targetClient = resolveAccountClient(client, addressBook.localAccountId);
+        const primaryAccountId = targetClient.getContactsAccountId();
 
         for (const id of contactIds) {
           const contact = contacts.find(c => c.id === id);
@@ -1210,10 +1213,11 @@ export const useContactStore = create<ContactStore>()(
 
           const originalId = contact.originalId || id;
           const sourceAccountId = contact.isShared ? contact.accountId : undefined;
+          const ownerClient = resolveAccountClient(client, contact.localAccountId);
 
           // Same account: just update the addressBookIds
-          if ((sourceAccountId || primaryAccountId) === (targetAccountId || primaryAccountId)) {
-            const ownerClient = resolveAccountClient(client, contact.localAccountId);
+          if (ownerClient === targetClient
+            && (sourceAccountId || primaryAccountId) === (targetAccountId || primaryAccountId)) {
             await ownerClient.updateContact(originalId, { addressBookIds: { [targetBookOriginalId]: true } }, sourceAccountId);
             // Keep the id in the same (possibly namespaced) form the sidebar
             // filters by; `addressBook.id` already is that form.
@@ -1231,32 +1235,31 @@ export const useContactStore = create<ContactStore>()(
             // goes as it is: the create then either resolves it or fails, and
             // the source card is only deleted after a successful create.
             const media = await inlineContactMedia(contact.media, {
-              client: resolveAccountClient(client, contact.localAccountId),
+              client: ownerClient,
               accountId: contact.accountId,
               localAccountId: contact.localAccountId,
             }, 'keep');
-            const newContact = await client.createContact(
+            const newContact = await targetClient.createContact(
               { ...contactData, media, addressBookIds: { [targetBookOriginalId]: true } },
               targetAccountId
             );
-            await client.deleteContact(originalId, sourceAccountId);
+            await ownerClient.deleteContact(originalId, sourceAccountId);
 
             // Update local state
             const isPrimary = !targetAccountId || targetAccountId === primaryAccountId;
             const localBookId = isPrimary ? targetBookOriginalId : `${targetAccountId}:${targetBookOriginalId}`;
+            let moved: ContactCard = {
+              ...newContact,
+              id: isPrimary ? newContact.id : `${targetAccountId}:${newContact.id}`,
+              originalId: newContact.id,
+              accountId: targetAccountId,
+              accountName: addressBook.accountName || targetAccountId,
+              isShared: !isPrimary,
+              addressBookIds: { [localBookId]: true },
+            };
+            if (addressBook.localAccountId) moved = prefixContactsWithLocalAccount([moved], addressBook.localAccountId)[0];
             set((state) => ({
-              contacts: state.contacts.map(c => {
-                if (c.id !== id) return c;
-                return {
-                  ...newContact,
-                  id: isPrimary ? newContact.id : `${targetAccountId}:${newContact.id}`,
-                  originalId: newContact.id,
-                  accountId: targetAccountId,
-                  accountName: addressBook.accountName || targetAccountId,
-                  isShared: !isPrimary,
-                  addressBookIds: { [localBookId]: true },
-                };
-              }),
+              contacts: state.contacts.map(c => (c.id === id ? moved : c)),
             }));
             void contactHooks.onContactMove.emit({ contactId: id, toAddressBookId: addressBook.id });
           }
