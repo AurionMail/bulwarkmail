@@ -5313,7 +5313,6 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       // client via `sourceClientAccountId` and routes JMAP via `sourceAccountId`.
       // Undecorated emails (normal single-mailbox view) form one group for the
       // active client (groupBySource).
-      const accountMailboxes = get().accountMailboxes;
       const batches = groupBySource(selectedEmails);
 
       // Undecorated emails viewed in a shared/group folder directly (non-unified)
@@ -5322,11 +5321,9 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       // resolveViewAccountId). undefined for a normal own-account view.
       const viewAccountId = currentMailbox?.isShared ? currentMailbox.accountId : undefined;
       // Each group's trash comes from its own login's folder list: another
-      // login may use the same account id for an account with other folders.
-      const mailboxesFor = (batch: SourceBatch) =>
-        !batch.accountId
-          ? (viewAccountId ? (accountMailboxes[viewAccountId] ?? mailboxes) : mailboxes)
-          : sourceBatchMailboxes(batch);
+      // login may use the same account id for an account with other folders,
+      // which is what the list cached under the bare account id can hold.
+      const mailboxesFor = (batch: SourceBatch) => (!batch.accountId ? mailboxes : sourceBatchMailboxes(batch));
       const jmapIdFor = (batch: SourceBatch) => batch.accountId ?? viewAccountId;
 
       // Ids the server confirmed, for onAfterEmailDelete.
