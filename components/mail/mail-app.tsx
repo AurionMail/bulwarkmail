@@ -157,7 +157,7 @@ import {
 import { consumePendingDeepLink, subscribePendingDeepLink } from "@/lib/deep-link-handoff";
 import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
 import type { QuoteHeader } from "@/lib/plugin-types";
-import { useLiteLinkSegments } from "@/hooks/use-lite-link-segments";
+import { initialLinkSearch, useLiteLinkSegments } from "@/hooks/use-lite-link-segments";
 
 export interface MailAppProps {
   /**
@@ -1893,7 +1893,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // actually opened with on first client render.
   const initialSearchRef = useRef<string | null>(null);
   if (initialSearchRef.current === null && typeof window !== "undefined") {
-    initialSearchRef.current = window.location.search;
+    initialSearchRef.current = initialLinkSearch('mail');
   }
 
   useEffect(() => {
