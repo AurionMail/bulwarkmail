@@ -4,8 +4,10 @@ import { NextResponse } from 'next/server';
 import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'node:crypto';
 import { getSessionSecret } from '@/lib/auth/session-secret';
 import { isSameOriginRequest } from '@/lib/security/same-origin';
+import { logger } from '@/lib/logger';
 import { ADMIN_SESSION_COOKIE, DEFAULT_ADMIN_SESSION_TTL } from './types';
 import type { AdminSessionPayload } from './types';
+import { getAdminSessionGeneration, isAdminSessionRevoked, revokeAdminSession } from './password';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
@@ -39,9 +41,10 @@ function getSessionTTL(): number {
 }
 
 /**
- * Create an encrypted admin session token.
+ * Create an encrypted admin session token, in session generation
+ * `generation` (see getAdminSessionGeneration).
  */
-export function createAdminSession(): string {
+export function createAdminSession(generation = 0): string {
   const key = getKey();
   const iv = randomBytes(IV_LENGTH);
   const cipher = createCipheriv(ALGORITHM, key, iv);
@@ -52,6 +55,8 @@ export function createAdminSession(): string {
     role: 'admin',
     iat: now,
     exp: now + getSessionTTL(),
+    sid: randomBytes(16).toString('base64url'),
+    gen: generation,
   };
 
   const json = JSON.stringify(payload);
@@ -82,6 +87,9 @@ export function verifyAdminSession(token: string): AdminSessionPayload | null {
     const payload = JSON.parse(decrypted.toString('utf8')) as AdminSessionPayload;
 
     if (payload.role !== 'admin') return null;
+    // Every token this version issues has both; ADMIN_SESSION_AAD already
+    // signed the ones from before out.
+    if (typeof payload.sid !== 'string' || typeof payload.gen !== 'number') return null;
 
     const now = Math.floor(Date.now() / 1000);
     if (payload.exp < now) return null;
@@ -90,6 +98,18 @@ export function verifyAdminSession(token: string): AdminSessionPayload | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * verifyAdminSession, and not signed out since it was issued: by a logout
+ * of this token, or by a new admin password (which moves the generation on).
+ */
+export async function verifyCurrentAdminSession(token: string): Promise<AdminSessionPayload | null> {
+  const payload = verifyAdminSession(token);
+  if (!payload) return null;
+  if (payload.gen !== await getAdminSessionGeneration()) return null;
+  if (await isAdminSessionRevoked(payload.sid)) return null;
+  return payload;
 }
 
 // The CSRF gate lives in lib/security/same-origin so the unauthenticated
@@ -115,7 +135,7 @@ export async function requireAdminAuth(request: Request): Promise<{ payload: Adm
     return { error: NextResponse.json({ error: 'Not authenticated' }, { status: 401 }) };
   }
 
-  const payload = verifyAdminSession(token);
+  const payload = await verifyCurrentAdminSession(token);
   if (!payload) {
     cookieStore.delete(ADMIN_SESSION_COOKIE);
     return { error: NextResponse.json({ error: 'Session expired' }, { status: 401 }) };
@@ -136,7 +156,7 @@ export async function requireAdminAuth(request: Request): Promise<{ payload: Adm
  * X-Forwarded-Proto would otherwise make the request look like plain HTTP.
  */
 export async function setAdminSessionCookie(request?: Request): Promise<void> {
-  const token = createAdminSession();
+  const token = createAdminSession(await getAdminSessionGeneration());
   const cookieStore = await cookies();
   cookieStore.set(ADMIN_SESSION_COOKIE, token, {
     httpOnly: true,
@@ -148,11 +168,22 @@ export async function setAdminSessionCookie(request?: Request): Promise<void> {
 }
 
 /**
- * Clear the admin session cookie.
+ * Clear the admin session cookie and sign its token out, so a copy of the
+ * cookie stops working too.
  */
 export async function clearAdminSessionCookie(): Promise<void> {
   const cookieStore = await cookies();
+  const payload = verifyAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value ?? '');
   cookieStore.delete(ADMIN_SESSION_COOKIE);
+  if (!payload) return;
+  try {
+    await revokeAdminSession(payload.sid, payload.exp);
+  } catch (error) {
+    // Kept in memory regardless; only a restart forgets it.
+    logger.warn('Failed to save the admin session sign-out', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
 }
 
 /**
