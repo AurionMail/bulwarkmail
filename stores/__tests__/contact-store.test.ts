@@ -1201,6 +1201,58 @@ describe('contact-store', () => {
       );
     });
 
+    // Card ids repeat across accounts (live on 0.16 and 1.0: the sharee's own
+    // card and one it creates in the owner's shared book both got "c"). A card
+    // created in a shared book was kept under its bare id: deleting it right
+    // after deleted the own card with that id.
+    it('keeps a card created in a shared book apart from an own card with the same id', async () => {
+      useContactStore.setState({
+        addressBooks: [
+          { id: 'ab-1', name: 'Personal', isDefault: true },
+          { id: 'acct-a:ab-7', originalId: 'ab-7', name: 'Team', isShared: true, accountId: 'acct-a', accountName: 'Alice' },
+        ],
+        contacts: [makeContact({ id: 'c', addressBookIds: { 'ab-1': true } })],
+      });
+      const client = makeClient();
+      client.createContact.mockImplementation(async (c: Partial<ContactCard>) => ({ ...makeContact(), ...c, id: 'c' }));
+
+      await useContactStore.getState().createContact(
+        client as unknown as IJMAPClient,
+        { addressBookIds: { 'acct-a:ab-7': true } },
+      );
+
+      expect(client.createContact).toHaveBeenCalledWith(expect.objectContaining({ addressBookIds: { 'ab-7': true } }), 'acct-a');
+      const created = useContactStore.getState().contacts[1];
+      expect(created).toMatchObject({
+        id: 'acct-a:c', originalId: 'c', isShared: true, accountId: 'acct-a', accountName: 'Alice',
+        addressBookIds: { 'acct-a:ab-7': true },
+      });
+
+      await useContactStore.getState().deleteContact(client as unknown as IJMAPClient, 'acct-a:c');
+
+      expect(client.deleteContact).toHaveBeenCalledWith('c', 'acct-a');
+      expect(useContactStore.getState().contacts.map((c) => c.id)).toEqual(['c']);
+    });
+
+    it('namespaces a card created through another login like that login\'s listing', async () => {
+      useContactStore.setState({
+        addressBooks: [
+          { id: 'me@host::ab-1', originalId: 'ab-1', localAccountId: 'me@host', name: 'Personal', isDefault: true },
+        ],
+      });
+      const client = makeClient();
+
+      await useContactStore.getState().createContact(
+        client as unknown as IJMAPClient,
+        { addressBookIds: { 'me@host::ab-1': true } },
+      );
+
+      expect(useContactStore.getState().contacts[0]).toMatchObject({
+        id: 'me@host::created-id', originalId: 'created-id', localAccountId: 'me@host',
+        addressBookIds: { 'me@host::ab-1': true },
+      });
+    });
+
     it('moves to a namespaced personal book with the raw id and keeps the display id locally', async () => {
       const target = { id: 'me@host::ab-2', originalId: 'ab-2', localAccountId: 'me@host', name: 'Work' };
       useContactStore.setState({

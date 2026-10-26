@@ -710,19 +710,31 @@ export const useContactStore = create<ContactStore>()(
             ? await writeContactWithNewPhoto(owner, accountId, cleanedContact, options.photoKey,
               (card) => owner.createContact(card, accountId))
             : await owner.createContact(cleanedContact, accountId);
-          // Preserve shared account metadata
-          if (contact.isShared && contact.accountId) {
-            created.accountId = contact.accountId;
-            created.accountName = contact.accountName;
-            created.isShared = true;
-            created.id = `${contact.accountId}:${created.id}`;
-            created.originalId = created.id.includes(':') ? created.id.split(':').slice(1).join(':') : created.id;
+          // The card under the id the listings give it (getAllContacts, then
+          // prefixContactsWithLocalAccount): card ids repeat across accounts,
+          // and one from a shared book kept under its bare id was taken for
+          // the own card of that id by the next change or delete.
+          let stored = created;
+          if (accountId) {
+            stored = {
+              ...created,
+              id: `${accountId}:${created.id}`,
+              originalId: created.id,
+              accountId,
+              accountName: contact.accountName
+                ?? get().addressBooks.find(b => b.isShared && b.accountId === accountId)?.accountName,
+              isShared: true,
+              addressBookIds: Object.fromEntries(
+                Object.entries(created.addressBookIds ?? {}).map(([bookId, v]) => [`${accountId}:${bookId}`, v]),
+              ),
+            };
           }
+          if (localAccountId) stored = prefixContactsWithLocalAccount([stored], localAccountId)[0];
           set((state) => ({
-            contacts: [...state.contacts, created],
+            contacts: [...state.contacts, stored],
             isLoading: false,
           }));
-          void contactHooks.onAfterContactCreate.emit(contactToView(created));
+          void contactHooks.onAfterContactCreate.emit(contactToView(stored));
           return true;
         } catch (error) {
           const msg = error instanceof Error ? error.message : 'Failed to create contact';
