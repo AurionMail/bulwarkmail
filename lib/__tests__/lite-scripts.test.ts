@@ -818,6 +818,9 @@ describe('Stalwart target: postbuild + verify against a fake checkout', () => {
       const names = listZipEntries(readFileSync(result.zipPath!)).map((e) => e.name);
       expect(names).toContain('index.html');
       expect(names).toContain('en/mail/index.html');
+      // Stalwart 1.0 refuses a bundle without this manifest at the root.
+      expect(names).toContain('stalwart-app.json');
+      expect(JSON.parse(readFileSync(join(out, 'stalwart-app.json'), 'utf8'))).toEqual({ id: 'bulwark-webmail', version: expect.stringMatching(/^\d+\.\d+\.\d+/) });
       expect(names.some((n) => n.startsWith('out/'))).toBe(false);
 
       const verdict = verifyExport({ root });

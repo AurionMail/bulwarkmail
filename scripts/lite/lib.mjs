@@ -1205,6 +1205,16 @@ ${STALWART_OAUTH_META_LITERAL} />
 `;
 }
 
+/**
+ * The bundle manifest Stalwart 1.0 requires at the root of an Application
+ * zip (`stalwart-app.json`, checked before it unpacks anything): without it,
+ * it refuses the bundle with "Application bundle does not contain a manifest"
+ * and serves nothing. 0.16 serves the file like any other.
+ */
+export function buildStalwartAppManifest({ version }) {
+  return { id: "bulwark-webmail", version };
+}
+
 /** manifest.json with relative URLs: they resolve against the manifest's own (mounted) URL. */
 export function buildStalwartManifest({ appName }) {
   return {
