@@ -13,6 +13,14 @@ const TAG_LENGTH = 16;
 
 const MIN_SECRET_LENGTH = 32;
 
+/**
+ * Bound into every admin token as GCM associated data. The mailbox session
+ * cookies and the synced-settings files are sealed with the same key and
+ * layout, and a user picks the content of their settings, so without it a
+ * settings file holding {"role":"admin",...} would open the dashboard.
+ */
+const ADMIN_SESSION_AAD = Buffer.from('bulwark-admin-session', 'utf8');
+
 function getKey(): Buffer {
   const secret = getSessionSecret();
   if (!secret) throw new Error('SESSION_SECRET not configured');
@@ -37,6 +45,7 @@ export function createAdminSession(): string {
   const key = getKey();
   const iv = randomBytes(IV_LENGTH);
   const cipher = createCipheriv(ALGORITHM, key, iv);
+  cipher.setAAD(ADMIN_SESSION_AAD);
 
   const now = Math.floor(Date.now() / 1000);
   const payload: AdminSessionPayload = {
@@ -66,6 +75,7 @@ export function verifyAdminSession(token: string): AdminSessionPayload | null {
     const encrypted = data.subarray(IV_LENGTH + TAG_LENGTH);
 
     const decipher = createDecipheriv(ALGORITHM, key, iv);
+    decipher.setAAD(ADMIN_SESSION_AAD);
     decipher.setAuthTag(tag);
 
     const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
