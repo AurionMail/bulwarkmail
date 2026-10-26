@@ -111,7 +111,7 @@ import { useDeviceDetection } from "@/hooks/use-media-query";
 import { useIsPaneScoped } from "@/hooks/use-pane-context";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAccountStore } from "@/stores/account-store";
-import { useEmailStore, resolveEmailBlobContext, type EmailBlobContext } from "@/stores/email-store";
+import { useEmailStore, resolveEmailBlobContext, emailWriteSource, type EmailBlobContext } from "@/stores/email-store";
 import { useThemeStore } from "@/stores/theme-store";
 import { EmailIdentityBadge } from "./email-identity-badge";
 import { UnsubscribeBanner } from "./unsubscribe-banner";
@@ -3533,6 +3533,8 @@ export function EmailViewer({
 
   const sendReadReceiptNow = useCallback(async (automatic: boolean) => {
     if (!client || !email || !readReceiptRequestedBy || !receiptIdentity) return;
+    // Taken now: another folder may be open once the receipt is out.
+    const source = blobSource ?? emailWriteSource(email, client);
     const { rawId } = stripCrossAccountIdentityPrefix(receiptIdentity.id);
     try {
       await client.sendReadReceipt({
@@ -3559,21 +3561,21 @@ export function EmailViewer({
     // The receipt is out. Failing to flag that must not read as a failed
     // send, nor let the "always" mode send it again.
     try {
-      await useEmailStore.getState().markEmailKeyword(client, email.id, '$mdnsent');
+      await useEmailStore.getState().markEmailKeyword(client, email.id, '$mdnsent', source);
     } catch (err) {
       console.error('Read receipt sent, but setting $MDNSent failed:', err);
       setMdnHandledLocally(true);
     }
-  }, [client, email, readReceiptRequestedBy, receiptIdentity, t, tComposer]);
+  }, [client, email, blobSource, readReceiptRequestedBy, receiptIdentity, t, tComposer]);
 
   const ignoreReadReceipt = useCallback(async () => {
     setMdnHandledLocally(true);
     if (client && email) {
       // $MDNSent is the RFC 3503 flag every IMAP/JMAP client honours, so the
       // request is suppressed everywhere - not just locally.
-      try { await useEmailStore.getState().markEmailKeyword(client, email.id, '$mdnsent'); } catch { /* best effort */ }
+      try { await useEmailStore.getState().markEmailKeyword(client, email.id, '$mdnsent', blobSource ?? emailWriteSource(email, client)); } catch { /* best effort */ }
     }
-  }, [client, email]);
+  }, [client, email, blobSource]);
 
   // "always" mode: auto-send the MDN once when the message is opened. A
   // failure is not retried while the message stays open: the attempt itself

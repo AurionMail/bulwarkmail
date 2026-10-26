@@ -109,13 +109,13 @@ export function ProComposeTabBody({ tabId, data }: ProComposeTabBodyProps) {
       // viewer and list reflect the action (same behaviour as inline compose).
       if (data.sourceEmailId && (data.mode === 'reply' || data.mode === 'replyAll')) {
         try {
-          await useEmailStore.getState().markEmailKeyword(client, data.sourceEmailId, '$answered');
+          await useEmailStore.getState().markEmailKeyword(client, data.sourceEmailId, '$answered', data.sourceEmailSource ?? undefined);
         } catch (e) {
           debug.error('Failed to set $answered keyword:', e);
         }
       } else if (data.sourceEmailId && data.mode === 'forward') {
         try {
-          await useEmailStore.getState().markEmailKeyword(client, data.sourceEmailId, '$forwarded');
+          await useEmailStore.getState().markEmailKeyword(client, data.sourceEmailId, '$forwarded', data.sourceEmailSource ?? undefined);
         } catch (e) {
           debug.error('Failed to set $forwarded keyword:', e);
         }
@@ -148,7 +148,7 @@ export function ProComposeTabBody({ tabId, data }: ProComposeTabBodyProps) {
       if (!submitted) throw error;
       toast.error(t('notifications.error_sending'));
     }
-  }, [client, sendEmail, closeTab, data.sourceEmailId, data.mode, t, handleScheduledSendCreated, refreshCurrentMailbox]);
+  }, [client, sendEmail, closeTab, data.sourceEmailId, data.sourceEmailSource, data.mode, t, handleScheduledSendCreated, refreshCurrentMailbox]);
 
   const handleClose = useCallback(() => {
     closeTab(tabIdRef.current);

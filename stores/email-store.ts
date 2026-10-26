@@ -426,7 +426,12 @@ interface EmailStore {
    * is left as the server has it.
    */
   patchEmailKeywords: (client: IJMAPClient, emailId: string, changes: Record<string, boolean>, emailKey?: string) => Promise<boolean>;
-  markEmailKeyword: (client: IJMAPClient, emailId: string, keyword: string) => Promise<void>;
+  /**
+   * `source`: the login and account the message was read in, taken where the
+   * reply, forward or receipt started. By the time it is sent another folder
+   * may be open, with another account's message under the same id.
+   */
+  markEmailKeyword: (client: IJMAPClient, emailId: string, keyword: string, source?: EmailWriteSource) => Promise<void>;
   /** `emailKey` (emailKeyFor of the row) picks the right row when the id repeats across accounts. */
   setEmailKeywordsLocal: (emailId: string, keywords: Record<string, boolean>, emailKey?: string) => void;
 
@@ -1195,6 +1200,9 @@ export interface EmailBlobContext {
   clientAccountId?: string;
 }
 
+/** The login and JMAP account (undefined: the login's own) a message is in. */
+export type EmailWriteSource = Pick<EmailBlobContext, 'clientAccountId' | 'accountId'>;
+
 export function resolveEmailBlobContext(
   email: Pick<Email, 'sourceClientAccountId' | 'sourceAccountId'> | null,
   passedClient: IJMAPClient | null,
@@ -1217,6 +1225,12 @@ export function resolveEmailBlobContext(
     accountId,
     clientAccountId: clientAccountId ?? (client === auth.client ? auth.activeAccountId ?? undefined : undefined),
   };
+}
+
+/** The login and account of a row in the view on screen now (resolveEmailBlobContext). */
+export function emailWriteSource(email: Pick<Email, 'sourceClientAccountId' | 'sourceAccountId'>, passedClient: IJMAPClient | null): EmailWriteSource {
+  const { clientAccountId, accountId } = resolveEmailBlobContext(email, passedClient);
+  return { clientAccountId, accountId };
 }
 
 // List requests can finish after navigation. Never apply an old folder/tag
@@ -5001,7 +5015,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     return true;
   },
 
-  markEmailKeyword: async (client, emailId, keyword) => {
+  markEmailKeyword: async (client, emailId, keyword, source) => {
     // Single-flag counterpart of setEmailKeywords ($answered / $forwarded /
     // $mdnsent). Same routing, same reason: an unrouted write against the
     // reaching client's primary account is a silent no-op on a shared/group
@@ -5010,7 +5024,9 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       && !(await emailHooks.onBeforeEmailKeywordChange.intercept({ emailIds: [emailId], added: [keyword], removed: [] }))) {
       return;
     }
-    const { client: actionClient, accountId } = resolveKeywordActionContext(emailId, client);
+    const { client: actionClient, accountId } = source?.clientAccountId
+      ? { client: stampedClient(source.clientAccountId), accountId: source.accountId }
+      : resolveKeywordActionContext(emailId, client);
     await actionClient.setKeyword(emailId, keyword, accountId);
     void emailHooks.onEmailKeywordChange.emit({ emailIds: [emailId], added: [keyword], removed: [] });
   },

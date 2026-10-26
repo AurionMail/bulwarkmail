@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Email, Mailbox } from '@/lib/jmap/types';
 import { useAuthStore } from '@/stores/auth-store';
@@ -23,11 +23,19 @@ vi.mock('next/dynamic', () => ({ default: (load: () => Promise<React.ComponentTy
   };
 } }));
 vi.mock('@/components/email/email-viewer', () => ({
-  EmailViewer: ({ onArchive, onDelete }: { onArchive?: () => void; onDelete?: () => void }) => (
+  EmailViewer: ({ onArchive, onDelete, onReply }: { onArchive?: () => void; onDelete?: () => void; onReply?: () => void }) => (
     <div>
       <button onClick={() => onArchive?.()}>stub archive</button>
       <button onClick={() => onDelete?.()}>stub delete</button>
+      <button onClick={() => onReply?.()}>stub reply</button>
     </div>
+  ),
+}));
+vi.mock('@/components/email/email-composer', () => ({
+  EmailComposer: ({ onSend }: { onSend?: (data: unknown) => Promise<void> }) => (
+    <button onClick={() => { void onSend?.({ to: ['c@example.org'], cc: [], bcc: [], subject: 'Re: GRP one', body: 'Hi' }); }}>
+      stub send
+    </button>
   ),
 }));
 vi.mock('@/components/layout/sidebar', () => ({ Sidebar: () => null }));
@@ -116,6 +124,27 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+});
+
+describe('a reply to a message of the group\'s Inbox', () => {
+  it('flags the group\'s message as answered after the own Inbox, with its own message of that id, was opened', async () => {
+    const setKeyword = vi.fn().mockResolvedValue(undefined);
+    client.setKeyword = setKeyword;
+    const sendEmail = vi.fn().mockResolvedValue({ scheduled: false });
+    const unstamped = { ...groupMessage, sourceClientAccountId: undefined, sourceAccountId: undefined } as Email;
+    useEmailStore.setState({ selectedMailbox: 'ce:a', selectedKeyword: null, emails: [unstamped], selectedEmail: unstamped, sendEmail } as never);
+
+    render(<MailApp />);
+    fireEvent.click(await screen.findByText('stub reply', {}, { timeout: 5000 }));
+    const send = await screen.findByText('stub send', {}, { timeout: 5000 });
+    // The own Inbox is opened while the reply is written.
+    const ownMessage = { ...unstamped, subject: 'A own one', mailboxIds: { a: true } } as Email;
+    act(() => { useEmailStore.setState({ selectedMailbox: 'a', emails: [ownMessage], selectedEmail: null } as never); });
+    fireEvent.click(send);
+
+    await waitFor(() => expect(setKeyword).toHaveBeenCalled());
+    expect(setKeyword).toHaveBeenCalledWith('eaaaaab', '$answered', 'ce');
+  });
 });
 
 describe('the open message of a group account in a tag view', () => {

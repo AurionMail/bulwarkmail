@@ -5,6 +5,7 @@ import { NoLongerScheduledError, SubmissionQuotaError } from '@/lib/jmap/client'
 import { toast } from '@/stores/toast-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useSettingsStore } from '@/stores/settings-store';
+import { useEmailStore } from '@/stores/email-store';
 
 // Sending from the viewer - quick reply, "Send now" / "Reschedule" of a
 // scheduled message, and read receipts - used to fail silently or as an
@@ -209,6 +210,21 @@ describe('viewer send failures', () => {
         rerender(<EmailViewer email={makeEmail({ headers: MDN_HEADERS })} {...props} />);
       });
       await waitFor(() => expect(sendReadReceipt).toHaveBeenCalledTimes(2));
+    });
+
+    // A group's message with an id the own account uses too: $MDNSent goes
+    // to the login and account the message was read in.
+    it('flags the message in the login and account it was read in', async () => {
+      sendReadReceipt.mockResolvedValue(undefined);
+      const markEmailKeyword = vi.fn().mockResolvedValue(undefined);
+      useEmailStore.setState({ markEmailKeyword } as never);
+      const client = useAuthStore.getState().client;
+      const blobSource = { client, clientAccountId: 'login-a', accountId: 'ce' };
+
+      render(<EmailViewer email={makeEmail({ headers: MDN_HEADERS })} blobSource={blobSource as never} mailboxes={mailboxes} selectedMailbox="inbox" currentMailboxRole="inbox" />);
+
+      await waitFor(() => expect(markEmailKeyword).toHaveBeenCalled());
+      expect(markEmailKeyword).toHaveBeenCalledWith(client, 'e1', '$mdnsent', expect.objectContaining({ clientAccountId: 'login-a', accountId: 'ce' }));
     });
   });
 });

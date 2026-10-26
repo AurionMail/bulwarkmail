@@ -182,3 +182,36 @@ describe('Pro email view - editing a draft', () => {
     expect(openComposeTab.mock.calls[0][0].initialData).toMatchObject({ draftLocalAccountId: 'userb@v10', draftAccountId: undefined });
   });
 });
+
+describe('Pro email view - replying and forwarding', () => {
+  beforeEach(() => {
+    viewerProps.current = null;
+    openComposeTab.mockClear();
+    store.fetched = null;
+  });
+
+  // The answered message is flagged once the reply is sent, by then perhaps
+  // with another folder open that has a message with the same id.
+  it.each(['onReply', 'onReplyAll', 'onForward'])('names the login and account of the message (%s)', async (action) => {
+    const client = { getEmail: vi.fn().mockResolvedValue(DRAFT), getUsername: () => 'userb@example.org', getAccountId: () => 'e' };
+    render(<ProEmailView emailId="eaaaaab" client={client as never} clientAccountId="userb@v10" accountId="c" onClose={vi.fn()} />);
+    await waitFor(() => expect(viewerProps.current?.email).toBeTruthy());
+
+    (viewerProps.current![action] as () => void)();
+
+    expect(openComposeTab.mock.calls[0][0]).toMatchObject({
+      sourceEmailId: 'eaaaaab',
+      sourceEmailSource: { clientAccountId: 'userb@v10', accountId: 'c' },
+    });
+  });
+
+  it('names the active login for a message read through it', async () => {
+    auth.state.client = { getEmail: vi.fn(), getUsername: () => 'userb@example.org', getAccountId: () => 'e' };
+    render(<ProEmailView emailId="eaaaaab" onClose={vi.fn()} />);
+    await waitFor(() => expect(viewerProps.current?.email).toBeTruthy());
+
+    (viewerProps.current!.onReply as () => void)();
+
+    expect(openComposeTab.mock.calls[0][0].sourceEmailSource).toEqual({ clientAccountId: 'userb@v016', accountId: undefined });
+  });
+});

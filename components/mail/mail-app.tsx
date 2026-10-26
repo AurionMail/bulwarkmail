@@ -37,7 +37,7 @@ import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
 import { messagePriorityFromHeaders, type MessagePriority } from "@/lib/message-priority";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
-import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, resolveEmailActionContext, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, isAggregateListView, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
+import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, resolveEmailActionContext, emailWriteSource, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, isAggregateListView, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
 import { findDraftIdentityIdForLogin, listRowSource, resolveDraftSource, type DraftSource } from "@/lib/draft-source";
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
@@ -1268,6 +1268,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       initialData: pendingDraft,
       prefill: composerPrefill,
       sourceEmailId: selectedEmail?.id ?? null,
+      sourceEmailSource: selectedEmail ? emailWriteSource(selectedEmail, client) : null,
       title,
     });
 
@@ -2072,6 +2073,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // Mountain View keeps its compose window open while other mail is read
   // (#1229), so the open message is no longer the one being replied to.
   const composerSourceEmail = usePinnedPerSession(composerSessionId, selectedEmail);
+  // Its login and account, pinned too: the folder open at send time may hold
+  // another account's message under the same id.
+  const composerSource = usePinnedPerSession(composerSessionId, selectedEmail ? emailWriteSource(selectedEmail, client) : undefined);
 
   const handleEmailSend = async (data: {
     to: string[];
@@ -2160,7 +2164,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (originalEmailId && (effectiveMode === 'reply' || effectiveMode === 'replyAll' || effectiveMode === 'forward')) {
         const keyword = effectiveMode === 'forward' ? '$forwarded' : '$answered';
         try {
-          await useEmailStore.getState().markEmailKeyword(client, originalEmailId, keyword);
+          await useEmailStore.getState().markEmailKeyword(client, originalEmailId, keyword, composerSource);
         } catch (e) {
           debug.error(`Failed to set ${keyword} keyword:`, e);
         }
@@ -3935,6 +3939,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       : undefined;
 
     const originalEmailId = selectedEmail.id;
+    const originalSource = emailWriteSource(selectedEmail, client);
     const sendDelaySeconds = useSettingsStore.getState().sendDelaySeconds;
     let delayedUntil: string | undefined;
     if (sendDelaySeconds > 0) {
@@ -3982,7 +3987,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     // scheduled early-return so a delayed (undo-send) reply is flagged too. (#985)
     {
       try {
-        await useEmailStore.getState().markEmailKeyword(client, originalEmailId, '$answered');
+        await useEmailStore.getState().markEmailKeyword(client, originalEmailId, '$answered', originalSource);
       } catch (e) {
         debug.error('Failed to set $answered keyword:', e);
       }
