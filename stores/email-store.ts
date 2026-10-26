@@ -952,10 +952,12 @@ async function applyEmailDeltaNow(client: IJMAPClient, newState: string | null, 
     const threadEmailsCache = new Map(state.threadEmailsCache);
     for (const tid of changedThreadIds) threadEmailsCache.delete(tid);
     const totalEmails = Math.max(state.totalEmails - (current.length - next.length), next.length);
+    // A total below the rows shown is one the server did not give (#1364).
+    const totalKnown = state.totalEmails >= current.length;
     return {
       emails: next,
       totalEmails,
-      hasMoreEmails: state.hasMoreEmails && next.length < totalEmails,
+      hasMoreEmails: state.hasMoreEmails && (!totalKnown || next.length < totalEmails),
       threadEmailsCache,
       emailListSync: state.emailListSync?.mailboxId === sync.mailboxId ? { ...sync, state: delta.newState } : state.emailListSync,
     };
@@ -6506,7 +6508,11 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         // hasMore should reflect whether there are still more emails beyond
         // what we have loaded, using the fresh total from the server. The
         // Unread section's rows are not part of that total.
-        const hasMore = merged.length - sectionRows.length < effectiveTotal;
+        // A total below the page it came with is one the server did not give:
+        // then only a full page tells that more may follow (#1364).
+        const hasMore = (result.total || 0) >= result.emails.length
+          ? merged.length - sectionRows.length < effectiveTotal
+          : result.hasMore;
 
         // Invalidate thread email caches for threads whose composition changed
         // so expanded threads pick up new/removed emails.
@@ -8002,7 +8008,13 @@ if (typeof window !== 'undefined') {
                 // by it, so without it an "unread first" page shows by date
                 // until the live fetch lands and re-sorts it.
                 ...(Array.isArray(snap.listOrder) ? { listOrder: sanitizeSortLevels(snap.listOrder) } : {}),
-                ...(isEmailListSync(snap.emailListSync, snapMailbox) ? { emailListSync: snap.emailListSync } : {}),
+                // Without the baseline the live load re-reads the page and its
+                // total: a saved total that doesn't cover the rows is wrong, and
+                // a catch-up from the baseline would keep it, and "no more
+                // mail" with it, across reloads (#1364).
+                ...(isEmailListSync(snap.emailListSync, snapMailbox) && !(snap.totalEmails < snap.emails.length)
+                  ? { emailListSync: snap.emailListSync }
+                  : {}),
               }
             : {}),
         });
