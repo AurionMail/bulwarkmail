@@ -1011,6 +1011,16 @@ function resolveActionClient(passedClient: IJMAPClient): IJMAPClient {
 }
 
 /**
+ * The client of the login a row is stamped with. Never another login's once
+ * that one is gone: its ids name other messages there.
+ */
+function stampedClient(clientAccountId: string): IJMAPClient {
+  const client = useAuthStore.getState().getClientForAccount(clientAccountId);
+  if (!client) throw new Error('Not connected');
+  return client;
+}
+
+/**
  * Thrown by archive actions when no archive folder exists in the target
  * account. Callers map it to the translated
  * `email_viewer.archive_mailbox_not_found` toast; a silent return left the
@@ -1434,10 +1444,10 @@ export function resolveEmailActionContext(
   // The stamps are honored whenever present, not only while `isUnifiedView`
   // is set: a stamped email (e.g. the open selection) can outlive the flag, and
   // bare ids collide across accounts, so the active client is never a safe
-  // substitute for the stamped one. (#847)
+  // substitute for the stamped one, also not once that login is gone. (#847)
   if (email.sourceClientAccountId && email.sourceAccountId) {
     return {
-      client: useAuthStore.getState().getClientForAccount(email.sourceClientAccountId) ?? resolveActionClient(passedClient),
+      client: stampedClient(email.sourceClientAccountId),
       mailboxes: sourceMailboxes(state, email.sourceClientAccountId, email.sourceAccountId) ?? state.mailboxes,
       accountId: email.sourceAccountId,
     };
@@ -5883,7 +5893,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       targetMailboxId = cachedData.originalMailboxId;
       accountId = cachedData.accountId;
       if (cachedData.sourceClientAccountId) {
-        undoClient = useAuthStore.getState().getClientForAccount(cachedData.sourceClientAccountId) ?? undoClient;
+        undoClient = stampedClient(cachedData.sourceClientAccountId);
       }
       get().spamUndoCache.delete(emailKey ?? emailId);
     } else {
@@ -5894,7 +5904,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const listEmail = get().emails.find(isTarget);
       let inboxMailboxes = mailboxes;
       if (listEmail?.sourceClientAccountId && listEmail?.sourceAccountId) {
-        undoClient = useAuthStore.getState().getClientForAccount(listEmail.sourceClientAccountId) ?? undoClient;
+        undoClient = stampedClient(listEmail.sourceClientAccountId);
         accountId = listEmail.sourceAccountId;
         inboxMailboxes = sourceMailboxes(get(), listEmail.sourceClientAccountId, listEmail.sourceAccountId) ?? mailboxes;
       } else {
@@ -6666,11 +6676,17 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     // or marks an unrelated message that happens to share the id. So a thread
     // in a shared or group folder has to name its account.
     const groups = new Map<IJMAPClient, Map<string | undefined, string[]>>();
-    for (const id of unreadIds) {
-      const { client: actionClient, accountId } = resolveEmailActionContext(allEmailMap.get(id)!, client);
-      const byAccount = groups.get(actionClient) ?? new Map<string | undefined, string[]>();
-      byAccount.set(accountId, [...(byAccount.get(accountId) ?? []), id]);
-      groups.set(actionClient, byAccount);
+    try {
+      for (const id of unreadIds) {
+        const { client: actionClient, accountId } = resolveEmailActionContext(allEmailMap.get(id)!, client);
+        const byAccount = groups.get(actionClient) ?? new Map<string | undefined, string[]>();
+        byAccount.set(accountId, [...(byAccount.get(accountId) ?? []), id]);
+        groups.set(actionClient, byAccount);
+      }
+    } catch (error) {
+      // A message of a login that is gone: the thread stays unread.
+      console.error('Failed to mark thread as read:', error);
+      return;
     }
 
     // Mark all as read on the server. A message the server refused (a
