@@ -52,6 +52,7 @@ interface AgendaEvent {
   accountId: string;
   uid: string | null;
   title: string;
+  /** An instant (`...Z`); for an all-day event the date-time without an offset. */
   start: string;
   end: string;
   allDay: boolean;
@@ -95,6 +96,20 @@ function eventEnd(event: Partial<CalendarEvent>): Date {
   const start = eventStart(event);
   if (!event.duration) return start;
   return new Date(start.getTime() + parseDurationMinutes(event.duration) * 60000);
+}
+
+/**
+ * An all-day event's start and end as the dates it is stored with
+ * (`2026-10-27T00:00:00`, no offset). As an instant it would be midnight in
+ * this server's time zone, which anyone west of the server reads as the day
+ * before; `new Date()` reads a date-time without an offset as the viewer's
+ * own local time.
+ */
+function allDayRange(event: Partial<CalendarEvent>): { start: string; end: string } {
+  const start = (event.start as string).slice(0, 19);
+  const startMs = Date.parse(`${start}Z`);
+  const end = new Date(startMs + parseDurationMinutes(event.duration) * 60000).toISOString().slice(0, 19);
+  return { start, end };
 }
 
 function firstLocationName(event: Partial<CalendarEvent>): string | null {
@@ -318,8 +333,9 @@ export async function POST(request: NextRequest) {
           accountId: e.accountId,
           uid: e.uid ?? null,
           title: (e.title ?? '').trim() || '(no title)',
-          start: eventStart(e).toISOString(),
-          end: eventEnd(e).toISOString(),
+          ...(e.showWithoutTime
+            ? allDayRange(e)
+            : { start: eventStart(e).toISOString(), end: eventEnd(e).toISOString() }),
           allDay: !!e.showWithoutTime,
           status: e.status ?? null,
           color: e.color || cal?.color || null,
