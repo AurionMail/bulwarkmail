@@ -542,6 +542,8 @@
       "authentication_missing_info": "此邀请不包括经过验证的邮件身份验证。如果有任何异常情况，请与组织者确认详细信息。",
       "sender_mismatch_info": "此邀请是从 {sender} 发送的，而日历数据中列出的组织者是 {organizer}。",
       "sender_mismatch_unverified_info": "此邀请是从 {sender} 发送的，而日历数据中列出的组织者是 {organizer}，且无法验证该消息。",
+      "attendee_mismatch_info": "此回复是从 {sender} 发送的，而日历数据中作出回复的参与者是 {attendee}。",
+      "attendee_mismatch_unverified_info": "此回复是从 {sender} 发送的，而日历数据中作出回复的参与者是 {attendee}，且无法验证该消息。",
       "organizer_role": "您是此活动的组织者",
       "your_response": "您的回复：{status}",
       "response_needed": "待回复",

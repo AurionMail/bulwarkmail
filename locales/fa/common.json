@@ -567,6 +567,8 @@
       "authentication_missing_info": "این دعوت‌نامه فاقد احراز هویت ایمیل است.",
       "sender_mismatch_info": "این دعوت‌نامه از {sender} ارسال شده ولی برگزارکننده {organizer} است.",
       "sender_mismatch_unverified_info": "از {sender} ارسال شده ولی برگزارکننده {organizer} است و پیام تأیید نشد.",
+      "attendee_mismatch_info": "این پاسخ از {sender} ارسال شده ولی شرکت‌کننده‌ی پاسخ‌دهنده {attendee} است.",
+      "attendee_mismatch_unverified_info": "این پاسخ از {sender} ارسال شده ولی شرکت‌کننده‌ی پاسخ‌دهنده {attendee} است و پیام تأیید نشد.",
       "organizer_role": "شما برگزارکننده این رویداد هستید",
       "your_response": "پاسخ شما: {status}",
       "response_needed": "نیاز به پاسخ",

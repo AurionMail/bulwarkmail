@@ -540,6 +540,8 @@
       "authentication_missing_info": "Cette invitation ne comporte pas d'authentification de messagerie vérifiée. Vérifiez les détails avec l'organisateur si quelque chose semble inhabituel.",
       "sender_mismatch_info": "Cette invitation a été envoyée depuis {sender}, alors que l'organisateur indiqué dans les données du calendrier est {organizer}.",
       "sender_mismatch_unverified_info": "Cette invitation a été envoyée depuis {sender}, alors que l'organisateur indiqué dans les données du calendrier est {organizer}, et le message n'a pas pu être vérifié.",
+      "attendee_mismatch_info": "Cette réponse a été envoyée depuis {sender}, alors que le participant qui répond dans les données du calendrier est {attendee}.",
+      "attendee_mismatch_unverified_info": "Cette réponse a été envoyée depuis {sender}, alors que le participant qui répond dans les données du calendrier est {attendee}, et le message n'a pas pu être vérifié.",
       "organizer_role": "Vous organisez cet événement",
       "your_response": "Votre réponse : {status}",
       "response_needed": "Réponse requise",

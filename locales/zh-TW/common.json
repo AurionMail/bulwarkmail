@@ -567,6 +567,8 @@
       "authentication_missing_info": "這封邀請未包含已驗證的郵件身分驗證資訊。若有任何可疑之處，請向主辦人確認詳細資料。",
       "sender_mismatch_info": "這封邀請是由 {sender} 傳送，但行事曆資料中列出的主辦人是 {organizer}。",
       "sender_mismatch_unverified_info": "這封邀請是由 {sender} 傳送，但行事曆資料中列出的主辦人是 {organizer}，而且無法驗證這封郵件。",
+      "attendee_mismatch_info": "這則回覆是由 {sender} 傳送，但行事曆資料中回覆的參與者是 {attendee}。",
+      "attendee_mismatch_unverified_info": "這則回覆是由 {sender} 傳送，但行事曆資料中回覆的參與者是 {attendee}，而且無法驗證這封郵件。",
       "organizer_role": "您是此活動的主辦人",
       "your_response": "您的回覆：{status}",
       "response_needed": "待回覆",

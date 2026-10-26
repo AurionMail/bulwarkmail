@@ -567,6 +567,8 @@
       "authentication_missing_info": "Denne invitation inkluderer ikke bekræftet mailgodkendelse. Bekræft detaljerne med organisatoren, hvis noget ser usædvanligt ud.",
       "sender_mismatch_info": "Denne invitation blev sendt fra {sender}, mens organisatoren i kalenderdataene er {organizer}.",
       "sender_mismatch_unverified_info": "Denne invitation blev sendt fra {sender}, mens organisatoren i kalenderdataene er {organizer}, og beskeden kunne ikke bekræftes.",
+      "attendee_mismatch_info": "Dette svar blev sendt fra {sender}, mens deltageren, der svarer i kalenderdataene, er {attendee}.",
+      "attendee_mismatch_unverified_info": "Dette svar blev sendt fra {sender}, mens deltageren, der svarer i kalenderdataene, er {attendee}, og beskeden kunne ikke bekræftes.",
       "organizer_role": "Du organiserer denne begivenhed",
       "your_response": "Dit svar: {status}",
       "response_needed": "Kræver svar",

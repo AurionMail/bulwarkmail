@@ -542,6 +542,8 @@
       "authentication_missing_info": "이 초대장에는 확인된 메일 인증 정보가 없어요. 이상한 점이 있다면 주최자에게 확인해 보세요.",
       "sender_mismatch_info": "초대장은 {sender}님이 보냈지만, 캘린더에 등록된 주최자는 {organizer}님이에요.",
       "sender_mismatch_unverified_info": "초대장은 {sender}님이 보냈지만 캘린더의 주최자는 {organizer}님이며, 메시지를 검증할 수 없어요.",
+      "attendee_mismatch_info": "이 응답은 {sender}님이 보냈지만 캘린더에서 응답한 참석자는 {attendee}님이에요.",
+      "attendee_mismatch_unverified_info": "이 응답은 {sender}님이 보냈지만 캘린더에서 응답한 참석자는 {attendee}님이며, 메시지를 검증할 수 없어요.",
       "organizer_role": "내가 주최하는 일정이에요",
       "your_response": "내 응답: {status}",
       "response_needed": "응답이 필요해요",

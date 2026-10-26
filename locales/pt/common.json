@@ -540,6 +540,8 @@
       "authentication_missing_info": "Este convite não inclui autenticação de email verificada. Confirme os detalhes com o organizador se algo parecer incomum.",
       "sender_mismatch_info": "Este convite foi enviado por {sender}, enquanto o organizador indicado nos dados do calendário é {organizer}.",
       "sender_mismatch_unverified_info": "Este convite foi enviado por {sender}, enquanto o organizador indicado nos dados do calendário é {organizer}, e a mensagem não pôde ser verificada.",
+      "attendee_mismatch_info": "Esta resposta foi enviada por {sender}, enquanto o participante que responde nos dados do calendário é {attendee}.",
+      "attendee_mismatch_unverified_info": "Esta resposta foi enviada por {sender}, enquanto o participante que responde nos dados do calendário é {attendee}, e a mensagem não pôde ser verificada.",
       "organizer_role": "Você organiza este evento",
       "your_response": "Sua resposta: {status}",
       "response_needed": "Resposta necessária",

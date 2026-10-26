@@ -540,6 +540,8 @@
       "authentication_missing_info": "Diese Einladung enthält keine verifizierte Mail-Authentifizierung. Bestätigen Sie die Details mit dem Organisator, wenn etwas ungewöhnlich wirkt.",
       "sender_mismatch_info": "Diese Einladung wurde von {sender} gesendet, während der in den Kalenderdaten angegebene Organisator {organizer} ist.",
       "sender_mismatch_unverified_info": "Diese Einladung wurde von {sender} gesendet, während der in den Kalenderdaten angegebene Organisator {organizer} ist, und die Nachricht konnte nicht verifiziert werden.",
+      "attendee_mismatch_info": "Diese Antwort wurde von {sender} gesendet, während der antwortende Teilnehmer in den Kalenderdaten {attendee} ist.",
+      "attendee_mismatch_unverified_info": "Diese Antwort wurde von {sender} gesendet, während der antwortende Teilnehmer in den Kalenderdaten {attendee} ist, und die Nachricht konnte nicht verifiziert werden.",
       "organizer_role": "Sie organisieren dieses Ereignis",
       "your_response": "Ihre Antwort: {status}",
       "response_needed": "Antwort ausstehend",

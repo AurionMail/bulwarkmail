@@ -567,6 +567,8 @@
       "authentication_missing_info": "Táto pozvánka neobsahuje overené overenie správ. Potvrdte podrobnosti s organizátorom.",
       "sender_mismatch_info": "Táto pozvánka bola odoslaná od {sender}, zatiaľčo organizátor v dátach kalendára je {organizer}.",
       "sender_mismatch_unverified_info": "Táto pozvánka bola odoslaná od {sender}, zatiaľčo organizátor v dátach kalendára je {organizer}, a správu sa nepodarilo overiť.",
+      "attendee_mismatch_info": "Táto odpoveď bola odoslaná od {sender}, zatiaľ čo odpovedajúci účastník v dátach kalendára je {attendee}.",
+      "attendee_mismatch_unverified_info": "Táto odpoveď bola odoslaná od {sender}, zatiaľ čo odpovedajúci účastník v dátach kalendára je {attendee}, a správu sa nepodarilo overiť.",
       "organizer_role": "Ste organizátorom tejto udalosti",
       "your_response": "Vaša odpoveď: {status}",
       "response_needed": "Vyžaduje odpoveď",

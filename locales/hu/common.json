@@ -567,6 +567,8 @@
       "authentication_missing_info": "Ez a meghívó nem tartalmaz ellenőrzött e-mail hitelesítést. Ha bármi szokatlannak tűnik, erősítsd meg a részleteket a szervezővel.",
       "sender_mismatch_info": "Ezt a meghívót {sender} küldte, míg a naptár adatokban szereplő szervező {organizer}.",
       "sender_mismatch_unverified_info": "Ezt a meghívót {sender} küldte, míg a naptár adatokban szereplő szervező {organizer}, és az üzenet nem volt hitelesíthető.",
+      "attendee_mismatch_info": "Ezt a választ {sender} küldte, míg a naptár adatokban válaszoló résztvevő {attendee}.",
+      "attendee_mismatch_unverified_info": "Ezt a választ {sender} küldte, míg a naptár adatokban válaszoló résztvevő {attendee}, és az üzenet nem volt hitelesíthető.",
       "organizer_role": "Te szervezed ezt az eseményt",
       "your_response": "Válaszod: {status}",
       "response_needed": "Válasz szükséges",

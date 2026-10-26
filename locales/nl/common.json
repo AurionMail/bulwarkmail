@@ -540,6 +540,8 @@
       "authentication_missing_info": "Deze uitnodiging bevat geen geverifieerde mailauthenticatie. Controleer de details bij de organisator als iets ongewoon lijkt.",
       "sender_mismatch_info": "Deze uitnodiging is verzonden vanaf {sender}, terwijl de organisator in de kalendergegevens {organizer} is.",
       "sender_mismatch_unverified_info": "Deze uitnodiging is verzonden vanaf {sender}, terwijl de organisator in de kalendergegevens {organizer} is, en het bericht kon niet worden geverifieerd.",
+      "attendee_mismatch_info": "Dit antwoord is verzonden vanaf {sender}, terwijl de antwoordende deelnemer in de kalendergegevens {attendee} is.",
+      "attendee_mismatch_unverified_info": "Dit antwoord is verzonden vanaf {sender}, terwijl de antwoordende deelnemer in de kalendergegevens {attendee} is, en het bericht kon niet worden geverifieerd.",
       "organizer_role": "U organiseert dit evenement",
       "your_response": "Uw reactie: {status}",
       "response_needed": "Reactie vereist",

@@ -567,6 +567,8 @@
       "authentication_missing_info": "لا تتضمن هذه الدعوة مصادقة بريد موثّقة. تأكد من التفاصيل مع المنظّم إذا بدا أي شيء غير معتاد.",
       "sender_mismatch_info": "أُرسلت هذه الدعوة من {sender}، بينما المنظّم المدرج في بيانات التقويم هو {organizer}.",
       "sender_mismatch_unverified_info": "أُرسلت هذه الدعوة من {sender}، بينما المنظّم المدرج في بيانات التقويم هو {organizer}، ولم يتم التحقق من الرسالة.",
+      "attendee_mismatch_info": "أُرسل هذا الرد من {sender}، بينما الحاضر المجيب في بيانات التقويم هو {attendee}.",
+      "attendee_mismatch_unverified_info": "أُرسل هذا الرد من {sender}، بينما الحاضر المجيب في بيانات التقويم هو {attendee}، ولم يتم التحقق من الرسالة.",
       "organizer_role": "أنت منظّم هذا الحدث",
       "your_response": "ردّك: {status}",
       "response_needed": "بحاجة إلى رد",

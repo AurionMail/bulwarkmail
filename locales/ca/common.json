@@ -567,6 +567,8 @@
       "authentication_missing_info": "Aquesta invitació no inclou autenticació de correu verificada. Confirmeu els detalls amb l'organitzador si alguna cosa sembla estranya.",
       "sender_mismatch_info": "Aquesta invitació s'ha enviat des de {sender}, mentre que l'organitzador indicat a les dades del calendari és {organizer}.",
       "sender_mismatch_unverified_info": "Aquesta invitació s'ha enviat des de {sender}, mentre que l'organitzador indicat a les dades del calendari és {organizer}, i no s'ha pogut verificar el missatge.",
+      "attendee_mismatch_info": "Aquesta resposta s'ha enviat des de {sender}, mentre que l'assistent que respon a les dades del calendari és {attendee}.",
+      "attendee_mismatch_unverified_info": "Aquesta resposta s'ha enviat des de {sender}, mentre que l'assistent que respon a les dades del calendari és {attendee}, i no s'ha pogut verificar el missatge.",
       "organizer_role": "Vós organitzeu aquest esdeveniment",
       "your_response": "La vostra resposta: {status}",
       "response_needed": "Cal resposta",

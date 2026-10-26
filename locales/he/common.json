@@ -488,6 +488,8 @@
       "authentication_missing_info": "הזמנה זו אינה כוללת אימות דואר מאומת. אשר את הפרטים עם המארגן אם משהו נראה חריג.",
       "sender_mismatch_info": "הזמנה זו נשלחה מ-{sender}, בעוד שהמארגן הרשום בנתוני היומן הוא{organizer}.",
       "sender_mismatch_unverified_info": "הזמנה זו נשלחה מ-{sender}, בעוד שהמארגן הרשום בנתוני היומן הוא{organizer}, ולא ניתן לאמת את ההודעה.",
+      "attendee_mismatch_info": "תגובה זו נשלחה מ-{sender}, בעוד שהמשתתף המשיב בנתוני היומן הוא {attendee}.",
+      "attendee_mismatch_unverified_info": "תגובה זו נשלחה מ-{sender}, בעוד שהמשתתף המשיב בנתוני היומן הוא {attendee}, ולא ניתן לאמת את ההודעה.",
       "organizer_role": "אתה מארגן את האירוע הזה",
       "your_response": "תגובתך:{status}",
       "response_needed": "צריך תגובה",

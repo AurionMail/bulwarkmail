@@ -542,6 +542,8 @@
       "authentication_missing_info": "Bu davet doğrulanmış posta kimlik doğrulaması içermiyor. Bir şey olağandışı görünüyorsa ayrıntıları organizatörle teyit edin.",
       "sender_mismatch_info": "Bu davet {sender} tarafından gönderildi; ancak takvim verisinde organizatör olarak {organizer} listeleniyor.",
       "sender_mismatch_unverified_info": "Bu davet {sender} tarafından gönderildi; ancak takvim verisinde organizatör olarak {organizer} listeleniyor ve ileti doğrulanamadı.",
+      "attendee_mismatch_info": "Bu yanıt {sender} tarafından gönderildi; ancak takvim verisinde yanıtlayan katılımcı olarak {attendee} listeleniyor.",
+      "attendee_mismatch_unverified_info": "Bu yanıt {sender} tarafından gönderildi; ancak takvim verisinde yanıtlayan katılımcı olarak {attendee} listeleniyor ve ileti doğrulanamadı.",
       "organizer_role": "Bu etkinliği siz düzenliyorsunuz",
       "your_response": "Yanıtınız: {status}",
       "response_needed": "Yanıt gerekiyor",

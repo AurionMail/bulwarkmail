@@ -567,6 +567,8 @@
       "authentication_missing_info": "Această invitație nu include autentificarea verificată a adresei de e-mail. Confirmați detaliile cu organizatorul dacă ceva pare neobișnuit.",
       "sender_mismatch_info": "Această invitație a fost trimisă de la {sender}, în timp ce organizatorul menționat în datele din calendar este {organizer}.",
       "sender_mismatch_unverified_info": "Această invitație a fost trimisă de la adresa {sender}, în timp ce organizatorul menționat în datele din calendar este {organizer}, iar mesajul nu a putut fi verificat.",
+      "attendee_mismatch_info": "Acest răspuns a fost trimis de la adresa {sender}, în timp ce participantul care răspunde în datele din calendar este {attendee}.",
+      "attendee_mismatch_unverified_info": "Acest răspuns a fost trimis de la adresa {sender}, în timp ce participantul care răspunde în datele din calendar este {attendee}, iar mesajul nu a putut fi verificat.",
       "organizer_role": "Tu organizezi acest eveniment",
       "your_response": "Răspunsul dvs.: {status}",
       "response_needed": "Necesită răspuns",

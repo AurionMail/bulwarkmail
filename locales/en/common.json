@@ -567,6 +567,8 @@
       "authentication_missing_info": "This invitation does not include verified mail authentication. Confirm the details with the organizer if anything looks unusual.",
       "sender_mismatch_info": "This invitation was sent from {sender}, while the organizer listed in the calendar data is {organizer}.",
       "sender_mismatch_unverified_info": "This invitation was sent from {sender}, while the organizer listed in the calendar data is {organizer}, and the message could not be verified.",
+      "attendee_mismatch_info": "This response was sent from {sender}, while the attendee answering in the calendar data is {attendee}.",
+      "attendee_mismatch_unverified_info": "This response was sent from {sender}, while the attendee answering in the calendar data is {attendee}, and the message could not be verified.",
       "organizer_role": "You organize this event",
       "your_response": "Your response: {status}",
       "response_needed": "Needs response",

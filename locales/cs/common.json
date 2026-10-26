@@ -542,6 +542,8 @@
       "authentication_missing_info": "Tato pozvánka neobsahuje ověření zprávy. Pokud se vám cokoli zdá neobvyklé, potvrďte si podrobnosti s organizátorem.",
       "sender_mismatch_info": "Tato pozvánka byla odeslána od {sender}, zatímco organizátor v datech kalendáře je {organizer}.",
       "sender_mismatch_unverified_info": "Tato pozvánka byla odeslána od {sender}, zatímco organizátor v datech kalendáře je {organizer}, a zprávu se nepodařilo ověřit.",
+      "attendee_mismatch_info": "Tato odpověď byla odeslána od {sender}, zatímco odpovídající účastník v datech kalendáře je {attendee}.",
+      "attendee_mismatch_unverified_info": "Tato odpověď byla odeslána od {sender}, zatímco odpovídající účastník v datech kalendáře je {attendee}, a zprávu se nepodařilo ověřit.",
       "organizer_role": "Jste organizátorem této události",
       "your_response": "Vaše odpověď: {status}",
       "response_needed": "Vyžaduje odpověď",

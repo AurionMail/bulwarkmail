@@ -542,6 +542,8 @@
       "authentication_missing_info": "Šim uzaicinājumam nav apstiprinātas autentifikācijas.",
       "sender_mismatch_info": "Uzaicinājumu nosūtīja {sender}, bet organizators ir {organizer}.",
       "sender_mismatch_unverified_info": "Uzaicinājumu nosūtīja {sender}, bet norādītais organizators ir {organizer}, un ziņojumu nevarēja pārbaudīt.",
+      "attendee_mismatch_info": "Atbildi nosūtīja {sender}, bet atbildošais dalībnieks ir {attendee}.",
+      "attendee_mismatch_unverified_info": "Atbildi nosūtīja {sender}, bet atbildošais dalībnieks ir {attendee}, un ziņojumu nevarēja pārbaudīt.",
       "organizer_role": "Jūs esat šī pasākuma organizators",
       "your_response": "Jūsu atbilde: {status}",
       "response_needed": "Nepieciešama atbilde",

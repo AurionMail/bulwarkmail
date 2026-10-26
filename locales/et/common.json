@@ -567,6 +567,8 @@
       "authentication_missing_info": "Sellel kutsel puudub kinnitatud e-posti autentimine. Kui midagi tundub kahtlane, kontrolli üksikasju korraldajaga.",
       "sender_mismatch_info": "See kutse saadeti aadressilt {sender}, kuid kalendriandmetes märgitud korraldaja on {organizer}.",
       "sender_mismatch_unverified_info": "See kutse saadeti aadressilt {sender}, kuid kalendriandmetes märgitud korraldaja on {organizer}, ning kirja ei õnnestunud kinnitada.",
+      "attendee_mismatch_info": "See vastus saadeti aadressilt {sender}, kuid kalendriandmetes vastav osaleja on {attendee}.",
+      "attendee_mismatch_unverified_info": "See vastus saadeti aadressilt {sender}, kuid kalendriandmetes vastav osaleja on {attendee}, ning kirja ei õnnestunud kinnitada.",
       "organizer_role": "Sina oled selle sündmuse korraldaja",
       "your_response": "Sinu vastus: {status}",
       "response_needed": "Vajab vastust",

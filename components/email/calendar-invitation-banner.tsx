@@ -155,6 +155,16 @@ function getTrustMessage(
         sender: trustAssessment.senderEmail ?? '',
         organizer: trustAssessment.organizerEmail ?? '',
       });
+    case 'attendee_mismatch':
+      return t('attendee_mismatch_info', {
+        sender: trustAssessment.senderEmail ?? '',
+        attendee: trustAssessment.attendeeEmail ?? '',
+      });
+    case 'attendee_mismatch_unverified':
+      return t('attendee_mismatch_unverified_info', {
+        sender: trustAssessment.senderEmail ?? '',
+        attendee: trustAssessment.attendeeEmail ?? '',
+      });
     default:
       return null;
   }

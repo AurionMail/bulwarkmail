@@ -567,6 +567,8 @@
       "authentication_missing_info": "Denne invitasjonen har ingen bekreftet e-postautentisering. Avklar detaljene med arrangøren hvis noe ser uvanlig ut.",
       "sender_mismatch_info": "Denne invitasjonen ble sendt fra {sender}, mens arrangøren som er oppført i kalenderdataene er {organizer}.",
       "sender_mismatch_unverified_info": "Denne invitasjonen ble sendt fra {sender}, mens arrangøren som er oppført i kalenderdataene er {organizer}, og meldingen kunne ikke bekreftes.",
+      "attendee_mismatch_info": "Dette svaret ble sendt fra {sender}, mens deltakeren som svarer i kalenderdataene er {attendee}.",
+      "attendee_mismatch_unverified_info": "Dette svaret ble sendt fra {sender}, mens deltakeren som svarer i kalenderdataene er {attendee}, og meldingen kunne ikke bekreftes.",
       "organizer_role": "Du er arrangør for denne hendelsen",
       "your_response": "Ditt svar: {status}",
       "response_needed": "Svar kreves",

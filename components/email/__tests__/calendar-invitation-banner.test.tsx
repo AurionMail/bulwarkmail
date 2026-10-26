@@ -97,6 +97,7 @@ vi.mock('next-intl', () => ({
       actor_note: 'Note: {comment}',
       actor_unknown: 'Someone',
       sender_mismatch_unverified_info: 'This invitation was sent from {sender}, while the organizer listed in the calendar data is {organizer}, and the message could not be verified.',
+      attendee_mismatch_unverified_info: 'This response was sent from {sender}, while the attendee answering in the calendar data is {attendee}, and the message could not be verified.',
       action_failed: 'Could not complete that calendar action.',
       proposal_applied: 'Proposed changes applied.',
       proposed_changes: 'Proposed changes',
@@ -888,6 +889,32 @@ describe('CalendarInvitationBanner', () => {
 
     expect(screen.queryByText('Apply proposed changes')).toBeNull();
     expect(mocks.calendarState.updateEvent).not.toHaveBeenCalled();
+  });
+
+  it("checks a reply's sender against the attendee who answers, not the organizer", async () => {
+    const reply = {
+      uid: 'uid-14', title: 'Sync', start: '2026-03-27T09:00:00Z', duration: 'PT1H',
+      organizerCalendarAddress: 'mailto:user@example.com',
+      participants: {
+        a: { '@type': 'Participant', calendarAddress: 'mailto:user@example.com', roles: { owner: true, attendee: true }, participationStatus: 'accepted' },
+        b: { '@type': 'Participant', calendarAddress: 'mailto:alice@example.com', roles: { attendee: true }, participationStatus: 'accepted' },
+      },
+    };
+    mocks.clientMock.parseCalendarEvents.mockResolvedValue([reply]);
+    const replyFrom = (id: string, from: string) => makeEmail({
+      id, from: [{ email: from }],
+      attachments: [{ partId: '1', blobId: `blob-${id}`, size: 256, type: 'text/calendar; method=REPLY', name: 'reply.ics' }],
+    });
+
+    const { unmount } = render(<CalendarInvitationBanner email={replyFrom('email-14', 'alice@example.com')} />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Sync' })).toBeInTheDocument());
+    expect(screen.queryByText(/was sent from/)).toBeNull();
+    unmount();
+
+    render(<CalendarInvitationBanner email={replyFrom('email-15', 'mallory@evil.example')} />);
+    await waitFor(() => expect(screen.getByText(
+      'This response was sent from mallory@evil.example, while the attendee answering in the calendar data is alice@example.com, and the message could not be verified.',
+    )).toBeInTheDocument());
   });
 
   it('lets a proposal from an attendee Stalwart lists by calendar address be applied', async () => {

@@ -540,6 +540,8 @@
       "authentication_missing_info": "この招待には検証済みのメール認証がありません。不審な点があれば主催者に詳細を確認してください。",
       "sender_mismatch_info": "この招待は {sender} から送信されましたが、カレンダーデータ上の主催者は {organizer} です。",
       "sender_mismatch_unverified_info": "この招待は {sender} から送信されましたが、カレンダーデータ上の主催者は {organizer} であり、メッセージも検証できませんでした。",
+      "attendee_mismatch_info": "この返信は {sender} から送信されましたが、カレンダーデータ上で返信している参加者は {attendee} です。",
+      "attendee_mismatch_unverified_info": "この返信は {sender} から送信されましたが、カレンダーデータ上で返信している参加者は {attendee} であり、メッセージも検証できませんでした。",
       "organizer_role": "あなたがこのイベントの主催者です",
       "your_response": "あなたの返答: {status}",
       "response_needed": "返答が必要です",
