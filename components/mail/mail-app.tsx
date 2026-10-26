@@ -37,7 +37,7 @@ import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
 import { messagePriorityFromHeaders, type MessagePriority } from "@/lib/message-priority";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
-import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, resolveEmailActionContext, emailWriteSource, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, isAggregateListView, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
+import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, resolveEmailActionContext, emailWriteSource, emailLinkSource, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, isAggregateListView, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
 import { findDraftIdentityIdForLogin, listRowSource, resolveDraftSource, type DraftSource } from "@/lib/draft-source";
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
@@ -830,15 +830,23 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
   const buildMailUrl = useCallback((state: NavSnapshot) => {
     if (isEmbedded || proInterfaceActive) return null;
-    const path = appPath(
+    const open = useEmailStore.getState().selectedEmail;
+    const shown = open && (open.id === state.emailId || (!!state.threadId && open.threadId === state.threadId)) ? open : null;
+    // The shared account of the open message, so a reload opens it again
+    // (#1351). Not another login's: a reload must not switch the login.
+    const source = shown ? emailLinkSource(shown) : null;
+    return appPath(
       buildMailPath(
-        { mailboxId: state.mailboxId, emailId: state.emailId, threadId: state.threadId },
+        {
+          mailboxId: state.mailboxId, emailId: state.emailId, threadId: state.threadId,
+          ownerAccountId: source && !source.loginId ? source.ownerAccountId : null,
+          // Keep the marker while fullscreen is active, so reloading the dragged-out
+          // tab reopens the message fullscreen instead of in the normal layout.
+          fullscreen: fullscreenReading,
+        },
         useEmailStore.getState().mailboxes,
       ),
     );
-    // Keep the marker while fullscreen is active, so reloading the dragged-out
-    // tab reopens the message fullscreen instead of in the normal layout.
-    return fullscreenReading && state.emailId ? `${path}?view=fullscreen` : path;
   }, [isEmbedded, proInterfaceActive, fullscreenReading]);
 
   useBrowserNavigation({
@@ -1700,6 +1708,22 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const deepLinkHandledRef = useRef(false);
   const mailAppMountedRef = useRef(false);
   useEffect(() => { mailAppMountedRef.current = true; return () => { mailAppMountedRef.current = false; }; }, []);
+  // Point the list at a folder that actually holds a linked message, so the
+  // pane behind it shows real context and "back" lands somewhere useful.
+  const showInOwningFolder = async (activeClient: Parameters<typeof fetchEmails>[0], email: Email) => {
+    const state = useEmailStore.getState();
+    const owning = Object.keys(email.mailboxIds ?? {}).find((id) =>
+      state.mailboxes.some((mb) => mb.id === id || mb.originalId === id),
+    );
+    if (owning && owning !== state.selectedMailbox) {
+      const mailbox = state.mailboxes.find((mb) => mb.id === owning || mb.originalId === owning);
+      if (mailbox) {
+        await fetchEmails(activeClient, mailbox.id, { background: true });
+        selectMailbox(mailbox.id);
+        selectEmail(email);
+      }
+    }
+  };
   const applyMailDeepLink = async (link: MailDeepLink, opts?: { onLoad?: boolean }) => {
     // The folder list before an account switch, if one happened: until the
     // new mailbox's folders arrive the store still holds these (or nothing).
@@ -1767,8 +1791,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       // In the Pro shell a message permalink opens as its own fullscreen
       // email tab - the tab body fetches the message and retitles itself.
       if (isEmbedded) {
+        // A shared account's message is fetched from that account through
+        // the active login (#1351).
+        const loginId = link.ownerAccountId ? useAuthStore.getState().activeAccountId ?? undefined : undefined;
         useProTabStore.getState().openEmailTab({
-          accountId: '',
+          accountId: link.ownerAccountId ?? '',
+          ...(loginId ? { clientAccountId: loginId } : {}),
           emailId: link.id,
           mailboxId: null,
           title: t('common.loading'),
@@ -1777,25 +1805,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       }
       setLoadingEmail(true);
       try {
-        const email = await fetchEmailContent(activeClient, link.id);
+        const email = await fetchEmailContent(activeClient, link.id, link.ownerAccountId);
         if (!email) {
           toast.error(t('deep_link.message_not_found'));
           return;
         }
-        // Point the list at a folder that actually holds the message, so the
-        // pane behind it shows real context and "back" lands somewhere useful.
-        const state = useEmailStore.getState();
-        const owning = Object.keys(email.mailboxIds ?? {}).find((id) =>
-          state.mailboxes.some((mb) => mb.id === id || mb.originalId === id),
-        );
-        if (owning && owning !== state.selectedMailbox) {
-          const mailbox = state.mailboxes.find((mb) => mb.id === owning || mb.originalId === owning);
-          if (mailbox) {
-            await fetchEmails(activeClient, mailbox.id, { background: true });
-            selectMailbox(mailbox.id);
-            selectEmail(email);
-          }
-        }
+        await showInOwningFolder(activeClient, email);
         if (link.fullscreen && !isMobile) {
           // The owning-folder branch above may have skipped selecting (the
           // folder was already current) - fullscreen needs the message open.
@@ -1816,10 +1831,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const openSeq = ++conversationOpenSeqRef.current;
     const source: EmailBlobContext = {
       client: activeClient, clientAccountId: useAuthStore.getState().activeAccountId ?? undefined,
+      accountId: link.ownerAccountId,
     };
     setLoadingEmail(true);
     try {
-      const threadEmails = await activeClient.getThreadEmails(link.id);
+      const threadEmails = await activeClient.getThreadEmails(link.id, link.ownerAccountId);
       if (openSeq !== conversationOpenSeqRef.current) return;
       const [group] = groupEmailsByThread(threadEmails);
       if (!group) {
@@ -1832,7 +1848,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         setConversationEmails(threadEmails);
         setActiveView('viewer');
       } else {
-        await fetchEmailContent(activeClient, group.latestEmail.id);
+        const email = await fetchEmailContent(activeClient, group.latestEmail.id, link.ownerAccountId);
+        // A shared account's conversation needs its folder open: the open
+        // message is acted on in the account of the folder on screen.
+        if (email && link.ownerAccountId) await showInOwningFolder(activeClient, email);
         if (isTablet) setTabletListVisible(false);
       }
     } finally {

@@ -111,7 +111,7 @@ import { useDeviceDetection } from "@/hooks/use-media-query";
 import { useIsPaneScoped } from "@/hooks/use-pane-context";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAccountStore } from "@/stores/account-store";
-import { useEmailStore, resolveEmailBlobContext, emailWriteSource, type EmailBlobContext } from "@/stores/email-store";
+import { useEmailStore, resolveEmailBlobContext, emailWriteSource, emailLinkSource, type EmailBlobContext } from "@/stores/email-store";
 import { useThemeStore } from "@/stores/theme-store";
 import { EmailIdentityBadge } from "./email-identity-badge";
 import { UnsubscribeBanner } from "./unsubscribe-banner";
@@ -4461,7 +4461,7 @@ export function EmailViewer({
                 <button
                   role="menuitem"
                   onClick={() => {
-                    void copyLink(buildMailPath({ mailboxId: null, emailId: email.id, threadId: null }));
+                    void copyLink(buildMailPath({ mailboxId: null, emailId: email.id, threadId: null, ...emailLinkSource(email) }));
                     setMoreMenuOpen(false);
                     setMoreMenuSub(null);
                   }}

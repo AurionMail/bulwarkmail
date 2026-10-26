@@ -335,7 +335,8 @@ interface EmailStore {
   // times; later calls are no-ops while a prior one is in flight.
   prefetchInitialData: (client: IJMAPClient) => Promise<void>;
   loadMoreEmails: (client: IJMAPClient) => Promise<void>;
-  fetchEmailContent: (client: IJMAPClient, emailId: string) => Promise<Email | null>;
+  /** `ownerAccountId`: the JMAP account a link names for the message (#1351). */
+  fetchEmailContent: (client: IJMAPClient, emailId: string, ownerAccountId?: string) => Promise<Email | null>;
   fetchQuota: (client: IJMAPClient) => Promise<void>;
   sendEmail: (client: IJMAPClient, to: string[], subject: string, body: string, cc?: string[], bcc?: string[], identityId?: string, fromEmail?: string, draftId?: string, fromName?: string, htmlBody?: string, attachments?: Array<{ blobId: string; name: string; type: string; size: number; disposition?: 'attachment' | 'inline'; cid?: string }>, inReplyTo?: string[], references?: string[], delayedUntil?: string, envelopeMailFrom?: string, options?: { requestReadReceipt?: boolean; requestDsn?: boolean; requireTls?: boolean; priority?: MessagePriority; localAccountId?: string; draftAccountId?: string }) => Promise<SendEmailResult>;
   sendRawEmail: (client: IJMAPClient, rawMimeBlob: Blob, identityId: string, delayedUntil?: string, envelopeRecipients?: string[]) => Promise<SendEmailResult>;
@@ -1233,6 +1234,20 @@ export function resolveEmailBlobContext(
 export function emailWriteSource(email: Pick<Email, 'sourceClientAccountId' | 'sourceAccountId'>, passedClient: IJMAPClient | null): EmailWriteSource {
   const { clientAccountId, accountId } = resolveEmailBlobContext(email, passedClient);
   return { clientAccountId, accountId };
+}
+
+/**
+ * What a link to a row in the view on screen names besides its id, as ids
+ * repeat across accounts and logins (#1351): the JMAP account when it is not
+ * the login's own, the login when it is not the active one.
+ */
+export function emailLinkSource(email: Pick<Email, 'sourceClientAccountId' | 'sourceAccountId'>): { ownerAccountId: string | null; loginId: string | null } {
+  const auth = useAuthStore.getState();
+  const { client, accountId, clientAccountId } = resolveEmailBlobContext(email, auth.client);
+  return {
+    ownerAccountId: accountId && accountId !== client?.getAccountId() ? accountId : null,
+    loginId: clientAccountId && clientAccountId !== auth.activeAccountId ? clientAccountId : null,
+  };
 }
 
 // List requests can finish after navigation. Never apply an old folder/tag
@@ -3831,15 +3846,22 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     }
   },
 
-  fetchEmailContent: async (client, emailId) => {
+  fetchEmailContent: async (client, emailId, ownerAccountId) => {
     try {
       // Route to the owning account. In aggregate views (All Mail, unified,
       // cross-account) the selected mailbox is virtual, so derive the client +
       // accountId from the email itself (handles shared/group accounts); fall
       // back to the selected-mailbox shared-folder logic for normal views.
       const selected = get().selectedEmail;
-      const listEmail = selected?.id === emailId ? selected : get().emails.find(e => e.id === emailId);
-      const { client: actionClient, accountId } = resolveEmailBlobContext(listEmail ?? null, client);
+      let listEmail = selected?.id === emailId ? selected : get().emails.find(e => e.id === emailId);
+      let { client: actionClient, accountId } = resolveEmailBlobContext(listEmail ?? null, client);
+      // A link names the account of a message outside the login's own; a
+      // listed row with its id from another account is not that message.
+      if (ownerAccountId && accountId !== ownerAccountId) {
+        listEmail = undefined;
+        actionClient = client;
+        accountId = ownerAccountId;
+      }
       if (!actionClient) throw new Error('No connected client for email source');
 
       const email = await actionClient.getEmail(emailId, accountId);
