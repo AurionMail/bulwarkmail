@@ -2241,8 +2241,20 @@ export const useAuthStore = create<AuthState>()(
             return;
           }
 
-          // Client not in memory - sign out fully instead.
-          // Trying to async-restore during logout caused the original bug.
+          // Client not in memory. Trying to async-restore during logout caused
+          // the original bug. An account signed in before this page load (the
+          // one being signed out was added after an OAuth redirect or a reload
+          // of the add-account page) was simply never restored here: reload,
+          // and the usual restore picks it up.
+          if (!nextAccount.hasError && !nextAccount.awaitingSignIn) {
+            accountStore.setActiveAccount(nextAccount.id);
+            set({ activeAccountId: nextAccount.id, serverUrl: nextAccount.serverUrl, username: nextAccount.username });
+            await clearSlotCredentials(slot, wasOAuth);
+            replaceWindowLocation(`${getPathPrefix()}/${getLocaleFromPath()}`);
+            return;
+          }
+
+          // Its restore failed - sign out fully instead.
           // A full logout leaves no account behind: drop every remaining one
           // and clear its slot too. Left in place, its remembered session
           // would sign the next visitor of this browser straight back in.
