@@ -12,6 +12,7 @@ import {
 import { configManager } from "./lib/admin/config-manager";
 import { getWopiEditorOrigins } from "./lib/wopi/discovery";
 import { detectSetupState } from "./lib/setup/state";
+import { isServedOverHttps } from "./lib/security/request-protocol";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
@@ -307,7 +308,7 @@ export async function proxy(request: NextRequest) {
   const appFrameOrigins = sidebarAppsEnabled
     ? parseAppFrameOrigins(pickAppFrameOriginsCookie(
         (name) => request.cookies.get(name)?.value,
-        request.nextUrl.protocol === "https:" || request.headers.get("x-forwarded-proto") === "https",
+        isServedOverHttps(request),
       ))
     : [];
 
@@ -412,11 +413,12 @@ export async function proxy(request: NextRequest) {
 
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("X-XSS-Protection", "0");
-  // Only on a request that arrived over TLS (directly or via the reverse
-  // proxy's X-Forwarded-Proto): a plain-http dev or LAN install must not be
-  // pinned to https by a header it cannot honour. No includeSubDomains, which
-  // would speak for the operator's other hosts.
-  if (request.nextUrl.protocol === "https:" || request.headers.get("x-forwarded-proto") === "https") {
+  // Only on a request that arrived over TLS (directly, via the reverse
+  // proxy's X-Forwarded-Proto, or as COOKIE_SECURE=true declares): a
+  // plain-http dev or LAN install must not be pinned to https by a header it
+  // cannot honour. No includeSubDomains, which would speak for the operator's
+  // other hosts.
+  if (isServedOverHttps(request)) {
     response.headers.set("Strict-Transport-Security", "max-age=63072000");
   }
   response.headers.set(

@@ -191,6 +191,44 @@ describe('frame-ancestors of the mail UI', () => {
   });
 });
 
+// A same-site sibling host can plant the unprefixed Sidebar Apps cookie; only
+// the __Host- one is trusted over HTTPS. Behind a TLS proxy that sends no
+// X-Forwarded-Proto the request looks like plain HTTP, so COOKIE_SECURE=true
+// has to count as HTTPS here too (GHSA-cjm9-m826-mh78).
+describe('Sidebar Apps frame-src cookie', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  const frameSrcWith = async (url: string, cookie: string, extra: Record<string, string> = {}) => {
+    const res = await proxy(new NextRequest(url + '/en/mail', {
+      headers: { 'sec-fetch-dest': 'document', 'sec-fetch-mode': 'navigate', 'sec-fetch-site': 'none', cookie, ...extra },
+    }));
+    return /frame-src [^;]*/.exec(res.headers.get('content-security-policy') ?? '')?.[0];
+  };
+  const planted = 'bulwark_app_frame_origins=https%3A%2F%2Fevil.example';
+
+  it('trusts the unprefixed cookie on plain HTTP', async () => {
+    expect(await frameSrcWith('http://localhost:3000', planted)).toContain('https://evil.example');
+  });
+
+  it('ignores the unprefixed cookie when COOKIE_SECURE=true, even without X-Forwarded-Proto', async () => {
+    vi.stubEnv('COOKIE_SECURE', 'true');
+    expect(await frameSrcWith('http://webmail:3000', planted)).not.toContain('evil.example');
+    expect(await frameSrcWith('http://webmail:3000', '__Host-bulwark_app_frame_origins=https%3A%2F%2Fboard.example'))
+      .toContain('https://board.example');
+  });
+
+  it('ignores the unprefixed cookie behind a chain of proxies that starts with https', async () => {
+    expect(await frameSrcWith('http://webmail:3000', planted, { 'x-forwarded-proto': 'https, http' }))
+      .not.toContain('evil.example');
+  });
+
+  it('sends HSTS when COOKIE_SECURE=true says the site is served over TLS', async () => {
+    vi.stubEnv('COOKIE_SECURE', 'true');
+    const res = await load('/en/mail');
+    expect(res.headers.get('strict-transport-security')).toBe('max-age=63072000');
+  });
+});
+
 describe('isStaticAssetPath', () => {
   it('matches only root-level files and the public/ asset folders', () => {
     for (const path of STATIC_ASSETS) expect(isStaticAssetPath(path), path).toBe(true);

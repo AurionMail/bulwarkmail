@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { isHttpsRequest } from '@/lib/security/request-protocol';
+import { secureCookieFlag } from '@/lib/security/request-protocol';
 import { NextResponse } from 'next/server';
 import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'node:crypto';
 import { getSessionSecret } from '@/lib/auth/session-secret';
@@ -130,9 +130,7 @@ export async function setAdminSessionCookie(request?: Request): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.set(ADMIN_SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.COOKIE_SECURE !== undefined
-      ? process.env.COOKIE_SECURE === 'true'
-      : request ? isHttpsRequest(request) : process.env.NODE_ENV === 'production',
+    secure: secureCookieFlag(request),
     sameSite: 'lax',
     path: '/',
     maxAge: getSessionTTL(),
