@@ -342,7 +342,8 @@ export function CalendarManagementSettings() {
         setDiscoveredCalDavUrls(next);
       })
       .catch(() => {
-        const fallbackWellKnown = new URL('/.well-known/caldav', serverUrl).toString();
+        // Below the server address, which may carry a path (https://host/stalwart).
+        const fallbackWellKnown = `${serverUrl.replace(/\/+$/, '')}/.well-known/caldav`;
         setDiscoveredCalDavUrls({});
         setWellKnownCalDavUrl(fallbackWellKnown);
       });
