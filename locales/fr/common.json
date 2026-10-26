@@ -1774,6 +1774,10 @@
         "signed_in": "Connecté à {count, plural, one {# compte} other {# comptes}} avec le mot de passe enregistré.",
         "sign_in_failed": "{count, plural, one {# mot de passe enregistré a été refusé} other {# mots de passe enregistrés ont été refusés}} : connectez-vous à ces comptes depuis la liste des comptes.",
         "deleted": "Liste enregistrée supprimée.",
+        "prompt_title": "Restaurer vos autres comptes ?",
+        "prompt_description": "Une liste de comptes est enregistrée pour {account}. Saisissez le mot de passe de la sauvegarde pour les ajouter à ce navigateur, ou faites-le plus tard dans les Paramètres.",
+        "prompt_not_now": "Plus tard",
+        "prompt_done": "Terminé",
         "errors": {
           "mismatch": "Les mots de passe ne correspondent pas.",
           "password_length": "Utilisez au moins 10 caractères.",

@@ -17,6 +17,8 @@ import { PluginAppEvents } from "@/components/providers/plugin-app-events";
 import { PluginOAuthCallbackListener } from "@/components/providers/plugin-oauth-callback-listener";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { PushNotificationPrompt } from "@/components/push-notification-prompt";
+import { AccountArchiveRestorePrompt } from "@/components/account-archive-prompt";
+import { IS_LITE } from "@/lib/lite";
 import { setRequestLocale } from "next-intl/server";
 import { locales } from "@/i18n/routing";
 import { generateLiteLocaleParams } from "@/lib/lite-static-params";
@@ -67,6 +69,8 @@ export default async function LocaleLayout({
                   <PluginAppEvents />
                   <PWAInstallPrompt />
                   <PushNotificationPrompt />
+                  {/* Lite is a static bundle: no server keeps an archive there. */}
+                  {!IS_LITE && <AccountArchiveRestorePrompt />}
                 </ProtocolLaunchHandlerProvider>
               </TourProvider>
             </EmbeddedBridgeProvider>
