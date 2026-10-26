@@ -524,7 +524,8 @@ interface EmailStore {
   loadMoreScheduledEmails: (client: IJMAPClient) => Promise<void>;
   cancelScheduledEmail: (client: IJMAPClient, submissionId: string, emailId?: string) => Promise<void>;
   cancelScheduledEmailForEdit: (client: IJMAPClient, email: ScheduledEmail | Email) => Promise<Email | null>;
-  rescheduleScheduledEmail: (client: IJMAPClient, submissionId: string, emailId: string, identityId: string, delayedUntil: string) => Promise<SendEmailResult>;
+  /** `accountId`: the row's scheduledAccountId. Submission ids repeat across accounts. */
+  rescheduleScheduledEmail: (client: IJMAPClient, submissionId: string, emailId: string, identityId: string, delayedUntil: string, accountId?: string) => Promise<SendEmailResult>;
   cancelUndoSend: (client: IJMAPClient, pending: PendingUndoSend) => Promise<Email | null>;
   clearPendingUndoSend: () => void;
   refreshScheduledMetadata: (client: IJMAPClient) => Promise<void>;
@@ -615,6 +616,11 @@ function annotateScheduledEmail(
     scheduledAccountId: scheduled.accountId,
     isScheduled: true,
   };
+}
+
+/** One scheduled send: submission and email ids repeat across accounts. */
+function isSameScheduledSend(a: ScheduledEmail, b: ScheduledEmail): boolean {
+  return a.emailSubmissionId === b.emailSubmissionId && a.scheduledAccountId === b.scheduledAccountId;
 }
 
 function shouldClearPendingUndoSend(pending: PendingUndoSend | null, scheduledEmails: ScheduledEmail[]): boolean {
@@ -7414,7 +7420,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const emailsPerPage = useSettingsStore.getState().emailsPerPage;
       const result = await client.getScheduledEmails(emailsPerPage, scheduledNextPosition);
       result.emails = await emailHooks.onEmailsFetched.transform(result.emails);
-      const merged = [...scheduledEmails, ...result.emails.filter(email => !scheduledEmails.some(existing => existing.id === email.id))];
+      const merged = [...scheduledEmails, ...result.emails.filter(email => !scheduledEmails.some(existing => isSameScheduledSend(existing, email)))];
       const pendingUndoSend = get().pendingUndoSend;
       set({
         scheduledEmails: merged,
@@ -7453,7 +7459,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       let totalByAccount: Record<string, number> = {};
       while (hasMore) {
         const page = await client.getScheduledEmails(emailsPerPage, position);
-        allEmails.push(...page.emails.filter(email => !allEmails.some(existing => existing.id === email.id)));
+        allEmails.push(...page.emails.filter(email => !allEmails.some(existing => isSameScheduledSend(existing, email))));
         total = page.total;
         totalByAccount = page.totalByAccount ?? totalByAccount;
         hasMore = page.hasMore && page.nextPosition > position;
@@ -7536,13 +7542,14 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     });
   },
 
-  rescheduleScheduledEmail: async (client, submissionId, emailId, identityId, delayedUntil) => {
+  rescheduleScheduledEmail: async (client, submissionId, emailId, identityId, delayedUntil, accountId) => {
     let result: SendEmailResult | undefined;
+    const inAccount = (candidate: string | undefined) => !accountId || !candidate || candidate === accountId;
     try {
-      const owner = get().scheduledEmails.find(email => email.emailSubmissionId === submissionId);
-      result = await client.rescheduleEmailSubmission(submissionId, emailId, identityId, delayedUntil, owner?.scheduledAccountId);
+      const owner = get().scheduledEmails.find(email => email.emailSubmissionId === submissionId && inAccount(email.scheduledAccountId));
+      result = await client.rescheduleEmailSubmission(submissionId, emailId, identityId, delayedUntil, accountId ?? owner?.scheduledAccountId);
       const pendingUndoSend = get().pendingUndoSend;
-      if (pendingUndoSend?.submissionId === submissionId) {
+      if (pendingUndoSend?.submissionId === submissionId && inAccount(pendingUndoSend.submissionAccountId)) {
         set({ pendingUndoSend: { ...pendingUndoSend, submissionId: result.emailSubmissionId || submissionId, sendAt: result.sendAt || delayedUntil } });
       }
       return result;
@@ -7550,7 +7557,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       // The original was put back under a new id; Undo has to cancel that one.
       if (error instanceof RescheduleRestoredError) {
         const pendingUndoSend = get().pendingUndoSend;
-        if (pendingUndoSend?.submissionId === submissionId) {
+        if (pendingUndoSend?.submissionId === submissionId && inAccount(pendingUndoSend.submissionAccountId)) {
           set({ pendingUndoSend: { ...pendingUndoSend, submissionId: error.restoredSubmissionId, sendAt: error.restoredSendAt || pendingUndoSend.sendAt } });
         }
       }
@@ -7558,7 +7565,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     } finally {
       await get().fetchScheduledEmails(client);
       if (result && get().selectedEmail?.id === emailId) {
-        const refreshed = get().scheduledEmails.find(email => email.id === emailId);
+        const refreshed = get().scheduledEmails.find(email => email.id === emailId && inAccount(email.scheduledAccountId));
         set(state => ({
           selectedEmail: refreshed || (state.selectedEmail ? {
             ...state.selectedEmail,

@@ -10892,7 +10892,8 @@ export class JMAPClient implements IJMAPClient {
     const submissions: EmailSubmission[] = [];
     // Which account each submission came from — needed to fetch its Email from
     // the right account below, and to route later cancel/reschedule calls.
-    const accountBySubmissionId = new Map<string, string>();
+    // Keyed by the record: submission and email ids repeat across accounts.
+    const accountBySubmission = new Map<EmailSubmission, string>();
     const primarySubmissionAccountId = this.getSubmissionAccountId();
 
     for (const submissionAccountId of submissionAccountIds) {
@@ -10933,7 +10934,7 @@ export class JMAPClient implements IJMAPClient {
               const sendAtTime = new Date(submission.sendAt).getTime();
               return Number.isFinite(sendAtTime) && sendAtTime > now;
             });
-          for (const submission of pending) accountBySubmissionId.set(submission.id, submissionAccountId);
+          for (const submission of pending) accountBySubmission.set(submission, submissionAccountId);
           submissions.push(...pending);
 
           rawPosition += ids.length;
@@ -10953,7 +10954,7 @@ export class JMAPClient implements IJMAPClient {
     // so a shared account's badge stays correct past the first page.
     const totalByAccount: Record<string, number> = {};
     for (const submission of submissions) {
-      const accountId = accountBySubmissionId.get(submission.id);
+      const accountId = accountBySubmission.get(submission);
       if (accountId) totalByAccount[accountId] = (totalByAccount[accountId] ?? 0) + 1;
     }
     const pageSubmissions = submissions.slice(position, position + limit);
@@ -10968,13 +10969,13 @@ export class JMAPClient implements IJMAPClient {
     // primary account returns nothing and the row would be dropped below.
     const emailIdsByAccount = new Map<string, string[]>();
     for (const submission of pageSubmissions) {
-      const accountId = accountBySubmissionId.get(submission.id) ?? this.accountId;
+      const accountId = accountBySubmission.get(submission) ?? this.accountId;
       const bucket = emailIdsByAccount.get(accountId);
       if (bucket) bucket.push(submission.emailId);
       else emailIdsByAccount.set(accountId, [submission.emailId]);
     }
 
-    const emailById = new Map<string, Email>();
+    const emailsByAccount = new Map<string, Map<string, Email>>();
     for (const [accountId, ids] of emailIdsByAccount) {
       const emailResponse = await this.request([
         ['Email/get', {
@@ -10993,23 +10994,26 @@ export class JMAPClient implements IJMAPClient {
       ]);
       const fetchedEmails = (emailResponse.methodResponses?.[0]?.[1]?.list ?? []) as Email[];
       await this.refetchTruncatedBodyValues(fetchedEmails, accountId);
-      for (const email of fetchedEmails) {
-        emailById.set(email.id, email);
-      }
+      emailsByAccount.set(accountId, new Map(fetchedEmails.map(email => [email.id, email])));
     }
     const emails = pageSubmissions
       .map((submission): ScheduledEmail | null => {
-        const email = emailById.get(submission.emailId);
+        const accountId = accountBySubmission.get(submission) ?? this.accountId;
+        const email = emailsByAccount.get(accountId)?.get(submission.emailId);
         if (!email || !submission.sendAt) return null;
         return {
           ...email,
+          // A group or shared account's row is stamped with its account, as in
+          // the merged views: it is read from there, and its message and
+          // thread ids repeat in the own account.
+          ...(accountId !== this.accountId ? { sourceAccountId: accountId } : {}),
           threadId: submission.threadId || email.threadId,
           scheduledSendAt: submission.sendAt,
           emailSubmissionId: submission.id,
           scheduledIdentityId: submission.identityId,
           scheduledUndoStatus: submission.undoStatus,
           scheduledDeliveryStatus: submission.deliveryStatus,
-          scheduledAccountId: accountBySubmissionId.get(submission.id),
+          scheduledAccountId: accountBySubmission.get(submission),
           isScheduled: true,
           isSmimeScheduled: isSmimeEmail(email),
         };

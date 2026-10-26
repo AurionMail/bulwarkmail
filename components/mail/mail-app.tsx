@@ -4319,6 +4319,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           fullEmail.emailSubmissionId = listEmail.emailSubmissionId;
           fullEmail.scheduledIdentityId = listEmail.scheduledIdentityId;
           fullEmail.scheduledUndoStatus = listEmail.scheduledUndoStatus;
+          fullEmail.scheduledAccountId = listEmail.scheduledAccountId;
           fullEmail.isScheduled = true;
           fullEmail.isSmimeScheduled = listEmail.isSmimeScheduled;
         }
@@ -5178,7 +5179,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   if (delayedUntil && client && email.emailSubmissionId && email.scheduledIdentityId) {
                     // The context menu does not wait for this; report here.
                     try {
-                      const result = await rescheduleScheduledEmail(client, email.emailSubmissionId, email.id, email.scheduledIdentityId, delayedUntil);
+                      const result = await rescheduleScheduledEmail(client, email.emailSubmissionId, email.id, email.scheduledIdentityId, delayedUntil, email.scheduledAccountId);
                       const refused = partlyRefusedWarning(result, tComposer);
                       if (refused) toast.warning(refused);
                     } catch (error) {
@@ -5499,7 +5500,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     }}
                     onRescheduleScheduled={async (delayedUntil) => {
                       if (client && selectedEmail?.emailSubmissionId && selectedEmail.scheduledIdentityId) {
-                        const result = await rescheduleScheduledEmail(client, selectedEmail.emailSubmissionId, selectedEmail.id, selectedEmail.scheduledIdentityId, delayedUntil);
+                        const result = await rescheduleScheduledEmail(client, selectedEmail.emailSubmissionId, selectedEmail.id, selectedEmail.scheduledIdentityId, delayedUntil, selectedEmail.scheduledAccountId);
                         const refused = partlyRefusedWarning(result, tComposer);
                         if (refused) toast.warning(refused);
                       }
