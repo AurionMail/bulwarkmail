@@ -15,6 +15,7 @@ import {
   type ApprovalEntry,
 } from '@/lib/admin/plugin-approvals';
 import { ExtensionPackageError, packageHash, readPluginPackage } from '@/lib/extension-package';
+import { MAX_PLUGIN_SIZE } from '@/lib/plugin-types';
 
 /**
  * GET /api/plugin-approval-status?pluginId=X&bundleHash=Y
@@ -43,6 +44,9 @@ async function resolveUsername(): Promise<string | null> {
   }
   return null;
 }
+
+// The largest package plus room for the multipart framing around it.
+const MAX_UPLOAD_BYTES = MAX_PLUGIN_SIZE + 64 * 1024;
 
 function isValidId(s: unknown): s is string {
   return typeof s === 'string' && /^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(s) && s.length <= 64;
@@ -85,6 +89,11 @@ export async function POST(request: NextRequest) {
     const { features } = configManager.getPolicy();
     if (!features.pluginsEnabled || !features.pluginsUploadEnabled || !features.requirePluginApproval) {
       return NextResponse.json({ error: 'Plugin approval requests are turned off' }, { status: 403 });
+    }
+
+    // formData() buffers the whole body; refuse what can't be a package first.
+    if (Number(request.headers.get('content-length') ?? 0) > MAX_UPLOAD_BYTES) {
+      return NextResponse.json({ error: 'Plugin package too large' }, { status: 413 });
     }
 
     // The request carries the package itself. The admin reviews the code

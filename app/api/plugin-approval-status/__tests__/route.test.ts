@@ -106,6 +106,27 @@ describe('POST /api/plugin-approval-status', () => {
     expect(bundles.size).toBe(0);
   });
 
+  it('refuses an upload larger than a package may be before reading it', async () => {
+    let read = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        read += 1;
+        controller.enqueue(new Uint8Array(1024 * 1024));
+        if (read >= 50) controller.close();
+      },
+    });
+    const res = await POST(new NextRequest('http://localhost/api/plugin-approval-status', {
+      method: 'POST',
+      body,
+      duplex: 'half',
+      headers: { 'content-type': 'multipart/form-data; boundary=x', 'content-length': String(50 * 1024 * 1024) },
+    } as ConstructorParameters<typeof NextRequest>[1]));
+
+    expect(res.status).toBe(413);
+    expect(read).toBeLessThanOrEqual(1);
+    expect(entries).toHaveLength(0);
+  });
+
   it('limits how many requests one user can have open', async () => {
     for (let i = 0; i < 10; i++) {
       expect((await submit(await zipOf({ ...MANIFEST, id: `p-${i}x` }))).status).toBe(200);
