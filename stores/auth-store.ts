@@ -2438,7 +2438,7 @@ export const useAuthStore = create<AuthState>()(
           // Cannot restore - remove the stale account and redirect to login
           evictAccount(accountId);
           accountStore.removeAccount(accountId);
-          void clearSlotCredentials(targetAccount.cookieSlot, false);
+          void clearSlotCredentials(targetAccount.cookieSlot, targetAccount.authMode === 'oauth');
 
           // Restore the previous account if still available
           if (state.activeAccountId && state.activeAccountId !== accountId) {
@@ -2712,10 +2712,11 @@ export const useAuthStore = create<AuthState>()(
                 return;
               }
               // Remove unrestorable accounts so the user is prompted to log in
-              // again rather than seeing a stale error entry forever.
+              // again rather than seeing a stale error entry forever. Its
+              // refresh token goes with it: nothing would use or revoke it.
               evictAccount(account.id);
               accountStore.removeAccount(account.id);
-              void clearSlotCredentials(account.cookieSlot, false);
+              void clearSlotCredentials(account.cookieSlot, account.authMode === 'oauth');
             }
           };
 
