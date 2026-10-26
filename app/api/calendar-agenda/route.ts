@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 import { logger } from '@/lib/logger';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
+import { loginClientAddress } from '@/lib/auth/client-address';
 import { fetchJmapSession, postJmap, rebaseApiUrl } from '@/lib/stalwart/jmap-api';
 import { normalizeCalendarEventLike } from '@/lib/calendar-event-normalization';
 import { RECURRENCE_BASE_PROPERTIES, hydrateRecurrenceInstances, isServerRecurrenceInstance } from '@/lib/recurrence-instances';
@@ -158,7 +159,7 @@ export async function POST(request: NextRequest) {
     // configured public hostname, which the host process may not be able to
     // resolve (the browser client rewrites those URLs back to the origin for
     // the same reason). Fall back to /.well-known/jmap for non-Stalwart servers.
-    const fetchOptions = { trusted: creds.trusted };
+    const fetchOptions = { trusted: creds.trusted, clientIp: loginClientAddress(request) };
     const session = await fetchJmapSession(creds.serverUrl, creds.authHeader, fetchOptions);
     if (!session) {
       return NextResponse.json({ error: 'JMAP session fetch failed' }, { status: 502 });

@@ -3,6 +3,7 @@ import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 import { logger } from '@/lib/logger';
 import { configManager } from '@/lib/admin/config-manager';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
+import { loginClientAddress } from '@/lib/auth/client-address';
 import { JmapRedirectError, fetchJmapSession, postJmap, rebaseApiUrl } from '@/lib/stalwart/jmap-api';
 import { DisallowedUrlError } from '@/lib/security/url-guard';
 import { UpstreamBodyTooLargeError, readTextCapped } from '@/lib/security/capped-body';
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.text();
 
-    const fetchOptions = { trusted: creds.trusted };
+    const fetchOptions = { trusted: creds.trusted, clientIp: loginClientAddress(request) };
     const directUrl = `${creds.serverUrl}/jmap/`;
     let response = await postJmap(directUrl, creds.authHeader, body, fetchOptions);
 

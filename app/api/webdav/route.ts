@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 import { logger } from '@/lib/logger';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
+import { forwardedClientHeaders, loginClientAddress } from '@/lib/auth/client-address';
 import { fetchJmapServer } from '@/lib/stalwart/server-fetch';
 import { DisallowedUrlError } from '@/lib/security/url-guard';
 import { UpstreamBodyTooLargeError, readBodyCapped, readTextCapped } from '@/lib/security/capped-body';
@@ -85,6 +86,7 @@ export async function POST(request: NextRequest) {
     // Build headers for the upstream request
     const upstreamHeaders: Record<string, string> = {
       'Authorization': creds.authHeader,
+      ...forwardedClientHeaders(loginClientAddress(request)),
     };
 
     // Forward relevant WebDAV headers

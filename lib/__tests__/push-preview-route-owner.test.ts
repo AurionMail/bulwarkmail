@@ -75,6 +75,7 @@ vi.mock('@/lib/security/url-guard', () => ({
 async function callRoute(accountId: string, emailId: string | null) {
   const { GET } = await import('@/app/api/push/preview/route');
   const request = {
+    headers: new Headers(),
     nextUrl: { searchParams: { get: (k: string) => (k === 'accountId' ? accountId : k === 'emailId' ? emailId : null) } },
   };
   const res = (await GET(request as unknown as Parameters<typeof GET>[0])) as unknown as {

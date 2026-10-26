@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 import { logger } from '@/lib/logger';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
+import { forwardedClientHeaders, loginClientAddress } from '@/lib/auth/client-address';
 import { fetchJmapServer } from '@/lib/stalwart/server-fetch';
 
 interface DiscoveryAccountRequest {
@@ -28,12 +29,14 @@ async function probeCalendarHome(
   authHeader: string,
   accountName: string,
   trusted: boolean,
+  clientIp: string,
 ): Promise<string | null> {
   const targetUrl = buildPublicUrl(serverUrl, `/dav/cal/${encodeURIComponent(accountName)}`);
   const response = await fetchJmapServer(targetUrl, {
     method: 'PROPFIND',
     headers: {
       Authorization: authHeader,
+      ...forwardedClientHeaders(clientIp),
       Depth: '0',
       'Content-Type': 'application/xml; charset=utf-8',
     },
@@ -93,7 +96,7 @@ export async function POST(request: NextRequest) {
 
       for (const candidate of candidates) {
         try {
-          url = await probeCalendarHome(creds.serverUrl, creds.authHeader, candidate, creds.trusted);
+          url = await probeCalendarHome(creds.serverUrl, creds.authHeader, candidate, creds.trusted, loginClientAddress(request));
           if (url) {
             resolvedAccount = candidate;
             break;

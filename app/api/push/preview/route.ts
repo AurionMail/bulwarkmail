@@ -10,6 +10,7 @@ import {
 } from '@/lib/stalwart/credentials';
 import { fetchJmapServer, isTrustedJmapServerUrl } from '@/lib/stalwart/server-fetch';
 import { rebaseApiUrl } from '@/lib/stalwart/jmap-api';
+import { forwardedClientHeaders, loginClientAddress } from '@/lib/auth/client-address';
 import { DisallowedUrlError } from '@/lib/security/url-guard';
 import { UPSTREAM_JSON_MAX_BYTES, UpstreamBodyTooLargeError, readJsonCapped } from '@/lib/security/capped-body';
 
@@ -42,7 +43,7 @@ interface ResolvedTarget {
 // (and a group account is listed by each member). When that leaves more than
 // one login, answer 'ambiguous' rather than guess: a wrong guess previews
 // another login's mail and opens it there.
-async function resolveTargetForAccount(accountId: string): Promise<ResolvedTarget | 'ambiguous' | null> {
+async function resolveTargetForAccount(accountId: string, forwarded: Record<string, string>): Promise<ResolvedTarget | 'ambiguous' | null> {
   const cookieStore = await cookies();
   const probes: Promise<{ target: ResolvedTarget; own: boolean } | null>[] = [];
   for (let slot = 0; slot < MAX_ACCOUNT_SLOTS; slot++) {
@@ -54,7 +55,7 @@ async function resolveTargetForAccount(accountId: string): Promise<ResolvedTarge
         try {
           const trusted = await isTrustedJmapServerUrl(serverUrl);
           const res = await fetchJmapServer(`${serverUrl}/.well-known/jmap`, {
-            headers: { Authorization: ctx.authHeader },
+            headers: { Authorization: ctx.authHeader, ...forwarded },
           }, trusted);
           if (!res.ok) return null;
           const session = (await readJsonCapped(res, UPSTREAM_JSON_MAX_BYTES)) as {
@@ -90,9 +91,9 @@ async function resolveTargetForAccount(accountId: string): Promise<ResolvedTarge
   return results.length > 1 ? 'ambiguous' : null;
 }
 
-async function resolveDefaultTarget(creds: StalwartCredentials): Promise<ResolvedTarget | null> {
+async function resolveDefaultTarget(creds: StalwartCredentials, forwarded: Record<string, string>): Promise<ResolvedTarget | null> {
   const sessionRes = await fetchJmapServer(`${creds.serverUrl}/.well-known/jmap`, {
-    headers: { Authorization: creds.authHeader },
+    headers: { Authorization: creds.authHeader, ...forwarded },
   }, creds.trusted);
   if (!sessionRes.ok) return null;
   const session = (await readJsonCapped(sessionRes, UPSTREAM_JSON_MAX_BYTES)) as {
@@ -129,11 +130,12 @@ export async function GET(request: NextRequest) {
     // asks for that one instead of guessing "newest unread in the Inbox" -
     // which is wrong whenever Sieve filed the new message into a folder.
     const requestedEmailId = request.nextUrl.searchParams.get('emailId');
+    const forwarded = forwardedClientHeaders(loginClientAddress(request));
 
     let target: ResolvedTarget | null = null;
     let authHeader: string;
     if (requestedAccountId) {
-      const resolved = await resolveTargetForAccount(requestedAccountId);
+      const resolved = await resolveTargetForAccount(requestedAccountId, forwarded);
       if (!resolved) {
         return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
       }
@@ -149,7 +151,7 @@ export async function GET(request: NextRequest) {
       if (!creds) {
         return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
       }
-      target = await resolveDefaultTarget(creds);
+      target = await resolveDefaultTarget(creds, forwarded);
       if (!target) {
         return NextResponse.json({ error: 'JMAP session failed' }, { status: 502 });
       }
@@ -163,6 +165,7 @@ export async function GET(request: NextRequest) {
       headers: {
         Authorization: authHeader,
         'Content-Type': 'application/json',
+        ...forwarded,
       },
       body: JSON.stringify({
         using: ['urn:ietf:params:jmap:core', 'urn:ietf:params:jmap:mail'],
@@ -259,6 +262,7 @@ export async function GET(request: NextRequest) {
       headers: {
         Authorization: authHeader,
         'Content-Type': 'application/json',
+        ...forwarded,
       },
       body: JSON.stringify(requestBody),
     }, trusted);

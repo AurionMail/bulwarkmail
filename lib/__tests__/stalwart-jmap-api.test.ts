@@ -1,11 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { postJmap, rebaseApiUrl, fetchJmapSession, JmapRedirectError } from '@/lib/stalwart/jmap-api';
 import { endlessResponse } from './helpers/endless-body';
+import { resetStoredCredentialBudgetForTests } from '@/lib/stalwart/stored-credential-budget';
 
 const realFetch = global.fetch;
 const mockedFetch = vi.fn();
 
 beforeEach(() => {
+  // A 401 below would keep 'Basic abc' from reaching the mock in later tests.
+  resetStoredCredentialBudgetForTests();
   mockedFetch.mockReset();
   global.fetch = mockedFetch as unknown as typeof fetch;
 });

@@ -71,6 +71,7 @@ async function callRoute(accountId: string) {
   const { GET } = await import('@/app/api/push/preview/route');
   const request = {
     nextUrl: { searchParams: { get: (k: string) => (k === 'accountId' ? accountId : k === 'emailId' ? 'e1' : null) } },
+    headers: new Headers(),
   };
   const res = (await GET(request as unknown as Parameters<typeof GET>[0])) as unknown as {
     status: number;
