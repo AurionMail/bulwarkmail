@@ -1466,9 +1466,9 @@ changes when you change it: to update, point \`resourceUrl\` at the new
 release's tag and run \`UpdateApps\`, which always downloads again.
 
 What a failed download does depends on the Stalwart version. On 0.16.23 the
-running bundle stays online, as on later 0.16 releases and on 1.0. Older 0.16
-releases and the 1.0 pre-releases unmount the Application and drop the cached
-copy. The next restart,
+running bundle stays online, as on later 0.16 releases and on 1.0.
+Older 0.16 releases and the 1.0 pre-releases
+unmount the Application and drop the cached copy. The next restart,
 \`UpdateApps\` or reload of the Applications (the other nodes of a cluster
 reload them after \`UpdateApps\`) downloads \`resourceUrl\` again and mounts the
 bundle once that works. On every version, a restart after the cached copy
