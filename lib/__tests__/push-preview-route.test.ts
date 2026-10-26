@@ -214,3 +214,18 @@ it('names no message when the delivered one cannot be read, rather than another'
     status: 200, body: { email: null, unreadTotal: 3, slot: 0 },
   });
 });
+
+it('sends the method calls to the server address it was configured with, not the public one', async () => {
+  // Stalwart advertises its own public hostname in apiUrl, which the webmail
+  // may not reach when it talks to the server over an internal address (#627).
+  fetchJmapServer.mockReset();
+  mockJmap();
+  const session = { ...SESSION, apiUrl: 'https://public.example.org/jmap/' };
+  const reply = fetchJmapServer.getMockImplementation()!;
+  fetchJmapServer.mockImplementation(async (url: string, init?: { body?: string }) =>
+    url.endsWith('/.well-known/jmap') ? jsonResponse(session) : reply(url, init));
+
+  expect((await callRoute('a')).status).toBe(200);
+  const posted = fetchJmapServer.mock.calls.map(([url]) => url).filter((url) => !url.endsWith('/.well-known/jmap'));
+  expect(posted).toEqual(['https://mail.example.com/jmap/', 'https://mail.example.com/jmap/']);
+});

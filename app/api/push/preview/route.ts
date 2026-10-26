@@ -9,6 +9,7 @@ import {
   type StalwartCredentials,
 } from '@/lib/stalwart/credentials';
 import { fetchJmapServer, isTrustedJmapServerUrl } from '@/lib/stalwart/server-fetch';
+import { rebaseApiUrl } from '@/lib/stalwart/jmap-api';
 import { DisallowedUrlError } from '@/lib/security/url-guard';
 
 export const runtime = 'nodejs';
@@ -56,7 +57,9 @@ async function resolveTargetForAccount(accountId: string): Promise<ResolvedTarge
             accounts?: Record<string, unknown>;
           };
           const mailAccountId = session.primaryAccounts?.['urn:ietf:params:jmap:mail'];
-          if (!session.apiUrl || !mailAccountId) return null;
+          // On the host this process reaches, not the server's public one (#627).
+          const apiUrl = rebaseApiUrl(session, serverUrl);
+          if (!apiUrl || !mailAccountId) return null;
           // Shared and group mailboxes are never the primary mail account -
           // they only appear in session.accounts. Accept those too, or the
           // SW falls back to a generic "New mail" notification for them. (#839)
@@ -65,7 +68,7 @@ async function resolveTargetForAccount(accountId: string): Promise<ResolvedTarge
             Object.prototype.hasOwnProperty.call(session.accounts ?? {}, accountId);
           if (mailAccountId !== accountId && !isSharedAccount) return null;
           return {
-            target: { authHeader: ctx.authHeader, apiUrl: session.apiUrl, accountId, trusted, slot },
+            target: { authHeader: ctx.authHeader, apiUrl, accountId, trusted, slot },
             own: mailAccountId === accountId,
           };
         } catch {
@@ -87,7 +90,7 @@ async function resolveDefaultTarget(creds: StalwartCredentials): Promise<Resolve
     apiUrl?: string;
     primaryAccounts?: Record<string, string>;
   };
-  const apiUrl = session.apiUrl;
+  const apiUrl = rebaseApiUrl(session, creds.serverUrl);
   const accountId = session.primaryAccounts?.['urn:ietf:params:jmap:mail'];
   if (!apiUrl || !accountId) return null;
   return { authHeader: creds.authHeader, apiUrl, accountId, trusted: creds.trusted };
