@@ -102,4 +102,15 @@ describe('Pro compose tab', () => {
     await waitFor(() => expect(otherClient.deleteEmail).toHaveBeenCalledWith('maaaaad', 'jmap-account-2'));
     expect(activeClient.deleteEmail).not.toHaveBeenCalled();
   });
+
+  it('leaves the draft alone, and says so, when the login that saved it is gone', async () => {
+    auth.connected = new Set();
+    render(<ProComposeTabBody tabId="t" data={{ sessionId: 1, mode: 'compose', title: 'New' }} />);
+
+    fireEvent.click(screen.getByText('discard'));
+
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith('email_composer.discard_signed_out'));
+    expect(activeClient.deleteEmail).not.toHaveBeenCalled();
+    expect(otherClient.deleteEmail).not.toHaveBeenCalled();
+  });
 });

@@ -32,10 +32,17 @@ vi.mock('@/components/email/email-viewer', () => ({
   ),
 }));
 vi.mock('@/components/email/email-composer', () => ({
-  EmailComposer: ({ onSend }: { onSend?: (data: unknown) => Promise<void> }) => (
-    <button onClick={() => { void onSend?.({ to: ['c@example.org'], cc: [], bcc: [], subject: 'Re: GRP one', body: 'Hi' }); }}>
-      stub send
-    </button>
+  EmailComposer: ({ onSend, onDiscardDraft }: {
+    onSend?: (data: unknown) => Promise<void>;
+    onDiscardDraft?: (id: string, draft?: { accountId?: string; localAccountId?: string }) => void;
+  }) => (
+    <div>
+      <button onClick={() => { void onSend?.({ to: ['c@example.org'], cc: [], bcc: [], subject: 'Re: GRP one', body: 'Hi' }); }}>
+        stub send
+      </button>
+      {/* A draft login B saved in its own account `cg`. */}
+      <button onClick={() => onDiscardDraft?.('maaaaad', { accountId: 'cg', localAccountId: 'login-b' })}>stub discard</button>
+    </div>
   ),
 }));
 vi.mock('@/components/layout/sidebar', () => ({ Sidebar: () => null }));
@@ -144,6 +151,32 @@ describe('a reply to a message of the group\'s Inbox', () => {
 
     await waitFor(() => expect(setKeyword).toHaveBeenCalled());
     expect(setKeyword).toHaveBeenCalledWith('eaaaaab', '$answered', 'ce');
+  });
+});
+
+describe('discarding a draft another login saved', () => {
+  it('deletes it through that login', async () => {
+    const other = { deleteEmail: vi.fn().mockResolvedValue(undefined) };
+    client.deleteEmail = vi.fn();
+    useAuthStore.setState({ getClientForAccount: (id: string) => (id === 'login-a' ? client : id === 'login-b' ? other : undefined) as never });
+
+    render(<MailApp />);
+    fireEvent.click(await screen.findByText('stub reply', {}, { timeout: 5000 }));
+    fireEvent.click(await screen.findByText('stub discard', {}, { timeout: 5000 }));
+
+    await waitFor(() => expect(other.deleteEmail).toHaveBeenCalledWith('maaaaad', 'cg'));
+    expect(client.deleteEmail).not.toHaveBeenCalled();
+  });
+
+  it('leaves it alone, and says so, once that login is gone', async () => {
+    client.deleteEmail = vi.fn();
+
+    render(<MailApp />);
+    fireEvent.click(await screen.findByText('stub reply', {}, { timeout: 5000 }));
+    fireEvent.click(await screen.findByText('stub discard', {}, { timeout: 5000 }));
+
+    await waitFor(() => expect(useToastStore.getState().toasts.map(t => t.title)).toContain('email_composer.discard_signed_out'));
+    expect(client.deleteEmail).not.toHaveBeenCalled();
   });
 });
 

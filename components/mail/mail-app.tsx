@@ -2227,10 +2227,15 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     // Through the login the draft was saved with, as a send is (#461), and in
     // the account it lives in: a draft back from an undone group send is in
     // the group's Drafts, and the own account may hold another message under
-    // the same id.
+    // the same id. Never through another login, also not once that one is
+    // gone: the id names another message there (as removeDraftVersion).
     const draftClient = draft?.localAccountId
-      ? (useAuthStore.getState().getClientForAccount(draft.localAccountId) ?? client)
+      ? useAuthStore.getState().getClientForAccount(draft.localAccountId)
       : client;
+    if (!draftClient) {
+      toast.error(t('email_composer.discard_signed_out'));
+      return;
+    }
 
     try {
       await draftClient.deleteEmail(draftId, draft?.accountId);

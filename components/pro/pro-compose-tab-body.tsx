@@ -171,16 +171,21 @@ export function ProComposeTabBody({ tabId, data }: ProComposeTabBodyProps) {
   const handleDiscardDraft = useCallback(async (draftId: string, draft?: { accountId?: string; localAccountId?: string }) => {
     if (!client) return;
     // Same routing as the inline composer's discard: the login the draft was
-    // saved with, and the account it lives in (see ComposerDraftData).
+    // saved with, and the account it lives in (see ComposerDraftData), never
+    // another login once that one is gone.
     const draftClient = draft?.localAccountId
-      ? (useAuthStore.getState().getClientForAccount(draft.localAccountId) ?? client)
+      ? useAuthStore.getState().getClientForAccount(draft.localAccountId)
       : client;
+    if (!draftClient) {
+      toast.error(t('email_composer.discard_signed_out'));
+      return;
+    }
     try {
       await draftClient.deleteEmail(draftId, draft?.accountId);
     } catch (error) {
       console.error('Failed to discard draft:', error);
     }
-  }, [client]);
+  }, [client, t]);
 
   const handleSaveState = useCallback((state: ComposerDraftData) => {
     updateComposeDraft(tabIdRef.current, state);

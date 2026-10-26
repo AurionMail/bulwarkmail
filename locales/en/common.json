@@ -699,6 +699,7 @@
     "link_url_prompt": "Enter the URL",
     "draft_saved": "Draft saved",
     "save_failed": "Failed to save",
+    "discard_signed_out": "The draft was not deleted: the account it was saved in is no longer signed in. It stays in that account's Drafts.",
     "to_placeholder": "Recipient email addresses",
     "cc_placeholder": "Cc recipients",
     "bcc_placeholder": "Bcc recipients",
