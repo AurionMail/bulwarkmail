@@ -46,10 +46,10 @@ async function attemptLogin(
   // server entry has its own oauth block configured.
   const serverList = parseJmapServers(configManager.get<unknown>('jmapServers', []));
   const entry = findServerById(serverList, serverId);
-  const clientId = entry?.oauth?.clientId
+  const configuredClientId = entry?.oauth?.clientId
     || configManager.get<string>('oauthClientId', '')
-    || process.env.OAUTH_CLIENT_ID
-    || DEFAULT_CLIENT_ID;
+    || process.env.OAUTH_CLIENT_ID;
+  const clientId = configuredClientId || DEFAULT_CLIENT_ID;
   const clientSecret = entry?.oauth?.clientSecret
     || configManager.get<string>('oauthClientSecret', '')
     || process.env.OAUTH_CLIENT_SECRET
@@ -75,6 +75,8 @@ async function attemptLogin(
     redirectUri,
     trusted: upstreamTrusted,
     clientIp,
+    // Stalwart 1.0 knows no client by the default name.
+    registerUnknownClient: !configuredClientId,
   });
   // Only a rejected password spends the budget. `totp_required` means the
   // password was right and the code is still missing, which every TOTP login
