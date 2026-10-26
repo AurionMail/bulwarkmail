@@ -7,7 +7,7 @@ import { readFileEnv } from '@/lib/read-file-env';
 import { configManager } from '@/lib/admin/config-manager';
 import { isPublicHttpUrl } from '@/lib/security/url-guard';
 import { recordLogin } from '@/lib/telemetry/login-tracker';
-import { parseJmapServers, findServerByUrl, findServerById } from '@/lib/admin/jmap-servers';
+import { parseJmapServers, findServerByUrl, findServerById, resolveTrustedJmapUrl } from '@/lib/admin/jmap-servers';
 import { MAX_ACCOUNT_SLOTS } from '@/lib/account-utils';
 import { DEFAULT_CLIENT_ID } from '@/lib/oauth/token-exchange';
 import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
@@ -135,9 +135,10 @@ export async function POST(request: NextRequest) {
 
     // Pin the upstream URL to a configured JMAP server. The list of allowed
     // servers is `jmapServerUrl` plus any entry from `jmapServers`. Only when
-    // no server is configured (and the deployment explicitly allows custom
-    // JMAP endpoints) do we fall back to the user-supplied URL - and even then
-    // it must resolve to a public address.
+    // the user named none of them (and the deployment explicitly allows custom
+    // JMAP endpoints) do we use the user-supplied URL - and even then it must
+    // resolve to a public address. Their password belongs to that server, and
+    // the browser goes on to use the token there.
     await configManager.ensureLoaded();
     const configuredServerUrl =
       configManager.get<string>('jmapServerUrl', '') ||
@@ -152,11 +153,12 @@ export async function POST(request: NextRequest) {
     let resolvedServerId: string | null = null;
     const requestedEntry = findServerById(serverList, requestedServerId);
     const matchedEntry = requestedEntry || findServerByUrl(serverList, serverUrl);
+    const customRequested = allowCustomEndpoint && !resolveTrustedJmapUrl(serverUrl, configuredServerUrl, serverList);
 
     if (matchedEntry) {
       upstreamUrl = matchedEntry.url;
       resolvedServerId = matchedEntry.id;
-    } else if (configuredServerUrl) {
+    } else if (configuredServerUrl && !customRequested) {
       upstreamUrl = configuredServerUrl;
     } else if (allowCustomEndpoint) {
       if (!(await isPublicHttpUrl(serverUrl))) {
