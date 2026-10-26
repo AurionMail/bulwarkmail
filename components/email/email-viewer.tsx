@@ -3416,6 +3416,10 @@ export function EmailViewer({
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
+    // A link in the message that navigates the popup itself (no target, a
+    // non-web scheme) would hand the sender's page an opener to redirect
+    // the webmail tab with. We write the document through our own handle.
+    printWindow.opener = null;
 
     // The popup is an about:blank document of the app, so it carries the
     // app's CSP (img-src https:), not the message iframe's strict one. Add
