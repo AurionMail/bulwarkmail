@@ -17,7 +17,7 @@ import { setServerAuthIssue } from '@/lib/server-auth-status';
 import { generateAccountId, MAX_ACCOUNT_SLOTS } from '@/lib/account-utils';
 import { replaceWindowLocation, getPathPrefix, getLocaleFromPath, apiFetch } from '@/lib/browser-navigation';
 import { isEmbedded, notifyParent } from '@/lib/iframe-bridge';
-import { snapshotAccount, restoreAccount, clearAllStores, evictAccount, evictAll } from '@/lib/account-state-manager';
+import { snapshotAccount, restoreAccount, clearAllStores, evictAccount, evictAll, forgetAccountRows } from '@/lib/account-state-manager';
 import { clearAllPluginStorage, clearPluginStorageForAccount } from '@/lib/plugin-sandbox/storage-scope';
 import { broadcastSignOut, onSignedOutElsewhere, purgeSignedOutData } from '@/lib/sign-out-cleanup';
 import { useSearchHistoryStore } from './search-history-store';
@@ -2280,6 +2280,7 @@ export const useAuthStore = create<AuthState>()(
         }
         clients.delete(accountId);
         evictAccount(accountId);
+        forgetAccountRows(accountId, get().client);
         accountStore.removeAccount(accountId);
         clearPluginStorageForAccount(accountId);
       },
