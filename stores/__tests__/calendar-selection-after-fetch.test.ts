@@ -115,3 +115,21 @@ describe('reconcileSelectedIds with unloaded accounts', () => {
     expect(reconcileSelectedIds(['B@h::b'], calendars)).toEqual(['A@h::b']);
   });
 });
+
+// Stalwart gives every account's default calendar the same id ("b"). The
+// raw ids a single-account load selected are the active login's; turning to
+// the merged list mapped them onto whichever account sorted first, so the
+// active account's calendars went hidden and another's showed.
+describe('raw selected ids when the merged list loads', () => {
+  it("map onto the active login's calendars", async () => {
+    useCalendarStore.setState({ calendars: [], selectedCalendarIds: ['b', 'ca:b'] });
+    const list = () => clientReturning({ calendars: [cal({ id: 'b', accountId: 'x' }), cal({ id: 'ca:b', accountId: 'ca', isShared: true })] });
+
+    await useCalendarStore.getState().fetchAllAccountsCalendars(
+      [{ localAccountId: 'A@h', client: list() }, { localAccountId: 'B@h', client: list() }],
+      'B@h',
+    );
+
+    expect(useCalendarStore.getState().selectedCalendarIds).toEqual(['B@h::b', 'B@h::ca:b']);
+  });
+});

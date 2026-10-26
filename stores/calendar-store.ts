@@ -487,12 +487,15 @@ async function refetchAfterOccurrenceMutation(): Promise<void> {
  * calendar is the same. Remap by raw identity so the selection survives instead
  * of silently resetting to "all". Keeps BIRTHDAY_CALENDAR_ID and ids starting
  * with one of `unloadedPrefixes` (calendars of an account that failed to load
- * are unknown, not deleted); drops ids that resolve to no calendar.
+ * are unknown, not deleted); drops ids that resolve to no calendar. A raw id
+ * names a calendar of `rawOwner` (the login a single-account load was for)
+ * when it has one: raw ids repeat across accounts.
  */
 export function reconcileSelectedIds(
   selectedCalendarIds: string[],
   calendars: Calendar[],
   unloadedPrefixes: string[] = [],
+  rawOwner?: string,
 ): string[] {
   const byStoreId = new Set(calendars.map((c) => c.id));
   const rawToStoreId = new Map<string, string>();
@@ -507,6 +510,9 @@ export function reconcileSelectedIds(
     if (id === BIRTHDAY_CALENDAR_ID || byStoreId.has(id)) mapped = id;
     // Before the raw remap: another account may hold the same raw id.
     else if (unloadedPrefixes.some((prefix) => id.startsWith(prefix))) mapped = id;
+    else if (rawOwner && !id.includes(CROSS_ACCOUNT_ID_DELIMITER) && byStoreId.has(buildCrossAccountIdPrefix(rawOwner) + id)) {
+      mapped = buildCrossAccountIdPrefix(rawOwner) + id;
+    }
     else mapped = rawToStoreId.get(rawIdentityOf(id));
     if (mapped && !seen.has(mapped)) {
       out.push(mapped);
@@ -527,8 +533,9 @@ function selectionAfterFetch(
   calendars: Calendar[],
   defaultSelected: string[],
   unloadedPrefixes?: string[],
+  rawOwner?: string,
 ): string[] {
-  const reconciled = reconcileSelectedIds(selectedCalendarIds, calendars, unloadedPrefixes);
+  const reconciled = reconcileSelectedIds(selectedCalendarIds, calendars, unloadedPrefixes, rawOwner);
   if (reconciled.some((id) => id !== BIRTHDAY_CALENDAR_ID)) return reconciled;
   return reconciled.includes(BIRTHDAY_CALENDAR_ID) ? [...defaultSelected, BIRTHDAY_CALENDAR_ID] : defaultSelected;
 }
@@ -785,7 +792,8 @@ interface CalendarStore {
   setSupported: (supported: boolean) => void;
   fetchCalendars: (client: IJMAPClient) => Promise<void>;
   fetchEvents: (client: IJMAPClient, start: string, end: string, options?: FetchEventsOptions) => Promise<void>;
-  fetchAllAccountsCalendars: (accounts: CalendarAccountClient[]) => Promise<void>;
+  /** `activeLocalAccountId`: the login whose calendars un-namespaced selected ids name. */
+  fetchAllAccountsCalendars: (accounts: CalendarAccountClient[], activeLocalAccountId?: string | null) => Promise<void>;
   fetchAllAccountsEvents: (accounts: CalendarAccountClient[], start: string, end: string, options?: FetchEventsOptions) => Promise<void>;
   createEvent: (client: IJMAPClient, event: Partial<CalendarEvent>, sendSchedulingMessages?: boolean) => Promise<CalendarEvent | null>;
   updateEvent: (
@@ -975,7 +983,7 @@ export const useCalendarStore = create<CalendarStore>()(
         }
       },
 
-      fetchAllAccountsCalendars: async (accounts) => {
+      fetchAllAccountsCalendars: async (accounts, activeLocalAccountId) => {
         const epoch = currentStoreEpoch();
         set({ isLoading: true, error: null });
         try {
@@ -1005,6 +1013,7 @@ export const useCalendarStore = create<CalendarStore>()(
               calendars,
               calendars.map(c => c.id),
               unloadedPrefixes,
+              activeLocalAccountId ?? undefined,
             ),
           });
         } catch (error) {
