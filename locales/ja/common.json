@@ -696,6 +696,7 @@
     "saving": "保存中...",
     "draft_saved": "下書きを保存しました",
     "save_failed": "保存に失敗しました",
+    "discard_signed_out": "下書きは削除されませんでした: 保存先のアカウントはサインアウトされています。下書きはそのアカウントの下書きフォルダーに残ります。",
     "to_placeholder": "受信者のメールアドレス",
     "cc_placeholder": "CC受信者",
     "bcc_placeholder": "BCC受信者",

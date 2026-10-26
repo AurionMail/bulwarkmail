@@ -696,6 +696,7 @@
     "saving": "Salvando...",
     "draft_saved": "Rascunho salvo",
     "save_failed": "Falha ao salvar",
+    "discard_signed_out": "O rascunho não foi eliminado: a conta onde foi guardado já não tem sessão iniciada. Fica nos rascunhos dessa conta.",
     "to_placeholder": "Endereços de e-mail dos destinatários",
     "cc_placeholder": "Destinatários CC",
     "bcc_placeholder": "Destinatários CCO",

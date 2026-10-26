@@ -699,6 +699,7 @@
     "link_url_prompt": "URL'yi girin",
     "draft_saved": "Taslak kaydedildi",
     "save_failed": "Kaydedilemedi",
+    "discard_signed_out": "Taslak silinmedi: kaydedildiği hesabın oturumu artık açık değil. O hesabın taslaklarında kalıyor.",
     "to_placeholder": "Alıcı e-posta adresleri",
     "cc_placeholder": "Cc alıcıları",
     "bcc_placeholder": "Bcc alıcıları",

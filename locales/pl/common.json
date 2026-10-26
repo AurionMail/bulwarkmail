@@ -696,6 +696,7 @@
     "saving": "Zapisywanie...",
     "draft_saved": "Szkic zapisany",
     "save_failed": "Nie udało się zapisać",
+    "discard_signed_out": "Wersja robocza nie została usunięta: konto, w którym ją zapisano, nie jest już zalogowane. Pozostaje w wersjach roboczych tego konta.",
     "to_placeholder": "Adresy e-mail odbiorców",
     "cc_placeholder": "Odbiorcy DW",
     "bcc_placeholder": "Odbiorcy UDW",

@@ -696,6 +696,7 @@
     "saving": "Saglabā...",
     "draft_saved": "Melnraksts saglabāts",
     "save_failed": "Neizdevās saglabāt",
+    "discard_signed_out": "Melnraksts netika dzēsts: konts, kurā tas tika saglabāts, vairs nav pieteicies. Tas paliek šī konta melnrakstos.",
     "to_placeholder": "Saņēmēji",
     "cc_placeholder": "Kopijas saņēmēji",
     "bcc_placeholder": "Slepenās kopijas saņēmēji",

@@ -699,6 +699,7 @@
     "link_url_prompt": "輸入 URL",
     "draft_saved": "草稿已儲存",
     "save_failed": "儲存失敗",
+    "discard_signed_out": "草稿未刪除：儲存它的帳戶已登出。草稿仍保留在該帳戶的草稿匣中。",
     "to_placeholder": "收件者電子郵件地址",
     "cc_placeholder": "副本收件者",
     "bcc_placeholder": "密件副本收件者",

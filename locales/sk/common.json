@@ -699,6 +699,7 @@
     "link_url_prompt": "Zadajte URL",
     "draft_saved": "Koncept bol uložený",
     "save_failed": "Uloženie zlyhalo",
+    "discard_signed_out": "Koncept nebol odstránený: účet, v ktorom bol uložený, už nie je prihlásený. Zostáva v konceptoch tohto účtu.",
     "to_placeholder": "E-mailové adresy príjemcov",
     "cc_placeholder": "Príjemcovia kópie",
     "bcc_placeholder": "Príjemcovia skrytej kópie",

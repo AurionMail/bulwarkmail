@@ -696,6 +696,7 @@
     "saving": "Salvataggio...",
     "draft_saved": "Bozza salvata",
     "save_failed": "Salvataggio non riuscito",
+    "discard_signed_out": "La bozza non è stata eliminata: l'account in cui è stata salvata non è più connesso. Rimane nelle bozze di quell'account.",
     "to_placeholder": "Indirizzi email dei destinatari",
     "cc_placeholder": "Destinatari in copia",
     "bcc_placeholder": "Destinatari in copia nascosta",

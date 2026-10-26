@@ -696,6 +696,7 @@
     "saving": "保存中...",
     "draft_saved": "草稿已保存",
     "save_failed": "保存失败",
+    "discard_signed_out": "草稿未删除：保存它的账户已退出登录。草稿仍保留在该账户的草稿箱中。",
     "to_placeholder": "收件人",
     "cc_placeholder": "抄送",
     "bcc_placeholder": "密送",

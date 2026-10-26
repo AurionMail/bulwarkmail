@@ -696,6 +696,7 @@
     "saving": "Ukládání...",
     "draft_saved": "Koncept byl uložen",
     "save_failed": "Uložení selhalo",
+    "discard_signed_out": "Koncept nebyl smazán: účet, ve kterém byl uložen, už není přihlášen. Zůstává v konceptech tohoto účtu.",
     "to_placeholder": "E-mailové adresy příjemců",
     "cc_placeholder": "Příjemci kopie",
     "bcc_placeholder": "Příjemci skryté kopie",

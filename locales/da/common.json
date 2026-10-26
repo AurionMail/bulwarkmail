@@ -698,6 +698,7 @@
     "add_link": "Tilføj link",
     "draft_saved": "Kladde gemt",
     "save_failed": "Kunne ikke gemme",
+    "discard_signed_out": "Kladden blev ikke slettet: kontoen, den blev gemt i, er ikke længere logget ind. Den bliver i den kontos kladder.",
     "to_placeholder": "Modtageres e-mailadresser",
     "cc_placeholder": "Cc-modtagere",
     "bcc_placeholder": "Bcc-modtagere",

@@ -696,6 +696,7 @@
     "saving": "Opslaan...",
     "draft_saved": "Concept opgeslagen",
     "save_failed": "Opslaan mislukt",
+    "discard_signed_out": "Het concept is niet verwijderd: het account waarin het is opgeslagen, is niet meer aangemeld. Het blijft in de concepten van dat account.",
     "to_placeholder": "E-mailadressen van ontvangers",
     "cc_placeholder": "CC-ontvangers",
     "bcc_placeholder": "BCC-ontvangers",

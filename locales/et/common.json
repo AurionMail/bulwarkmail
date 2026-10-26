@@ -700,6 +700,7 @@
     "link_url_prompt": "Sisesta URL",
     "draft_saved": "Mustand salvestatud",
     "save_failed": "Salvestamine ebaõnnestus",
+    "discard_signed_out": "Mustandit ei kustutatud: konto, kuhu see salvestati, pole enam sisse logitud. See jääb selle konto mustanditesse.",
     "to_placeholder": "Saaja e-posti aadressid",
     "cc_placeholder": "CC saajad",
     "bcc_placeholder": "BCC saajad",

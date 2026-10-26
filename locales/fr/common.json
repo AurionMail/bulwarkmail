@@ -696,6 +696,7 @@
     "saving": "Enregistrement...",
     "draft_saved": "Brouillon enregistré",
     "save_failed": "Échec de l'enregistrement",
+    "discard_signed_out": "Le brouillon n'a pas été supprimé : le compte dans lequel il a été enregistré n'est plus connecté. Il reste dans les brouillons de ce compte.",
     "to_placeholder": "Adresses email des destinataires",
     "cc_placeholder": "Destinataires en copie",
     "bcc_placeholder": "Destinataires en copie cachée",

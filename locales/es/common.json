@@ -696,6 +696,7 @@
     "saving": "Guardando...",
     "draft_saved": "Borrador guardado",
     "save_failed": "Error al guardar",
+    "discard_signed_out": "No se ha eliminado el borrador: la cuenta en la que se guardó ya no tiene la sesión iniciada. Se queda en los borradores de esa cuenta.",
     "to_placeholder": "Direcciones de correo de destinatarios",
     "cc_placeholder": "Destinatarios CC",
     "bcc_placeholder": "Destinatarios CCO",

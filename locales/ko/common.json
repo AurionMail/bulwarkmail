@@ -696,6 +696,7 @@
     "saving": "저장 중...",
     "draft_saved": "임시보관함에 저장되었어요",
     "save_failed": "저장에 실패했어요",
+    "discard_signed_out": "임시 보관 메일이 삭제되지 않았습니다: 저장된 계정이 더 이상 로그인되어 있지 않습니다. 해당 계정의 임시 보관함에 남아 있습니다.",
     "to_placeholder": "받는 사람 이메일 주소",
     "cc_placeholder": "참조 수신자",
     "bcc_placeholder": "숨은 참조 수신자",
