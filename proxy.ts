@@ -315,8 +315,11 @@ export async function proxy(request: NextRequest) {
     : mailFrameAncestors(configManager.get<string>("allowedFrameAncestors", ""));
 
   // Plugins may declare iframe origins they need (e.g. for embedded video).
-  // Each origin is validated at install time and re-validated here.
-  const pluginFrameOrigins = await getEnabledPluginFrameOrigins();
+  // Each origin is validated at install time and re-validated here. None
+  // while the admin has plugins turned off: no plugin runs then.
+  const pluginFrameOrigins = configManager.getPolicy().features?.pluginsEnabled === true
+    ? await getEnabledPluginFrameOrigins()
+    : [];
 
   // Sidebar Apps set to open "inline" are a per-user setting the proxy can't
   // read, so the client mirrors their origins into a cookie (#787). Ignored

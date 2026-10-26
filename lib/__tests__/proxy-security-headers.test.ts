@@ -35,6 +35,8 @@ vi.mock('next-intl/middleware', async () => {
 });
 
 import { proxy, isStaticAssetPath, mailFrameAncestors } from '@/proxy';
+import { configManager } from '@/lib/admin/config-manager';
+import { getEnabledPluginFrameOrigins } from '@/lib/admin/csp-frame-origins';
 
 function load(path: string): Promise<Response> {
   return proxy(new NextRequest('http://localhost:3000' + path, {
@@ -246,6 +248,25 @@ describe('Sidebar Apps frame-src cookie', () => {
     vi.stubEnv('COOKIE_SECURE', 'true');
     const res = await load('/en/mail');
     expect(res.headers.get('strict-transport-security')).toBe('max-age=63072000');
+  });
+});
+
+// Plugins' declared embed origins widen frame-src only while plugins run.
+describe('plugin frame origins', () => {
+  afterEach(() => {
+    vi.mocked(configManager.getPolicy).mockImplementation(() => ({ features: { pluginsEnabled: false } }) as never);
+    vi.mocked(getEnabledPluginFrameOrigins).mockImplementation(async () => []);
+  });
+
+  const frameSrc = async () =>
+    /frame-src [^;]*/.exec((await load('/en/mail')).headers.get('content-security-policy') ?? '')?.[0];
+
+  it('leaves enabled plugins\' frame origins out while plugins are turned off', async () => {
+    vi.mocked(getEnabledPluginFrameOrigins).mockImplementation(async () => ['https://video.example.com']);
+    expect(await frameSrc()).not.toContain('video.example.com');
+
+    vi.mocked(configManager.getPolicy).mockImplementation(() => ({ features: { pluginsEnabled: true } }) as never);
+    expect(await frameSrc()).toContain('https://video.example.com');
   });
 });
 
