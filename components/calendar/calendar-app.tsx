@@ -38,6 +38,7 @@ import { AppTopBannerSlot } from "@/components/plugins/app-top-banner-slot";
 import { EmptySpaceContextMenu } from "@/components/calendar/empty-space-context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { useRefreshGesture } from "@/hooks/use-refresh-gesture";
+import { useCalendarPushRefresh } from "@/hooks/use-calendar-push-refresh";
 import { downloadEventICS } from "@/lib/calendar-ics-export";
 import { ICalImportModal } from "@/components/calendar/ical-import-modal";
 import { ICalSubscriptionModal } from "@/components/calendar/ical-subscription-modal";
@@ -946,6 +947,19 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       ]);
     },
   });
+
+  // Changes made elsewhere (another device, another session, an invitation)
+  // reach the open calendar through push (#1349).
+  useCalendarPushRefresh(() => {
+    if (!client || !supportsCalendar) return;
+    // The standard instance under the Pro takeover leaves the data to the Pro tab.
+    if (!isEmbedded && proInterfaceActive) return;
+    const merged = multiAccountEnabled && accountClients.length > 0 && activeAccountId;
+    void (merged ? fetchAllAccountsCalendarsFn(accountClients, activeAccountId) : fetchCalendars(client));
+    void refetchCurrentRange();
+    // Tasks are calendar objects too (e.g. one created over CalDAV).
+    if (enableCalendarTasks && (normalizedViewMode === "tasks" || showTasksOnCalendar)) void fetchTasksFn(client);
+  }, { enabled: isAuthenticated && !!client, includeBackground: multiAccountEnabled });
 
   const focusCalendarOnEvent = useCallback((event: Pick<Partial<CalendarEvent>, "start" | "utcStart" | "showWithoutTime">) => {
     if (!event.start) {

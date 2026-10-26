@@ -28,7 +28,7 @@ const EmailComposer = dynamic(
 import { ProtocolAccountPicker } from "@/components/protocol/protocol-account-picker";
 import { ThreadConversationView } from "@/components/email/thread-conversation-view";
 import { MobileHeader } from "@/components/layout/mobile-header";
-import { ThreadGroup, Email, Mailbox, type StateChange, isUnifiedMailboxId, UNIFIED_MAILBOX_IDS, UNIFIED_ROLE_BY_ID, CROSS_VIEW_BY_ID, CROSS_VIEW_IDS, isCrossViewId } from "@/lib/jmap/types";
+import { ThreadGroup, Email, Mailbox, isUnifiedMailboxId, UNIFIED_MAILBOX_IDS, UNIFIED_ROLE_BY_ID, CROSS_VIEW_BY_ID, CROSS_VIEW_IDS, isCrossViewId } from "@/lib/jmap/types";
 import { useAccountStore, waitForConnectedAccount } from "@/stores/account-store";
 import { useShallow } from "zustand/react/shallow";
 import { usePolicyStore } from "@/stores/policy-store";
@@ -43,8 +43,9 @@ import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
 import { toast } from "@/stores/toast-store";
 import { cancelFailureToast, partlyRefusedWarning, rescheduleFailureToast } from "@/lib/send-failure-message";
-import { formatRejectedRecipients, RescheduleRestoredError, type JMAPClient } from "@/lib/jmap/client";
-import { reconcilePushBindings, releasePushBindings, type PushBinding } from "@/lib/push-bindings";
+import { formatRejectedRecipients, RescheduleRestoredError } from "@/lib/jmap/client";
+import { subscribePushStateChanges } from "@/lib/push-events";
+import { createMailPushListener } from "@/lib/mail-push-listener";
 import { runBatchEmailAction } from "@/lib/email-action-toast";
 import { MailboxShareDialog } from "@/components/layout/mailbox-share-dialog";
 import { ShareNotificationToaster } from "@/components/layout/share-notification-toaster";
@@ -433,7 +434,6 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     beginOpenEmail,
     finishOpenEmail,
     abandonOpenEmail,
-    setPushConnected,
     handleStateChange,
     clearNewEmailNotification,
     markAsSpam,
@@ -525,7 +525,6 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     beginOpenEmail: state.beginOpenEmail,
     finishOpenEmail: state.finishOpenEmail,
     abandonOpenEmail: state.abandonOpenEmail,
-    setPushConnected: state.setPushConnected,
     handleStateChange: state.handleStateChange,
     clearNewEmailNotification: state.clearNewEmailNotification,
     markAsSpam: state.markAsSpam,
@@ -664,9 +663,6 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     () => accounts.filter((a) => a.isConnected).map((a) => a.id).sort().join(","),
     [accounts],
   );
-  // Bumped when checkAuth finishes connecting background accounts after the UI
-  // already unblocked - the push-binding effect below must re-run over them.
-  const connectedAccountsRevision = useAuthStore((s) => s.connectedAccountsRevision);
   // Cross-account is "active" when the user opted in, the admin allows it, and
   // more than one account is connected. Drives the sidebar header label: the
   // old "All accounts" when spanning accounts, else "Unified Mailbox".
@@ -1581,76 +1577,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     return () => clearTimeout(id);
   }, [isAuthenticated]);
 
-  // Push notifications: one binding per CONNECTED client, kept for as long as
-  // that client is connected.
-  //
-  // We bind every connected login, not just the active one: background accounts
-  // must drive the unified-section counters too. The active client gets the
-  // full handler (current list / scheduled / calendar / filters); background
-  // logins only re-project the unified counts. (#281 background push)
-  //
-  // The bindings are reconciled, not rebuilt. This effect re-runs each time a
-  // login connects - once per account while a browser with many of them
-  // restores - and tearing every binding down to set them all up again made
-  // each run close and reopen the live streams and re-prime every slow poll:
-  // with ten logins, 21 stream openings and ~180 state-poll methods in the
-  // first seconds, quadratic in the number of accounts. Now a run binds only
-  // the clients that are new, unbinds only the ones that are gone, and on an
-  // account switch re-binds just the two whose role changed.
-  const pushBindingsRef = useRef(new Map<JMAPClient, PushBinding>());
-  // Handlers are read at event time, so a binding never holds a stale closure
-  // and never has to be re-created because a callback changed identity.
-  const pushHandlersRef = useRef({ handleStateChange, buildPopulatedUnifiedAccounts, refreshCrossCounts, refreshUnifiedCounts });
-  pushHandlersRef.current = { handleStateChange, buildPopulatedUnifiedAccounts, refreshCrossCounts, refreshUnifiedCounts };
-
-  useEffect(() => {
-    const bindings = pushBindingsRef.current;
-    if (!isAuthenticated || !client) {
-      releasePushBindings(bindings);
-      setPushConnected(false);
-      return;
-    }
-    reconcilePushBindings({
-      bindings,
-      clients: useAuthStore.getState().getAllConnectedClients(),
-      activeAccountId,
-      listen: (c, role) => {
-        // A login that reports a change has a folder list worth fetching again;
-        // the others keep theirs, which is what spares the unified scope a full
-        // round of Mailbox/get on every push.
-        if (role === 'active') {
-          c.onStateChange((change: StateChange) => {
-            invalidateUnifiedMailboxes(c);
-            pushHandlersRef.current.handleStateChange(change, c);
-          });
-          return;
-        }
-        c.onStateChange(() => {
-          invalidateUnifiedMailboxes(c);
-          const h = pushHandlersRef.current;
-          h.buildPopulatedUnifiedAccounts()
-            .then((built) => {
-              h.refreshCrossCounts(built);
-              h.refreshUnifiedCounts(built);
-            })
-            .catch(() => { /* per-account fetch failures surface elsewhere */ });
-        });
-      },
-      onError: (accId, error) => debug.log('push', '[Push] Failed to setup push notifications for account:', accId, error),
-    });
-    if (bindings.size > 0) {
-      setPushConnected(true);
-      debug.log('push', `[Push] Push notifications enabled for ${bindings.size} account(s)`);
-    } else {
-      setPushConnected(false);
-    }
-  }, [isAuthenticated, client, activeAccountId, connectedAccountsSignature, connectedAccountsRevision, setPushConnected]);
-
-  // Unbind everything when the mail app goes away.
-  useEffect(() => {
-    const bindings = pushBindingsRef.current;
-    return () => releasePushBindings(bindings);
-  }, []);
+  // Push notifications: the bindings live at the app level
+  // (components/providers/push-bindings-host.tsx) so other pages get changes
+  // too (#1349). The mail view handles them while it is mounted.
+  // Handlers are read at event time, so the subscription never holds a stale
+  // closure and never has to be re-created because a callback changed identity.
+  const pushHandlersRef = useRef({ handleStateChange, invalidateUnifiedMailboxes, buildPopulatedUnifiedAccounts, refreshCrossCounts, refreshUnifiedCounts });
+  pushHandlersRef.current = { handleStateChange, invalidateUnifiedMailboxes, buildPopulatedUnifiedAccounts, refreshCrossCounts, refreshUnifiedCounts };
+  useEffect(() => subscribePushStateChanges(createMailPushListener(() => pushHandlersRef.current)), []);
 
   // Keep unified mailbox counts in sync when the feature is enabled and more
   // than one account is connected. Runs whenever the set of connected accounts
