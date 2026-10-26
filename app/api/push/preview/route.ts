@@ -31,10 +31,13 @@ interface ResolvedTarget {
 // When the SW passes ?accountId=, we need the slot whose JMAP session owns
 // that account - not just "the first signed-in slot", which is what
 // getStalwartCredentials() defaults to. Probe each candidate's session in
-// parallel and return the first match.
+// parallel and return the first match, the login whose own account it is
+// ahead of the others: an account with a folder shared out is listed in the
+// session of everyone it is shared with, who sees only that folder - not its
+// Inbox, nor the message that just arrived there.
 async function resolveTargetForAccount(accountId: string): Promise<ResolvedTarget | null> {
   const cookieStore = await cookies();
-  const probes: Promise<ResolvedTarget | null>[] = [];
+  const probes: Promise<{ target: ResolvedTarget; own: boolean } | null>[] = [];
   for (let slot = 0; slot < MAX_ACCOUNT_SLOTS; slot++) {
     const ctx = readStalwartAuthContextFromStore(cookieStore, slot);
     if (!ctx) continue;
@@ -61,7 +64,10 @@ async function resolveTargetForAccount(accountId: string): Promise<ResolvedTarge
             accountId !== mailAccountId &&
             Object.prototype.hasOwnProperty.call(session.accounts ?? {}, accountId);
           if (mailAccountId !== accountId && !isSharedAccount) return null;
-          return { authHeader: ctx.authHeader, apiUrl: session.apiUrl, accountId, trusted, slot };
+          return {
+            target: { authHeader: ctx.authHeader, apiUrl: session.apiUrl, accountId, trusted, slot },
+            own: mailAccountId === accountId,
+          };
         } catch {
           return null;
         }
@@ -69,7 +75,7 @@ async function resolveTargetForAccount(accountId: string): Promise<ResolvedTarge
     );
   }
   const results = await Promise.all(probes);
-  return results.find((r): r is ResolvedTarget => r !== null) ?? null;
+  return (results.find((r) => r?.own) ?? results.find((r) => r !== null))?.target ?? null;
 }
 
 async function resolveDefaultTarget(creds: StalwartCredentials): Promise<ResolvedTarget | null> {
