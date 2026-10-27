@@ -798,6 +798,15 @@
       "send_anyway": "そのまま送信",
       "back": "編集に戻る"
     },
+    "placeholder_warning": {
+      "title": "プレースホルダーを確認しますか？",
+      "message": "メッセージに受信者に表示されるプレースホルダーのテキストが含まれています。送信前に編集しますか？",
+      "found": "見つかったプレースホルダー",
+      "more": "ほか {count} 件",
+      "dont_ask_again": "今後は確認しない",
+      "send_anyway": "そのまま送信",
+      "back": "編集に戻る"
+    },
     "add_link": "リンクを追加",
     "link_url_prompt": "URLを入力してください",
     "sending": "送信中...",
@@ -1656,6 +1665,10 @@
       "empty_subject_warning": {
         "label": "件名なしの警告",
         "description": "件名のないメッセージを送信する前に確認します。"
+      },
+      "placeholder_warning": {
+        "label": "プレースホルダーの警告",
+        "description": "[TIME] や [Your Name] などのプレースホルダー、空のテンプレート項目、TODO や TBD などの未完成のテキストが残っているメッセージを送信する前に確認します。"
       },
       "recipient_mentions": {
         "label": "@で宛先をメンション",

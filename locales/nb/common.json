@@ -801,6 +801,15 @@
       "send_anyway": "Send likevel",
       "back": "Tilbake til redigering"
     },
+    "placeholder_warning": {
+      "title": "Sjekke plassholdere?",
+      "message": "Meldingen har plassholdertekst som mottakerne vil se. Vil du redigere den før du sender?",
+      "found": "Plassholdere som ble funnet",
+      "more": "og {count} til",
+      "dont_ask_again": "Ikke spør igjen",
+      "send_anyway": "Send likevel",
+      "back": "Tilbake til redigering"
+    },
     "schedule_send": "Planlegg sending",
     "schedule_send_description": "Velg når serveren skal sende denne meldingen.",
     "schedule_preset": {
@@ -1659,6 +1668,10 @@
       "empty_subject_warning": {
         "label": "Advarsel om tomt emne",
         "description": "Be om bekreftelse før du sender en melding uten emne."
+      },
+      "placeholder_warning": {
+        "label": "Advarsel om plassholdere",
+        "description": "Be om bekreftelse før du sender en melding som fortsatt har plassholdere som [TIME] eller [Your Name], tomme malfelt eller uferdig tekst som TODO eller TBD."
       },
       "recipient_mentions": {
         "label": "Nevn mottakere med @",

@@ -801,6 +801,15 @@
       "send_anyway": "Saada ikkagi",
       "back": "Tagasi muutmise juurde"
     },
+    "placeholder_warning": {
+      "title": "Kontrollida kohatäiteid?",
+      "message": "Sõnumis on kohatäitetekst, mida saajad näevad. Kas muuta seda enne saatmist?",
+      "found": "Leitud kohatäited",
+      "more": "ja veel {count}",
+      "dont_ask_again": "Ära küsi uuesti",
+      "send_anyway": "Saada ikkagi",
+      "back": "Tagasi muutmise juurde"
+    },
     "schedule_send": "Ajasta saatmine",
     "schedule_send_description": "Vali, millal server peaks selle sõnumi välja saatma.",
     "schedule_preset": {
@@ -1659,6 +1668,10 @@
       "empty_subject_warning": {
         "label": "Tühja teemarea hoiatus",
         "description": "Küsi kinnitust enne teemarealta kirja saatmist."
+      },
+      "placeholder_warning": {
+        "label": "Kohatäidete hoiatus",
+        "description": "Küsi kinnitust enne kirja saatmist, kus on veel kohatäiteid nagu [TIME] või [Your Name], tühje malliväljasid või pooleli teksti nagu TODO või TBD."
       },
       "recipient_mentions": {
         "label": "Maini adressaate @-ga",

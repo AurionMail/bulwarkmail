@@ -801,6 +801,15 @@
       "send_anyway": "仍然傳送",
       "back": "繼續編輯"
     },
+    "placeholder_warning": {
+      "title": "檢查預留位置？",
+      "message": "你的郵件中有收件者會看到的預留位置文字。要在傳送前編輯嗎？",
+      "found": "找到的預留位置",
+      "more": "以及另外 {count} 個",
+      "dont_ask_again": "不再提示",
+      "send_anyway": "仍然傳送",
+      "back": "繼續編輯"
+    },
     "schedule_send": "排程寄送",
     "schedule_send_description": "選擇伺服器要在何時送出這封郵件。",
     "schedule_preset": {
@@ -1659,6 +1668,10 @@
       "empty_subject_warning": {
         "label": "空主題提醒",
         "description": "傳送沒有主題的郵件前請求確認。"
+      },
+      "placeholder_warning": {
+        "label": "預留位置提醒",
+        "description": "傳送仍含有預留位置（如 [TIME] 或 [Your Name]）、空白範本欄位或未完成文字（如 TODO 或 TBD）的郵件前請求確認。"
       },
       "recipient_mentions": {
         "label": "使用 @ 提及收件者",

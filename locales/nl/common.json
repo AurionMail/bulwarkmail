@@ -798,6 +798,15 @@
       "send_anyway": "Toch verzenden",
       "back": "Terug naar bewerken"
     },
+    "placeholder_warning": {
+      "title": "Tijdelijke aanduidingen controleren?",
+      "message": "Je bericht bevat tijdelijke tekst die ontvangers zullen zien. Wil je het bewerken voordat je het verzendt?",
+      "found": "Gevonden tijdelijke aanduidingen",
+      "more": "en nog {count}",
+      "dont_ask_again": "Niet meer vragen",
+      "send_anyway": "Toch verzenden",
+      "back": "Terug naar bewerken"
+    },
     "add_link": "Link toevoegen",
     "link_url_prompt": "Voer de URL in",
     "sending": "Bezig met verzenden...",
@@ -1656,6 +1665,10 @@
       "empty_subject_warning": {
         "label": "Waarschuwing bij leeg onderwerp",
         "description": "Vraag om bevestiging voordat een bericht zonder onderwerp wordt verzonden."
+      },
+      "placeholder_warning": {
+        "label": "Waarschuwing bij tijdelijke aanduidingen",
+        "description": "Vraag om bevestiging voordat een bericht wordt verzonden dat nog tijdelijke aanduidingen bevat zoals [TIME] of [Your Name], lege sjabloonvelden of onafgemaakte tekst zoals TODO of TBD."
       },
       "recipient_mentions": {
         "label": "Ontvangers noemen met @",

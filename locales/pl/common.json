@@ -798,6 +798,15 @@
       "send_anyway": "Wyślij mimo to",
       "back": "Wróć do edycji"
     },
+    "placeholder_warning": {
+      "title": "Sprawdzić symbole zastępcze?",
+      "message": "Wiadomość zawiera tekst zastępczy, który zobaczą odbiorcy. Czy chcesz go poprawić przed wysłaniem?",
+      "found": "Znalezione symbole zastępcze",
+      "more": "i jeszcze {count}",
+      "dont_ask_again": "Nie pytaj ponownie",
+      "send_anyway": "Wyślij mimo to",
+      "back": "Wróć do edycji"
+    },
     "add_link": "Dodaj link",
     "link_url_prompt": "Wprowadź adres URL",
     "sending": "Wysyłanie...",
@@ -1656,6 +1665,10 @@
       "empty_subject_warning": {
         "label": "Ostrzeżenie o pustym temacie",
         "description": "Poproś o potwierdzenie przed wysłaniem wiadomości bez tematu."
+      },
+      "placeholder_warning": {
+        "label": "Ostrzeżenie o symbolach zastępczych",
+        "description": "Poproś o potwierdzenie przed wysłaniem wiadomości, która wciąż zawiera symbole zastępcze, takie jak [TIME] lub [Your Name], puste pola szablonu albo niedokończony tekst, taki jak TODO lub TBD."
       },
       "recipient_mentions": {
         "label": "Wspominaj odbiorców za pomocą @",

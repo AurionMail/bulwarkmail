@@ -766,6 +766,15 @@
       "send_anyway": "שלח בכל זאת",
       "back": "חזור לעריכה"
     },
+    "placeholder_warning": {
+      "title": "לבדוק מצייני מיקום?",
+      "message": "ההודעה מכילה טקסט מציין מיקום שהנמענים יראו. לערוך אותה לפני השליחה?",
+      "found": "מצייני מיקום שנמצאו",
+      "more": "ועוד {count}",
+      "dont_ask_again": "אל תשאל שוב",
+      "send_anyway": "שלח בכל זאת",
+      "back": "חזור לעריכה"
+    },
     "schedule_send": "תזמן שליחה",
     "schedule_send_description": "בחר מתי השרת צריך לשחרר הודעה זו.",
     "schedule_preset": {
@@ -1621,6 +1630,10 @@
       "empty_subject_warning": {
         "label": "אזהרה על נושא ריק",
         "description": "בקש אישור לפני שליחת הודעה ללא נושא."
+      },
+      "placeholder_warning": {
+        "label": "אזהרה על מצייני מיקום",
+        "description": "בקש אישור לפני שליחת הודעה שעדיין יש בה מצייני מיקום כמו [TIME] או [Your Name], שדות תבנית ריקים או טקסט לא גמור כמו TODO או TBD."
       },
       "recipient_mentions": {
         "label": "אזכור נמענים עם @",

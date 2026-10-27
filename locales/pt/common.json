@@ -798,6 +798,15 @@
       "send_anyway": "Enviar mesmo assim",
       "back": "Voltar à edição"
     },
+    "placeholder_warning": {
+      "title": "Verificar marcadores?",
+      "message": "A mensagem tem texto de marcador que os destinatários vão ver. Quer editá-la antes de enviar?",
+      "found": "Marcadores encontrados",
+      "more": "e mais {count}",
+      "dont_ask_again": "Não perguntar novamente",
+      "send_anyway": "Enviar mesmo assim",
+      "back": "Voltar à edição"
+    },
     "add_link": "Adicionar link",
     "link_url_prompt": "Insira a URL",
     "sending": "Enviando...",
@@ -1656,6 +1665,10 @@
       "empty_subject_warning": {
         "label": "Aviso de assunto vazio",
         "description": "Pedir confirmação antes de enviar uma mensagem sem assunto."
+      },
+      "placeholder_warning": {
+        "label": "Aviso de marcadores",
+        "description": "Pedir confirmação antes de enviar uma mensagem que ainda tem marcadores como [TIME] ou [Your Name], campos de modelo vazios ou texto inacabado como TODO ou TBD."
       },
       "recipient_mentions": {
         "label": "Mencionar destinatários com @",

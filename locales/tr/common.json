@@ -801,6 +801,15 @@
       "send_anyway": "Yine de gönder",
       "back": "Düzenlemeye dön"
     },
+    "placeholder_warning": {
+      "title": "Yer tutucular kontrol edilsin mi?",
+      "message": "İletinizde alıcıların göreceği yer tutucu metin var. Göndermeden önce düzenlemek ister misiniz?",
+      "found": "Bulunan yer tutucular",
+      "more": "ve {count} tane daha",
+      "dont_ask_again": "Bir daha sorma",
+      "send_anyway": "Yine de gönder",
+      "back": "Düzenlemeye dön"
+    },
     "schedule_send": "Göndermeyi zamanla",
     "schedule_send_description": "Sunucunun bu iletiyi ne zaman göndereceğini seçin.",
     "schedule_preset": {
@@ -1656,6 +1665,10 @@
       "empty_subject_warning": {
         "label": "Boş konu uyarısı",
         "description": "Konusu olmayan bir ileti gönderilmeden önce onay iste."
+      },
+      "placeholder_warning": {
+        "label": "Yer tutucu uyarısı",
+        "description": "Hâlâ [TIME] veya [Your Name] gibi yer tutucular, boş şablon alanları ya da TODO veya TBD gibi bitmemiş metin içeren bir ileti gönderilmeden önce onay iste."
       },
       "recipient_mentions": {
         "label": "Alıcılardan @ ile bahset",

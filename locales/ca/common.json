@@ -801,6 +801,15 @@
       "send_anyway": "Envia igualment",
       "back": "Torna a l'edició"
     },
+    "placeholder_warning": {
+      "title": "Voleu revisar els marcadors?",
+      "message": "El missatge té text de marcador que veuran els destinataris. Voleu editar-lo abans d'enviar-lo?",
+      "found": "Marcadors trobats",
+      "more": "i {count} més",
+      "dont_ask_again": "No ho tornis a preguntar",
+      "send_anyway": "Envia igualment",
+      "back": "Torna a l'edició"
+    },
     "schedule_send": "Programa l'enviament",
     "schedule_send_description": "Trieu quan ha d'alliberar el servidor aquest missatge.",
     "schedule_preset": {
@@ -1659,6 +1668,10 @@
       "empty_subject_warning": {
         "label": "Avís d'assumpte buit",
         "description": "Demana confirmació abans d'enviar un missatge sense assumpte."
+      },
+      "placeholder_warning": {
+        "label": "Avís de marcadors",
+        "description": "Demana confirmació abans d'enviar un missatge que encara té marcadors com [TIME] o [Your Name], camps de plantilla buits o text inacabat com TODO o TBD."
       },
       "recipient_mentions": {
         "label": "Esmentar destinataris amb @",

@@ -798,6 +798,15 @@
       "send_anyway": "Trotzdem senden",
       "back": "Zurück zur Bearbeitung"
     },
+    "placeholder_warning": {
+      "title": "Platzhalter prüfen?",
+      "message": "Die Nachricht enthält Platzhaltertext, den die Empfänger sehen. Vor dem Senden bearbeiten?",
+      "found": "Gefundene Platzhalter",
+      "more": "und {count} weitere",
+      "dont_ask_again": "Nicht mehr fragen",
+      "send_anyway": "Trotzdem senden",
+      "back": "Zurück zur Bearbeitung"
+    },
     "add_link": "Link hinzufügen",
     "link_url_prompt": "URL eingeben",
     "sending": "Wird gesendet...",
@@ -1656,6 +1665,10 @@
       "empty_subject_warning": {
         "label": "Warnung bei leerem Betreff",
         "description": "Vor dem Senden einer Nachricht ohne Betreff nachfragen."
+      },
+      "placeholder_warning": {
+        "label": "Warnung bei Platzhaltern",
+        "description": "Vor dem Senden einer Nachricht nachfragen, die noch Platzhalter wie [TIME] oder [Your Name], leere Vorlagenfelder oder unfertigen Text wie TODO oder TBD enthält."
       },
       "recipient_mentions": {
         "label": "Empfänger mit @ erwähnen",

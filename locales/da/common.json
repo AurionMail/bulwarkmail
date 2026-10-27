@@ -800,6 +800,15 @@
       "send_anyway": "Send alligevel",
       "back": "Tilbage til redigering"
     },
+    "placeholder_warning": {
+      "title": "Tjek pladsholdere?",
+      "message": "Din besked indeholder pladsholdertekst, som modtagerne vil se. Vil du redigere den, før du sender?",
+      "found": "Fundne pladsholdere",
+      "more": "og {count} mere",
+      "dont_ask_again": "Spørg ikke igen",
+      "send_anyway": "Send alligevel",
+      "back": "Tilbage til redigering"
+    },
     "link_url_prompt": "Indtast URL'en",
     "schedule_send": "Planlæg afsendelse",
     "schedule_send_description": "Vælg hvornår serveren skal frigive denne besked.",
@@ -1659,6 +1668,10 @@
       "empty_subject_warning": {
         "label": "Advarsel om tomt emne",
         "description": "Bed om bekræftelse, før en besked uden emne sendes."
+      },
+      "placeholder_warning": {
+        "label": "Advarsel om pladsholdere",
+        "description": "Bed om bekræftelse, før en besked sendes, der stadig har pladsholdere som [TIME] eller [Your Name], tomme skabelonfelter eller ufærdig tekst som TODO eller TBD."
       },
       "recipient_mentions": {
         "label": "Nævn modtagere med @",

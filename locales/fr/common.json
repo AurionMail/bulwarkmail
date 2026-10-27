@@ -798,6 +798,15 @@
       "send_anyway": "Envoyer quand même",
       "back": "Retour à l'édition"
     },
+    "placeholder_warning": {
+      "title": "Vérifier les espaces réservés ?",
+      "message": "Votre message contient du texte d'espace réservé que les destinataires verront. Voulez-vous le modifier avant l'envoi ?",
+      "found": "Espaces réservés trouvés",
+      "more": "et {count} de plus",
+      "dont_ask_again": "Ne plus me demander",
+      "send_anyway": "Envoyer quand même",
+      "back": "Retour à l'édition"
+    },
     "add_link": "Ajouter un lien",
     "link_url_prompt": "Saisissez l'URL",
     "sending": "Envoi...",
@@ -1656,6 +1665,10 @@
       "empty_subject_warning": {
         "label": "Avertissement d'objet vide",
         "description": "Demander confirmation avant d'envoyer un message sans objet."
+      },
+      "placeholder_warning": {
+        "label": "Avertissement d'espaces réservés",
+        "description": "Demander confirmation avant d'envoyer un message qui contient encore des espaces réservés comme [TIME] ou [Your Name], des champs de modèle vides ou du texte inachevé comme TODO ou TBD."
       },
       "recipient_mentions": {
         "label": "Mentionner les destinataires avec @",

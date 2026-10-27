@@ -798,6 +798,15 @@
       "send_anyway": "Sūtīt tik un tā",
       "back": "Atpakaļ pie rediģēšanas"
     },
+    "placeholder_warning": {
+      "title": "Pārbaudīt vietturus?",
+      "message": "Ziņā ir viettura teksts, ko redzēs adresāti. Vai rediģēt to pirms sūtīšanas?",
+      "found": "Atrastie vietturi",
+      "more": "un vēl {count}",
+      "dont_ask_again": "Vairs nejautāt",
+      "send_anyway": "Sūtīt tik un tā",
+      "back": "Atpakaļ pie rediģēšanas"
+    },
     "add_link": "Pievienot saiti",
     "link_url_prompt": "Ievadiet URL",
     "sending": "Sūta...",
@@ -1656,6 +1665,10 @@
       "empty_subject_warning": {
         "label": "Brīdinājums par tukšu tematu",
         "description": "Pieprasīt apstiprinājumu pirms ziņas sūtīšanas bez temata."
+      },
+      "placeholder_warning": {
+        "label": "Brīdinājums par vietturiem",
+        "description": "Pieprasīt apstiprinājumu pirms tādas ziņas sūtīšanas, kurā vēl ir vietturi, piemēram, [TIME] vai [Your Name], tukši veidnes lauki vai nepabeigts teksts, piemēram, TODO vai TBD."
       },
       "recipient_mentions": {
         "label": "Pieminēt saņēmējus ar @",

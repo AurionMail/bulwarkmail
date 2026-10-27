@@ -801,6 +801,15 @@
       "send_anyway": "Odoslať aj tak",
       "back": "Späť na úpravu"
     },
+    "placeholder_warning": {
+      "title": "Skontrolovať zástupné texty?",
+      "message": "Vaša správa obsahuje zástupný text, ktorý uvidia príjemcovia. Chcete ju pred odoslaním upraviť?",
+      "found": "Nájdené zástupné texty",
+      "more": "a ďalšie ({count})",
+      "dont_ask_again": "Znova sa nepýtať",
+      "send_anyway": "Odoslať aj tak",
+      "back": "Späť na úpravu"
+    },
     "schedule_send": "Naplánovať odoslanie",
     "schedule_send_description": "Vyberte, kedy má server túto správu odoslať.",
     "schedule_preset": {
@@ -1659,6 +1668,10 @@
       "empty_subject_warning": {
         "label": "Upozornenie na prázdny predmet",
         "description": "Pred odoslaním správy bez predmetu požiadať o potvrdenie."
+      },
+      "placeholder_warning": {
+        "label": "Upozornenie na zástupné texty",
+        "description": "Pred odoslaním správy, ktorá ešte obsahuje zástupné texty ako [TIME] alebo [Your Name], prázdne polia šablóny alebo nedokončený text ako TODO či TBD, požiadať o potvrdenie."
       },
       "recipient_mentions": {
         "label": "Spomínať príjemcov pomocou @",

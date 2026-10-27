@@ -798,6 +798,15 @@
       "send_anyway": "仍然发送",
       "back": "返回编辑"
     },
+    "placeholder_warning": {
+      "title": "检查占位符？",
+      "message": "你的邮件中有收件人会看到的占位符文本。要在发送前编辑吗？",
+      "found": "找到的占位符",
+      "more": "以及另外 {count} 个",
+      "dont_ask_again": "不再提示",
+      "send_anyway": "仍然发送",
+      "back": "返回编辑"
+    },
     "add_link": "添加链接",
     "link_url_prompt": "输入 URL",
     "sending": "发送中...",
@@ -1656,6 +1665,10 @@
       "empty_subject_warning": {
         "label": "空主题提醒",
         "description": "发送没有主题的邮件前请求确认。"
+      },
+      "placeholder_warning": {
+        "label": "占位符提醒",
+        "description": "发送仍含有占位符（如 [TIME] 或 [Your Name]）、空白模板字段或未完成文本（如 TODO 或 TBD）的邮件前请求确认。"
       },
       "recipient_mentions": {
         "label": "使用 @ 提及收件人",

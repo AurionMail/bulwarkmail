@@ -798,6 +798,15 @@
       "send_anyway": "Přesto odeslat",
       "back": "Zpět k úpravám"
     },
+    "placeholder_warning": {
+      "title": "Zkontrolovat zástupné texty?",
+      "message": "Vaše zpráva obsahuje zástupný text, který příjemci uvidí. Chcete ji před odesláním upravit?",
+      "found": "Nalezené zástupné texty",
+      "more": "a další ({count})",
+      "dont_ask_again": "Znovu se neptat",
+      "send_anyway": "Přesto odeslat",
+      "back": "Zpět k úpravám"
+    },
     "add_link": "Přidat odkaz",
     "link_url_prompt": "Zadejte URL",
     "sending": "Odesílání...",
@@ -1656,6 +1665,10 @@
       "empty_subject_warning": {
         "label": "Upozornění na prázdný předmět",
         "description": "Před odesláním zprávy bez předmětu požádat o potvrzení."
+      },
+      "placeholder_warning": {
+        "label": "Upozornění na zástupné texty",
+        "description": "Před odesláním zprávy, která stále obsahuje zástupné texty jako [TIME] nebo [Your Name], nevyplněná pole šablony nebo nedokončený text jako TODO či TBD, požádat o potvrzení."
       },
       "recipient_mentions": {
         "label": "Zmiňovat příjemce pomocí @",
