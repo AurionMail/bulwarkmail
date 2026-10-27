@@ -31,6 +31,7 @@ export function ComposingSettings() {
     attachmentReminderEnabled,
     attachmentReminderKeywords,
     emptySubjectWarningEnabled,
+    placeholderWarningEnabled,
     recipientMentionsEnabled,
     mentionAddsRecipientTo,
     sendDelaySeconds,
@@ -210,6 +211,13 @@ export function ComposingSettings() {
           <ToggleSwitch
             checked={emptySubjectWarningEnabled}
             onChange={(checked) => updateSetting('emptySubjectWarningEnabled', checked)}
+          />
+        </SettingItem>
+
+        <SettingItem label={t('placeholder_warning.label')} description={t('placeholder_warning.description')}>
+          <ToggleSwitch
+            checked={placeholderWarningEnabled}
+            onChange={(checked) => updateSetting('placeholderWarningEnabled', checked)}
           />
         </SettingItem>
       </SettingsSection>

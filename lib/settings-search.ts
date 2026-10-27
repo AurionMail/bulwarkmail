@@ -111,6 +111,7 @@ export const tabSearchPaths: Record<Tab, string[]> = {
     'settings.email_behavior.rtl_editing',
     'settings.email_behavior.default_mail_program',
     'settings.email_behavior.empty_subject_warning',
+    'settings.email_behavior.placeholder_warning',
     'settings.email_behavior.send_delay',
     'settings.email_behavior.signature_position',
     'settings.email_behavior.signature_separator',
