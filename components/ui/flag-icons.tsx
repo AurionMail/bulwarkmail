@@ -131,6 +131,10 @@ function FlagEE(props: FlagProps) {
   return <Flag {...props}><path fill="#0072CE" d="M32 5H4C1.791 5 0 6.791 0 9v4.667h36V9c0-2.209-1.791-4-4-4z" /><path fill="#141414" d="M0 13.667h36v8.667H0z" /><path fill="#EEE" d="M0 27c0 2.209 1.791 4 4 4h28c2.209 0 4-1.791 4-4v-4.667H0V27z" /></Flag>;
 }
 
+function FlagTH(props: FlagProps) {
+  return <Flag {...props}><path fill="#A7122D" d="M0 26.518V27c0 2.209 1.791 4 4 4h28c2.209 0 4-1.791 4-4v-.482H0z" /><path fill="#EEE" d="M0 22.181h36v4.485H0z" /><path fill="#292648" d="M0 13.513h36v8.821H0z" /><path fill="#EEE" d="M0 9.181h36v4.485H0z" /><path fill="#A7122D" d="M0 9.333V9c0-2.209 1.791-4 4-4h28c2.209 0 4 1.791 4 4v.333H0z" /></Flag>;
+}
+
 export const flagComponents: Record<string, (props: FlagProps) => ReactElement> = {
   ar: FlagAE,
   ca: FlagCAT,
@@ -152,6 +156,7 @@ export const flagComponents: Record<string, (props: FlagProps) => ReactElement> 
   pl: FlagPL,
   pt: FlagBR,
   ro: FlagRO,
+  th: FlagTH,
   tr: FlagTR,
   ru: FlagRU,
   uk: FlagUA,

@@ -30,6 +30,7 @@ const languages = [
   { value: 'pl', label: 'Polski' },
   { value: 'pt', label: 'Português' },
   { value: 'ro', label: 'Română' },
+  { value: 'th', label: 'ไทย' },
   { value: 'tr', label: 'Türkçe' },
   { value: 'ru', label: 'Русский' },
   { value: 'uk', label: 'Українська' },
