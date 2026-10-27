@@ -807,6 +807,11 @@
       "send_anyway": "Trotzdem senden",
       "back": "Zurück zur Bearbeitung"
     },
+    "placeholder_words": {
+      "before": ["ihr", "ihre", "ihren", "dein", "deine", "deinen"],
+      "after": ["einfügen", "eintragen", "ergänzen"],
+      "unfinished": []
+    },
     "add_link": "Link hinzufügen",
     "link_url_prompt": "URL eingeben",
     "sending": "Wird gesendet...",

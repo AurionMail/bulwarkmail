@@ -90,6 +90,7 @@ import { SubAddressHelper } from "@/components/identity/sub-address-helper";
 import { generateSubAddress } from "@/lib/sub-addressing";
 import { substitutePlaceholders, spliceTemplateAboveSignature, composeBodyHasUserContent } from "@/lib/template-utils";
 import { findUnfilledPlaceholders, stripEmbeddedSignatureHtml } from "@/lib/placeholder-check";
+import enMessages from "@/locales/en/common.json";
 import { TemplatePicker } from "@/components/templates/template-picker";
 import { TemplateForm } from "@/components/templates/template-form";
 import type { EmailTemplate } from "@/lib/template-types";
@@ -3237,7 +3238,12 @@ export function EmailComposer({
         plainTextMode,
         forwardedSeparator: tQuote('forwarded_separator'),
       });
-      const found = findUnfilledPlaceholders(subject, bodyText);
+      // The fill-in words of the UI language, and of English: AI drafts and
+      // templates are often English whatever the UI language is.
+      const found = findUnfilledPlaceholders(subject, bodyText, [
+        enMessages.email_composer.placeholder_words,
+        t.raw('placeholder_words'),
+      ]);
       if (found.some(p => !confirmedPlaceholdersRef.current.has(p))) {
         setPlaceholderWarningMatches(found);
         setPlaceholderDontAskAgain(false);

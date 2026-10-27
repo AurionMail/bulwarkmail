@@ -810,6 +810,11 @@
       "send_anyway": "Ямар ч байсан илгээнэ үү",
       "back": "Засварлах руу буцах"
     },
+    "placeholder_words": {
+      "before": ["таны", "чиний"],
+      "after": ["оруулна уу"],
+      "unfinished": []
+    },
     "schedule_send": "Хуваарь илгээх",
     "schedule_send_description": "Сервер энэ мессежийг хэзээ гаргахыг сонгоно уу.",
     "schedule_preset": {

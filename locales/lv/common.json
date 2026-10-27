@@ -807,6 +807,11 @@
       "send_anyway": "Sūtīt tik un tā",
       "back": "Atpakaļ pie rediģēšanas"
     },
+    "placeholder_words": {
+      "before": ["jūsu", "tavs", "tava", "ievadiet", "ierakstiet", "ievietojiet", "pievienojiet", "norādiet"],
+      "after": [],
+      "unfinished": []
+    },
     "add_link": "Pievienot saiti",
     "link_url_prompt": "Ievadiet URL",
     "sending": "Sūta...",

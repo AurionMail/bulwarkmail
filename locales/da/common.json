@@ -809,6 +809,11 @@
       "send_anyway": "Send alligevel",
       "back": "Tilbage til redigering"
     },
+    "placeholder_words": {
+      "before": ["din", "dit", "dine", "indsæt", "tilføj", "skriv"],
+      "after": [],
+      "unfinished": []
+    },
     "link_url_prompt": "Indtast URL'en",
     "schedule_send": "Planlæg afsendelse",
     "schedule_send_description": "Vælg hvornår serveren skal frigive denne besked.",

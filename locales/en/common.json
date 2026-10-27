@@ -812,6 +812,11 @@
       "send_anyway": "Send anyway",
       "back": "Back to editing"
     },
+    "placeholder_words": {
+      "before": ["your", "insert", "enter", "add"],
+      "after": [],
+      "unfinished": ["TODO", "TBD", "TBA", "TBC", "FIXME", "XXX"]
+    },
     "schedule_send": "Schedule send",
     "schedule_send_description": "Choose when the server should release this message.",
     "schedule_preset": {

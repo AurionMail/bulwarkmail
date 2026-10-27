@@ -810,6 +810,11 @@
       "send_anyway": "Yine de gönder",
       "back": "Düzenlemeye dön"
     },
+    "placeholder_words": {
+      "before": ["şirketinizin", "buraya"],
+      "after": ["ekleyin", "girin", "yazın", "-ınız", "-iniz", "-unuz", "-ünüz"],
+      "unfinished": []
+    },
     "schedule_send": "Göndermeyi zamanla",
     "schedule_send_description": "Sunucunun bu iletiyi ne zaman göndereceğini seçin.",
     "schedule_preset": {

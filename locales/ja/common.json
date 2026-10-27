@@ -807,6 +807,11 @@
       "send_anyway": "そのまま送信",
       "back": "編集に戻る"
     },
+    "placeholder_words": {
+      "before": ["あなたの-", "貴社の-", "御社の-"],
+      "after": ["-を入力", "-を記入", "-を挿入", "-を追加", "-を入れる"],
+      "unfinished": []
+    },
     "add_link": "リンクを追加",
     "link_url_prompt": "URLを入力してください",
     "sending": "送信中...",

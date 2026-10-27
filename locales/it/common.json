@@ -807,6 +807,11 @@
       "send_anyway": "Invia comunque",
       "back": "Torna alla modifica"
     },
+    "placeholder_words": {
+      "before": ["il tuo", "la tua", "i tuoi", "le tue", "il suo", "la sua", "inserisci", "inserire", "aggiungi", "aggiungere", "indica"],
+      "after": [],
+      "unfinished": []
+    },
     "add_link": "Aggiungi link",
     "link_url_prompt": "Inserisci l'URL",
     "sending": "Invio in corso...",

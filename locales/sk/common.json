@@ -810,6 +810,11 @@
       "send_anyway": "Odoslať aj tak",
       "back": "Späť na úpravu"
     },
+    "placeholder_words": {
+      "before": ["vaše", "váš", "vaša", "tvoje", "vložte", "doplňte", "zadajte", "uveďte"],
+      "after": [],
+      "unfinished": []
+    },
     "schedule_send": "Naplánovať odoslanie",
     "schedule_send_description": "Vyberte, kedy má server túto správu odoslať.",
     "schedule_preset": {

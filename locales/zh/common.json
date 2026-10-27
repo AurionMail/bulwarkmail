@@ -807,6 +807,11 @@
       "send_anyway": "仍然发送",
       "back": "返回编辑"
     },
+    "placeholder_words": {
+      "before": ["您的-", "你的-", "贵公司-", "插入-", "输入-", "填写-", "添加-", "在此-"],
+      "after": [],
+      "unfinished": []
+    },
     "add_link": "添加链接",
     "link_url_prompt": "输入 URL",
     "sending": "发送中...",

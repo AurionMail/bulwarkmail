@@ -810,6 +810,11 @@
       "send_anyway": "Trimite oricum",
       "back": "Înapoi la editare"
     },
+    "placeholder_words": {
+      "before": ["introduceți", "inserați", "adăugați", "completați"],
+      "after": ["tău", "ta", "dvs.", "dumneavoastră"],
+      "unfinished": []
+    },
     "schedule_send": "Programează trimiterea",
     "schedule_send_description": "Alegeți momentul în care serverul ar trebui să transmită acest mesaj.",
     "schedule_preset": {

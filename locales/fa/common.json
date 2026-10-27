@@ -810,6 +810,11 @@
       "send_anyway": "ارسال به هر حال",
       "back": "بازگشت به ویرایش"
     },
+    "placeholder_words": {
+      "before": [],
+      "after": ["شما", "وارد کنید", "اضافه کنید"],
+      "unfinished": []
+    },
     "schedule_send": "زمان‌بندی ارسال",
     "schedule_send_description": "زمان انتشار پیام توسط سرور را انتخاب کنید.",
     "schedule_preset": {

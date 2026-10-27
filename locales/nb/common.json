@@ -810,6 +810,11 @@
       "send_anyway": "Send likevel",
       "back": "Tilbake til redigering"
     },
+    "placeholder_words": {
+      "before": ["din", "ditt", "dine", "sett inn", "legg til", "skriv"],
+      "after": [],
+      "unfinished": []
+    },
     "schedule_send": "Planlegg sending",
     "schedule_send_description": "Velg når serveren skal sende denne meldingen.",
     "schedule_preset": {

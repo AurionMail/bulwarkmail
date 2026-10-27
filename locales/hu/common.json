@@ -810,6 +810,11 @@
       "send_anyway": "Küldés így is",
       "back": "Vissza a szerkesztéshez"
     },
+    "placeholder_words": {
+      "before": ["az ön", "a te", "írja be", "illessze be", "adja meg"],
+      "after": [],
+      "unfinished": []
+    },
     "schedule_send": "Késleltetett küldés",
     "schedule_send_description": "Válaszd ki, mikor küldje el a szerver az üzenetet.",
     "schedule_preset": {

@@ -810,6 +810,11 @@
       "send_anyway": "الإرسال على أي حال",
       "back": "العودة إلى التعديل"
     },
+    "placeholder_words": {
+      "before": ["أدخل", "ادخل", "أضف", "اكتب"],
+      "after": [],
+      "unfinished": []
+    },
     "schedule_send": "جدولة الإرسال",
     "schedule_send_description": "اختر متى يجب على الخادم إرسال هذه الرسالة.",
     "schedule_preset": {

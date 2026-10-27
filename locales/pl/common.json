@@ -807,6 +807,11 @@
       "send_anyway": "Wyślij mimo to",
       "back": "Wróć do edycji"
     },
+    "placeholder_words": {
+      "before": ["twoje", "twój", "twoja", "pana", "pani", "wstaw", "wpisz", "dodaj", "podaj"],
+      "after": [],
+      "unfinished": []
+    },
     "add_link": "Dodaj link",
     "link_url_prompt": "Wprowadź adres URL",
     "sending": "Wysyłanie...",

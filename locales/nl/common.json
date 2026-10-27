@@ -807,6 +807,11 @@
       "send_anyway": "Toch verzenden",
       "back": "Terug naar bewerken"
     },
+    "placeholder_words": {
+      "before": ["je", "jouw", "uw", "voeg", "vul"],
+      "after": ["invoegen", "invullen", "toevoegen"],
+      "unfinished": []
+    },
     "add_link": "Link toevoegen",
     "link_url_prompt": "Voer de URL in",
     "sending": "Bezig met verzenden...",

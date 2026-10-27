@@ -4,6 +4,29 @@ import React from 'react';
 import { EmailComposer } from '../email-composer';
 import { useSettingsStore } from '@/stores/settings-store';
 
+// The UI language whose fill-in words t.raw hands the composer.
+const ui = vi.hoisted(() => ({ locale: 'en' }));
+
+vi.mock('next-intl', async () => {
+  const fs = await import('fs');
+  const path = await import('path');
+  const messages = (locale: string) =>
+    JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../../locales', locale, 'common.json'), 'utf-8'));
+  return {
+    useTranslations: (namespace?: string) => {
+      const t = (key: string) => key;
+      t.raw = (key: string) => (namespace ? messages(ui.locale)[namespace] : messages(ui.locale))[key];
+      return t;
+    },
+    useLocale: () => ui.locale,
+    useFormatter: () => ({
+      dateTime: (d: Date | string) => String(d),
+      relativeTime: (d: Date | string) => String(d),
+      number: (n: number) => String(n),
+    }),
+  };
+});
+
 // ─── Heavy component mocks (mirrors empty-subject-warning.test.tsx) ──────────
 
 vi.mock('@/components/email/rich-text-editor', () => ({
@@ -207,6 +230,7 @@ describe('composer placeholder warning', () => {
   });
 
   afterEach(() => {
+    ui.locale = 'en';
     useSettingsStore.setState({
       placeholderWarningEnabled: true,
       attachmentReminderEnabled: false,
@@ -317,6 +341,29 @@ describe('composer placeholder warning', () => {
 
     await waitFor(() => expect(onSend).toHaveBeenCalledTimes(1));
     expect(screen.queryByText('placeholder_warning.title')).not.toBeInTheDocument();
+  });
+
+  it('uses the fill-in words of the UI language', async () => {
+    ui.locale = 'de';
+    const onSend = vi.fn();
+    render(<EmailComposer initialData={{ ...DRAFT_WITH_PLACEHOLDER, body: '<p>Viele Grüße, [Ihr Name]</p>' }} onSend={onSend} />);
+
+    fireEvent.click(sendButton());
+
+    const dialog = await screen.findByRole('alertdialog');
+    expect(within(dialog).getByText('[Ihr Name]')).toBeInTheDocument();
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it('keeps the English fill-in words in another UI language', async () => {
+    ui.locale = 'de';
+    const onSend = vi.fn();
+    render(<EmailComposer initialData={{ ...DRAFT_WITH_PLACEHOLDER, body: '<p>Thanks, [Your Name]</p>' }} onSend={onSend} />);
+
+    fireEvent.click(sendButton());
+
+    const dialog = await screen.findByRole('alertdialog');
+    expect(within(dialog).getByText('[Your Name]')).toBeInTheDocument();
   });
 
   it('sends without asking when the warning is off', async () => {

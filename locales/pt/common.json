@@ -807,6 +807,11 @@
       "send_anyway": "Enviar mesmo assim",
       "back": "Voltar à edição"
     },
+    "placeholder_words": {
+      "before": ["seu", "sua", "seus", "suas", "teu", "tua", "inserir", "insira", "adicionar", "adicione", "digite", "informe"],
+      "after": [],
+      "unfinished": []
+    },
     "add_link": "Adicionar link",
     "link_url_prompt": "Insira a URL",
     "sending": "Enviando...",

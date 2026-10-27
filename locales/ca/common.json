@@ -810,6 +810,11 @@
       "send_anyway": "Envia igualment",
       "back": "Torna a l'edició"
     },
+    "placeholder_words": {
+      "before": ["el teu", "la teva", "el vostre", "la vostra", "insereix", "inseriu", "afegeix", "afegiu", "escriviu"],
+      "after": [],
+      "unfinished": []
+    },
     "schedule_send": "Programa l'enviament",
     "schedule_send_description": "Trieu quan ha d'alliberar el servidor aquest missatge.",
     "schedule_preset": {

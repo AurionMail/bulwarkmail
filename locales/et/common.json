@@ -810,6 +810,11 @@
       "send_anyway": "Saada ikkagi",
       "back": "Tagasi muutmise juurde"
     },
+    "placeholder_words": {
+      "before": ["teie", "sinu", "sisesta", "sisestage", "lisa", "lisage"],
+      "after": [],
+      "unfinished": []
+    },
     "schedule_send": "Ajasta saatmine",
     "schedule_send_description": "Vali, millal server peaks selle sõnumi välja saatma.",
     "schedule_preset": {

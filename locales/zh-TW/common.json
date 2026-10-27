@@ -810,6 +810,11 @@
       "send_anyway": "仍然傳送",
       "back": "繼續編輯"
     },
+    "placeholder_words": {
+      "before": ["您的-", "你的-", "貴公司-", "插入-", "輸入-", "填寫-", "新增-", "在此-"],
+      "after": [],
+      "unfinished": []
+    },
     "schedule_send": "排程寄送",
     "schedule_send_description": "選擇伺服器要在何時送出這封郵件。",
     "schedule_preset": {

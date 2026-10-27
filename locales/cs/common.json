@@ -807,6 +807,11 @@
       "send_anyway": "Přesto odeslat",
       "back": "Zpět k úpravám"
     },
+    "placeholder_words": {
+      "before": ["vaše", "váš", "vaši", "tvoje", "tvůj", "vložte", "doplňte", "zadejte", "uveďte"],
+      "after": [],
+      "unfinished": []
+    },
     "add_link": "Přidat odkaz",
     "link_url_prompt": "Zadejte URL",
     "sending": "Odesílání...",

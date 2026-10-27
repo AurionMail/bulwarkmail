@@ -807,6 +807,11 @@
       "send_anyway": "Envoyer quand même",
       "back": "Retour à l'édition"
     },
+    "placeholder_words": {
+      "before": ["votre", "vos", "ton", "ta", "tes", "insérer", "insérez", "ajouter", "ajoutez", "saisir", "saisissez", "indiquer", "indiquez"],
+      "after": [],
+      "unfinished": []
+    },
     "add_link": "Ajouter un lien",
     "link_url_prompt": "Saisissez l'URL",
     "sending": "Envoi...",
