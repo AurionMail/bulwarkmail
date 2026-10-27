@@ -3164,6 +3164,7 @@ useAuthStore.subscribe((state, prev) => {
 // Domain and group scopes follow the active account. setPolicySubject skips
 // the work when the account's address and groups stayed the same.
 let policySubjectRequest = 0;
+const policySubjectsSeen = new Set<string>();
 useAuthStore.subscribe((state, prev) => {
   if (
     state.client === prev.client
@@ -3176,8 +3177,16 @@ useAuthStore.subscribe((state, prev) => {
     usePolicyStore.getState().setPolicySubject(null);
     return;
   }
-  void policySubjectForClient(state.client).then((subject) => {
-    if (request === policySubjectRequest) usePolicyStore.getState().setPolicySubject(subject);
+  void policySubjectForClient(state.client).then(async (subject) => {
+    if (request !== policySubjectRequest) return;
+    // The server sends only the scopes of the domains signed in when the
+    // policy was fetched; an account added since may have scopes of its own.
+    if (subject && !policySubjectsSeen.has(subject.email)) {
+      policySubjectsSeen.add(subject.email);
+      if (policySubjectsSeen.size > 1) await usePolicyStore.getState().fetchPolicy();
+      if (request !== policySubjectRequest) return;
+    }
+    usePolicyStore.getState().setPolicySubject(subject);
   });
 });
 

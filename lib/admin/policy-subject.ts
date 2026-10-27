@@ -13,14 +13,15 @@ type SubjectClient = Pick<IJMAPClient, 'getUsername' | 'getSharedAccounts' | 'ge
  * group scope.
  */
 export async function policySubjectForClient(client: SubjectClient | null): Promise<PolicySubject | null> {
-  if (!client) return null;
+  if (!client || typeof client.getUsername !== 'function') return null;
   const email = client.getUsername()?.trim().toLowerCase() ?? '';
   if (!email) return null;
-  const shared = client.getSharedAccounts()
-    .filter((account) => !account.isPrimary && client.getAccountInfo(account.id)?.isPersonal === false)
+  // A client without a session yet (or a stand-in) has no shared accounts.
+  const shared = (typeof client.getSharedAccounts === 'function' ? client.getSharedAccounts() : [])
+    .filter((account) => !account.isPrimary && client.getAccountInfo?.(account.id)?.isPersonal === false)
     .filter((account) => account.name.includes('@'));
-  const types = shared.length > 0 && client.getPrincipalTypes
-    ? await client.getPrincipalTypes(shared.map((account) => account.id))
+  const types = shared.length > 0 && typeof client.getPrincipalTypes === 'function'
+    ? await client.getPrincipalTypes(shared.map((account) => account.id)).catch(() => null)
     : null;
   const groups = shared
     .filter((account) => !types || types[account.id] === 'group')
