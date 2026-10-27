@@ -215,7 +215,7 @@ describe('JMAPClient request limits', () => {
 
     it('splits batchDeleteEmails at maxObjectsInSet', async () => {
       const client = await connectedClient({ maxObjectsInSet: 500 });
-      const sent = recordRequests(() => ({ methodResponses: [['Email/set', { destroyed: [] }, '0']] }));
+      const sent = recordRequests(calls => ({ methodResponses: [['Email/set', { destroyed: calls[0][1].destroy }, '0']] }));
 
       await client.batchDeleteEmails(ids);
 

@@ -102,7 +102,7 @@ describe('bulk Delete/Trash authenticated-client routing', () => {
     expectWrite('b', { accountId: 'c', destroy: ['q'] });
     expect(useEmailStore.getState().emails).toEqual([unselected]);
     expect(useEmailStore.getState().selectedEmailKeys.size).toBe(0);
-    expect(requests.filter(r => r.method === 'Mailbox/get')).toEqual([]);
+    expect(requests.filter(r => r.method === 'Mailbox/get').map(r => [r.login, r.args.accountId])).toEqual([['a', 'c'], ['b', 'c']]);
   });
 
   it('resolves each Trash in the same login and owner, despite a colliding folder cache', async () => {
@@ -141,7 +141,7 @@ describe('bulk Delete/Trash authenticated-client routing', () => {
     expect(await useEmailStore.getState().batchDelete(a, permanent)).toBe(true);
     expectWrite('a', permanent ? { accountId: 'c', destroy: ['p'] }
       : { accountId: 'c', update: { p: { mailboxIds: { 'primary-trash': true } } } });
-    expect(requests).toHaveLength(1);
+    expect(requests).toHaveLength(permanent ? 2 : 1);
   });
 
   it.each([false, true])('preserves direct shared-folder routing through the viewing client (permanent=%s)', async permanent => {
@@ -153,7 +153,7 @@ describe('bulk Delete/Trash authenticated-client routing', () => {
     expect(await useEmailStore.getState().batchDelete(a, permanent)).toBe(true);
     expectWrite('b', permanent ? { accountId: 'd', destroy: ['p'] }
       : { accountId: 'd', update: { p: { mailboxIds: { trash: true } } } });
-    expect(requests).toHaveLength(1);
+    expect(requests).toHaveLength(permanent ? 2 : 1);
   });
 
   it.each([false, true])('routes selected expanded-thread members with colliding IDs (permanent=%s)', async permanent => {

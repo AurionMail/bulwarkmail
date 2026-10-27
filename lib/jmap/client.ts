@@ -1,3 +1,4 @@
+import { IncompleteDeleteError } from "./delete-error";
 import { ArchiveEmailsError } from "./archive-error";
 import { generateUUID } from '@/lib/utils';
 import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CalendarComponentType, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, CreateCalendarOptions, FileNode, FileNodeFilter, FileNodeRights, Principal, PrincipalAvailability, PrincipalListing, PushSubscription, EmailPushConfig, DeliveryStatus, EmailSubmission, RejectedRecipient, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
@@ -3317,14 +3318,44 @@ export class JMAPClient implements IJMAPClient {
   async batchDeleteEmails(emailIds: string[], accountId?: string): Promise<void> {
     if (emailIds.length === 0) return;
 
-    for (const batch of batched(emailIds, this.getMaxObjectsInSet())) {
-      const response = await this.request([
-        ["Email/set", {
-          accountId: accountId || this.accountId,
-          destroy: batch,
-        }, "0"],
-      ]);
-      this.assertEmailSetSucceeded(response, 'delete emails');
+    const batches = batched(emailIds, this.getMaxObjectsInSet());
+    const destroyedIds: string[] = [];
+    for (const [index, batch] of batches.entries()) {
+      let response: JMAPResponse;
+      try {
+        response = await this.request([
+          ["Email/set", { accountId: accountId || this.accountId, destroy: batch }, "0"],
+        ]);
+      } catch (cause) {
+        // The server may have applied this batch; only later batches are unsent.
+        throw new IncompleteDeleteError({ destroyedIds, notDestroyed: {}, unknownIds: batch,
+          unattemptedIds: batches.slice(index + 1).flat() }, cause);
+      }
+      const [name, result] = response.methodResponses?.[0] ?? [];
+      const notDestroyed: Record<string, JmapErrorInfo> = {};
+      const unknownIds: string[] = [];
+      for (const id of batch) {
+        if (name === 'Email/set' && Object.prototype.hasOwnProperty.call(result?.notDestroyed ?? {}, id)) {
+          notDestroyed[id] = result.notDestroyed[id];
+        } else if (name === 'Email/set' && Array.isArray(result?.destroyed) && result.destroyed.includes(id)) {
+          destroyedIds.push(id);
+        } else if (name === 'error') {
+          notDestroyed[id] = result;
+        } else {
+          unknownIds.push(id);
+        }
+      }
+      let cause: unknown;
+      try {
+        this.assertEmailSetSucceeded(response, 'delete emails');
+      } catch (error) {
+        cause = error;
+      }
+      if (cause || Object.keys(notDestroyed).length > 0 || unknownIds.length > 0) {
+        throw new IncompleteDeleteError({ destroyedIds, notDestroyed, unknownIds,
+          unattemptedIds: batches.slice(index + 1).flat() },
+        cause ?? new Error('Failed to delete emails: deletion was not confirmed'));
+      }
     }
   }
 
