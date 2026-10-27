@@ -4703,6 +4703,7 @@ export class JMAPClient implements IJMAPClient {
     let finalIdentityId = identityId;
     let identityReplyTo: EmailAddress[] | undefined;
     let identityEmail: string | undefined;
+    let identityName: string | undefined;
     {
       const identityResponse = await this.request([
         ["Identity/get", { accountId: targetAccountId }, "0"]
@@ -4738,25 +4739,33 @@ export class JMAPClient implements IJMAPClient {
           finalIdentityId = matchingIdentity?.id || identities[0].id;
           identityReplyTo = matchingIdentity?.replyTo || identities[0].replyTo;
           identityEmail = (matchingIdentity || identities[0]).email;
+          identityName = (matchingIdentity || identities[0]).name;
         }
       }
+    }
+    // The header From. A composer that had no identity loaded (after a short
+    // outage, #1377) passes none, and an OAuth login has no username to fall
+    // back on: the identity picked above stands in. Without any address the
+    // server would refuse the message only after it was saved and submitted.
+    const concreteIdentityEmail = identityEmail && !identityEmail.includes('*') ? identityEmail : undefined;
+    const senderEmail = fromEmail || concreteIdentityEmail || this.username;
+    if (!parseRecipientString(senderEmail).email.includes('@')) {
+      throw new Error('No sender address could be found for this message. Reload the page and try again.');
     }
     // The MAIL FROM the server derives from the identity when the envelope is
     // omitted. A wildcard identity (RFC 8621 §6, "*@example.com") names no
     // concrete address, so the header From stands in for it.
-    const identityMailFrom = identityEmail && !identityEmail.includes('*')
-      ? identityEmail
-      : parseRecipientString(fromEmail || this.username).email;
+    const identityMailFrom = concreteIdentityEmail ?? parseRecipientString(senderEmail).email;
 
     // Per RFC 8621 §4.1.2.3 inReplyTo/references are arrays of bare msg-ids
     // (no angle brackets). Stalwart may return them either way, so normalize.
     const normalizedInReplyTo = inReplyTo?.map(stripMessageIdBrackets).filter(Boolean);
     const normalizedReferences = references?.map(stripMessageIdBrackets).filter(Boolean);
 
-    const sanitizedFromName = sanitizeIdentityDisplayName(fromName);
+    const sanitizedFromName = sanitizeIdentityDisplayName(fromEmail ? fromName : fromName || identityName);
     // Always create a new email with the final body content
     const emailCreate: Record<string, unknown> = {
-      from: [{ ...(sanitizedFromName ? { name: sanitizedFromName } : {}), email: fromEmail || this.username }],
+      from: [{ ...(sanitizedFromName ? { name: sanitizedFromName } : {}), email: senderEmail }],
       replyTo: identityReplyTo?.length ? identityReplyTo : undefined,
       to: to.map(parseRecipientString),
       // RFC 5322 §3.6.3: To/Cc carry an address-list (non-empty). Sending
@@ -4765,7 +4774,7 @@ export class JMAPClient implements IJMAPClient {
       cc: cc?.length ? cc.map(parseRecipientString) : undefined,
       bcc: bcc?.length ? bcc.map(parseRecipientString) : undefined,
       subject,
-      messageId: [generateMessageId(fromEmail || this.username)],
+      messageId: [generateMessageId(senderEmail)],
       inReplyTo: normalizedInReplyTo?.length ? normalizedInReplyTo : undefined,
       references: normalizedReferences?.length ? normalizedReferences : undefined,
       keywords: { "$seen": true, "$draft": true },
@@ -4776,7 +4785,7 @@ export class JMAPClient implements IJMAPClient {
       // RFC 8098: ask the recipient's client to return a Message Disposition
       // Notification to our address. JMAP lets us set the raw header on create
       // via the "header:<Name>:asText" property form.
-      emailCreate["header:Disposition-Notification-To:asText"] = fromEmail || this.username;
+      emailCreate["header:Disposition-Notification-To:asText"] = senderEmail;
     }
 
     Object.assign(emailCreate, messagePriorityHeaders(options?.priority));
