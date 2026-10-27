@@ -27,6 +27,62 @@ describe('findUnfilledPlaceholders', () => {
     ]);
   });
 
+  it.each([
+    ['ar', '[أدخل الاسم]'],
+    ['ca', '[El teu nom]'],
+    ['cs', '[Vaše jméno]'],
+    ['da', '[Dit navn]'],
+    ['de', '[Unterschrift eintragen]'],
+    ['es', '[Tu nombre]'],
+    ['es', '[Inserte la fecha]'],
+    ['et', '[Teie nimi]'],
+    ['fa', '[نام شما]'],
+    ['fr', '[Votre nom]'],
+    ['fr', '[Insérer la date]'],
+    ['he', '[השם שלך]'],
+    ['hu', '[Az Ön neve]'],
+    ['it', '[Il tuo nome]'],
+    ['it', '[Inserisci la data]'],
+    ['ja', '[あなたの名前]'],
+    ['ja', '［会社名を入力］'],
+    ['ko', '[귀하의 이름]'],
+    ['ko', '[날짜 입력]'],
+    ['lv', '[Jūsu vārds]'],
+    ['mn', '[Таны нэр]'],
+    ['nb', '[Ditt navn]'],
+    ['nl', '[Uw naam]'],
+    ['nl', '[Datum invullen]'],
+    ['pl', '[Twoje imię]'],
+    ['pt', '[Seu nome]'],
+    ['ro', '[Numele tău]'],
+    ['ru', '[Ваше имя]'],
+    ['ru', '[Укажите дату]'],
+    ['sk', '[Vaše meno]'],
+    ['tr', '[Adınız]'],
+    ['tr', '[Tarih ekleyin]'],
+    ['uk', '[Ваше ім’я]'],
+    ['zh', '[您的姓名]'],
+    ['zh', '【插入日期】'],
+    ['zh-TW', '[填寫公司名稱]'],
+  ])('finds a %s fill-in: %s', (_locale, fillIn) => {
+    expect(findUnfilledPlaceholders('', `Text ${fillIn} text`)).toEqual([fillIn]);
+  });
+
+  it('finds the circles that stand in for a name in Japanese and Korean', () => {
+    expect(findUnfilledPlaceholders('', '〇〇様\nお世話になっております。○○○ 님')).toEqual(['〇〇', '○○○']);
+  });
+
+  it('leaves bracketed words and headings in other languages alone', () => {
+    const text = [
+      '【重要】お知らせ 【通知】',
+      '[Votre] [Ваше] [您的]',
+      'Le [ton] juste. Vote [tu].',
+      'Siehe [Anlage 2] und [Kapitel 3].',
+      'Termin: ○ und ◯.',
+    ].join('\n');
+    expect(findUnfilledPlaceholders('', text)).toEqual([]);
+  });
+
   it('finds unfinished-text markers', () => {
     expect(findUnfilledPlaceholders('', 'The venue is TBD. TODO: add the agenda. Room XXX')).toEqual([
       'TBD',
