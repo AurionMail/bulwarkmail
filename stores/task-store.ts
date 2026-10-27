@@ -34,6 +34,10 @@ interface TaskStore {
   clearTasks: () => void;
 }
 
+// Each fetch gets a number: only the latest one's answer is kept, so an
+// answer that comes late never puts an older list back.
+let latestFetch = 0;
+
 export const useTaskStore = create<TaskStore>((set, get) => ({
   tasks: [],
   selectedTaskId: null,
@@ -56,9 +60,13 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
   fetchTasks: async (client, calendarIds) => {
     debug.log('tasks', 'TaskStore/fetchTasks start', { calendarIds: calendarIds || 'all' });
+    const fetch = ++latestFetch;
+    const stillCurrent = () => fetch === latestFetch;
     set({ isLoading: true, error: null });
     try {
       const tasks = await client.getCalendarTasks(calendarIds);
+      // A fetch started later decides the list.
+      if (!stillCurrent()) return;
       debug.log('tasks', 'TaskStore/fetchTasks received', tasks.length, 'tasks');
       tasks.forEach((t, i) => {
         debug.log('tasks', `TaskStore/fetchTasks [${i}]`, {
@@ -71,7 +79,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       if (taskHooks.onTasksLoaded.size > 0) void taskHooks.onTasksLoaded.emit(tasks.map(taskToView));
     } catch (error) {
       debug.error('TaskStore/fetchTasks failed', error);
-      set({ isLoading: false, error: TASKS_LOAD_ERROR });
+      if (stillCurrent()) set({ isLoading: false, error: TASKS_LOAD_ERROR });
     }
   },
 
@@ -133,5 +141,8 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     void taskHooks.onTaskToggleComplete.emit({ taskId: task.id, complete: newProgress === 'completed' });
   },
 
-  clearTasks: () => set({ tasks: [], selectedTaskId: null, error: null }),
+  clearTasks: () => {
+    latestFetch += 1;
+    set({ tasks: [], selectedTaskId: null, error: null, isLoading: false });
+  },
 }));

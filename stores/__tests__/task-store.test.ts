@@ -52,6 +52,58 @@ describe('task-store', () => {
     };
   });
 
+  describe('fetchTasks', () => {
+    // A fetch answered after a later one started (or after the store was
+    // cleared for another account) must not put its list back.
+    function heldClient() {
+      const answers: { resolve: (tasks: CalendarTask[]) => void; reject: (error: Error) => void }[] = [];
+      const client = {
+        ...mockClient,
+        getCalendarTasks: vi.fn().mockImplementation(() => new Promise<CalendarTask[]>((resolve, reject) => {
+          answers.push({ resolve, reject });
+        })),
+      } as IJMAPClient;
+      return { client, answers };
+    }
+
+    it('drops the answer of a fetch that a later one overtook', async () => {
+      const { client, answers } = heldClient();
+      const first = useTaskStore.getState().fetchTasks(client);
+      const second = useTaskStore.getState().fetchTasks(client);
+      answers[1].resolve([makeTask({ id: 'new' })]);
+      await second;
+      answers[0].resolve([makeTask({ id: 'old' })]);
+      await first;
+
+      expect(useTaskStore.getState().tasks.map((t) => t.id)).toEqual(['new']);
+      expect(useTaskStore.getState().isLoading).toBe(false);
+    });
+
+    it('drops the error of a fetch that a later one overtook', async () => {
+      const { client, answers } = heldClient();
+      const first = useTaskStore.getState().fetchTasks(client);
+      const second = useTaskStore.getState().fetchTasks(client);
+      answers[1].resolve([makeTask({ id: 'new' })]);
+      await second;
+      answers[0].reject(new Error('late'));
+      await first;
+
+      expect(useTaskStore.getState().error).toBeNull();
+      expect(useTaskStore.getState().tasks.map((t) => t.id)).toEqual(['new']);
+    });
+
+    it('drops the answer of a fetch still under way when the store is cleared', async () => {
+      const { client, answers } = heldClient();
+      const pending = useTaskStore.getState().fetchTasks(client);
+      useTaskStore.getState().clearTasks();
+      answers[0].resolve([makeTask({ id: 'other-account' })]);
+      await pending;
+
+      expect(useTaskStore.getState().tasks).toEqual([]);
+      expect(useTaskStore.getState().isLoading).toBe(false);
+    });
+  });
+
   describe('toggleTaskComplete', () => {
     it('toggles needs-action to completed without sending progressUpdated in payload (#958)', async () => {
       const task = makeTask({ id: 't1', progress: 'needs-action' });

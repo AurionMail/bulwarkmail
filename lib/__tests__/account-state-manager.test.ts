@@ -13,6 +13,8 @@ import { useFilterStore } from '@/stores/filter-store';
 import { useIdentityStore } from '@/stores/identity-store';
 import { useVacationStore } from '@/stores/vacation-store';
 import { useFileStore } from '@/stores/file-store';
+import { useTaskStore } from '@/stores/task-store';
+import type { CalendarTask } from '@/lib/jmap/types';
 import { DEFAULT_SEARCH_FILTERS } from '@/lib/jmap/search-utils';
 import { makeEmail, makeMailbox } from './helpers/factories';
 
@@ -91,6 +93,17 @@ describe('snapshotAccount / restoreAccount', () => {
 });
 
 describe('clearAllStores', () => {
+  it('forgets the outgoing account\'s tasks', () => {
+    useTaskStore.setState({ tasks: [{ id: 't1' } as CalendarTask], selectedTaskId: 't1', error: 'x' });
+
+    clearAllStores();
+
+    const s = useTaskStore.getState();
+    expect(s.tasks).toEqual([]);
+    expect(s.selectedTaskId).toBeNull();
+    expect(s.error).toBeNull();
+  });
+
   it('resets the email store to fresh empty collections', () => {
     useEmailStore.setState({
       emails: [makeEmail({ id: 'x' })],
