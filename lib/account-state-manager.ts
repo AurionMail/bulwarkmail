@@ -12,6 +12,7 @@ import { DEFAULT_SEARCH_FILTERS } from '@/lib/jmap/search-utils';
 import { useIdentityStore } from '@/stores/identity-store';
 import { useVacationStore } from '@/stores/vacation-store';
 import { useFileStore } from '@/stores/file-store';
+import { useTaskStore } from '@/stores/task-store';
 import { clearContactPhotoCache } from '@/lib/contact-photo-cache';
 import { bumpStoreEpoch } from '@/lib/store-epoch';
 import { useAccountSecurityStore } from '@/stores/account-security-store';
@@ -155,6 +156,9 @@ export function clearAllStores(): void {
   clearContactPhotoCache();
   useVacationStore.getState().clearState();
   useCalendarStore.getState().clearState();
+  // The task list is the account's too: left in place, the next account shows
+  // it until its own arrives, and a fetch still under way could put it back.
+  useTaskStore.getState().clearTasks();
   useFilterStore.getState().clearState();
   // 2FA state, app passwords and API keys are the account's own: left in
   // place, the page shows them for the next account and "Remove" sends
