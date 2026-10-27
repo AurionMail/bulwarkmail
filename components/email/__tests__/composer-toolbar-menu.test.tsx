@@ -16,6 +16,19 @@ describe('ComposerToolbarMenu', () => {
     expect(button).toHaveTextContent('2');
   });
 
+  // A composer pane on a wide screen is narrow too: the labels go by the
+  // bar's width, not the window's, or they run under Send (#1375).
+  it('shows its label only when the composer bar is wide enough', () => {
+    render(
+      <ComposerToolbarMenu icon={Paperclip} label="Options" testId="menu">
+        {() => null}
+      </ComposerToolbarMenu>
+    );
+    const label = screen.getByText('Options');
+    expect(label.className).toContain('@[40rem]/composer-bar:inline');
+    expect(label.className).not.toMatch(/(^|\s)sm:inline/);
+  });
+
   it('keeps the menu open while toggling options and closes on Escape or outside click', () => {
     const onToggle = vi.fn();
     render(

@@ -4543,7 +4543,7 @@ export function EmailComposer({
                 aria-label={t('attach')}
               >
                 <Paperclip className="w-4 h-4" />
-                <span className="hidden sm:inline text-sm">{t('attach')}</span>
+                <span className="hidden @[40rem]/composer-bar:inline text-sm">{t('attach')}</span>
               </Button>
             )}
             {!plainTextMode && (

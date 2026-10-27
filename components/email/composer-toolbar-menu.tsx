@@ -62,13 +62,15 @@ export function ComposerToolbarMenu({ icon: Icon, label, activeCount = 0, testId
         data-testid={testId}
       >
         <Icon className="w-4 h-4" />
-        <span className="hidden sm:inline text-sm">{label}</span>
+        {/* By the bar's width, not the window's: a composer pane on a wide
+            screen has no room for the labels either (#1375). */}
+        <span className="hidden @[40rem]/composer-bar:inline text-sm">{label}</span>
         {activeCount > 0 && (
           <span className="min-w-4 h-4 rounded-full bg-primary px-1 text-[10px] font-semibold leading-4 text-primary-foreground">
             {activeCount}
           </span>
         )}
-        <ChevronDown className="hidden sm:block w-3.5 h-3.5 text-muted-foreground" />
+        <ChevronDown className="hidden @[40rem]/composer-bar:block w-3.5 h-3.5 text-muted-foreground" />
       </Button>
       {open && (
         <div
