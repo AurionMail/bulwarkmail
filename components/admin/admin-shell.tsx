@@ -6,17 +6,22 @@ import {
   ArrowLeft,
   ArrowUpCircle,
   Activity,
+  Building2,
   ChevronRight,
   KeyRound,
   LayoutDashboard,
+  LayoutTemplate,
   LogOut,
   Palette,
+  PenLine,
   Puzzle,
   Scale,
   ScrollText,
   Search,
   Server,
+  Share2,
   Shield,
+  ShieldCheck,
   Store,
   SwatchBook,
   X,
@@ -42,6 +47,11 @@ const PAGE_ICONS: Record<AdminPageId, AppIcon> = {
   auth: Shield,
   branding: Palette,
   policy: Scale,
+  organisation: Building2,
+  'org-signatures': PenLine,
+  'org-templates': LayoutTemplate,
+  'org-security': ShieldCheck,
+  'org-sharing': Share2,
   plugins: Puzzle,
   themes: SwatchBook,
   marketplace: Store,
@@ -52,6 +62,7 @@ const PAGE_ICONS: Record<AdminPageId, AppIcon> = {
 
 const GROUP_LABELS: Record<AdminPageDef['group'], string | null> = {
   top: null,
+  organisation: 'Organisation',
   extensions: 'Extensions',
   system: 'System',
 };
@@ -156,7 +167,7 @@ export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly,
   }, [trimmed]);
 
   const groups = useMemo(() => (
-    (['top', 'extensions', 'system'] as const)
+    (['top', 'organisation', 'extensions', 'system'] as const)
       .map((group) => ({ group, label: GROUP_LABELS[group], items: matches.filter((m) => m.page.group === group) }))
       .filter((g) => g.items.length > 0)
   ), [matches]);

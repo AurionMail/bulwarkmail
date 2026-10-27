@@ -17,6 +17,11 @@ export const ADMIN_PAGE_IDS = [
   'auth',
   'branding',
   'policy',
+  'organisation',
+  'org-signatures',
+  'org-templates',
+  'org-security',
+  'org-sharing',
   'plugins',
   'themes',
   'marketplace',
@@ -31,8 +36,8 @@ export function isAdminPageId(value: string | null | undefined): value is AdminP
   return typeof value === 'string' && (ADMIN_PAGE_IDS as readonly string[]).includes(value);
 }
 
-/** `top` has no heading in the sidebar; the other two do. */
-export type AdminPageGroup = 'top' | 'extensions' | 'system';
+/** `top` has no heading in the sidebar; the others do. */
+export type AdminPageGroup = 'top' | 'organisation' | 'extensions' | 'system';
 
 export interface AdminSectionDef {
   /** The `id` the page gives its SettingsSection, for jump links and search. */
@@ -116,6 +121,65 @@ export const ADMIN_PAGES: readonly AdminPageDef[] = [
       { id: 'push-relays', title: 'Push relays', keywords: 'notifications relay url default lock' },
       { id: 'sidebar-apps', title: 'Default sidebar apps', keywords: 'apps rail intranet inline tab icon' },
       { id: 'restrictions', title: 'Locked settings', keywords: 'restrict hide lock font size density layout delete action reply mode session timeout notifications debug' },
+    ],
+  },
+  {
+    id: 'organisation',
+    label: 'Domains and groups',
+    description: 'Give some domains or groups their own settings, see what applies to a user, and keep the policy in one file',
+    group: 'organisation',
+    keywords: 'organisation organization scope domain group department customer tenant effective policy export import file json',
+    sections: [
+      { id: 'scopes', title: 'Domains and groups', keywords: 'scope domain group add remove order' },
+      { id: 'effective', title: 'Effective policy', keywords: 'user address lookup applies source' },
+      { id: 'policy-file', title: 'Policy file', keywords: 'export import download upload json backup git' },
+    ],
+  },
+  {
+    id: 'org-signatures',
+    label: 'Signatures',
+    description: 'The signature and legal disclaimer every message carries',
+    group: 'organisation',
+    keywords: 'signature disclaimer footer legal imprint placeholder phone title department lock',
+    sections: [
+      { id: 'signature', title: 'Signature', keywords: 'template placeholder name email lock' },
+      { id: 'details', title: 'User details', keywords: 'phone mobile title department fields' },
+      { id: 'disclaimer', title: 'Disclaimer', keywords: 'footer legal notice confidentiality' },
+    ],
+  },
+  {
+    id: 'org-templates',
+    label: 'Templates',
+    description: 'Templates every user can pick, and what users may keep of their own',
+    group: 'organisation',
+    keywords: 'templates library snippets canned responses team personal',
+    sections: [
+      { id: 'library', title: 'Organisation library', keywords: 'templates read-only shared add edit' },
+      { id: 'user-templates', title: 'Personal and team templates', keywords: 'personal team group lock hide' },
+    ],
+  },
+  {
+    id: 'org-security',
+    label: 'Security',
+    description: 'Warnings about mail from and to outside the organisation, sign-out times and outside connections',
+    group: 'organisation',
+    keywords: 'security external warning label recipients domains session timeout idle sign out third party traffic privacy',
+    sections: [
+      { id: 'external', title: 'External mail', keywords: 'external sender label recipient warning organisation domains contacts' },
+      { id: 'sessions', title: 'Sessions', keywords: 'idle timeout maximum length sign out warning' },
+      { id: 'third-party', title: 'Third-party traffic', keywords: 'telemetry favicon relay directory outgoing hosts privacy gdpr' },
+    ],
+  },
+  {
+    id: 'org-sharing',
+    label: 'Sharing',
+    description: 'Tags in shared mailboxes, delegates and recovering deleted items',
+    group: 'organisation',
+    keywords: 'sharing shared mailbox tags delegate access recover deleted items archive',
+    sections: [
+      { id: 'shared-tags', title: 'Shared tags', keywords: 'tags labels colours group mailbox edit lock' },
+      { id: 'delegates', title: 'Delegates', keywords: 'delegate access mail calendar contacts rights read write' },
+      { id: 'recovery', title: 'Deleted items', keywords: 'recover restore deleted archive enterprise' },
     ],
   },
   {
