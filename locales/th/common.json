@@ -1,5 +1,5 @@
 {
-  "meta_description": "เว็บเมลประสิทธิภาพสูงมาตรฐานสากล รองรับโปรโตคอล JMAP",
+  "meta_description": "เว็บเมลแบบมินิมอลที่ใช้โปรโตคอล JMAP",
   "common": {
     "loading": "กำลังโหลด...",
     "error": "เกิดข้อผิดพลาด",
@@ -178,7 +178,7 @@
   "sidebar": {
     "close": "ปิดแถบด้านข้าง",
     "compose": "เขียนจดหมาย",
-    "compose_hint": "เขียนจดหมาย (C)",
+    "compose_hint": "เขียนจดหมาย (c)",
     "search_placeholder": "ค้นหาจดหมาย...",
     "search_placeholder_hint": "ค้นหาจดหมาย... (กด /)",
     "storage": "พื้นที่จัดเก็บ",
@@ -1194,14 +1194,14 @@
       "list_info": "ข้อมูลกลุ่มส่งจดหมาย"
     },
     "tooltips": {
-      "reply": "ตอบกลับ",
-      "reply_all": "ตอบกลับทั้งหมด",
-      "forward": "ส่งต่อ",
-      "archive": "เก็บถาวร",
+      "reply": "ตอบกลับ (r)",
+      "reply_all": "ตอบกลับทั้งหมด (a)",
+      "forward": "ส่งต่อ (f)",
+      "archive": "เก็บถาวร (e)",
       "delete": "ลบ",
-      "star": "ติดดาว",
-      "unstar": "ยกเลิกติดดาว",
-      "compose": "เขียนจดหมายใหม่",
+      "star": "ติดดาว (s)",
+      "unstar": "ยกเลิกติดดาว (s)",
+      "compose": "เขียนจดหมายใหม่ (c)",
       "previous": "ข้อความก่อนหน้า",
       "next": "ข้อความถัดไป",
       "edit_draft": "แก้ไขข้อความร่าง"
@@ -1260,7 +1260,7 @@
       "counter_info_organizer": "ผู้เข้าร่วมเสนอเวลาใหม่",
       "refresh_info": "อัปเดตข้อมูลคำเชิญล่าสุดแล้ว",
       "refresh_info_organizer": "รีเฟรชข้อมูลสำหรับผู้จัดการประชุม",
-      "declined_counter_info": "ข้อเสนอเวลาใหม่ถูกปฏิเสธ",
+      "declined_counter_info": "ผู้จัดการประชุมปฏิเสธข้อเสนอเวลาใหม่",
       "authentication_failed_info": "ไม่สามารถยืนยันความถูกต้องของคำเชิญนี้ได้",
       "authentication_missing_info": "คำเชิญนี้ไม่มีข้อมูลการตรวจสอบสิทธิ์ดิจิทัล",
       "sender_mismatch_info": "คำเชิญนี้ส่งมาจาก {sender} ในขณะที่ผู้จัดการประชุมที่ระบุไว้คือ {organizer}",
