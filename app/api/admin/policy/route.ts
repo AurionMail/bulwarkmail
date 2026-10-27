@@ -4,7 +4,8 @@ import { requireAdminAuth, getClientIP } from '@/lib/admin/session';
 import { auditLog } from '@/lib/admin/audit';
 import { logger } from '@/lib/logger';
 import { POLICY_SCOPE_HEADER, type SettingsPolicy } from '@/lib/admin/types';
-import { canSeeInstanceDetails } from '@/lib/auth/instance-details';
+import { canSeeInstanceDetails, signedInIdentity } from '@/lib/auth/instance-details';
+import { scopesVisibleTo } from '@/lib/admin/policy-scopes';
 import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
 
 /**
@@ -28,11 +29,23 @@ export async function GET(request: NextRequest) {
           pushRelayUrl: '',
           pushRelayUrlLocked: false,
           defaultSidebarApps: [],
+          // Signatures, domain lists and scopes describe the organisation
+          // and only apply once someone is signed in.
+          organisation: undefined,
+          scopes: [],
         },
         { headers: { 'Cache-Control': 'no-store', [POLICY_SCOPE_HEADER]: 'public' } },
       );
     }
-    return NextResponse.json(policy, {
+    // Users get only the scopes for their own domains, so on an instance
+    // shared by several organisations one doesn't see another's settings.
+    // Without a session secret the server can't tell who is asking and
+    // answers with all of them (documented).
+    const identity = await signedInIdentity();
+    const scopes = identity === null || identity.admin
+      ? policy.scopes ?? []
+      : scopesVisibleTo(policy.scopes ?? [], identity.addresses);
+    return NextResponse.json({ ...policy, scopes }, {
       headers: { 'Cache-Control': 'no-store' },
     });
   } catch (error) {
@@ -71,6 +84,12 @@ export async function PUT(request: NextRequest) {
     }
     if (policy.defaultSidebarApps !== undefined && !Array.isArray(policy.defaultSidebarApps)) {
       return NextResponse.json({ error: 'defaultSidebarApps must be an array' }, { status: 400 });
+    }
+    if (policy.scopes !== undefined && !Array.isArray(policy.scopes)) {
+      return NextResponse.json({ error: 'scopes must be an array' }, { status: 400 });
+    }
+    if (policy.organisation !== undefined && (typeof policy.organisation !== 'object' || policy.organisation === null || Array.isArray(policy.organisation))) {
+      return NextResponse.json({ error: 'organisation must be an object' }, { status: 400 });
     }
 
     await configManager.setPolicy(policy);

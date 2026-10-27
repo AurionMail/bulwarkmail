@@ -23,6 +23,7 @@ import { broadcastSignOut, onSignedOutElsewhere, purgeSignedOutData } from '@/li
 import { useSearchHistoryStore } from './search-history-store';
 import { useCalendarNotificationStore } from './calendar-notification-store';
 import { usePolicyStore } from './policy-store';
+import { policySubjectForClient } from '@/lib/admin/policy-subject';
 import type { Identity } from '@/lib/jmap/types';
 import { authHooks } from '@/lib/plugin-hooks';
 import { IS_LITE, IS_LITE_STALWART } from '@/lib/lite';
@@ -3158,6 +3159,26 @@ setClientLookup((accountId) => useAuthStore.getState().getClientForAccount(accou
 // policy; fetch the rest once a session exists.
 useAuthStore.subscribe((state, prev) => {
   if (state.isAuthenticated && !prev.isAuthenticated) void usePolicyStore.getState().refreshIfPartial();
+});
+
+// Domain and group scopes follow the active account. setPolicySubject skips
+// the work when the account's address and groups stayed the same.
+let policySubjectRequest = 0;
+useAuthStore.subscribe((state, prev) => {
+  if (
+    state.client === prev.client
+    && state.activeAccountId === prev.activeAccountId
+    && state.isAuthenticated === prev.isAuthenticated
+    && state.connectedAccountsRevision === prev.connectedAccountsRevision
+  ) return;
+  const request = ++policySubjectRequest;
+  if (!state.isAuthenticated || !state.client) {
+    usePolicyStore.getState().setPolicySubject(null);
+    return;
+  }
+  void policySubjectForClient(state.client).then((subject) => {
+    if (request === policySubjectRequest) usePolicyStore.getState().setPolicySubject(subject);
+  });
 });
 
 // See canEnterLoginInPlace.

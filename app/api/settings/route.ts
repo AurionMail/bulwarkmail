@@ -7,6 +7,7 @@ import { sessionCookieName } from '@/lib/auth/session-cookie';
 import { readStalwartAuthContextFromStore } from '@/lib/stalwart/auth-context';
 import { saveUserSettings, loadUserSettings, deleteUserSettings } from '@/lib/settings-sync';
 import { configManager } from '@/lib/admin/config-manager';
+import { resolvePolicy } from '@/lib/admin/policy-scopes';
 import { hasSessionSecret } from '@/lib/auth/session-secret';
 import { MAX_ACCOUNT_SLOTS } from '@/lib/account-utils';
 import { mergeStoredTemplates } from '@/lib/template-merge';
@@ -180,7 +181,9 @@ export async function POST(request: NextRequest) {
 
     // Enforce admin policy - strip locked settings so users can't override them
     await configManager.ensureLoaded();
-    const policy = configManager.getPolicy();
+    // With the account's domain scopes applied; group scopes need the
+    // account's session, which only the client has, so the client enforces those.
+    const policy = resolvePolicy(configManager.getPolicy(), { email: accountName, groups: [] }).policy;
     const filteredSettings = { ...settings };
     for (const key of Object.keys(filteredSettings)) {
       const restriction = policy.restrictions[key];

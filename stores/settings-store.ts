@@ -746,9 +746,10 @@ interface SettingsState {
    * Applies the admin policy (#1248): `policy.defaults` to every setting the
    * user has not chosen, and a locked restriction's value to its setting
    * whatever the user chose. Runs when the policy loads and after every
-   * import, reset and server load.
+   * import, reset and server load. With the `previous` policy, values it
+   * imposed and the current one no longer does go back to the default.
    */
-  applyAdminPolicy: () => void;
+  applyAdminPolicy: (previous?: SettingsPolicy) => void;
   /** `forSync` builds the snapshot pushed to the server; it is not a user export. */
   exportSettings: (opts?: { forSync?: boolean; subscriptionOwner?: string }) => string;
   importSettings: (json: string, opts?: { serverAccountId?: string; keepCrossAccountViews?: boolean; subscriptionOwner?: string }) => boolean;
@@ -1095,6 +1096,40 @@ export function adminPolicyPatch(
   return patch;
 }
 
+/**
+ * What goes back to the built-in default when a policy stops applying a
+ * value: a default or lock that the previous policy had and the next one
+ * doesn't (another account's scopes, or the admin removed it). Only for
+ * settings the user hasn't chosen and that still hold the imposed value.
+ * Exported for tests.
+ */
+export function adminPolicyReleasePatch(
+  state: Record<string, unknown>,
+  previous: Partial<Pick<SettingsPolicy, 'defaults' | 'restrictions'>>,
+  next: Partial<Pick<SettingsPolicy, 'defaults' | 'restrictions'>>,
+): Record<string, unknown> {
+  const explicit = new Set(Array.isArray(state.explicitSettings) ? (state.explicitSettings as string[]) : []);
+  const imposed = (policy: typeof previous) => {
+    const out = new Map<string, unknown>();
+    const defaults = isPlainRecord(policy.defaults) ? policy.defaults : {};
+    const restrictions = isPlainRecord(policy.restrictions) ? (policy.restrictions as Record<string, SettingRestriction>) : {};
+    for (const [key, value] of Object.entries(defaults)) out.set(key, value);
+    for (const [key, restriction] of Object.entries(restrictions)) {
+      if (!isPlainRecord(restriction) || restriction.locked !== true) continue;
+      out.set(key, hasOwn(restriction, 'value') ? restriction.value : hasOwn(defaults, key) ? defaults[key] : undefined);
+    }
+    return out;
+  };
+  const before = imposed(previous);
+  const after = imposed(next);
+  const patch: Record<string, unknown> = {};
+  for (const [key, value] of before) {
+    if (after.has(key) || explicit.has(key) || !isPolicySettingKey(key)) continue;
+    if (state[key] === value && value !== builtInDefault(key)) patch[key] = builtInDefault(key);
+  }
+  return patch;
+}
+
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set, get) => {
@@ -1342,8 +1377,12 @@ export const useSettingsStore = create<SettingsState>()(
         });
       },
 
-      applyAdminPolicy: () => {
-        if (applyAdminPolicyPatch()) applyVisualSettings();
+      applyAdminPolicy: (previous) => {
+        const released = previous
+          ? adminPolicyReleasePatch(get() as unknown as Record<string, unknown>, previous, usePolicyStore.getState().policy)
+          : {};
+        if (Object.keys(released).length > 0) set(released as Partial<SettingsState>);
+        if (applyAdminPolicyPatch() || Object.keys(released).length > 0) applyVisualSettings();
       },
 
       resetToDefaults: () => {
@@ -2010,7 +2049,7 @@ if (typeof window !== 'undefined') {
   // full scope once signed in), so its defaults apply whenever it changes.
   usePolicyStore.subscribe((policyState, prev) => {
     if (policyState.policy === prev.policy) return;
-    useSettingsStore.getState().applyAdminPolicy();
+    useSettingsStore.getState().applyAdminPolicy(prev.policy);
   });
 
   const triggerSync = () => {

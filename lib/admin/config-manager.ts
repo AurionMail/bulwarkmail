@@ -6,6 +6,8 @@ import { ensureConfigDir, getConfigPath, assertWritable } from './paths';
 import { isValidRelayUrl, normalizeRelayUrl } from '@/lib/push-relays';
 import { sanitizeDefaultSidebarApps } from '@/lib/sidebar-apps';
 import { sanitizePolicyDefaults } from './policy-defaults';
+import { sanitizeOrganisationPolicy } from './organisation-policy';
+import { sanitizeRestrictions, sanitizeScopes } from './policy-scopes';
 
 function parseEnvValue(value: string, type: string): unknown {
   switch (type) {
@@ -216,7 +218,28 @@ class ConfigManager {
     policy.defaultSidebarApps = sanitizeDefaultSidebarApps(policy.defaultSidebarApps);
     // Same for the values users start with (#1248).
     policy.defaults = sanitizePolicyDefaults(policy.defaults);
+    ConfigManager.migrateSessionTimeout(policy);
+    policy.restrictions = sanitizeRestrictions(policy.restrictions);
+    policy.organisation = sanitizeOrganisationPolicy(policy.organisation);
+    policy.scopes = sanitizeScopes(policy.scopes);
     return policy;
+  }
+
+  /**
+   * The user setting `sessionTimeout` was never read by anything; an admin
+   * who locked it to a number of minutes meant an idle timeout, which is
+   * organisation.session.idleMinutes now. Moved over once, unless the
+   * organisation setting is already there.
+   */
+  private static migrateSessionTimeout(policy: SettingsPolicy): void {
+    const restriction = policy.restrictions?.sessionTimeout;
+    const minutes = typeof restriction?.value === 'number' ? restriction.value : policy.defaults?.sessionTimeout;
+    const raw = (policy.organisation ?? {}) as unknown as Record<string, Record<string, unknown> | undefined>;
+    if (typeof minutes === 'number' && minutes > 0 && typeof raw.session?.idleMinutes !== 'number') {
+      policy.organisation = { ...raw, session: { ...(raw.session ?? {}), idleMinutes: minutes } } as unknown as SettingsPolicy['organisation'];
+    }
+    if (policy.restrictions) delete policy.restrictions.sessionTimeout;
+    if (policy.defaults) delete policy.defaults.sessionTimeout;
   }
 
   /**

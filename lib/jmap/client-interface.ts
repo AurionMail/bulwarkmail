@@ -608,6 +608,8 @@ export interface IJMAPClient {
   getPrincipals(targetAccountId?: string, options?: { throwOnError?: boolean }): Promise<Principal[]>;
   // The same list with how complete it is. Optional (demo client).
   listPrincipals?(targetAccountId?: string, options?: { throwOnError?: boolean }): Promise<PrincipalListing>;
+  /** Principal type by id ("individual", "group"); null when unknown. Optional (demo client). */
+  getPrincipalTypes?(ids: string[]): Promise<Record<string, string> | null>;
   setCalendarShare(calendarId: string, principalId: string, rights: CalendarRights | null, targetAccountId?: string): Promise<void>;
   setAddressBookShare(addressBookId: string, principalId: string, rights: AddressBookRights | null, targetAccountId?: string): Promise<void>;
   setFileNodeShare(fileNodeId: string, principalId: string, rights: FileNodeRights | null, targetAccountId?: string): Promise<void>;

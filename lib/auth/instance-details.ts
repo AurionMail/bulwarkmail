@@ -7,6 +7,7 @@ import { sessionCookieName } from '@/lib/auth/session-cookie';
 import { verifyCurrentAdminSession } from '@/lib/admin/session';
 import { ADMIN_SESSION_COOKIE } from '@/lib/admin/types';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
+import { readStalwartAuthContextFromStore } from '@/lib/stalwart/auth-context';
 
 /**
  * Whether a request may see details that fingerprint this instance: exact
@@ -30,4 +31,30 @@ export async function canSeeInstanceDetails(request: NextRequest): Promise<boole
   }
   const admin = jar.get(ADMIN_SESSION_COOKIE)?.value;
   return !!admin && (await verifyCurrentAdminSession(admin)) !== null;
+}
+
+/**
+ * Who the request is signed in as, for answers that depend on the user:
+ * `admin` for the admin dashboard, otherwise the addresses of every mailbox
+ * session in the browser (each slot's auth context and remembered cookie).
+ * Null when the server can't tell, because there is no session secret.
+ */
+export async function signedInIdentity(): Promise<{ admin: true } | { admin: false; addresses: string[] } | null> {
+  if (!hasSessionSecret()) return null;
+  const jar = await cookies();
+  const admin = jar.get(ADMIN_SESSION_COOKIE)?.value;
+  if (admin && (await verifyCurrentAdminSession(admin)) !== null) return { admin: true };
+
+  const addresses = new Set<string>();
+  for (let slot = 0; slot < MAX_ACCOUNT_SLOTS; slot++) {
+    const context = readStalwartAuthContextFromStore(jar, slot);
+    if (context) {
+      addresses.add(context.username);
+      if (context.accountName) addresses.add(context.accountName);
+    }
+    const session = jar.get(sessionCookieName(slot))?.value;
+    const remembered = session ? decryptSession(session) : null;
+    if (remembered) addresses.add(remembered.username);
+  }
+  return { admin: false, addresses: [...addresses].map((a) => a.trim().toLowerCase()).filter(Boolean) };
 }

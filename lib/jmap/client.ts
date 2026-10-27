@@ -7053,6 +7053,30 @@ export class JMAPClient implements IJMAPClient {
   }
 
   /**
+   * The principal type ("individual", "group") of each id. Stalwart uses the
+   * account id as the principal id, and Principal/get answers for accounts
+   * the user can access even with directory queries off. Null when the
+   * server has no principals or refuses.
+   */
+  async getPrincipalTypes(ids: string[]): Promise<Record<string, string> | null> {
+    if (!this.supportsPrincipals() || ids.length === 0) return ids.length === 0 ? {} : null;
+    try {
+      const response = await this.request([
+        ["Principal/get", { accountId: this.accountId, ids, properties: ["id", "type"] }, "0"],
+      ], this.principalsUsing());
+      const [method, result] = response.methodResponses?.[0] ?? [];
+      if (method !== "Principal/get") return null;
+      const types: Record<string, string> = {};
+      for (const principal of (result as { list?: Principal[] }).list ?? []) {
+        if (principal.id && typeof principal.type === "string") types[principal.id] = principal.type;
+      }
+      return types;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * The busy periods of a principal between `utcStart` and `utcEnd`
    * (Principal/getAvailability). Event details are never requested: this
    * only tells whether an attendee is free, not what they are doing.

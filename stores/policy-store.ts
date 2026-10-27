@@ -4,9 +4,24 @@ import { DEFAULT_POLICY, DEFAULT_THEME_POLICY, POLICY_SCOPE_HEADER } from '@/lib
 import { apiFetch } from '@/lib/browser-navigation';
 import { IS_LITE, IS_LITE_STALWART, LITE_POLICY_PATH, withLiteBuildId } from '@/lib/lite';
 import { applyLitePolicy } from '@/lib/lite-config';
+import { resolvePolicy, type PolicySource, type PolicySubject } from '@/lib/admin/policy-scopes';
+import { DEFAULT_ORGANISATION_POLICY, type OrganisationPolicy } from '@/lib/admin/organisation-policy';
 
 interface PolicyState {
+  /**
+   * The effective policy for the active account: the policy as fetched with
+   * the domain and group scopes that match the account applied. Everything
+   * that reads the policy reads this.
+   */
   policy: SettingsPolicy;
+  /** The policy as fetched, scopes included. */
+  rawPolicy: SettingsPolicy;
+  /** The account `policy` was resolved for; null before one is known. */
+  subject: PolicySubject | null;
+  /** Ids of the scopes that apply to `subject`. */
+  matchedScopes: string[];
+  /** What set each non-default value of `policy` (see ResolvedPolicy.sources). */
+  sources: Record<string, PolicySource>;
   loaded: boolean;
   /**
    * The server answered with the public subset (not signed in yet); the
@@ -21,6 +36,14 @@ interface PolicyState {
   demoFeatureOverrides: Partial<FeatureGates>;
   setDemoFeatureOverrides: (overrides: Partial<FeatureGates>) => void;
   fetchPolicy: () => Promise<void>;
+  /** Resolve the policy for this account (the active one); null for none. */
+  setPolicySubject: (subject: PolicySubject | null) => void;
+  /** The effective policy of another account, without making it the active one. */
+  resolveFor: (subject: PolicySubject | null) => SettingsPolicy;
+  /** The organisation settings of the effective policy. */
+  getOrganisation: () => OrganisationPolicy;
+  /** `global`, a scope id, or `default` when nothing set it. */
+  getPolicySource: (key: string) => PolicySource;
   /** Fetch the full policy if only the public subset is loaded. */
   refreshIfPartial: () => Promise<void>;
   isSettingLocked: (key: string) => boolean;
@@ -45,8 +68,19 @@ let policyRequest = 0;
 
 const COLOR_MODES: readonly ColorMode[] = ['light', 'dark', 'system'];
 
+const sameSubject = (a: PolicySubject | null, b: PolicySubject | null) =>
+  a === b || (!!a && !!b && a.email === b.email && a.groups.join(',') === b.groups.join(','));
+
+function resolved(rawPolicy: SettingsPolicy, subject: PolicySubject | null) {
+  const { policy, matched, sources } = resolvePolicy(rawPolicy, subject);
+  return { rawPolicy, policy, matchedScopes: matched, sources };
+}
+
+const INITIAL = resolved({ ...DEFAULT_POLICY }, null);
+
 export const usePolicyStore = create<PolicyState>()((set, get) => ({
-  policy: { ...DEFAULT_POLICY },
+  ...INITIAL,
+  subject: null,
   loaded: false,
   partial: false,
   demoFeatureOverrides: {},
@@ -71,14 +105,25 @@ export const usePolicyStore = create<PolicyState>()((set, get) => ({
         const data = await res.json();
         if (request !== policyRequest) return;
         const partial = res.headers?.get?.(POLICY_SCOPE_HEADER) === 'public';
-        set({ policy: IS_LITE ? applyLitePolicy(data) : data, loaded: true, partial });
+        set({ ...resolved(IS_LITE ? applyLitePolicy(data) : data, get().subject), loaded: true, partial });
       } else {
-        set({ ...fallback, loaded: true });
+        set({ ...(fallback.policy ? resolved(fallback.policy, get().subject) : {}), loaded: true });
       }
     } catch {
-      if (request === policyRequest) set({ ...fallback, loaded: true });
+      if (request === policyRequest) set({ ...(fallback.policy ? resolved(fallback.policy, get().subject) : {}), loaded: true });
     }
   },
+
+  setPolicySubject: (subject) => {
+    if (sameSubject(subject, get().subject)) return;
+    set({ ...resolved(get().rawPolicy, subject), subject });
+  },
+
+  resolveFor: (subject) => resolvePolicy(get().rawPolicy, subject).policy,
+
+  getOrganisation: () => get().policy.organisation ?? DEFAULT_ORGANISATION_POLICY,
+
+  getPolicySource: (key) => get().sources[key] ?? 'default',
 
   refreshIfPartial: async () => {
     if (IS_LITE || (get().loaded && !get().partial)) return;

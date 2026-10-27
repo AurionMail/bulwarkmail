@@ -1,5 +1,8 @@
 // Admin dashboard types
 
+import type { OrganisationPolicy } from './organisation-policy';
+import type { PolicyScope } from './policy-scopes';
+
 /**
  * Operator-authored admin record. Lives in admin.json under the config dir
  * and can be mounted read-only after setup. Only the password hash itself
@@ -192,6 +195,14 @@ export interface SettingsPolicy {
    * operator can ship a fixed set while forbidding custom ones.
    */
   defaultSidebarApps?: AdminSidebarApp[];
+  /** Organisation settings (signatures, external mail, sessions...); lib/admin/organisation-policy.ts. */
+  organisation?: OrganisationPolicy;
+  /**
+   * Overrides per domain or group, applied on top of the rest for the
+   * accounts they match (lib/admin/policy-scopes.ts). The effective policy
+   * a client works with has none.
+   */
+  scopes?: PolicyScope[];
 }
 
 /** Set to `public` on a policy answered with the pre-login subset. */
