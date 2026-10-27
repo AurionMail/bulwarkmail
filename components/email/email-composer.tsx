@@ -89,6 +89,7 @@ import { usePluginSignature } from "@/hooks/use-plugin-signature";
 import { SubAddressHelper } from "@/components/identity/sub-address-helper";
 import { generateSubAddress } from "@/lib/sub-addressing";
 import { substitutePlaceholders, spliceTemplateAboveSignature, composeBodyHasUserContent } from "@/lib/template-utils";
+import { findUnfilledPlaceholders, stripEmbeddedSignatureHtml } from "@/lib/placeholder-check";
 import { TemplatePicker } from "@/components/templates/template-picker";
 import { TemplateForm } from "@/components/templates/template-form";
 import type { EmailTemplate } from "@/lib/template-types";
@@ -478,6 +479,7 @@ export function EmailComposer({
   const attachmentReminderEnabled = useSettingsStore((state) => state.attachmentReminderEnabled);
   const attachmentReminderKeywords = useSettingsStore((state) => state.attachmentReminderKeywords);
   const emptySubjectWarningEnabled = useSettingsStore((state) => state.emptySubjectWarningEnabled);
+  const placeholderWarningEnabled = useSettingsStore((state) => state.placeholderWarningEnabled);
   const recipientMentionsEnabled = useSettingsStore((state) => state.recipientMentionsEnabled);
   const mentionAddsRecipientTo = useSettingsStore((state) => state.mentionAddsRecipientTo);
   const updateSetting = useSettingsStore((state) => state.updateSetting);
@@ -966,6 +968,10 @@ export function EmailComposer({
   const [showEmptySubjectWarning, setShowEmptySubjectWarning] = useState(false);
   const [emptySubjectDelayedUntil, setEmptySubjectDelayedUntil] = useState<string | undefined>();
   const [emptySubjectDontAskAgain, setEmptySubjectDontAskAgain] = useState(false);
+  const [showPlaceholderWarning, setShowPlaceholderWarning] = useState(false);
+  const [placeholderWarningMatches, setPlaceholderWarningMatches] = useState<string[]>([]);
+  const [placeholderWarningDelayedUntil, setPlaceholderWarningDelayedUntil] = useState<string | undefined>();
+  const [placeholderDontAskAgain, setPlaceholderDontAskAgain] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [scheduleValue, setScheduleValue] = useState('');
   const [scheduleError, setScheduleError] = useState('');
@@ -994,6 +1000,12 @@ export function EmailComposer({
   const emptySubjectWarningRef = useFocusTrap({
     isActive: showEmptySubjectWarning,
     onEscape: () => setShowEmptySubjectWarning(false),
+    restoreFocus: true,
+  });
+
+  const placeholderWarningRef = useFocusTrap({
+    isActive: showPlaceholderWarning,
+    onEscape: () => setShowPlaceholderWarning(false),
     restoreFocus: true,
   });
 
@@ -3093,6 +3105,9 @@ export function EmailComposer({
   const sendCancelledRef = useRef(false);
   // The user confirmed sending without a subject for this message.
   const emptySubjectConfirmedRef = useRef(false);
+  // Placeholders the user chose to send as they are. The warning comes back
+  // only for one that is not in here.
+  const confirmedPlaceholdersRef = useRef<Set<string>>(new Set());
 
   // Toasts sit in the bottom corner, right over the composer's Send button.
   // The attribute lifts them clear while a composer is open (see toast.tsx).
@@ -3106,6 +3121,41 @@ export function EmailComposer({
       else delete root.dataset.composerOpen;
     };
   }, []);
+
+  // "Back to editing" from the placeholder warning selects the first
+  // placeholder, so the user can type over it.
+  const selectPlaceholder = (placeholder: string) => {
+    const subjectInput = subjectInputRef.current;
+    const subjectIndex = subjectInput?.value.indexOf(placeholder) ?? -1;
+    if (subjectInput && subjectIndex >= 0) {
+      subjectInput.focus();
+      subjectInput.setSelectionRange(subjectIndex, subjectIndex + placeholder.length);
+      return;
+    }
+    if (plainTextModeRef.current) {
+      const textarea = bodyRef.current;
+      if (!textarea) return;
+      const index = textarea.value.indexOf(placeholder);
+      textarea.focus();
+      if (index >= 0) textarea.setSelectionRange(index, index + placeholder.length);
+      return;
+    }
+    const editor = editorRef.current;
+    if (!editor) return;
+    const range = { from: -1, to: -1 };
+    editor.state.doc.descendants((node, pos) => {
+      if (range.from >= 0) return false;
+      const index = node.isText && node.text ? node.text.indexOf(placeholder) : -1;
+      if (index >= 0) {
+        range.from = pos + index;
+        range.to = range.from + placeholder.length;
+      }
+    });
+    // A placeholder split across formatting has no single text node; then
+    // the caret just goes back into the body.
+    if (range.from >= 0) editor.chain().focus().setTextSelection(range).scrollIntoView().run();
+    else editor.commands.focus();
+  };
 
   const handleSend = async ({ skipAttachmentCheck = false, skipSubjectCheck = false, delayedUntil }: {
     skipAttachmentCheck?: boolean;
@@ -3174,6 +3224,27 @@ export function EmailComposer({
       setEmptySubjectDelayedUntil(delayedUntil);
       setShowEmptySubjectWarning(true);
       return;
+    }
+
+    // Unfilled placeholders: template fields left as {{name}}, fill-ins like
+    // [TIME] from AI drafts, and markers like TODO. The signature is left
+    // out, or a placeholder in it would stop every message.
+    if (placeholderWarningEnabled) {
+      const authored = plainTextMode
+        ? plainTextBodyWithoutSignature(body, signatureIdentity)
+        : stripEmbeddedSignatureHtml(body);
+      const bodyText = extractUserAuthoredText(authored, {
+        plainTextMode,
+        forwardedSeparator: tQuote('forwarded_separator'),
+      });
+      const found = findUnfilledPlaceholders(subject, bodyText);
+      if (found.some(p => !confirmedPlaceholdersRef.current.has(p))) {
+        setPlaceholderWarningMatches(found);
+        setPlaceholderDontAskAgain(false);
+        setPlaceholderWarningDelayedUntil(delayedUntil);
+        setShowPlaceholderWarning(true);
+        return;
+      }
     }
 
     // Attachment reminder check
@@ -3688,6 +3759,7 @@ export function EmailComposer({
       showScheduleDialog ||
       showAttachmentWarning ||
       showEmptySubjectWarning ||
+      showPlaceholderWarning ||
       showCloseDialog
     ) return;
 
@@ -4818,6 +4890,72 @@ export function EmailComposer({
                 }}
               >
                 {t('empty_subject.send_anyway')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPlaceholderWarning && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center z-[60] p-4 animate-in fade-in duration-150"
+          onClick={() => setShowPlaceholderWarning(false)}
+        >
+          <div
+            ref={placeholderWarningRef}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="placeholder-warning-title"
+            onClick={(e) => e.stopPropagation()}
+            className="bg-background border border-border rounded-lg shadow-xl w-full max-w-md animate-in zoom-in-95 duration-200"
+          >
+            <div className="p-6">
+              <h2 id="placeholder-warning-title" className="text-lg font-semibold text-foreground">{t('placeholder_warning.title')}</h2>
+              <p className="mt-2 text-sm text-muted-foreground">{t('placeholder_warning.message')}</p>
+              <ul className="mt-3 flex flex-wrap items-center gap-1.5" aria-label={t('placeholder_warning.found')}>
+                {placeholderWarningMatches.slice(0, 5).map((p) => (
+                  <li key={p} className="max-w-full truncate rounded bg-muted px-2 py-0.5 font-mono text-xs text-foreground">{p}</li>
+                ))}
+                {placeholderWarningMatches.length > 5 && (
+                  <li className="text-xs text-muted-foreground">
+                    {t('placeholder_warning.more', { count: placeholderWarningMatches.length - 5 })}
+                  </li>
+                )}
+              </ul>
+              <label className="mt-4 flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={placeholderDontAskAgain}
+                  onChange={(e) => setPlaceholderDontAskAgain(e.target.checked)}
+                  className="rounded border-input"
+                />
+                {t('placeholder_warning.dont_ask_again')}
+              </label>
+            </div>
+            <div className="flex items-center justify-end gap-3 px-6 pb-6">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowPlaceholderWarning(false);
+                  setPlaceholderWarningDelayedUntil(undefined);
+                  // The focus trap hands focus back to the Send button as it
+                  // tears down, so select on the next tick.
+                  const first = placeholderWarningMatches[0];
+                  setTimeout(() => { if (first) selectPlaceholder(first); }, 0);
+                }}
+              >
+                {t('placeholder_warning.back')}
+              </Button>
+              <Button
+                onClick={() => {
+                  if (placeholderDontAskAgain) updateSetting('placeholderWarningEnabled', false);
+                  placeholderWarningMatches.forEach((p) => confirmedPlaceholdersRef.current.add(p));
+                  setShowPlaceholderWarning(false);
+                  handleSend({ skipSubjectCheck: true, delayedUntil: placeholderWarningDelayedUntil });
+                  setPlaceholderWarningDelayedUntil(undefined);
+                }}
+              >
+                {t('placeholder_warning.send_anyway')}
               </Button>
             </div>
           </div>

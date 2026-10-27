@@ -682,6 +682,9 @@ interface SettingsState {
   // Ask for confirmation when sending a message with an empty subject
   emptySubjectWarningEnabled: boolean;
 
+  // Ask for confirmation when sending a message with unfilled placeholders
+  placeholderWarningEnabled: boolean;
+
   // "@" in the message body offers the recipients and inserts a first name
   recipientMentionsEnabled: boolean;
   // Where an "@" puts a picked contact who isn't a recipient yet; 'off'
@@ -975,6 +978,7 @@ const DEFAULT_SETTINGS = {
   ] as string[],
 
   emptySubjectWarningEnabled: true,
+  placeholderWarningEnabled: true,
   recipientMentionsEnabled: true,
   mentionAddsRecipientTo: 'to' as MentionAddsRecipientTo,
 
@@ -1275,6 +1279,7 @@ export const useSettingsStore = create<SettingsState>()(
           attachmentReminderEnabled: state.attachmentReminderEnabled,
           attachmentReminderKeywords: state.attachmentReminderKeywords,
           emptySubjectWarningEnabled: state.emptySubjectWarningEnabled,
+          placeholderWarningEnabled: state.placeholderWarningEnabled,
           recipientMentionsEnabled: state.recipientMentionsEnabled,
           mentionAddsRecipientTo: state.mentionAddsRecipientTo,
           hideInlineImageAttachments: state.hideInlineImageAttachments,
