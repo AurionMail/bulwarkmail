@@ -396,10 +396,17 @@ export function getInvitationMethod(
   return 'unknown';
 }
 
+/**
+ * `ownAddresses` are the reader's own addresses. Mail from another user on
+ * the reader's domains that carries no Authentication-Results header at all
+ * was handed in by a signed-in user rather than received from outside:
+ * Stalwart adds the header to everything that arrives on port 25 (#1374).
+ */
 export function getInvitationTrustAssessment(
   event: Partial<CalendarEvent>,
   email?: Pick<Email, 'from' | 'replyTo' | 'authenticationResults'>,
-  method: InvitationMethod = getInvitationMethod(event)
+  method: InvitationMethod = getInvitationMethod(event),
+  ownAddresses: string[] = []
 ): InvitationTrustAssessment {
   const organizerEmail = getOrganizerEmail(event);
   const senderEmail = getPrimaryAddressEmail(email?.from) || getPrimaryAddressEmail(email?.replyTo);
@@ -411,7 +418,10 @@ export function getInvitationTrustAssessment(
   const verifiedAuthentication = hasVerifiedAuthentication(email);
   const authenticationFailure = hasAuthenticationFailure(email);
   const senderMismatch = Boolean(senderEmail && expectedEmail && senderEmail !== expectedEmail);
-  const expectsAuthenticatedTransport = method !== 'unknown';
+  const senderDomain = senderEmail?.split('@').pop();
+  const internal = Boolean(email && !email.authenticationResults && senderDomain
+    && ownAddresses.some((address) => address.toLowerCase().split('@').pop() === senderDomain));
+  const expectsAuthenticatedTransport = method !== 'unknown' && !internal;
   const addresses = { senderEmail, organizerEmail, attendeeEmail };
 
   if (senderMismatch && (authenticationFailure || !verifiedAuthentication)) {

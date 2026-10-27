@@ -525,6 +525,40 @@ describe('getInvitationTrustAssessment', () => {
     expect(dkim.level).toBe('caution');
     expect(dkim.reason).toBe('authentication_missing');
   });
+
+  // Mail a signed-in user hands in never passes port 25, so Stalwart adds no
+  // Authentication-Results header to it (#1374).
+  describe('mail between users of the reader\'s own domains', () => {
+    const event: Partial<CalendarEvent> = {
+      participants: {
+        org: makeParticipant({ roles: { owner: true }, email: 'alice@example.com' }),
+      },
+    };
+    const own = ['bob@example.com', 'Bob@Example.org'];
+
+    it('trusts an invitation without an Authentication-Results header', () => {
+      const result = getInvitationTrustAssessment(event, makeEmail({ from: [{ email: 'alice@example.com' }] }), 'request', own);
+      expect(result.level).toBe('trusted');
+    });
+
+    it('still cautions when the sender is on another domain', () => {
+      const result = getInvitationTrustAssessment(event, makeEmail({ from: [{ email: 'alice@example.com' }] }), 'request', ['bob@example.net']);
+      expect(result.reason).toBe('authentication_missing');
+    });
+
+    it('still cautions when the header is there but nothing in it passed', () => {
+      const result = getInvitationTrustAssessment(event, makeEmail({
+        from: [{ email: 'alice@example.com' }],
+        authenticationResults: { dmarc: { result: 'none', domain: 'example.com' } },
+      }), 'request', own);
+      expect(result.reason).toBe('authentication_missing');
+    });
+
+    it('still warns when the sender is not the organizer', () => {
+      const result = getInvitationTrustAssessment(event, makeEmail({ from: [{ email: 'carol@example.com' }] }), 'request', own);
+      expect(result.reason).toBe('sender_mismatch_unverified');
+    });
+  });
 });
 
 describe('findParticipantByEmail', () => {
