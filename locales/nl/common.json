@@ -1668,7 +1668,7 @@
       },
       "placeholder_warning": {
         "label": "Waarschuwing bij tijdelijke aanduidingen",
-        "description": "Vraag om bevestiging voordat een bericht wordt verzonden dat nog tijdelijke aanduidingen bevat zoals [TIME] of [Your Name], lege sjabloonvelden of onafgemaakte tekst zoals TODO of TBD."
+        "description": "Vraag om bevestiging voordat een bericht wordt verzonden dat nog tijdelijke aanduidingen bevat zoals [TIME] of [Uw naam], lege sjabloonvelden of onafgemaakte tekst zoals TODO of TBD."
       },
       "recipient_mentions": {
         "label": "Ontvangers noemen met @",

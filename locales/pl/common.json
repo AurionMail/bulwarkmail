@@ -1668,7 +1668,7 @@
       },
       "placeholder_warning": {
         "label": "Ostrzeżenie o symbolach zastępczych",
-        "description": "Poproś o potwierdzenie przed wysłaniem wiadomości, która wciąż zawiera symbole zastępcze, takie jak [TIME] lub [Your Name], puste pola szablonu albo niedokończony tekst, taki jak TODO lub TBD."
+        "description": "Poproś o potwierdzenie przed wysłaniem wiadomości, która wciąż zawiera symbole zastępcze, takie jak [TIME] lub [Twoje imię], puste pola szablonu albo niedokończony tekst, taki jak TODO lub TBD."
       },
       "recipient_mentions": {
         "label": "Wspominaj odbiorców za pomocą @",

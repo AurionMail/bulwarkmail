@@ -1668,7 +1668,7 @@
       },
       "placeholder_warning": {
         "label": "Upozornění na zástupné texty",
-        "description": "Před odesláním zprávy, která stále obsahuje zástupné texty jako [TIME] nebo [Your Name], nevyplněná pole šablony nebo nedokončený text jako TODO či TBD, požádat o potvrzení."
+        "description": "Před odesláním zprávy, která stále obsahuje zástupné texty jako [TIME] nebo [Vaše jméno], nevyplněná pole šablony nebo nedokončený text jako TODO či TBD, požádat o potvrzení."
       },
       "recipient_mentions": {
         "label": "Zmiňovat příjemce pomocí @",

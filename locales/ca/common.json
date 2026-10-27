@@ -1671,7 +1671,7 @@
       },
       "placeholder_warning": {
         "label": "Avís de marcadors",
-        "description": "Demana confirmació abans d'enviar un missatge que encara té marcadors com [TIME] o [Your Name], camps de plantilla buits o text inacabat com TODO o TBD."
+        "description": "Demana confirmació abans d'enviar un missatge que encara té marcadors com [TIME] o [El teu nom], camps de plantilla buits o text inacabat com TODO o TBD."
       },
       "recipient_mentions": {
         "label": "Esmentar destinataris amb @",

@@ -1671,7 +1671,7 @@
       },
       "placeholder_warning": {
         "label": "Avertisment pentru substituenți",
-        "description": "Cere confirmare înainte de a trimite un mesaj care încă are substituenți precum [TIME] sau [Your Name], câmpuri de șablon goale sau text neterminat precum TODO sau TBD."
+        "description": "Cere confirmare înainte de a trimite un mesaj care încă are substituenți precum [TIME] sau [Numele tău], câmpuri de șablon goale sau text neterminat precum TODO sau TBD."
       },
       "recipient_mentions": {
         "label": "Menționează destinatarii cu @",

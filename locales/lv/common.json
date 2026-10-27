@@ -1668,7 +1668,7 @@
       },
       "placeholder_warning": {
         "label": "Brīdinājums par vietturiem",
-        "description": "Pieprasīt apstiprinājumu pirms tādas ziņas sūtīšanas, kurā vēl ir vietturi, piemēram, [TIME] vai [Your Name], tukši veidnes lauki vai nepabeigts teksts, piemēram, TODO vai TBD."
+        "description": "Pieprasīt apstiprinājumu pirms tādas ziņas sūtīšanas, kurā vēl ir vietturi, piemēram, [TIME] vai [Jūsu vārds], tukši veidnes lauki vai nepabeigts teksts, piemēram, TODO vai TBD."
       },
       "recipient_mentions": {
         "label": "Pieminēt saņēmējus ar @",

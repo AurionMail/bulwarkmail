@@ -1671,7 +1671,7 @@
       },
       "placeholder_warning": {
         "label": "Advarsel om plassholdere",
-        "description": "Be om bekreftelse før du sender en melding som fortsatt har plassholdere som [TIME] eller [Your Name], tomme malfelt eller uferdig tekst som TODO eller TBD."
+        "description": "Be om bekreftelse før du sender en melding som fortsatt har plassholdere som [TIME] eller [Ditt navn], tomme malfelt eller uferdig tekst som TODO eller TBD."
       },
       "recipient_mentions": {
         "label": "Nevn mottakere med @",

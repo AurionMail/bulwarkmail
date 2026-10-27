@@ -1671,7 +1671,7 @@
       },
       "placeholder_warning": {
         "label": "預留位置提醒",
-        "description": "傳送仍含有預留位置（如 [TIME] 或 [Your Name]）、空白範本欄位或未完成文字（如 TODO 或 TBD）的郵件前請求確認。"
+        "description": "傳送仍含有預留位置（如 [TIME] 或 [您的姓名]）、空白範本欄位或未完成文字（如 TODO 或 TBD）的郵件前請求確認。"
       },
       "recipient_mentions": {
         "label": "使用 @ 提及收件者",

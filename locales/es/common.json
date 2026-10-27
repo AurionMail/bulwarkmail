@@ -1668,7 +1668,7 @@
       },
       "placeholder_warning": {
         "label": "Aviso de marcadores",
-        "description": "Pedir confirmación antes de enviar un mensaje que todavía tiene marcadores como [TIME] o [Your Name], campos de plantilla vacíos o texto sin terminar como TODO o TBD."
+        "description": "Pedir confirmación antes de enviar un mensaje que todavía tiene marcadores como [TIME] o [Tu nombre], campos de plantilla vacíos o texto sin terminar como TODO o TBD."
       },
       "recipient_mentions": {
         "label": "Mencionar destinatarios con @",

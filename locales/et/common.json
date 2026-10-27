@@ -1671,7 +1671,7 @@
       },
       "placeholder_warning": {
         "label": "Kohatäidete hoiatus",
-        "description": "Küsi kinnitust enne kirja saatmist, kus on veel kohatäiteid nagu [TIME] või [Your Name], tühje malliväljasid või pooleli teksti nagu TODO või TBD."
+        "description": "Küsi kinnitust enne kirja saatmist, kus on veel kohatäiteid nagu [TIME] või [Teie nimi], tühje malliväljasid või pooleli teksti nagu TODO või TBD."
       },
       "recipient_mentions": {
         "label": "Maini adressaate @-ga",

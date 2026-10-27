@@ -1668,7 +1668,7 @@
       },
       "placeholder_warning": {
         "label": "Yer tutucu uyarısı",
-        "description": "Hâlâ [TIME] veya [Your Name] gibi yer tutucular, boş şablon alanları ya da TODO veya TBD gibi bitmemiş metin içeren bir ileti gönderilmeden önce onay iste."
+        "description": "Hâlâ [TIME] veya [Adınız] gibi yer tutucular, boş şablon alanları ya da TODO veya TBD gibi bitmemiş metin içeren bir ileti gönderilmeden önce onay iste."
       },
       "recipient_mentions": {
         "label": "Alıcılardan @ ile bahset",

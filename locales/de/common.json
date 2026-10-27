@@ -1668,7 +1668,7 @@
       },
       "placeholder_warning": {
         "label": "Warnung bei Platzhaltern",
-        "description": "Vor dem Senden einer Nachricht nachfragen, die noch Platzhalter wie [TIME] oder [Your Name], leere Vorlagenfelder oder unfertigen Text wie TODO oder TBD enthält."
+        "description": "Vor dem Senden einer Nachricht nachfragen, die noch Platzhalter wie [TIME] oder [Ihr Name], leere Vorlagenfelder oder unfertigen Text wie TODO oder TBD enthält."
       },
       "recipient_mentions": {
         "label": "Empfänger mit @ erwähnen",

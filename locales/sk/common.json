@@ -1671,7 +1671,7 @@
       },
       "placeholder_warning": {
         "label": "Upozornenie na zástupné texty",
-        "description": "Pred odoslaním správy, ktorá ešte obsahuje zástupné texty ako [TIME] alebo [Your Name], prázdne polia šablóny alebo nedokončený text ako TODO či TBD, požiadať o potvrdenie."
+        "description": "Pred odoslaním správy, ktorá ešte obsahuje zástupné texty ako [TIME] alebo [Vaše meno], prázdne polia šablóny alebo nedokončený text ako TODO či TBD, požiadať o potvrdenie."
       },
       "recipient_mentions": {
         "label": "Spomínať príjemcov pomocou @",

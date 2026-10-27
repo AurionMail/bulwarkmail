@@ -1668,7 +1668,7 @@
       },
       "placeholder_warning": {
         "label": "Avertissement d'espaces réservés",
-        "description": "Demander confirmation avant d'envoyer un message qui contient encore des espaces réservés comme [TIME] ou [Your Name], des champs de modèle vides ou du texte inachevé comme TODO ou TBD."
+        "description": "Demander confirmation avant d'envoyer un message qui contient encore des espaces réservés comme [TIME] ou [Votre nom], des champs de modèle vides ou du texte inachevé comme TODO ou TBD."
       },
       "recipient_mentions": {
         "label": "Mentionner les destinataires avec @",

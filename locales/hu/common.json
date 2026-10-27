@@ -1671,7 +1671,7 @@
       },
       "placeholder_warning": {
         "label": "Figyelmeztetés helykitöltők esetén",
-        "description": "Megerősítés kérése olyan üzenet küldése előtt, amelyben még helykitöltők vannak, például [TIME] vagy [Your Name], üres sablonmezők vagy befejezetlen szöveg, például TODO vagy TBD."
+        "description": "Megerősítés kérése olyan üzenet küldése előtt, amelyben még helykitöltők vannak, például [TIME] vagy [Az Ön neve], üres sablonmezők vagy befejezetlen szöveg, például TODO vagy TBD."
       },
       "recipient_mentions": {
         "label": "Címzettek említése @ jellel",

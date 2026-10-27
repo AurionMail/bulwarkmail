@@ -1668,7 +1668,7 @@
       },
       "placeholder_warning": {
         "label": "占位符提醒",
-        "description": "发送仍含有占位符（如 [TIME] 或 [Your Name]）、空白模板字段或未完成文本（如 TODO 或 TBD）的邮件前请求确认。"
+        "description": "发送仍含有占位符（如 [TIME] 或 [您的姓名]）、空白模板字段或未完成文本（如 TODO 或 TBD）的邮件前请求确认。"
       },
       "recipient_mentions": {
         "label": "使用 @ 提及收件人",

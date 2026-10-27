@@ -1668,7 +1668,7 @@
       },
       "placeholder_warning": {
         "label": "プレースホルダーの警告",
-        "description": "[TIME] や [Your Name] などのプレースホルダー、空のテンプレート項目、TODO や TBD などの未完成のテキストが残っているメッセージを送信する前に確認します。"
+        "description": "[TIME] や [あなたの名前] などのプレースホルダー、空のテンプレート項目、TODO や TBD などの未完成のテキストが残っているメッセージを送信する前に確認します。"
       },
       "recipient_mentions": {
         "label": "@で宛先をメンション",
