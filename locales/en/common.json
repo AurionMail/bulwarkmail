@@ -1833,7 +1833,7 @@
       "title": "Account Security",
       "description": "Manage your password, two-factor authentication, and security settings",
       "detecting": "Detecting server capabilities...",
-      "not_available": "Account security management is not available for this mail server. Required permissions may be disabled. See the <a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">documentation</a> for details.",
+      "not_available": "Account security management is not available for this mail server. Required permissions may be disabled. See the <a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">documentation</a> for details.",
       "password": {
         "title": "Change Password",
         "current": "Current Password",

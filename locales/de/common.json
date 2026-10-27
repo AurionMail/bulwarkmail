@@ -1826,7 +1826,7 @@
       "title": "Kontosicherheit",
       "description": "Verwalten Sie Ihr Passwort, Zwei-Faktor-Authentifizierung und Sicherheitseinstellungen",
       "detecting": "Serverfunktionen werden erkannt...",
-      "not_available": "Kontosicherheitsverwaltung ist für diesen Mailserver nicht verfügbar. Erforderliche Berechtigungen könnten deaktiviert sein. Siehe die <a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">Dokumentation</a> für Details.",
+      "not_available": "Kontosicherheitsverwaltung ist für diesen Mailserver nicht verfügbar. Erforderliche Berechtigungen könnten deaktiviert sein. Siehe die <a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">Dokumentation</a> für Details.",
       "password": {
         "title": "Passwort ändern",
         "current": "Aktuelles Passwort",

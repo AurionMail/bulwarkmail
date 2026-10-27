@@ -433,11 +433,11 @@ describe('email-sanitization', () => {
   describe('sanitizeI18nHtml', () => {
     it('preserves an authored target="_blank" and hardens rel (regression: DOMPurify strips target)', () => {
       const out = sanitizeI18nHtml(
-        'See the <a href="/docs/guides/account-security" class="underline" target="_blank">documentation</a>.',
+        'See the <a href="https://bulwarkmail.org/docs/guides/account-security" class="underline" target="_blank">documentation</a>.',
       );
       expect(out).toContain('target="_blank"');
       expect(out).toContain('rel="noopener noreferrer"');
-      expect(out).toContain('href="/docs/guides/account-security"');
+      expect(out).toContain('href="https://bulwarkmail.org/docs/guides/account-security"');
     });
 
     it('leaves links without a target untouched (no spurious new tab)', () => {

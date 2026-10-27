@@ -1833,7 +1833,7 @@
       "title": "Seguretat del compte",
       "description": "Gestioneu la contrasenya, l'autenticació de dos factors i la configuració de seguretat",
       "detecting": "Detectant les capacitats del servidor...",
-      "not_available": "La gestió de la seguretat del compte no està disponible per a aquest servidor de correu. És possible que els permisos necessaris estiguin desactivats. Consulteu la <a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">documentació</a> per obtenir més detalls.",
+      "not_available": "La gestió de la seguretat del compte no està disponible per a aquest servidor de correu. És possible que els permisos necessaris estiguin desactivats. Consulteu la <a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">documentació</a> per obtenir més detalls.",
       "password": {
         "title": "Canvia la contrasenya",
         "current": "Contrasenya actual",

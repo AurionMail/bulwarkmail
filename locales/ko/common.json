@@ -1826,7 +1826,7 @@
       "title": "계정 보안",
       "description": "비밀번호, 2단계 인증 및 보안 설정을 관리해요",
       "detecting": "서버 기능을 확인하는 중...",
-      "not_available": "이 메일 서버에서는 계정 보안 관리를 사용할 수 없어요. 필요한 권한이 비활성화되어 있을 수 있어요. 자세한 내용은 <a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">문서</a>를 참고해 주세요.",
+      "not_available": "이 메일 서버에서는 계정 보안 관리를 사용할 수 없어요. 필요한 권한이 비활성화되어 있을 수 있어요. 자세한 내용은 <a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">문서</a>를 참고해 주세요.",
       "password": {
         "title": "비밀번호 변경",
         "current": "현재 비밀번호",

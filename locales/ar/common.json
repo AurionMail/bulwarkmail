@@ -1833,7 +1833,7 @@
       "title": "أمان الحساب",
       "description": "إدارة كلمة المرور والمصادقة الثنائية وإعدادات الأمان",
       "detecting": "جارٍ اكتشاف قدرات الخادم...",
-      "not_available": "إدارة أمان الحساب غير متاحة لخادم البريد هذا. قد تكون الأذونات المطلوبة معطّلة. راجع <a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">الوثائق</a> للتفاصيل.",
+      "not_available": "إدارة أمان الحساب غير متاحة لخادم البريد هذا. قد تكون الأذونات المطلوبة معطّلة. راجع <a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">الوثائق</a> للتفاصيل.",
       "password": {
         "title": "تغيير كلمة المرور",
         "current": "كلمة المرور الحالية",

@@ -1826,7 +1826,7 @@
       "title": "账户安全",
       "description": "管理您的密码、双因素身份验证和安全设置",
       "detecting": "正在检测服务器功能...",
-      "not_available": "此邮件服务器不支持账号安全管理。可能未启用所需权限。详情请参阅<a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">文档</a>。",
+      "not_available": "此邮件服务器不支持账号安全管理。可能未启用所需权限。详情请参阅<a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">文档</a>。",
       "password": {
         "title": "更改密码",
         "current": "当前密码",

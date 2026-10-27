@@ -1826,7 +1826,7 @@
       "title": "Hesap Güvenliği",
       "description": "Parolanızı, iki faktörlü kimlik doğrulamayı ve güvenlik ayarlarını yönetin",
       "detecting": "Sunucu özellikleri algılanıyor...",
-      "not_available": "Bu posta sunucusu için hesap güvenliği yönetimi kullanılamıyor. Gerekli izinler devre dışı bırakılmış olabilir. Ayrıntılar için <a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">belgelere</a> bakın.",
+      "not_available": "Bu posta sunucusu için hesap güvenliği yönetimi kullanılamıyor. Gerekli izinler devre dışı bırakılmış olabilir. Ayrıntılar için <a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">belgelere</a> bakın.",
       "password": {
         "title": "Parolayı Değiştir",
         "current": "Mevcut Parola",

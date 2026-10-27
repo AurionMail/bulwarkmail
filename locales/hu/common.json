@@ -1829,7 +1829,7 @@
       "title": "Fiók biztonság",
       "description": "Jelszó, kétfaktoros hitelesítés és biztonsági beállítások kezelése",
       "detecting": "Szerver képességek érzékelése...",
-      "not_available": "A fiók biztonsági kezelés nem érhető el ehhez a levelezőszerverhez. A szükséges engedélyek lehet, hogy le vannak tiltva. Lásd a <a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">dokumentációt</a> a részletekért.",
+      "not_available": "A fiók biztonsági kezelés nem érhető el ehhez a levelezőszerverhez. A szükséges engedélyek lehet, hogy le vannak tiltva. Lásd a <a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">dokumentációt</a> a részletekért.",
       "password": {
         "title": "Jelszó módosítása",
         "current": "Jelenlegi jelszó",

@@ -1826,7 +1826,7 @@
       "title": "Bezpieczeństwo konta",
       "description": "Zarządzaj hasłem, uwierzytelnianiem dwuskładnikowym i ustawieniami bezpieczeństwa",
       "detecting": "Wykrywanie możliwości serwera...",
-      "not_available": "Zarządzanie bezpieczeństwem konta nie jest dostępne dla tego serwera pocztowego. Wymagane uprawnienia mogą być wyłączone. Szczegóły znajdziesz w <a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">dokumentacji</a>.",
+      "not_available": "Zarządzanie bezpieczeństwem konta nie jest dostępne dla tego serwera pocztowego. Wymagane uprawnienia mogą być wyłączone. Szczegóły znajdziesz w <a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">dokumentacji</a>.",
       "password": {
         "title": "Zmień hasło",
         "current": "Aktualne hasło",

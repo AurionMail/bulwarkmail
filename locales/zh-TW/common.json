@@ -1833,7 +1833,7 @@
       "title": "帳號安全",
       "description": "管理您的密碼、雙因素驗證與安全設定",
       "detecting": "正在偵測伺服器功能…",
-      "not_available": "此郵件伺服器無法管理帳號安全性。可能已停用必要權限。如需詳細資料，請參閱<a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">說明文件</a>。",
+      "not_available": "此郵件伺服器無法管理帳號安全性。可能已停用必要權限。如需詳細資料，請參閱<a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">說明文件</a>。",
       "password": {
         "title": "變更密碼",
         "current": "目前密碼",

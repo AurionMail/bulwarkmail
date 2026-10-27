@@ -188,3 +188,16 @@ describe('mail terms are not mistranslated', () => {
     expect(resolveKey(table, 'smime.cert_subject')).not.toBe(resolveKey(table, 'email_composer.subject'));
   });
 });
+
+describe('links in translations', () => {
+  // The docs live on bulwarkmail.org. A path like /docs/... opens on the
+  // webmail's own host, where there is no such page (#1387).
+  it.each(locales)('%s links only to absolute URLs', (locale) => {
+    const table = loadLocale(locale);
+    const relative = getLeafKeys(table).filter((key) => {
+      const value = resolveKey(table, key);
+      return typeof value === 'string' && /href="(?!https:\/\/)/.test(value);
+    });
+    expect(relative).toEqual([]);
+  });
+});

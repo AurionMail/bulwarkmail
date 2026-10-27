@@ -1833,7 +1833,7 @@
       "title": "Konto turvalisus",
       "description": "Halda oma parooli, kaheastmelist autentimist ja turvasätteid",
       "detecting": "Serveri võimekuste tuvastamine...",
-      "not_available": "Konto turvahaldus ei ole selle meiliserveri jaoks saadaval. Vajalikud õigused võivad olla keelatud. Üksikasjade jaoks vaata <a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">dokumentatsiooni</a>.",
+      "not_available": "Konto turvahaldus ei ole selle meiliserveri jaoks saadaval. Vajalikud õigused võivad olla keelatud. Üksikasjade jaoks vaata <a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">dokumentatsiooni</a>.",
       "password": {
         "title": "Muuda parooli",
         "current": "Praegune parool",

@@ -1826,7 +1826,7 @@
       "title": "Accountbeveiliging",
       "description": "Beheer uw wachtwoord, tweefactorauthenticatie en beveiligingsinstellingen",
       "detecting": "Servermogelijkheden worden gedetecteerd...",
-      "not_available": "Accountbeveiligingsbeheer is niet beschikbaar voor deze mailserver. Vereiste machtigingen kunnen zijn uitgeschakeld. Zie de <a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">documentatie</a> voor details.",
+      "not_available": "Accountbeveiligingsbeheer is niet beschikbaar voor deze mailserver. Vereiste machtigingen kunnen zijn uitgeschakeld. Zie de <a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">documentatie</a> voor details.",
       "password": {
         "title": "Wachtwoord wijzigen",
         "current": "Huidig wachtwoord",

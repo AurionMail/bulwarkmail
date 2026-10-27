@@ -1826,7 +1826,7 @@
       "title": "Sécurité du compte",
       "description": "Gérez votre mot de passe, l'authentification à deux facteurs et les paramètres de sécurité",
       "detecting": "Détection des capacités du serveur...",
-      "not_available": "La gestion de la sécurité du compte n'est pas disponible pour ce serveur de messagerie. Les permissions requises peuvent être désactivées. Consultez la <a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">documentation</a> pour plus de détails.",
+      "not_available": "La gestion de la sécurité du compte n'est pas disponible pour ce serveur de messagerie. Les permissions requises peuvent être désactivées. Consultez la <a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">documentation</a> pour plus de détails.",
       "password": {
         "title": "Changer le mot de passe",
         "current": "Mot de passe actuel",

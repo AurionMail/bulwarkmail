@@ -1826,7 +1826,7 @@
       "title": "Sicurezza dell'account",
       "description": "Gestisci la tua password, l'autenticazione a due fattori e le impostazioni di sicurezza",
       "detecting": "Rilevamento delle funzionalità del server...",
-      "not_available": "La gestione della sicurezza dell'account non è disponibile per questo server di posta. I permessi richiesti potrebbero essere disabilitati. Consultare la <a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">documentazione</a> per i dettagli.",
+      "not_available": "La gestione della sicurezza dell'account non è disponibile per questo server di posta. I permessi richiesti potrebbero essere disabilitati. Consultare la <a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">documentazione</a> per i dettagli.",
       "password": {
         "title": "Cambia password",
         "current": "Password attuale",

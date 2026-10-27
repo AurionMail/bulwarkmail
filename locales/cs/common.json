@@ -1826,7 +1826,7 @@
       "title": "Zabezpečení účtu",
       "description": "Správa hesla, dvoufázového ověření a nastavení zabezpečení",
       "detecting": "Zjišťování možností serveru...",
-      "not_available": "Správa zabezpečení účtu není pro tento poštovní server k dispozici. Požadovaná oprávnění mohou být vypnuta. Podrobnosti naleznete v <a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">dokumentaci</a>.",
+      "not_available": "Správa zabezpečení účtu není pro tento poštovní server k dispozici. Požadovaná oprávnění mohou být vypnuta. Podrobnosti naleznete v <a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">dokumentaci</a>.",
       "password": {
         "title": "Změnit heslo",
         "current": "Aktuální heslo",

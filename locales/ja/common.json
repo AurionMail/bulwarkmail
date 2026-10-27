@@ -1826,7 +1826,7 @@
       "title": "アカウントセキュリティ",
       "description": "パスワード、二要素認証、セキュリティ設定を管理します",
       "detecting": "サーバー機能を検出中...",
-      "not_available": "このメールサーバーではアカウントセキュリティ管理は利用できません。必要な権限が無効になっている可能性があります。詳細は<a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">ドキュメント</a>を参照してください。",
+      "not_available": "このメールサーバーではアカウントセキュリティ管理は利用できません。必要な権限が無効になっている可能性があります。詳細は<a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">ドキュメント</a>を参照してください。",
       "password": {
         "title": "パスワードの変更",
         "current": "現在のパスワード",

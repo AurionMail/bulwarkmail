@@ -1826,7 +1826,7 @@
       "title": "Segurança da conta",
       "description": "Gerencie sua senha, autenticação de dois fatores e configurações de segurança",
       "detecting": "Detectando recursos do servidor...",
-      "not_available": "O gerenciamento de segurança da conta não está disponível para este servidor de e-mail. As permissões necessárias podem estar desabilitadas. Consulte a <a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">documentação</a> para obter detalhes.",
+      "not_available": "O gerenciamento de segurança da conta não está disponível para este servidor de e-mail. As permissões necessárias podem estar desabilitadas. Consulte a <a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">documentação</a> para obter detalhes.",
       "password": {
         "title": "Alterar senha",
         "current": "Senha atual",

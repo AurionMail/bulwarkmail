@@ -1829,7 +1829,7 @@
       "title": "Kontosikkerhed",
       "description": "Administrér din adgangskode, to-faktor-godkendelse og sikkerhedsindstillinger",
       "detecting": "Registrerer serverfunktioner...",
-      "not_available": "Kontosikkerhedsstyring er ikke tilgængelig for denne mailserver. Nødvendige tilladelser er muligvis deaktiveret. Se <a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">dokumentationen</a> for detaljer.",
+      "not_available": "Kontosikkerhedsstyring er ikke tilgængelig for denne mailserver. Nødvendige tilladelser er muligvis deaktiveret. Se <a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">dokumentationen</a> for detaljer.",
       "password": {
         "title": "Skift adgangskode",
         "current": "Nuværende adgangskode",

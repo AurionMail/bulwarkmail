@@ -1791,7 +1791,7 @@
       "title": "אבטחת חשבון",
       "description": "נהל את הסיסמה שלך, אימות דו-שלבי והגדרות אבטחה",
       "detecting": "מזהה יכולות שרת...",
-      "not_available": "ניהול אבטחת חשבון אינו זמין עבור שרת דואר זה. הרשאות נדרשות עשויות להיות מושבתות. עיין בתיעוד<a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\"></a>לפרטים.",
+      "not_available": "ניהול אבטחת חשבון אינו זמין עבור שרת דואר זה. הרשאות נדרשות עשויות להיות מושבתות. עיין בתיעוד<a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\"></a>לפרטים.",
       "password": {
         "title": "שנה סיסמה",
         "current": "סיסמה נוכחית",

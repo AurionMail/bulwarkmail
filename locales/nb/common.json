@@ -1833,7 +1833,7 @@
       "title": "Kontosikkerhet",
       "description": "Administrer passordet ditt, tofaktorautentisering og sikkerhetsinnstillinger",
       "detecting": "Kontrollerer hvilke funksjoner serveren støtter...",
-      "not_available": "Administrasjon av kontosikkerhet er ikke tilgjengelig på denne e-postserveren. Nødvendige tillatelser kan være deaktivert. Se <a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">dokumentasjonen</a> for mer informasjon.",
+      "not_available": "Administrasjon av kontosikkerhet er ikke tilgjengelig på denne e-postserveren. Nødvendige tillatelser kan være deaktivert. Se <a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">dokumentasjonen</a> for mer informasjon.",
       "password": {
         "title": "Endre passord",
         "current": "Gjeldende passord",

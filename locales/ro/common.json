@@ -1833,7 +1833,7 @@
       "title": "Securitatea contului",
       "description": "Gestionați-vă parola, autentificarea în doi pași și setările de securitate",
       "detecting": "Se detectează capacitățile serverului...",
-      "not_available": "Gestionarea securității contului nu este disponibilă pentru acest server de e-mail. Este posibil ca permisiunile necesare să fie dezactivate. Consultați <a href=\"/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">documentația</a> pentru detalii.",
+      "not_available": "Gestionarea securității contului nu este disponibilă pentru acest server de e-mail. Este posibil ca permisiunile necesare să fie dezactivate. Consultați <a href=\"https://bulwarkmail.org/docs/guides/account-security\" class=\"underline hover:opacity-80\" target=\"_blank\">documentația</a> pentru detalii.",
       "password": {
         "title": "Schimbă parola",
         "current": "Parola curentă",
