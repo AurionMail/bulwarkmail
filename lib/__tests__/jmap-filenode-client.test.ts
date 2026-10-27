@@ -44,6 +44,8 @@ function fakeFilesServer(nodes: FakeNode[], opts: {
   // Stalwart before 0.16.6 returns leaf files only.
   queryOmitsFolders?: boolean;
   queryFails?: boolean;
+  // Stalwart 1.0 refuses `ids: null` past maxObjectsInGet instead of cutting it short.
+  getAllRefused?: boolean;
 }) {
   const sent: MethodCall[][] = [];
   vi.spyOn(globalThis, 'fetch').mockImplementation((async (_url: string, init: RequestInit) => {
@@ -52,6 +54,7 @@ function fakeFilesServer(nodes: FakeNode[], opts: {
     const methodResponses = methodCalls.map(([method, args, callId]) => {
       if (method === 'FileNode/get') {
         const ids = args.ids as string[] | null;
+        if (ids === null && opts.getAllRefused && nodes.length > opts.maxObjectsInGet) return ['error', { type: 'requestTooLarge' }, callId];
         if (ids === null) return [method, { list: nodes.slice(0, opts.maxObjectsInGet), notFound: [] }, callId];
         if (ids.length > opts.maxObjectsInGet) return ['error', { type: 'requestTooLarge' }, callId];
         return [method, { list: nodes.filter(n => ids.includes(n.id)), notFound: ids.filter(id => !nodes.some(n => n.id === id)) }, callId];
@@ -145,6 +148,22 @@ describe('JMAPClient FileNode listing past maxObjectsInGet (#1069)', () => {
 
     const nodes = await client.listAllFileNodes();
     expect(sortedIds(nodes)).toEqual(['f0', 'f1']);
+  });
+
+  it('lists everything from the query when Stalwart 1.0 refuses the return-all /get (#1385)', async () => {
+    const all = [folder('d1'), file('f0', 'd1'), file('f1'), file('f2', 'd1')];
+    const client = createLimitedClient({ maxObjectsInGet: 2 });
+    fakeFilesServer(all, { maxObjectsInGet: 2, getAllRefused: true });
+
+    const nodes = await client.listAllFileNodes();
+    expect(sortedIds(nodes)).toEqual(sortedIds(all));
+  });
+
+  it('reports the failure when the return-all /get is refused and the query fails too', async () => {
+    const client = createLimitedClient({ maxObjectsInGet: 2 });
+    fakeFilesServer([file('f0'), file('f1'), file('f2')], { maxObjectsInGet: 2, getAllRefused: true, queryFails: true });
+
+    await expect(client.listAllFileNodes()).rejects.toThrow();
   });
 
   it('lists shared accounts past the limit too', async () => {

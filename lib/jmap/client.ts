@@ -9272,13 +9272,16 @@ export class JMAPClient implements IJMAPClient {
     );
 
     const getResult = response.methodResponses?.find(r => r[0] === "FileNode/get" || (r[0] === "error" && r[2] === "fng0"));
-    if (!getResult || getResult[0] === "error") {
+    // Stalwart 1.0 refuses the return-all /get instead of cutting it short
+    // (#1385); then every node comes from the query below.
+    const tooMany = getResult?.[0] === "error" && getResult[1]?.type === "requestTooLarge";
+    if (!getResult || (getResult[0] === "error" && !tooMany)) {
       console.error('[Files] FileNode/get error:', getResult?.[1]);
       throw new Error(getResult?.[1]?.description || "FileNode list failed");
     }
-    const firstPage = ((getResult[1].list || []) as FileNode[]).map(fromDraftFileNode);
+    const firstPage = tooMany ? [] : ((getResult[1].list || []) as FileNode[]).map(fromDraftFileNode);
     const maxObjects = this.getMaxObjectsInGet();
-    if (firstPage.length < maxObjects) return firstPage;
+    if (!tooMany && firstPage.length < maxObjects) return firstPage;
 
     const known = new Map(firstPage.map(node => [node.id, node]));
     // Several /get calls share one request, so a large account costs a few
@@ -9334,6 +9337,8 @@ export class JMAPClient implements IJMAPClient {
       }
     } catch (error) {
       // A partial tree beats none: keep what was read, as before #1069.
+      // With nothing read there is no tree to show, so say why.
+      if (known.size === 0) throw error;
       console.warn(`[Files] Listing for account ${accountId} is incomplete past ${maxObjects} nodes:`, error);
     }
 
