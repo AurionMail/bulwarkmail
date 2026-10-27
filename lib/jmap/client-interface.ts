@@ -343,6 +343,7 @@ export interface IJMAPClient {
   migrateKeyword(oldKeyword: string, newKeyword: string): Promise<KeywordMigration>;
   deleteEmail(emailId: string, accountId?: string): Promise<void>;
   moveToTrash(emailId: string, trashMailboxId: string, accountId?: string, markAsRead?: boolean): Promise<void>;
+  /** Resolves only when every ID is destroyed; IncompleteDeleteError carries partial confirmations. */
   batchDeleteEmails(emailIds: string[], accountId?: string): Promise<void>;
   batchMoveEmails(emailIds: string[], toMailboxId: string, accountId?: string, markAsRead?: boolean): Promise<void>;
   batchArchiveEmails(

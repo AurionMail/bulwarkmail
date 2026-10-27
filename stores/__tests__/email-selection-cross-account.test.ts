@@ -1,5 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useEmailStore } from '../email-store';
+import { useAuthStore } from '../auth-store';
+import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import { emailKeyFor } from '@/lib/thread-utils';
 import type { Email } from '@/lib/jmap/types';
 
@@ -17,11 +19,32 @@ const twin = (account: string, subject: string): Email => ({
   sourceClientAccountId: account, sourceAccountId: account,
 } as unknown as Email);
 
+const initialAuthState = useAuthStore.getState();
+const initialEmailState = useEmailStore.getState();
+const makeClient = () => ({
+  batchDeleteEmails: vi.fn(async () => {}),
+  getMailboxes: vi.fn(async () => []),
+}) as unknown as IJMAPClient;
+let clientA: IJMAPClient;
+let clientB: IJMAPClient;
+
 const mine = twin('account-a', 'mia');
 const theirs = twin('account-b', 'di un altro account');
 
 beforeEach(() => {
+  clientA = makeClient();
+  clientB = makeClient();
+  useAuthStore.setState({
+    activeAccountId: 'account-a', client: clientA,
+    getClientForAccount: (id: string) => (id === 'account-a' ? clientA : id === 'account-b' ? clientB : undefined) as never,
+  });
+  useEmailStore.setState(initialEmailState, true);
   useEmailStore.setState({ emails: [mine, theirs], selectedEmailKeys: new Set(), lastSelectedEmailKey: null });
+});
+
+afterEach(() => {
+  useEmailStore.setState(initialEmailState, true);
+  useAuthStore.setState(initialAuthState, true);
 });
 
 describe('selection across accounts sharing an email id', () => {
@@ -49,14 +72,28 @@ describe('selection across accounts sharing an email id', () => {
   });
 
   it('deletes only the selected account copy', async () => {
-    const client = {
-      batchDeleteEmails: vi.fn(async () => {}),
-      batchMoveToMailbox: vi.fn(async () => {}),
-      getMailboxes: vi.fn(async () => []),
-    } as never;
     useEmailStore.getState().toggleEmailSelection(theirs);
-    await useEmailStore.getState().batchDelete(client, true);
+    expect(await useEmailStore.getState().batchDelete(clientA, true)).toBe(true);
     const remaining = useEmailStore.getState().emails;
     expect(remaining.map(e => e.sourceAccountId)).toEqual(['account-a']);
+    expect(remaining[0]).toBe(mine);
+    expect(clientB.batchDeleteEmails).toHaveBeenCalledTimes(1);
+    expect(clientB.batchDeleteEmails).toHaveBeenCalledWith(['eiaaaabc'], 'account-b');
+    expect(clientA.batchDeleteEmails).not.toHaveBeenCalled();
+    expect(useEmailStore.getState().error).toBeNull();
+  });
+
+  it('retains both copies when the selected source client is unavailable', async () => {
+    useAuthStore.setState({
+      getClientForAccount: (id: string) => (id === 'account-a' ? clientA : undefined) as never,
+    });
+    useEmailStore.getState().toggleEmailSelection(theirs);
+    expect(await useEmailStore.getState().batchDelete(clientA, true)).toBe(false);
+    const state = useEmailStore.getState();
+    expect(state.error).toBe('Not connected');
+    expect(state.emails).toEqual([mine, theirs]);
+    expect([...state.selectedEmailKeys]).toEqual([emailKeyFor(theirs)]);
+    expect(clientA.batchDeleteEmails).not.toHaveBeenCalled();
+    expect(clientB.batchDeleteEmails).not.toHaveBeenCalled();
   });
 });

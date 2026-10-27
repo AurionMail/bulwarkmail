@@ -1,3 +1,4 @@
+import { IncompleteDeleteError } from "@/lib/jmap/delete-error";
 import { ArchiveEmailsError } from "@/lib/jmap/archive-error";
 import { RescheduleRestoredError } from "@/lib/jmap/reschedule-error";
 import { create } from "zustand";
@@ -1998,6 +1999,158 @@ function sourceMailboxes(
     ? state.mailboxes
     : state.accountMailboxes[clientAccountId];
   return (loginMailboxes ?? []).filter((mailbox) => mailbox.accountId === jmapAccountId);
+}
+
+/** Permanent deletion has its own confirmation contract; Trash keeps its move path. */
+async function permanentlyDeleteSelection(passedClient: IJMAPClient): Promise<boolean> {
+  const get = useEmailStore.getState;
+  const set = useEmailStore.setState;
+  const initial = get();
+  const epoch = currentStoreEpoch();
+  const isSameList = captureEmailListView();
+  const tabId = useMessageListTabsStore.getState().activeTabId;
+  const isCurrentView = () => currentStoreEpoch() === epoch && isSameList()
+    && get().viewToken === initial.viewToken && get().searchQuery === initial.searchQuery
+    && get().searchFilters === initial.searchFilters && get().searchMailboxId === initial.searchMailboxId
+    && useMessageListTabsStore.getState().activeTabId === tabId;
+  const { rows: selection, unknown } = resolveSelectionRows();
+  const rows = selection.map(email => ({ ...email, mailboxIds: { ...email.mailboxIds }, keywords: { ...email.keywords } }));
+  const failures = notFoundFailures(unknown);
+  const viewingLogin = initial.viewingAccountId ?? useAuthStore.getState().activeAccountId;
+  const viewClient = initial.viewingAccountId
+    ? useAuthStore.getState().getClientForAccount(initial.viewingAccountId) : passedClient;
+  const viewMailbox = resolveActionMailboxes().find(m => m.id === initial.selectedMailbox);
+  const viewOwner = viewMailbox?.isShared ? viewMailbox.accountId : undefined;
+  const clients = new Map<string, IJMAPClient | undefined>();
+  const clientFor = (login: string) => {
+    if (!clients.has(login)) clients.set(login, useAuthStore.getState().getClientForAccount(login));
+    return clients.get(login);
+  };
+  type Group = { client?: IJMAPClient; login?: string | null; accountId?: string; owner?: string;
+    messages: Email[]; confirmed: Set<string>; stamped: boolean };
+  const groups: Group[] = [];
+  // Pin targets and reaching clients before plugin approval can yield to navigation.
+  for (const email of rows) {
+    const stamped = !!email.sourceAccountId;
+    const login = stamped ? email.sourceClientAccountId : viewingLogin;
+    const client = stamped ? (login ? clientFor(login) : undefined) : viewClient;
+    const accountId = stamped ? email.sourceAccountId : viewOwner;
+    const owner = accountId ?? client?.getAccountId?.();
+    const group = groups.find(g => g.client === client && g.owner === owner && (client !== undefined || g.login === login));
+    if (group) {
+      if (!group.messages.some(e => e.id === email.id)) group.messages.push(email);
+      group.stamped ||= stamped;
+    } else groups.push({ client, login, accountId, owner, messages: [email], confirmed: new Set(), stamped });
+  }
+  const viewerLogin = initial.selectedEmail?.sourceClientAccountId;
+  if (viewerLogin) clientFor(viewerLogin);
+  if (rows.length > 0 && emailHooks.onBeforeEmailDelete.size > 0
+    && !(await emailHooks.onBeforeEmailDelete.intercept({ emailIds: [...new Set(rows.map(e => e.id))], permanent: true }))) return false;
+  if (isCurrentView()) set({ isLoading: true, error: null });
+  await Promise.all(groups.map(async group => {
+    try {
+      if (!group.client || ((group.stamped || initial.viewingAccountId) && group.login
+        && useAuthStore.getState().getClientForAccount(group.login) !== group.client)) throw new Error('Not connected');
+      await group.client.batchDeleteEmails(group.messages.map(e => e.id), group.accountId);
+      group.messages.forEach(e => group.confirmed.add(e.id));
+    } catch (error) {
+      if (error instanceof IncompleteDeleteError) {
+        group.messages.forEach(e => { if (error.destroyedIds.includes(e.id)) group.confirmed.add(e.id); });
+      }
+      failures.push({ ids: group.messages.filter(e => !group.confirmed.has(e.id)).map(e => e.id), error });
+    }
+  }));
+  const confirmed = groups.flatMap(g => g.messages.filter(e => g.confirmed.has(e.id)));
+  const wasDeleted = (email: Email) => {
+    const stamped = !!email.sourceAccountId;
+    const client = stamped ? (email.sourceClientAccountId ? clientFor(email.sourceClientAccountId) : undefined) : viewClient;
+    const owner = stamped ? email.sourceAccountId : viewOwner ?? viewClient?.getAccountId?.();
+    return groups.some(g => g.client === client && g.owner === owner && g.confirmed.has(email.id));
+  };
+  const reconcileList = (updateCounts: boolean) => {
+    if (!isCurrentView() || confirmed.length === 0) return;
+    set(state => {
+      const remaining = state.emails.filter(e => !wasDeleted(e));
+      const selectedEmailKeys = new Set(state.selectedEmailKeys);
+      const removed = new Map<string, Email>();
+      const remember = (e: Email) => { removed.set(emailKeyFor(e), e); selectedEmailKeys.delete(emailKeyFor(e)); };
+      confirmed.forEach(e => selectedEmailKeys.delete(emailKeyFor(e)));
+      state.emails.filter(wasDeleted).forEach(remember);
+      const threadEmailsCache = new Map(state.threadEmailsCache);
+      const expandedThreadIds = new Set(state.expandedThreadIds);
+      for (const [key, members] of threadEmailsCache) {
+        const kept = members.filter(e => !wasDeleted(e));
+        if (kept.length === members.length) continue;
+        members.filter(wasDeleted).forEach(remember);
+        if (kept.length) threadEmailsCache.set(key, kept);
+        else { threadEmailsCache.delete(key); expandedThreadIds.delete(key); }
+      }
+      const threadEmailCounts = new Map(state.threadEmailCounts);
+      if (updateCounts) {
+        const byThread = new Map<string, number>();
+        for (const email of removed.values()) byThread.set(threadKeyFor(email), (byThread.get(threadKeyFor(email)) ?? 0) + 1);
+        for (const [key, count] of byThread) {
+          if (threadEmailCounts.has(key)) threadEmailCounts.set(key, Math.max(0, threadEmailCounts.get(key)! - count));
+          if (!remaining.some(e => threadKeyFor(e) === key) && !threadEmailsCache.has(key)) {
+            threadEmailCounts.delete(key); expandedThreadIds.delete(key);
+          }
+        }
+      }
+      return {
+        emails: remaining, selectedEmailKeys,
+        selectedEmail: state.selectedEmail && wasDeleted(state.selectedEmail) ? null : state.selectedEmail,
+        totalEmails: Math.max(remaining.length, state.totalEmails - (state.emails.length - remaining.length)),
+        threadEmailsCache, expandedThreadIds, threadEmailCounts,
+      };
+    });
+  };
+  if (currentStoreEpoch() === epoch && confirmed.length > 0) {
+    // Attribute undecorated rows to their captured login even if another login is now active.
+    const counterRows = groups.flatMap(g => g.messages.filter(e => g.confirmed.has(e.id))
+      .map(e => ({ ...e, sourceClientAccountId: g.login ?? undefined })));
+    set(state => applyBatchMailboxCounterUpdate(state, counterRows, applyDeleteCounters));
+  }
+  reconcileList(true);
+  if (confirmed.length > 0) void emailHooks.onAfterEmailDelete.emit({ emailIds: [...new Set(confirmed.map(e => e.id))], permanent: true });
+
+  // Fetch authoritative owner counters without switching the current mailbox or
+  // using a bare owner cache that can belong to a different authenticated client.
+  await Promise.all(groups.filter(g => g.confirmed.size > 0).map(async group => {
+    try {
+      if (!group.client?.getMailboxes) return;
+      const fresh = await group.client.getMailboxes(group.accountId);
+      if (currentStoreEpoch() !== epoch || fresh.length === 0) return;
+      if (group.login && useAuthStore.getState().getClientForAccount(group.login) !== group.client) return;
+      const owner = group.owner ?? fresh[0]?.accountId;
+      const primary = group.client.getAccountId?.() ? owner === group.client.getAccountId() : !fresh[0]?.isShared;
+      const normalized = fresh.filter(m => !owner || m.accountId === owner || (primary && !m.accountId && !m.isShared))
+        .map(m => m.isShared ? {
+          ...m, id: `${m.accountId}:${m.originalId || m.id}`, originalId: m.originalId || m.id,
+          parentId: m.parentId && !m.parentId.startsWith(`${m.accountId}:`) ? `${m.accountId}:${m.parentId}` : m.parentId,
+        } : m);
+      const merge = (folders: Mailbox[]) => [...folders.filter(m => primary ? m.isShared : m.accountId !== owner), ...normalized];
+      set(state => {
+        const accountMailboxes = { ...state.accountMailboxes };
+        if (group.login) {
+          accountMailboxes[group.login] = merge(state.accountMailboxes[group.login] ?? []);
+          if (owner) accountMailboxes[sourceMailboxesKey(group.login, owner)] = normalized;
+        }
+        return { accountMailboxes, mailboxes: useAuthStore.getState().client === group.client ? merge(state.mailboxes) : state.mailboxes };
+      });
+    } catch (error) {
+      failures.push({ ids: [], error });
+    }
+  }));
+  // Only refill a fully deleted page. A partial page must keep its unresolved
+  // rows for retry; neither a refresh nor reconciliation restores cleared selections.
+  if (confirmed.length > 0 && failures.length === 0 && isCurrentView() && get().hasMoreEmails) {
+    try { await get().refreshCurrentMailbox(viewClient ?? passedClient); }
+    catch (error) { failures.push({ ids: [], error }); }
+    reconcileList(false);
+  }
+  const error = failures.length > 0 ? batchFailureMessage(failures, 'delete') : null;
+  if (isCurrentView()) set({ isLoading: false, error });
+  return failures.length === 0;
 }
 
 /** sourceMailboxes of a SourceBatch, or the viewed account's for undecorated messages. */
@@ -5369,13 +5522,14 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     const { selectedEmailKeys, emails, selectedMailbox } = get();
     const mailboxes = resolveActionMailboxes();
     if (selectedEmailKeys.size === 0) return true;
+    if (permanent || bulkDeleteIsPermanent(mailboxes.find(m => m.id === selectedMailbox))) {
+      return permanentlyDeleteSelection(client);
+    }
 
     if (emailHooks.onBeforeEmailDelete.size > 0) {
       const toDelete = resolveSelectedEmails(get());
       if (toDelete.length > 0) {
-        const currentMailbox = mailboxes.find(m => m.id === selectedMailbox);
-        const destroys = permanent || bulkDeleteIsPermanent(currentMailbox);
-        if (!(await emailHooks.onBeforeEmailDelete.intercept({ emailIds: [...new Set(toDelete.map(e => e.id))], permanent: destroys }))) return false;
+        if (!(await emailHooks.onBeforeEmailDelete.intercept({ emailIds: [...new Set(toDelete.map(e => e.id))], permanent: false }))) return false;
       }
     }
 
@@ -5397,12 +5551,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         return true;
       }
 
-      // Determine if the current folder forces permanent deletion.
       const currentMailbox = mailboxes.find(m => m.id === selectedMailbox);
-      const isInTrash = currentMailbox?.role === 'trash';
-      const permanentlyDeleteJunk = useSettingsStore.getState().permanentlyDeleteJunk;
-      const isInJunk = currentMailbox?.role === 'junk';
-      const forceDestroy = permanent || isInTrash || (isInJunk && permanentlyDeleteJunk);
       const alsoMarkRead = useSettingsStore.getState().deleteAction === 'trash-and-read';
 
       // Group emails by login and owning JMAP account (handles unified view and
@@ -5425,15 +5574,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
       // Ids the server confirmed, for onAfterEmailDelete.
       const deletedIds = new Set<string>();
-      if (forceDestroy) {
-        const promises = batches.map(async (batch) => {
-          const acctClient = sourceBatchClient(batch, client);
-          if (!acctClient) return;
-          await acctClient.batchDeleteEmails(batch.ids, jmapIdFor(batch));
-          batch.ids.forEach(id => deletedIds.add(id));
-        });
-        await Promise.allSettled(promises);
-      } else {
+      {
         // Move to trash per account.
         let failedAccounts = 0;
         // Keys, not ids: a namesake in an account that failed must stay.
@@ -5498,7 +5639,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         isLoading: false,
         ...(notFound.length > 0 ? { error: NOT_IN_LIST } : {}),
       });
-      if (deletedIds.size > 0) void emailHooks.onAfterEmailDelete.emit({ emailIds: [...deletedIds], permanent: forceDestroy });
+      if (deletedIds.size > 0) void emailHooks.onAfterEmailDelete.emit({ emailIds: [...deletedIds], permanent: false });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : "Failed to delete emails",
