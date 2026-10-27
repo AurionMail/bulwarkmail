@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/admin/badge';
 import { inputClass } from '@/components/admin/config-items';
 import { OrgPage, scopeMatchSummary } from '@/components/admin/org/org-page';
+import { PolicyFileSection } from '@/components/admin/org/policy-file-section';
 import { EVERYONE, useOrgPolicyDraft, type OrgPolicyDraft } from '@/components/admin/org/use-org-policy-draft';
 import { resolvePolicy, type PolicyScope } from '@/lib/admin/policy-scopes';
 import { cn } from '@/lib/utils';
@@ -260,6 +261,8 @@ export function OrganisationPage() {
       >
         <EffectivePolicy draft={draft} />
       </SettingsSection>
+
+      <PolicyFileSection draft={draft} />
     </OrgPage>
   );
 }

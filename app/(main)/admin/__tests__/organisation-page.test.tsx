@@ -7,8 +7,23 @@ import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-li
 
 const puts: Array<Record<string, unknown>> = [];
 let stored: Record<string, unknown> = {};
+const filePosts: string[] = [];
 vi.mock('@/lib/browser-navigation', () => ({
-  apiFetch: vi.fn(async (_url: string, init?: RequestInit) => {
+  apiFetch: vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.startsWith('/api/admin/policy/file') && init?.method === 'POST') {
+      filePosts.push(url);
+      return new Response(JSON.stringify({
+        ok: true,
+        summary: {
+          scopes: { added: ['Two (two)'], changed: [], removed: [] },
+          organisation: { added: [], changed: ['session'], removed: [] },
+          restrictions: { added: [], changed: [], removed: [] },
+          features: { added: [], changed: [], removed: [] },
+          defaults: { added: [], changed: [], removed: [] },
+          other: [], unchanged: false,
+        },
+      }));
+    }
     if (init?.method === 'PUT') {
       const body = JSON.parse(String(init.body));
       puts.push(body);
@@ -34,6 +49,7 @@ const POLICY = {
 
 beforeEach(() => {
   puts.length = 0;
+  filePosts.length = 0;
   stored = JSON.parse(JSON.stringify(POLICY));
   useOrgScopeStore.setState({ scopeId: EVERYONE });
 });
@@ -93,5 +109,20 @@ describe('OrganisationPage', () => {
     expect(table.textContent).toContain('Applies, in this order: Everyone, Team.');
     expect(table.textContent).toContain('restrictions.density');
     expect(table.textContent).toContain('organisation.session.idleMinutes');
+  });
+
+  it('shows what an imported file changes and replaces the policy only when asked', async () => {
+    render(<OrganisationPage />);
+    await screen.findByTestId('org-scope-team');
+    const file = new File(['{"scopes":[]}'], 'policy.json', { type: 'application/json' });
+    fireEvent.change(screen.getByLabelText('Policy file to import'), { target: { files: [file] } });
+    const preview = await screen.findByTestId('policy-import-preview');
+    expect(preview.textContent).toContain('Domains and groups: 1 added');
+    expect(preview.textContent).toContain('Organisation settings: 1 changed');
+    expect(filePosts).toEqual(['/api/admin/policy/file?preview=1']);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Replace the current policy' }));
+    await waitFor(() => expect(filePosts).toEqual(['/api/admin/policy/file?preview=1', '/api/admin/policy/file']));
+    await waitFor(() => expect(screen.queryByTestId('policy-import-preview')).toBeNull());
   });
 });

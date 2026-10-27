@@ -38,12 +38,7 @@ class ConfigManager {
     this.adminConfig = await this.readJsonFile('config.json') || {};
     const policy = await this.readJsonFile('policy.json');
     if (policy) {
-      this.policyCache = ConfigManager.normalizePolicy({
-        ...DEFAULT_POLICY,
-        ...policy,
-        features: { ...DEFAULT_FEATURE_GATES, ...(policy.features || {}) },
-        themePolicy: { ...DEFAULT_THEME_POLICY, ...(policy.themePolicy || {}) },
-      });
+      this.policyCache = ConfigManager.completePolicy(policy as Partial<SettingsPolicy>);
     } else {
       this.policyCache = { ...DEFAULT_POLICY };
     }
@@ -184,13 +179,23 @@ class ConfigManager {
    */
   async setPolicy(policy: SettingsPolicy): Promise<void> {
     assertWritable('update settings policy');
-    this.policyCache = ConfigManager.normalizePolicy({
+    this.policyCache = ConfigManager.completePolicy(policy);
+    await this.writeJsonFile('policy.json', this.policyCache as unknown as Record<string, unknown>);
+  }
+
+  /**
+   * A policy as it would be stored: defaults filled in, migrated and
+   * sanitised, exactly as policy.json is on load. For previewing an import.
+   */
+  static completePolicy(policy: Partial<SettingsPolicy>): SettingsPolicy {
+    return ConfigManager.normalizePolicy({
       ...DEFAULT_POLICY,
       ...policy,
+      restrictions: { ...(policy.restrictions || {}) },
+      defaults: { ...(policy.defaults || {}) },
       features: { ...DEFAULT_FEATURE_GATES, ...(policy.features || {}) },
       themePolicy: { ...DEFAULT_THEME_POLICY, ...(policy.themePolicy || {}) },
     });
-    await this.writeJsonFile('policy.json', this.policyCache as unknown as Record<string, unknown>);
   }
 
   /**
@@ -281,3 +286,6 @@ type GlobalWithConfig = typeof globalThis & { [SINGLETON_KEY]?: ConfigManager };
 const g = globalThis as GlobalWithConfig;
 export const configManager: ConfigManager =
   g[SINGLETON_KEY] ?? (g[SINGLETON_KEY] = new ConfigManager());
+
+/** See ConfigManager.completePolicy. */
+export const completePolicy = (policy: Partial<SettingsPolicy>): SettingsPolicy => ConfigManager.completePolicy(policy);
