@@ -2,7 +2,7 @@
 
 import { ReactNode, createContext, useContext, useEffect, useId, useState, useCallback, useMemo, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { Lock } from '@/components/icons';
+import { OrgLockedNote } from './org-locked-note';
 import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settings-store';
 
@@ -211,22 +211,22 @@ export function SettingItem({ label, description, children, locked, advanced, ne
       data-search-label={label}
       className={cn(
         "flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4 py-3 border-b border-border last:border-0",
-        locked && "opacity-60",
         nested && "ms-4 ps-3 border-s-2 border-s-border border-b-transparent py-2",
       )}
     >
       <div className="flex-1 min-w-0 sm:pe-4">
         <div className="flex items-center gap-1.5">
           <label id={labelId} className="text-sm font-medium text-foreground">{label}</label>
-          {locked && <Lock className="w-3 h-3 text-muted-foreground" aria-label="Managed by administrator" />}
           {advanced && <AdvancedBadge />}
         </div>
         {description && (
           <p className="text-xs text-muted-foreground mt-1">{description}</p>
         )}
+        {locked && <OrgLockedNote className="mt-1" />}
       </div>
       <SettingLabelContext.Provider value={labelId}>
-        <div className={cn("flex-shrink-0", locked && "pointer-events-none")}>{children}</div>
+        {/* The admin's value stays readable; inert keeps mouse and keyboard off it. */}
+        <div className={cn("flex-shrink-0", locked && "opacity-60")} inert={locked || undefined}>{children}</div>
       </SettingLabelContext.Provider>
     </div>
   );

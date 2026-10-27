@@ -1047,6 +1047,7 @@
   },
   "settings": {
     "title": "Einstellungen",
+    "org_locked": "Von Ihrer Organisation festgelegt",
     "back_to_mail": "Zurück zu E-Mails",
     "save_success": "Einstellungen erfolgreich gespeichert",
     "import_success": "Einstellungen erfolgreich importiert",

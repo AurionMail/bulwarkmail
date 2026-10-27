@@ -7,6 +7,7 @@ import type { SettingsPolicy, FeatureGates, PushRelayOption, AdminSidebarApp } f
 import { DEFAULT_FEATURE_GATES, DEFAULT_POLICY } from '@/lib/admin/types';
 import { apiFetch } from '@/lib/browser-navigation';
 import { adminPageDef } from '@/lib/admin/admin-nav';
+import { restrictionKeysForPage } from '@/lib/admin/restriction-keys';
 import { useAdminUnsavedChanges } from '@/stores/admin-unsaved-store';
 import { DEFAULT_SIDEBAR_APP_ID_PREFIX, MAX_DEFAULT_SIDEBAR_APPS } from '@/lib/sidebar-apps';
 import { generateUUID, cn } from '@/lib/utils';
@@ -54,28 +55,7 @@ const FEATURE_GATE_LABELS: Partial<Record<keyof FeatureGates, { label: string; d
   tagsAboveSharedEnabled: { label: 'Tags Above Shared Mailboxes', description: 'List the Tags in the sidebar above the shared mailboxes instead of below them. Turn this on when users have many shared mailboxes and work with tags: expanded, the shared mailboxes push the tags out of sight.' },
 };
 
-const RESTRICTABLE_SETTINGS = [
-  { key: 'fontSize', label: 'Font Size', category: 'Appearance', type: 'enum', allowedValues: ['small', 'medium', 'large'] },
-  { key: 'density', label: 'Density', category: 'Appearance', type: 'enum', allowedValues: ['compact', 'regular', 'spacious'] },
-  { key: 'interfaceLayout', label: 'Interface Layout', category: 'Appearance', type: 'enum', allowedValues: ['default', 'mountain-view'] },
-  { key: 'animationsEnabled', label: 'Animations', category: 'Appearance', type: 'boolean' },
-  { key: 'markAsReadDelay', label: 'Mark as Read Delay', category: 'Email', type: 'number' },
-  { key: 'deleteAction', label: 'Delete Action', category: 'Email', type: 'enum', allowedValues: ['trash', 'trash-and-read', 'permanent'] },
-  { key: 'showPreview', label: 'Show Preview', category: 'Email', type: 'boolean' },
-  { key: 'mailLayout', label: 'Mail Layout', category: 'Email', type: 'enum', allowedValues: ['split', 'focus', 'horizontal'] },
-  { key: 'emailsPerPage', label: 'Emails Per Page', category: 'Email', type: 'number' },
-  { key: 'externalContentPolicy', label: 'External Content Policy', category: 'Email', type: 'enum', allowedValues: ['allow', 'block', 'ask'] },
-  { key: 'sendConfirmation', label: 'Send Confirmation', category: 'Composer', type: 'boolean' },
-  { key: 'defaultReplyMode', label: 'Default Reply Mode', category: 'Composer', type: 'enum', allowedValues: ['reply', 'reply-all'] },
-  { key: 'autoSelectReplyIdentity', label: 'Auto-select Reply Identity', category: 'Composer', type: 'boolean' },
-  { key: 'replyIdentityMatch', label: 'Reply Identity Matching', category: 'Composer', type: 'enum', allowedValues: ['exact', 'domain'] },
-  { key: 'plainTextMode', label: 'Plain Text Only', category: 'Composer', type: 'boolean' },
-  { key: 'sessionTimeout', label: 'Session Timeout', category: 'Privacy', type: 'number' },
-  { key: 'emailNotificationsEnabled', label: 'Email Notifications', category: 'Notifications', type: 'boolean' },
-  { key: 'calendarNotificationsEnabled', label: 'Calendar Notifications', category: 'Notifications', type: 'boolean' },
-  { key: 'pushNotifyInboxOnly', label: 'Inbox-only Push Notifications', category: 'Notifications', type: 'boolean' },
-  { key: 'debugMode', label: 'Debug Mode', category: 'Advanced', type: 'boolean' },
-];
+const RESTRICTABLE_SETTINGS = restrictionKeysForPage('policy');
 
 const PAGE = adminPageDef('policy');
 
