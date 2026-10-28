@@ -112,9 +112,11 @@ export const LITE_API_STRING_ALLOWLIST = [
   "/api/admin/policy",
   // lib/account-archive-client.ts - the feature is pinned off in Lite.
   "/api/account-archive",
-  // WOPI (#425) - use-wopi-status returns disabled in Lite.
+  // WOPI (#425) - use-wopi-status returns disabled in Lite, so "New file"
+  // never fetches a document template either (#1393).
   "/api/wopi/status",
   "/api/wopi/launch",
+  "/api/wopi/template",
   // Calendar: ICS URL import/subscriptions + CalDAV discovery are hidden in Lite.
   "/api/fetch-ical",
   "/api/caldav/discover",
