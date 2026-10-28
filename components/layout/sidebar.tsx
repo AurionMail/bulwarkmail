@@ -304,6 +304,15 @@ function SidebarRowCounts({
  * What a row's menu handler needs from an event, for a menu opened by a
  * long-press (at the finger) or from the row's ⋮ (under the button).
  */
+/**
+ * R11: a name cut with an ellipsis gets a title with the full text. Measured
+ * when the pointer arrives, since only then is the title shown: a shortened
+ * form, or one the row's width still cuts.
+ */
+function titleIfCut(element: HTMLElement, full: string, shortened: boolean) {
+  element.title = shortened || element.scrollWidth > element.clientWidth ? full : "";
+}
+
 function menuEventAt(element: HTMLElement, point?: { clientX: number; clientY: number }): React.MouseEvent {
   return {
     type: point ? "contextmenu" : "click",
@@ -460,7 +469,14 @@ function SidebarRow({
         </span>
         {!isCollapsed && (
           <>
-            <span ref={labelRef} className="flex-1 truncate" title={shortenedLabel !== label ? label : undefined}>{shortenedLabel}</span>
+            <span
+              ref={labelRef}
+              className="flex-1 truncate"
+              title={shortenedLabel !== label ? label : undefined}
+              onPointerEnter={(e) => titleIfCut(e.currentTarget, label, shortenedLabel !== label)}
+            >
+              {shortenedLabel}
+            </span>
             {muted && (
               <BellOff
                 className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground"
