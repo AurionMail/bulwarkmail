@@ -50,6 +50,22 @@ describe('ContactForm', () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
+  // The browser's own "Please include an '@'" bubble sat over the app's
+  // inline message: the form leaves checking to the app.
+  it('says an address is wrong itself, with no browser bubble in the way', async () => {
+    const onSave = vi.fn();
+    render(<ContactForm contact={existingContact} onSave={onSave} onCancel={vi.fn()} />);
+    const form = screen.getByText('save').closest('form')!;
+    expect(form.noValidate).toBe(true);
+
+    fireEvent.change(screen.getByDisplayValue('alice@example.com'), { target: { value: 'alice@' } });
+    // A click on Save, as the user does: the browser checks a form that
+    // has no noValidate before it lets the submit through.
+    fireEvent.click(screen.getByRole('button', { name: 'save' }));
+    expect(await screen.findByText('email_invalid')).toBeInTheDocument();
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
   it('adds email entry when add button is clicked', () => {
     render(<ContactForm onSave={vi.fn()} onCancel={vi.fn()} />);
     const emailInputsBefore = screen.getAllByPlaceholderText('email_placeholder');
