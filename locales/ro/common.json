@@ -4106,7 +4106,10 @@
     "zoom_out": "Micșorează",
     "zoom_reset": "Potrivește pe ecran",
     "rotate": "Rotește",
-    "close_preview": "Închide"
+    "close_preview": "Închide",
+    "previous_file": "Fișierul anterior",
+    "next_file": "Fișierul următor",
+    "loading": "Se încarcă…"
   },
   "smime": {
     "your_certificates": "Certificatele dvs.",

@@ -709,6 +709,29 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
 
   // The previewed file as plugins see it (file-preview-section).
   const previewedName = previewFile ?? previewImage;
+  // ←/→ in a preview go through the folder's other previewable files.
+  const previewNeighbours = useMemo(() => {
+    if (!previewedName) return undefined;
+    const names = resources
+      .filter((r) => !r.isDirectory && !r.isSymlink && (isImageFile(r.name) || isFilePreviewable(r.name)))
+      .map((r) => r.name);
+    const i = names.indexOf(previewedName);
+    if (i === -1) return undefined;
+    return {
+      previous: names[i - 1] ?? null,
+      next: names[i + 1] ?? null,
+      onGo: (name: string) => {
+        addRecentFile(name, resources.find((r) => r.name === name)?.id ?? name);
+        if (isImageFile(name)) {
+          setPreviewFile(null);
+          setPreviewImage(name);
+        } else {
+          setPreviewImage(null);
+          setPreviewFile(name);
+        }
+      },
+    };
+  }, [previewedName, resources, addRecentFile]);
   const previewedView = useMemo(() => {
     const resource = previewedName ? resources.find((r) => r.name === previewedName) : undefined;
     return resource ? resourceToView(resource, currentPath) : null;
@@ -889,6 +912,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
           onDownload={handleDownload}
           getImageUrl={getImageUrl}
           file={previewedView}
+          neighbours={previewNeighbours}
         />
       )}
 
@@ -900,6 +924,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
           onDownload={() => handleDownload(previewFile)}
           getFileContent={() => getFileContent(previewFile)}
           file={previewedView}
+          neighbours={previewNeighbours}
         />
       )}
 

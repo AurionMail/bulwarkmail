@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
@@ -46,7 +46,12 @@ describe('FilePreviewModal HTML attachments', () => {
         getFileContent={async () => ({ blob: new Blob([HTML], { type: 'text/html' }), contentType: 'text/html' })}
       />,
     );
-    const frame = (await screen.findByTitle('invoice.html')) as HTMLIFrameElement;
+    // The header shows the name as its title too; the frame is the iframe.
+    const frame = await waitFor(() => {
+      const found = screen.getAllByTitle('invoice.html').find((el) => el.tagName === 'IFRAME');
+      if (!found) throw new Error('no frame yet');
+      return found as HTMLIFrameElement;
+    });
     expect(created).toEqual([]);
     expect(frame.getAttribute('src')).toBeNull();
     expect(frame.getAttribute('sandbox')).toBe('');

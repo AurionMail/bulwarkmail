@@ -4106,7 +4106,10 @@
     "zoom_out": "縮小",
     "zoom_reset": "符合螢幕大小",
     "rotate": "旋轉",
-    "close_preview": "關閉"
+    "close_preview": "關閉",
+    "previous_file": "上一個檔案",
+    "next_file": "下一個檔案",
+    "loading": "載入中…"
   },
   "smime": {
     "your_certificates": "您的憑證",

@@ -4106,7 +4106,10 @@
     "zoom_out": "Redueix",
     "zoom_reset": "Ajusta a la pantalla",
     "rotate": "Gira",
-    "close_preview": "Tanca"
+    "close_preview": "Tanca",
+    "previous_file": "Fitxer anterior",
+    "next_file": "Fitxer següent",
+    "loading": "S'està carregant…"
   },
   "smime": {
     "your_certificates": "Els vostres certificats",

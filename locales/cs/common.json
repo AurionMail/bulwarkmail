@@ -4060,7 +4060,10 @@
     "zoom_out": "Oddálit",
     "zoom_reset": "Přizpůsobit obrazovce",
     "rotate": "Otočit",
-    "close_preview": "Zavřít"
+    "close_preview": "Zavřít",
+    "previous_file": "Předchozí soubor",
+    "next_file": "Další soubor",
+    "loading": "Načítání…"
   },
   "smime": {
     "your_certificates": "Vaše certifikáty",

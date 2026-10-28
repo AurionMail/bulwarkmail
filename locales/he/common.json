@@ -3978,7 +3978,10 @@
     "zoom_out": "הקטן",
     "zoom_reset": "התאם למסך",
     "rotate": "סובב",
-    "close_preview": "סגור"
+    "close_preview": "סגור",
+    "previous_file": "הקובץ הקודם",
+    "next_file": "הקובץ הבא",
+    "loading": "טוען…"
   },
   "smime": {
     "your_certificates": "התעודות שלך",

@@ -4106,7 +4106,10 @@
     "zoom_out": "Zoom ud",
     "zoom_reset": "Tilpas til skærm",
     "rotate": "Rotér",
-    "close_preview": "Luk"
+    "close_preview": "Luk",
+    "previous_file": "Forrige fil",
+    "next_file": "Næste fil",
+    "loading": "Indlæser…"
   },
   "smime": {
     "your_certificates": "Dine certifikater",

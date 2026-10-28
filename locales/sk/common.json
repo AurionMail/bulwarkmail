@@ -4106,7 +4106,10 @@
     "zoom_out": "Oddialiť",
     "zoom_reset": "Prispôsobiť obrazovke",
     "rotate": "Otočiť",
-    "close_preview": "Zavrieť"
+    "close_preview": "Zavrieť",
+    "previous_file": "Predchádzajúci súbor",
+    "next_file": "Nasledujúci súbor",
+    "loading": "Načítava sa…"
   },
   "smime": {
     "your_certificates": "Vaše certifikáty",

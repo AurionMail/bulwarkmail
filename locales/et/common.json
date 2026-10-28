@@ -4106,7 +4106,10 @@
     "zoom_out": "Suumi välja",
     "zoom_reset": "Sobita ekraanile",
     "rotate": "Pööra",
-    "close_preview": "Sulge"
+    "close_preview": "Sulge",
+    "previous_file": "Eelmine fail",
+    "next_file": "Järgmine fail",
+    "loading": "Laadimine…"
   },
   "smime": {
     "your_certificates": "Sinu sertifikaadid",

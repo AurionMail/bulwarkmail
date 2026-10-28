@@ -4106,7 +4106,10 @@
     "zoom_out": "Uzaklaştır",
     "zoom_reset": "Ekrana sığdır",
     "rotate": "Döndür",
-    "close_preview": "Kapat"
+    "close_preview": "Kapat",
+    "previous_file": "Önceki dosya",
+    "next_file": "Sonraki dosya",
+    "loading": "Yükleniyor…"
   },
   "smime": {
     "your_certificates": "Sertifikalarınız",

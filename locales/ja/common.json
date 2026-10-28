@@ -4060,7 +4060,10 @@
     "zoom_out": "縮小",
     "zoom_reset": "画面に合わせる",
     "rotate": "回転",
-    "close_preview": "閉じる"
+    "close_preview": "閉じる",
+    "previous_file": "前のファイル",
+    "next_file": "次のファイル",
+    "loading": "読み込み中…"
   },
   "smime": {
     "your_certificates": "あなたの証明書",

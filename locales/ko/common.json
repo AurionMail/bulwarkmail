@@ -4060,7 +4060,10 @@
     "zoom_out": "축소",
     "zoom_reset": "화면에 맞추기",
     "rotate": "회전",
-    "close_preview": "닫기"
+    "close_preview": "닫기",
+    "previous_file": "이전 파일",
+    "next_file": "다음 파일",
+    "loading": "불러오는 중…"
   },
   "smime": {
     "your_certificates": "내 인증서",

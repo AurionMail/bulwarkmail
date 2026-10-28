@@ -4106,7 +4106,10 @@
     "zoom_out": "Жижигрүүлэх",
     "zoom_reset": "Дэлгэцэнд тааруулах",
     "rotate": "Эргүүлэх",
-    "close_preview": "Хаах"
+    "close_preview": "Хаах",
+    "previous_file": "Өмнөх файл",
+    "next_file": "Дараах файл",
+    "loading": "Ачаалж байна…"
   },
   "smime": {
     "your_certificates": "Таны сертификатууд",

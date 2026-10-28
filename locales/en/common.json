@@ -4106,7 +4106,10 @@
     "zoom_out": "Zoom out",
     "zoom_reset": "Fit to screen",
     "rotate": "Rotate",
-    "close_preview": "Close"
+    "close_preview": "Close",
+    "previous_file": "Previous file",
+    "next_file": "Next file",
+    "loading": "Loading…"
   },
   "smime": {
     "your_certificates": "Your Certificates",

@@ -4060,7 +4060,10 @@
     "zoom_out": "Tālināt",
     "zoom_reset": "Ietilpināt ekrānā",
     "rotate": "Pagriezt",
-    "close_preview": "Aizvērt"
+    "close_preview": "Aizvērt",
+    "previous_file": "Iepriekšējais fails",
+    "next_file": "Nākamais fails",
+    "loading": "Ielādē…"
   },
   "smime": {
     "your_certificates": "Jūsu sertifikāti",

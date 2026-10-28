@@ -4106,7 +4106,10 @@
     "zoom_out": "تصغير",
     "zoom_reset": "ملاءمة الشاشة",
     "rotate": "تدوير",
-    "close_preview": "إغلاق"
+    "close_preview": "إغلاق",
+    "previous_file": "الملف السابق",
+    "next_file": "الملف التالي",
+    "loading": "جارٍ التحميل…"
   },
   "smime": {
     "your_certificates": "شهاداتك",

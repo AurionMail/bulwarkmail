@@ -4106,7 +4106,10 @@
     "zoom_out": "Zoom ut",
     "zoom_reset": "Tilpass til skjermen",
     "rotate": "Roter",
-    "close_preview": "Lukk"
+    "close_preview": "Lukk",
+    "previous_file": "Forrige fil",
+    "next_file": "Neste fil",
+    "loading": "Laster inn…"
   },
   "smime": {
     "your_certificates": "Dine sertifikater",

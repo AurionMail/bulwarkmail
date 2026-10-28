@@ -4106,7 +4106,10 @@
     "zoom_out": "کوچک‌نمایی",
     "zoom_reset": "متناسب با صفحه",
     "rotate": "چرخش",
-    "close_preview": "بستن"
+    "close_preview": "بستن",
+    "previous_file": "فایل قبلی",
+    "next_file": "فایل بعدی",
+    "loading": "در حال بارگیری…"
   },
   "smime": {
     "your_certificates": "گواهی‌های شما",

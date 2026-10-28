@@ -4060,7 +4060,10 @@
     "zoom_out": "Uitzoomen",
     "zoom_reset": "Aanpassen aan scherm",
     "rotate": "Draaien",
-    "close_preview": "Sluiten"
+    "close_preview": "Sluiten",
+    "previous_file": "Vorig bestand",
+    "next_file": "Volgend bestand",
+    "loading": "Laden…"
   },
   "smime": {
     "your_certificates": "Uw certificaten",

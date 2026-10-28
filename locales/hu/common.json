@@ -4106,7 +4106,10 @@
     "zoom_out": "Kicsinyítés",
     "zoom_reset": "Igazítás a képernyőhöz",
     "rotate": "Forgatás",
-    "close_preview": "Bezárás"
+    "close_preview": "Bezárás",
+    "previous_file": "Előző fájl",
+    "next_file": "Következő fájl",
+    "loading": "Betöltés…"
   },
   "smime": {
     "your_certificates": "Tanúsítványaid",

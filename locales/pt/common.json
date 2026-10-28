@@ -4060,7 +4060,10 @@
     "zoom_out": "Diminuir zoom",
     "zoom_reset": "Ajustar ao ecrã",
     "rotate": "Rodar",
-    "close_preview": "Fechar"
+    "close_preview": "Fechar",
+    "previous_file": "Arquivo anterior",
+    "next_file": "Próximo arquivo",
+    "loading": "Carregando…"
   },
   "smime": {
     "your_certificates": "Seus certificados",

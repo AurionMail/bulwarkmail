@@ -4060,7 +4060,10 @@
     "zoom_out": "Уменьшить",
     "zoom_reset": "По размеру экрана",
     "rotate": "Повернуть",
-    "close_preview": "Закрыть"
+    "close_preview": "Закрыть",
+    "previous_file": "Предыдущий файл",
+    "next_file": "Следующий файл",
+    "loading": "Загрузка…"
   },
   "smime": {
     "your_certificates": "Ваши сертификаты",
