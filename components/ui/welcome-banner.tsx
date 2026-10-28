@@ -59,14 +59,9 @@ export function WelcomeBanner() {
     } catch { /* localStorage unavailable */ }
   }, [updateSetting]);
 
-  useEffect(() => {
-    if (!visible) return;
-    const handle = (e: KeyboardEvent) => {
-      if (e.key === "Escape") dismiss();
-    };
-    window.addEventListener("keydown", handle);
-    return () => window.removeEventListener("keydown", handle);
-  }, [visible, dismiss]);
+  // No Escape handler: Escape closes whatever has the focus (a message, a
+  // dialog, a selection) and must not hide these tips for good (R8). The X
+  // and "Got it" dismiss them.
 
   if (!visible) return null;
 
