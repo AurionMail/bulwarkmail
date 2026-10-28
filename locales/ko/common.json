@@ -2160,7 +2160,8 @@
     "advanced": {
       "debug_mode": {
         "label": "디버그 모드",
-        "description": "문제 해결을 위해 자세한 로그를 기록해요"
+        "description": "문제 해결을 위해 자세한 로그를 기록해요",
+        "toggle": "자세한 로그 기록"
       },
       "debug_categories": {
         "description": "기록할 카테고리를 선택해 주세요. 필요 없는 항목은 꺼두면 좋아요.",

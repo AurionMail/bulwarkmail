@@ -57,12 +57,12 @@ async function openResult(query: string, label: string) {
 
 describe('settings search and the Advanced switch', () => {
   it('leaves Advanced off for a row that is not an advanced one', async () => {
-    await openResult('favicons', 'Sender Favicons');
+    await openResult('favicons', 'Sender favicons');
     expect(useSettingsStore.getState().showAdvancedSettings).toBe(false);
   });
 
   it('turns Advanced on for an advanced row it has to reveal', async () => {
-    await openResult('emails per page', 'Emails Per Page');
+    await openResult('emails per page', 'Emails per page');
     expect(useSettingsStore.getState().showAdvancedSettings).toBe(true);
   });
 });

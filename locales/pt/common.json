@@ -2160,7 +2160,8 @@
     "advanced": {
       "debug_mode": {
         "label": "Modo de Depuração",
-        "description": "Habilitar registro detalhado para solução de problemas"
+        "description": "Habilitar registro detalhado para solução de problemas",
+        "toggle": "Registo detalhado"
       },
       "debug_categories": {
         "description": "Selecione quais categorias registrar. Desative as categorias de que você não precisa para reduzir o ruído no console.",

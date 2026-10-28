@@ -2160,7 +2160,8 @@
     "advanced": {
       "debug_mode": {
         "label": "デバッグモード",
-        "description": "トラブルシューティング用の詳細ログを有効化"
+        "description": "トラブルシューティング用の詳細ログを有効化",
+        "toggle": "詳細なログ"
       },
       "debug_categories": {
         "description": "記録するカテゴリを選択してください。不要なカテゴリを無効にすると、コンソールのノイズを減らせます。",

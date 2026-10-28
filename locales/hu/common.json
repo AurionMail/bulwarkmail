@@ -2163,7 +2163,8 @@
     "advanced": {
       "debug_mode": {
         "label": "Hibakeresési mód",
-        "description": "Részletes naplózás engedélyezése hibaelhárításhoz"
+        "description": "Részletes naplózás engedélyezése hibaelhárításhoz",
+        "toggle": "Részletes naplózás"
       },
       "debug_categories": {
         "description": "Válaszd ki a naplózandó kategóriákat. Kapcsold ki a nem szükséges kategóriákat a konzol zaj csökkentéséhez.",

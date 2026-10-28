@@ -2160,7 +2160,8 @@
     "advanced": {
       "debug_mode": {
         "label": "Debugmodus",
-        "description": "Schakel gedetailleerde logging in voor probleemoplossing"
+        "description": "Schakel gedetailleerde logging in voor probleemoplossing",
+        "toggle": "Uitgebreide logboekregistratie"
       },
       "debug_categories": {
         "description": "Selecteer welke categorieën moeten worden gelogd. Schakel categorieën die u niet nodig hebt uit om ruis in de console te verminderen.",

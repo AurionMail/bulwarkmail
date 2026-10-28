@@ -2167,7 +2167,8 @@
     "advanced": {
       "debug_mode": {
         "label": "Modul de depanare",
-        "description": "Activați înregistrarea detaliată a evenimentelor pentru depanare"
+        "description": "Activați înregistrarea detaliată a evenimentelor pentru depanare",
+        "toggle": "Jurnalizare detaliată"
       },
       "debug_categories": {
         "description": "Selectați categoriile pe care doriți să le înregistrați. Dezactivați categoriile de care nu aveți nevoie pentru a reduce zgomotul din consolă.",

@@ -2160,7 +2160,8 @@
     "advanced": {
       "debug_mode": {
         "label": "Atkļūdošanas režīms",
-        "description": "Iespējot detalizētu žurnālēšanu diagnostikai"
+        "description": "Iespējot detalizētu žurnālēšanu diagnostikai",
+        "toggle": "Detalizēta žurnalēšana"
       },
       "settings_sync": {
         "label": "Iestatījumu sinhronizācija",

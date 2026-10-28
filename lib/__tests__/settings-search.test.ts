@@ -5,6 +5,7 @@ import {
   descriptionKeyFor,
   getByPath,
   matchesAllWords,
+  tabKeywords,
   settingsSubResults,
   tabSearchEntries,
   withAppName,
@@ -35,21 +36,21 @@ describe('settings search index (English messages)', () => {
   it('lists each setting under the page that draws it', () => {
     expect(labelsFor('calendar')).toContain('Free scrolling');
     expect(labelsFor('calendar')).toContain('Show week numbers');
-    expect(labelsFor('notifications')).toContain('Unread Count on Tab and App Icon');
-    expect(labelsFor('message_list')).toContain('Sender Favicons');
+    expect(labelsFor('notifications')).toContain('Unread count on the tab and app icon');
+    expect(labelsFor('message_list')).toContain('Sender favicons');
     expect(labelsFor('message_list')).toContain('Clear search when switching folders');
-    expect(labelsFor('reading')).toContain('Trusted Senders');
+    expect(labelsFor('reading')).toContain('Trusted senders');
     expect(labelsFor('composing')).toContain('Undo send / send delay');
     expect(labelsFor('general')).toContain('Time zone');
-    expect(labelsFor('organize')).toContain('Nested Tags');
+    expect(labelsFor('organize')).toContain('Nested tags');
   });
 
   // SET-5: whole namespaces were indexed, so results led to pages without
   // the row (Sender Favicons under Backup & reset, Phone under Contacts,
   // Default Mail Program under Composing) or showed "Level {n} criterion".
   it('does not list settings a page does not draw', () => {
-    expect(labelsFor('backup')).not.toContain('Sender Favicons');
-    expect(labelsFor('backup')).not.toContain('Keyboard Shortcuts');
+    expect(labelsFor('backup')).not.toContain('Sender favicons');
+    expect(labelsFor('backup')).not.toContain('Keyboard shortcuts');
     expect(labelsFor('contacts')).not.toContain('Phone');
     expect(labelsFor('composing')).not.toContain('Default Mail Program');
     for (const tab of Object.keys(tabSearchEntries) as SettingsSearchTab[]) {
@@ -62,8 +63,10 @@ describe('settings search index (English messages)', () => {
     expect(resultsFor('message_list', 'inbox type').map((r) => r.label)).toEqual(['Inbox type']);
     expect(resultsFor('calendar', 'import calendar').map((r) => r.label)).toContain('Import Calendar');
     expect(resultsFor('composing', 'mention').map((r) => r.label).slice(0, 2)).toEqual(['Mention recipients with @', 'Contacts in @ mentions']);
-    expect(resultsFor('security', 'two-factor').map((r) => r.label)).toContain('Two-Factor Authentication');
-    expect(resultsFor('filters', 'add rule').map((r) => r.label)).toEqual(['Add Rule']);
+    expect(resultsFor('security', 'two-factor').map((r) => r.label)).toContain('Two-factor authentication');
+    expect(resultsFor('filters', 'new rule').map((r) => r.label)).toEqual(['New rule']);
+    // "add rule" finds the Filters page itself.
+    expect(matchesAllWords(tabKeywords.filters, 'add rule')).toBe(true);
   });
 
   it('matches every word of a query, in any order', () => {
@@ -71,13 +74,13 @@ describe('settings search index (English messages)', () => {
     expect(matchesAllWords(text, 'replies signature')).toBe(true);
     expect(matchesAllWords(text, 'signature replies')).toBe(true);
     expect(matchesAllWords(text, 'signature forwarding')).toBe(false);
-    expect(resultsFor('composing', 'reply signature').map((r) => r.label)).toContain('Signature Position');
+    expect(resultsFor('composing', 'reply signature').map((r) => r.label)).toContain('Signature position');
   });
 
   it('marks the rows the Advanced switch hides', () => {
     const advanced = settingsSubResults(en, 'message_list', 'Bulwark').filter((r) => r.advanced).map((r) => r.label);
-    expect(advanced).toContain('Emails Per Page');
-    expect(advanced).not.toContain('Sender Favicons');
+    expect(advanced).toContain('Emails per page');
+    expect(advanced).not.toContain('Sender favicons');
   });
 });
 

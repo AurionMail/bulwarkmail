@@ -2160,7 +2160,8 @@
     "advanced": {
       "debug_mode": {
         "label": "调试模式",
-        "description": "启用详细日志记录以进行故障排除"
+        "description": "启用详细日志记录以进行故障排除",
+        "toggle": "详细日志"
       },
       "debug_categories": {
         "description": "选择要记录的类别。禁用不需要的类别以减少控制台噪音。",

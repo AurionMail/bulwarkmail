@@ -2160,7 +2160,8 @@
     "advanced": {
       "debug_mode": {
         "label": "Mode débogage",
-        "description": "Activer la journalisation détaillée pour le dépannage"
+        "description": "Activer la journalisation détaillée pour le dépannage",
+        "toggle": "Journalisation détaillée"
       },
       "debug_categories": {
         "description": "Sélectionnez les catégories à journaliser. Désactivez celles dont vous n'avez pas besoin pour réduire le bruit dans la console.",

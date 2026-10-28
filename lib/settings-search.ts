@@ -288,7 +288,7 @@ export const tabKeywords: Record<Tab, string> = {
   reading: 'mark read attachment open monospace mono font plain text images remote content block sender privacy tracking dark light download filename template eml save export',
   composing: 'editor signature plain text reply forward draft compose template snippet quick reply mention undo send receipt attachment reminder',
   vacation: 'auto reply away out of office holiday responder',
-  filters: 'sieve rules block junk forward',
+  filters: 'sieve rules add create new block junk forward',
   organize: 'folders mailbox subscribe roles tags labels keywords colors nested',
   security: 'password 2fa two-factor passkey app password mfa api key token phone mobile app pair qr thunderbird outlook imap client encryption pgp smime',
   calendar: 'event schedule appointment meeting timezone invitation ics tasks birthday working hours',

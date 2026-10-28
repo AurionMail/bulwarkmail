@@ -2167,7 +2167,8 @@
     "advanced": {
       "debug_mode": {
         "label": "Feilsøkingsmodus",
-        "description": "Aktiver detaljert logging for feilsøking"
+        "description": "Aktiver detaljert logging for feilsøking",
+        "toggle": "Detaljert logging"
       },
       "debug_categories": {
         "description": "Velg hvilke kategorier som skal logges. Deaktiver kategorier du ikke trenger, for å redusere antallet meldinger i konsollen.",

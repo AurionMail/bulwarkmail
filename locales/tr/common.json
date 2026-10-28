@@ -2160,7 +2160,8 @@
     "advanced": {
       "debug_mode": {
         "label": "Hata Ayıklama Modu",
-        "description": "Sorun giderme için ayrıntılı günlük kaydını etkinleştir"
+        "description": "Sorun giderme için ayrıntılı günlük kaydını etkinleştir",
+        "toggle": "Ayrıntılı günlük kaydı"
       },
       "debug_categories": {
         "description": "Hangi kategorilerin günlüğe kaydedileceğini seçin. Konsol gürültüsünü azaltmak için ihtiyaç duymadığınız kategorileri devre dışı bırakın.",

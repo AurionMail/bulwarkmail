@@ -2163,7 +2163,8 @@
     "advanced": {
       "debug_mode": {
         "label": "Debug-tilstand",
-        "description": "Aktivér detaljeret logning til fejlfinding"
+        "description": "Aktivér detaljeret logning til fejlfinding",
+        "toggle": "Detaljeret logning"
       },
       "debug_categories": {
         "description": "Vælg hvilke kategorier der skal logges. Deaktivér kategorier du ikke har brug for at reducere konsolstøj.",

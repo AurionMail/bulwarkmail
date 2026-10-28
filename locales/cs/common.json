@@ -2160,7 +2160,8 @@
     "advanced": {
       "debug_mode": {
         "label": "Režim ladění",
-        "description": "Povolit podrobné protokolování pro řešení problémů"
+        "description": "Povolit podrobné protokolování pro řešení problémů",
+        "toggle": "Podrobné protokolování"
       },
       "debug_categories": {
         "description": "Vyberte kategorie pro protokolování. Vypněte kategorie, které nepotřebujete, pro snížení množství záznamů v konzoli.",

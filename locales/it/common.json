@@ -2160,7 +2160,8 @@
     "advanced": {
       "debug_mode": {
         "label": "Modalità debug",
-        "description": "Abilita registrazione dettagliata per la risoluzione dei problemi"
+        "description": "Abilita registrazione dettagliata per la risoluzione dei problemi",
+        "toggle": "Registrazione dettagliata"
       },
       "debug_categories": {
         "description": "Seleziona quali categorie registrare. Disattiva quelle che non ti servono per ridurre il rumore nella console.",

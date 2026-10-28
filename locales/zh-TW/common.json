@@ -2167,7 +2167,8 @@
     "advanced": {
       "debug_mode": {
         "label": "除錯模式",
-        "description": "啟用詳細記錄以進行疑難排解"
+        "description": "啟用詳細記錄以進行疑難排解",
+        "toggle": "詳細記錄"
       },
       "debug_categories": {
         "description": "選取要記錄的類別。停用不需要的類別，可減少主控台雜訊。",

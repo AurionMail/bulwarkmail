@@ -2160,7 +2160,8 @@
     "advanced": {
       "debug_mode": {
         "label": "Tryb debugowania",
-        "description": "Włącz szczegółowe logowanie do rozwiązywania problemów"
+        "description": "Włącz szczegółowe logowanie do rozwiązywania problemów",
+        "toggle": "Szczegółowe logowanie"
       },
       "debug_categories": {
         "description": "Wybierz kategorie do logowania. Wyłącz kategorie, których nie potrzebujesz, aby zmniejszyć szum w konsoli.",

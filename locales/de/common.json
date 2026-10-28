@@ -2160,7 +2160,8 @@
     "advanced": {
       "debug_mode": {
         "label": "Debug-Modus",
-        "description": "Detaillierte Protokollierung zur Fehlerbehebung aktivieren"
+        "description": "Detaillierte Protokollierung zur Fehlerbehebung aktivieren",
+        "toggle": "Ausführliche Protokollierung"
       },
       "debug_categories": {
         "description": "Wählen Sie aus, welche Kategorien protokolliert werden sollen. Deaktivieren Sie nicht benötigte Kategorien, um die Konsolenausgabe zu reduzieren.",
