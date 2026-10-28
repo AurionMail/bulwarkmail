@@ -46,6 +46,8 @@ interface CalendarMonthViewProps extends ScrollWindowViewProps {
    * Moving an event they organize also asks its attendees again.
    */
   currentUserEmails?: string[];
+  /** Whether the user may change an event: only those can be dragged or resized. */
+  canEditEvent?: (event: CalendarEvent) => boolean;
 }
 
 /** Fraction of the viewport height at which the "current month" is sampled. */
@@ -77,6 +79,7 @@ export function CalendarMonthView({
   onToggleTaskComplete,
   onSelectTask,
   currentUserEmails,
+  canEditEvent = () => true,
 }: CalendarMonthViewProps) {
   const t = useTranslations("calendar");
   const describeError = useCalendarErrorMessage();
@@ -502,7 +505,7 @@ export function CalendarMonthView({
                         onMouseLeave={onHoverLeave}
                         onContextMenu={onContextMenuEvent}
                         currentUserEmails={currentUserEmails}
-                        draggable
+                        draggable={canEditEvent(segment.event)}
                         className={isMobile ? "text-[10px] px-1" : undefined}
                       />
                     </div>

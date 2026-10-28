@@ -37,6 +37,8 @@ interface EventContextMenuProps {
   onCopyTitle: () => void;
   onCopyMeetingLink?: () => void;
   onDelete: () => void;
+  /** False for an event the user can't change (a birthday, a subscription, a read-only share): no Edit or Delete. */
+  editable?: boolean;
 }
 
 export function EventContextMenu({
@@ -51,6 +53,7 @@ export function EventContextMenu({
   onCopyTitle,
   onCopyMeetingLink,
   onDelete,
+  editable = true,
 }: EventContextMenuProps) {
   const t = useTranslations("calendar");
   const tDeepLink = useTranslations("deep_link");
@@ -65,7 +68,7 @@ export function EventContextMenu({
 
   return (
     <ContextMenu ref={menuRef} isOpen={isOpen} position={position} onClose={onClose}>
-      <ContextMenuItem icon={Pencil} label={t("events.edit")} onClick={handle(onEdit)} />
+      {editable && <ContextMenuItem icon={Pencil} label={t("events.edit")} onClick={handle(onEdit)} />}
       <ContextMenuItem icon={Copy} label={t("events.duplicate")} onClick={handle(onDuplicate)} />
       <ContextMenuSeparator />
       <ContextMenuItem
@@ -99,13 +102,17 @@ export function EventContextMenu({
           }));
         })}
       />
-      <ContextMenuSeparator />
-      <ContextMenuItem
-        icon={Trash2}
-        label={t("events.delete")}
-        onClick={handle(onDelete)}
-        destructive
-      />
+      {editable && (
+        <>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            icon={Trash2}
+            label={t("events.delete")}
+            onClick={handle(onDelete)}
+            destructive
+          />
+        </>
+      )}
     </ContextMenu>
   );
 }

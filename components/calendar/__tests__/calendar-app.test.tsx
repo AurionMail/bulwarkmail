@@ -305,3 +305,37 @@ describe('CalendarApp deleting', () => {
     await waitFor(() => expect(toastTitles()).toContain('notifications.task_deleted'));
   });
 });
+
+describe('CalendarApp read-only events', () => {
+  const readOnlyCalendar = {
+    ...calendars[0], id: 'ro', name: 'Holidays', isDefault: false,
+    myRights: { ...RIGHTS, mayWriteAll: false, mayWriteOwn: false, mayDelete: false, mayRSVP: false },
+  } as unknown as Calendar;
+  const holiday = makeEvent({ id: 'h1', title: 'Holiday', calendarIds: { ro: true } });
+
+  beforeEach(() => {
+    setUp([holiday]);
+    useCalendarStore.setState({ calendars: [...calendars, readOnlyCalendar], selectedCalendarIds: ['cal', 'ro'] } as never);
+  });
+
+  it('offers no Edit or Delete in the right-click menu', async () => {
+    renderApp();
+    fireEvent.contextMenu(screen.getAllByRole('button', { name: /Holiday/ })[0], { clientX: 50, clientY: 50 });
+    expect(await screen.findByRole('menuitem', { name: 'events.duplicate' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'events.edit' })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: 'events.delete' })).toBeNull();
+  });
+
+  it('can be neither dragged nor resized', () => {
+    const { container } = renderApp();
+    const card = screen.getAllByRole('button', { name: /Holiday/ })[0];
+    expect(card).not.toHaveAttribute('draggable', 'true');
+    expect(container.querySelectorAll('[data-resize-handle]')).toHaveLength(0);
+  });
+
+  it('keeps an editable event draggable', () => {
+    setUp([makeEvent()]);
+    renderApp();
+    expect(screen.getAllByRole('button', { name: /Standup/ })[0]).toHaveAttribute('draggable', 'true');
+  });
+});

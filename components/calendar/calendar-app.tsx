@@ -61,7 +61,7 @@ import { getClientByLocalAccountId } from "@/stores/client-registry";
 import { useCalendarErrorMessage } from "@/hooks/use-calendar-error-message";
 import { getEventStartDate } from "@/lib/calendar-utils";
 import { displayNow, getEffectiveTimeZone } from "@/lib/timezone";
-import { canCreateEventsIn } from "@/lib/calendar-editability";
+import { canCreateEventsIn, getEventEditability, type EditabilityContext } from "@/lib/calendar-editability";
 import { QuickCreatePopover, type QuickCreateDraft } from "@/components/calendar/quick-create-popover";
 import { TASKS_LOAD_ERROR, useTaskStore } from "@/stores/task-store";
 import { useContactStore } from "@/stores/contact-store";
@@ -1515,6 +1515,18 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     return [...displayCalendars, createBirthdayCalendar(birthdayCalendarName, birthdayCalendarColor)];
   }, [displayCalendars, showBirthdayCalendar, birthdayCalendarName, birthdayCalendarColor]);
 
+  // What the user may change, by the rights of each event's calendar
+  // (birthdays, subscriptions and read-only shares can't be changed).
+  const editabilityContext = useMemo<EditabilityContext>(() => ({
+    calendarsById: new Map(allCalendars.map((c) => [c.id, c])),
+    userCalendarAddresses: currentUserEmails,
+    isSubscriptionCalendar,
+  }), [allCalendars, currentUserEmails, isSubscriptionCalendar]);
+  const canEditEvent = useCallback(
+    (event: CalendarEvent) => getEventEditability(event, editabilityContext) === "editable",
+    [editabilityContext],
+  );
+
   const visibleEvents = useMemo(() => {
     const filtered = events.filter((e) => {
       if (!e.start || !e.calendarIds) return false;
@@ -1652,6 +1664,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               onToggleTaskComplete={handleToggleTaskComplete}
               onSelectTask={openEditTaskModal}
               currentUserEmails={currentUserEmails}
+              canEditEvent={canEditEvent}
             />
           );
         case "week":
@@ -1677,6 +1690,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               onToggleTaskComplete={handleToggleTaskComplete}
               onSelectTask={openEditTaskModal}
               currentUserEmails={currentUserEmails}
+              canEditEvent={canEditEvent}
             />
           );
         case "day":
@@ -1699,6 +1713,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               onToggleTaskComplete={handleToggleTaskComplete}
               onSelectTask={openEditTaskModal}
               currentUserEmails={currentUserEmails}
+              canEditEvent={canEditEvent}
             />
           );
         case "agenda":
@@ -2061,6 +2076,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
           onCopyTitle={() => handleCopyTitle(eventContextMenu.data!)}
           onCopyMeetingLink={() => handleCopyMeetingLink(eventContextMenu.data!)}
           onDelete={() => handleDeleteContextMenu(eventContextMenu.data!)}
+          editable={canEditEvent(eventContextMenu.data)}
         />
       )}
 
@@ -2113,7 +2129,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       {detailEvent && detailAnchorRect && (
         <EventDetailPopover
           event={detailEvent}
-          calendar={displayCalendars.find(c => detailEvent.calendarIds[c.id])}
+          calendar={allCalendars.find(c => detailEvent.calendarIds[c.id])}
           anchorRect={detailAnchorRect}
           onEdit={handleEditFromDetail}
           onDelete={handleDeleteFromDetail}
