@@ -19,6 +19,11 @@ vi.mock('@/hooks/use-tag-drop', () => ({
   useTagDrop: () => ({ dropHandlers: {}, isValidDropTarget: false }),
 }));
 vi.mock('../account-switcher', () => ({ AccountSwitcher: () => null }));
+// A touch screen: the folder rows show their ⋮.
+vi.mock('@/hooks/use-media-query', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/hooks/use-media-query')>()),
+  useMediaQuery: (query: string) => query === '(pointer: coarse)',
+}));
 
 const { Sidebar } = await import('../sidebar');
 const { useAuthStore } = await import('@/stores/auth-store');

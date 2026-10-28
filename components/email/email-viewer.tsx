@@ -6427,7 +6427,8 @@ export function EmailViewer({
       </div>
       </div>
 
-      {isScheduled && (
+      {/* Mounted only while open: the reader renders on every message it opens. */}
+      {isScheduled && rescheduleOpen && (
         <ScheduleSendDialog
           isOpen={rescheduleOpen}
           onClose={() => setRescheduleOpen(false)}
@@ -6442,19 +6443,19 @@ export function EmailViewer({
         />
       )}
 
-      {canSaveToFiles && client && (
+      {canSaveToFiles && client && saveToFilesTarget && (
         <SaveToFilesDialog attachment={saveToFilesTarget} client={client} onClose={() => setSaveToFilesTarget(null)} />
       )}
 
       {/* View source: the raw message the server holds. */}
-      <ViewSourceDialog
+      {showSourceModal && email && <ViewSourceDialog
         isOpen={showSourceModal && !!email}
         onClose={() => setShowSourceModal(false)}
         blobId={email?.blobId}
         client={blobSource ? blobSource.client : client}
         accountId={blobSource?.accountId}
         onDownload={() => void handleExportEmail()}
-      />
+      />}
     </div>
 
     {/* Mobile bottom action bar - pane-scoped inside a Pro pane (the

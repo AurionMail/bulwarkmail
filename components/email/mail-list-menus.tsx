@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { useTranslations } from "next-intl";
 import { ArrowUpDown, Check, CheckCheck, FolderX, MailOpen, MoreVertical } from "@/components/icons";
 import { IconButton } from "@/components/ui/icon-button";
@@ -61,7 +62,7 @@ export function applySortChoice(key: SortChoiceKey, folderRole: string | null | 
 }
 
 /** The list header's Sort button (MAIL-30), like the one in Files. */
-export function MailSortMenu({ folderRole, disabled, className }: { folderRole: string | null | undefined; disabled?: boolean; className?: string }) {
+export const MailSortMenu = memo(function MailSortMenu({ folderRole, disabled, className }: { folderRole: string | null | undefined; disabled?: boolean; className?: string }) {
   const t = useTranslations("email_list.sort");
   const menu = useContextMenu<null>();
   const hidden = usePolicyStore((s) => s.isSettingHidden("messageListOrder"));
@@ -116,7 +117,7 @@ export function MailSortMenu({ folderRole, disabled, className }: { folderRole: 
       </ContextMenu>
     </>
   );
-}
+});
 
 /** A checkable entry of the Sort menu, as in Files'. */
 function SortItem({ label, checked, onClick, testId }: { label: string; checked: boolean; onClick: () => void; testId?: string }) {
@@ -141,7 +142,7 @@ function SortItem({ label, checked, onClick, testId }: { label: string; checked:
  * The list header's ⋮: what the Mountain View list ⋮ offers for the folder
  * (MAIL-29). On the phone the same entries sit in the header's ⋮.
  */
-export function MailFolderMenu({
+export const MailFolderMenu = memo(function MailFolderMenu({
   onMarkFolderRead,
   onMarkAllFoldersRead,
   onEmptyFolder,
@@ -184,7 +185,7 @@ export function MailFolderMenu({
       </ContextMenu>
     </>
   );
-}
+});
 
 /** The folder entries, for the list ⋮ and the phone header's ⋮. */
 export function MailFolderMenuItems({

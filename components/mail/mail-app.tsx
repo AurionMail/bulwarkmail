@@ -1923,6 +1923,17 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const conversationSpamApplicable = !['sent', 'drafts', 'scheduled'].includes(conversationRole || '');
   // Emptying is offered where it is the usual thing to do: Spam and Trash.
   const folderIsEmptyable = conversationRole === 'junk' || conversationRole === 'trash';
+  // Stable handlers for the list header's folder ⋮, so it (memoized) doesn't
+  // re-render with every render of the mail app; they read the latest state.
+  const folderMenuLatest = useRef({ markRead: () => {}, markAllRead: () => {}, empty: () => {} });
+  folderMenuLatest.current = {
+    markRead: () => { if (selectedMailbox) void handleMarkFolderRead(selectedMailbox); },
+    markAllRead: () => { void handleMarkAllFoldersRead(); },
+    empty: () => { if (selectedMailbox) void handleEmptyFolderFromContextMenu(selectedMailbox); },
+  };
+  const folderMenuMarkRead = useCallback(() => folderMenuLatest.current.markRead(), []);
+  const folderMenuMarkAllRead = useCallback(() => folderMenuLatest.current.markAllRead(), []);
+  const folderMenuEmpty = useCallback(() => folderMenuLatest.current.empty(), []);
   useEffect(() => {
     if (readingPaneEmpty && !tabletListVisible) setTabletListVisible(true);
   }, [readingPaneEmpty, tabletListVisible, setTabletListVisible]);
@@ -5047,9 +5058,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   <MailFolderMenu
                     disabled={isScheduledView}
                     className="flex-shrink-0 text-muted-foreground"
-                    onMarkFolderRead={selectedMailbox ? () => handleMarkFolderRead(selectedMailbox) : undefined}
-                    onMarkAllFoldersRead={handleMarkAllFoldersRead}
-                    onEmptyFolder={folderIsEmptyable && selectedMailbox ? () => void handleEmptyFolderFromContextMenu(selectedMailbox) : undefined}
+                    onMarkFolderRead={selectedMailbox ? folderMenuMarkRead : undefined}
+                    onMarkAllFoldersRead={folderMenuMarkAllRead}
+                    onEmptyFolder={folderIsEmptyable && selectedMailbox ? folderMenuEmpty : undefined}
                   />
                   {/* Plugin buttons (top-bar-actions). On phones they sit in
                       the header's overflow menu instead (MobileHeader). */}
@@ -5723,7 +5734,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           />
         )}
         <ConfirmDialog {...confirmDialogProps} />
-        <MoveToDialog
+        {moveDialogEmail && <MoveToDialog
           email={moveDialogEmail}
           mailboxes={mailboxes}
           selectedMailbox={selectedMailbox}
@@ -5731,7 +5742,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           onMove={(mailboxId) => {
             if (moveDialogEmail) void handleMoveToMailbox(moveDialogEmail.id, mailboxId, emailKeyFor(moveDialogEmail));
           }}
-        />
+        />}
         {rescheduleTarget && (
           <ScheduleSendDialog
             isOpen

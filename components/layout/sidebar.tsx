@@ -57,6 +57,7 @@ import { isEditableEventTarget } from "@/lib/keyboard";
 import { Mailbox } from "@/lib/jmap/types";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { useLongPress } from "@/hooks/use-long-press";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { IconButton } from "@/components/ui/icon-button";
 import { MailboxContextMenu, type MailboxContextTarget, type MailboxNotificationActions } from "./mailbox-context-menu";
 import { useAccountStore } from '@/stores/account-store';
@@ -376,6 +377,8 @@ function SidebarRow({
   // ⋮ shows it too.
   const rowRef = useRef<HTMLDivElement>(null);
   const hasMenu = !!onContextMenu && !isVirtual;
+  // The ⋮ is for touch, where there is no right-click; rendered only there.
+  const coarsePointer = useMediaQuery('(pointer: coarse)');
   const longPress = useLongPress((point) => {
     if (rowRef.current && onContextMenu) onContextMenu(menuEventAt(rowRef.current, point));
   }, hasMenu);
@@ -478,11 +481,11 @@ function SidebarRow({
           onUnreadClick={onUnreadClick}
         />
       )}
-      {hasMenu && !isCollapsed && (
+      {hasMenu && !isCollapsed && coarsePointer && (
         <IconButton
           label={t('folder_options', { name: label })}
           data-testid="folder-row-menu"
-          className="hidden pointer-coarse:inline-flex ms-1 flex-shrink-0 text-muted-foreground"
+          className="ms-1 flex-shrink-0 text-muted-foreground"
           onClick={(e) => {
             e.stopPropagation();
             onContextMenu(menuEventAt(e.currentTarget));

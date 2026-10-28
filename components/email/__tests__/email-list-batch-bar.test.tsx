@@ -60,7 +60,7 @@ describe('selection bar and rows from the keyboard', () => {
   it('keeps the collapsed bar out of the Tab order', () => {
     useEmailStore.setState({ selectedEmailKeys: new Set() });
     render(<EmailList emails={useEmailStore.getState().emails} />);
-    expect(screen.getByTestId('batch-delete').closest('[inert]')).not.toBeNull();
+    expect(screen.queryByTestId('batch-delete')).toBeNull();
   });
 
   it('names each row checkbox after its message', () => {

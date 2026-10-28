@@ -902,6 +902,8 @@ export function EmailList({
           hasSelection && !isScheduledView && !hideBatchToolbar ? "max-h-16 opacity-100" : "max-h-0 opacity-0"
         )}
       >
+        {/* Only drawn while shown: collapsed it would still render every button. */}
+        {hasSelection && !isScheduledView && !hideBatchToolbar && (
         <div className={cn("py-2 border-b bg-accent/30 border-border flex items-center justify-between gap-2", batchNarrow ? "px-2" : "px-4")} data-batch-narrow={batchNarrow ? "" : undefined}>
           <div className="flex items-center gap-2 min-w-0 animate-in fade-in slide-in-from-left-3 duration-300">
             <span className="text-sm font-medium text-foreground whitespace-nowrap truncate">
@@ -1000,6 +1002,7 @@ export function EmailList({
             </Button>
           </div>
         </div>
+        )}
       </div>
 
       {/* Advanced Search Filter Chips */}
