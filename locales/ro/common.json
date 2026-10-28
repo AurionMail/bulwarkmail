@@ -1630,6 +1630,8 @@
         "search_placeholder": "Căutați expeditori...",
         "no_results": "Nu există expeditori care să corespundă căutării dvs.",
         "remove": "Eliminați",
+        "removed": "Eliminat din expeditorii de încredere",
+        "remove_error": "Expeditorul nu a putut fi eliminat",
         "close": "Închide",
         "invalid_email": "Vă rugăm să introduceți o adresă de e-mail validă",
         "already_added": "Acest expeditor este deja de încredere",

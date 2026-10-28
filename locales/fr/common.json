@@ -1627,6 +1627,8 @@
         "search_placeholder": "Rechercher...",
         "no_results": "Aucun expéditeur ne correspond à votre recherche",
         "remove": "Supprimer",
+        "removed": "Retiré des expéditeurs de confiance",
+        "remove_error": "Impossible de retirer l'expéditeur",
         "close": "Fermer",
         "invalid_email": "Veuillez entrer une adresse email valide",
         "already_added": "Cet expéditeur est déjà de confiance",

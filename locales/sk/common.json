@@ -1630,6 +1630,8 @@
         "search_placeholder": "Hľadať odosielateľov...",
         "no_results": "Hľadaniu nezodpovedá žiadny odosielateľ",
         "remove": "Odstrániť",
+        "removed": "Odstránené z dôveryhodných odosielateľov",
+        "remove_error": "Odosielateľa sa nepodarilo odstrániť",
         "close": "Zavrieť",
         "invalid_email": "Zadajte platnú e-mailovú adresu",
         "already_added": "Tento odosielateľ je už dôveryhodný",

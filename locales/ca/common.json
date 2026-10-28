@@ -1630,6 +1630,8 @@
         "search_placeholder": "Cerca remitents...",
         "no_results": "Cap remitent coincideix amb la cerca",
         "remove": "Elimina",
+        "removed": "S'ha tret dels remitents de confiança",
+        "remove_error": "No s'ha pogut treure el remitent",
         "close": "Tanca",
         "invalid_email": "Introduïu una adreça electrònica vàlida",
         "already_added": "Aquest remitent ja és de confiança",

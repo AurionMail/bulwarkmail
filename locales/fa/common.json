@@ -1630,6 +1630,8 @@
         "search_placeholder": "جستجو...",
         "no_results": "مطابقی نیست",
         "remove": "حذف",
+        "removed": "از فرستندگان مورد اعتماد حذف شد",
+        "remove_error": "حذف فرستنده ممکن نشد",
         "close": "بستن",
         "invalid_email": "ایمیل معتبر وارد کنید",
         "already_added": "قبلاً اضافه شده",

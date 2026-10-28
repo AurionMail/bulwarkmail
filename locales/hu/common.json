@@ -1630,6 +1630,8 @@
         "search_placeholder": "Feladók keresése...",
         "no_results": "Nincs a keresésnek megfelelő feladó",
         "remove": "Eltávolítás",
+        "removed": "Eltávolítva a megbízható feladók közül",
+        "remove_error": "Nem sikerült eltávolítani a feladót",
         "close": "Bezárás",
         "invalid_email": "Kérjük, adj meg egy érvényes e-mail címet",
         "already_added": "Ez a feladó már megbízható",

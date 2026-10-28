@@ -1630,6 +1630,8 @@
         "search_placeholder": "Otsi saatjaid...",
         "no_results": "Otsingule vastavaid saatjaid ei leitud",
         "remove": "Eemalda",
+        "removed": "Eemaldatud usaldusväärsete saatjate hulgast",
+        "remove_error": "Saatjat ei õnnestunud eemaldada",
         "close": "Sulge",
         "invalid_email": "Palun sisesta kehtiv e-posti aadress",
         "already_added": "See saatja on juba usaldusväärne",

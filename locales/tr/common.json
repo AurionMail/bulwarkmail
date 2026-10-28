@@ -1627,6 +1627,8 @@
         "search_placeholder": "Göndericileri ara...",
         "no_results": "Aramanızla eşleşen gönderici yok",
         "remove": "Kaldır",
+        "removed": "Güvenilir gönderenlerden kaldırıldı",
+        "remove_error": "Gönderen kaldırılamadı",
         "close": "Kapat",
         "invalid_email": "Lütfen geçerli bir e-posta adresi girin",
         "already_added": "Bu gönderici zaten güvenilir",

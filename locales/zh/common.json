@@ -1627,6 +1627,8 @@
         "search_placeholder": "搜索发件人...",
         "no_results": "没有匹配的发件人",
         "remove": "移除",
+        "removed": "已从受信任的发件人中移除",
+        "remove_error": "无法移除发件人",
         "close": "关闭",
         "invalid_email": "请输入有效的邮箱地址",
         "already_added": "该发件人已被信任",

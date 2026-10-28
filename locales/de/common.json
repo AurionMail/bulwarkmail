@@ -1627,6 +1627,8 @@
         "search_placeholder": "Absender suchen...",
         "no_results": "Keine Absender entsprechen Ihrer Suche",
         "remove": "Entfernen",
+        "removed": "Aus vertrauenswürdigen Absendern entfernt",
+        "remove_error": "Absender konnte nicht entfernt werden",
         "close": "Schließen",
         "invalid_email": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
         "already_added": "Dieser Absender ist bereits vertrauenswürdig",

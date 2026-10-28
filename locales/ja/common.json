@@ -1627,6 +1627,8 @@
         "search_placeholder": "送信者を検索...",
         "no_results": "検索に一致する送信者がありません",
         "remove": "削除",
+        "removed": "信頼済みの送信者から削除しました",
+        "remove_error": "送信者を削除できませんでした",
         "close": "閉じる",
         "invalid_email": "有効なメールアドレスを入力してください",
         "already_added": "この送信者はすでに信頼されています",

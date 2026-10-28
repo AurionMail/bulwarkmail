@@ -1627,6 +1627,8 @@
         "search_placeholder": "Zoek afzenders...",
         "no_results": "Geen afzenders komen overeen met je zoekopdracht",
         "remove": "Verwijderen",
+        "removed": "Verwijderd uit vertrouwde afzenders",
+        "remove_error": "Kon de afzender niet verwijderen",
         "close": "Sluiten",
         "invalid_email": "Voer een geldig e-mailadres in",
         "already_added": "Deze afzender wordt al vertrouwd",

@@ -1627,6 +1627,8 @@
         "search_placeholder": "보낸 사람 검색...",
         "no_results": "검색된 보낸 사람이 없어요",
         "remove": "삭제",
+        "removed": "신뢰할 수 있는 발신자에서 삭제했어요",
+        "remove_error": "발신자를 삭제하지 못했어요",
         "close": "닫기",
         "invalid_email": "올바른 이메일 주소를 입력해 주세요",
         "already_added": "이미 신뢰하는 보낸 사람으로 추가되어 있어요",

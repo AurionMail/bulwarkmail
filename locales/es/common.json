@@ -1627,6 +1627,8 @@
         "search_placeholder": "Buscar remitentes...",
         "no_results": "Ningún remitente coincide con su búsqueda",
         "remove": "Eliminar",
+        "removed": "Quitado de los remitentes de confianza",
+        "remove_error": "No se pudo quitar el remitente",
         "close": "Cerrar",
         "invalid_email": "Por favor ingrese una dirección de correo válida",
         "already_added": "Este remitente ya es de confianza",

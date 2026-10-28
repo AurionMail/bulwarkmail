@@ -1627,6 +1627,8 @@
         "search_placeholder": "Szukaj nadawców...",
         "no_results": "Żaden nadawca nie pasuje do wyszukiwania",
         "remove": "Usuń",
+        "removed": "Usunięto z zaufanych nadawców",
+        "remove_error": "Nie udało się usunąć nadawcy",
         "close": "Zamknij",
         "invalid_email": "Wprowadź prawidłowy adres e-mail",
         "already_added": "Ten nadawca jest już zaufany",

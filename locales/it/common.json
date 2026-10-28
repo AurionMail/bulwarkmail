@@ -1627,6 +1627,8 @@
         "search_placeholder": "Cerca mittenti...",
         "no_results": "Nessun mittente corrisponde alla tua ricerca",
         "remove": "Rimuovi",
+        "removed": "Rimosso dai mittenti attendibili",
+        "remove_error": "Impossibile rimuovere il mittente",
         "close": "Chiudi",
         "invalid_email": "Inserisci un indirizzo email valido",
         "already_added": "Questo mittente è già attendibile",

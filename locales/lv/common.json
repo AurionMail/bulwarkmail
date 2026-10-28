@@ -1627,6 +1627,8 @@
         "search_placeholder": "Meklēt sūtītājus...",
         "no_results": "Sūtītāji nav atrasti",
         "remove": "Noņemt",
+        "removed": "Noņemts no uzticamajiem sūtītājiem",
+        "remove_error": "Neizdevās noņemt sūtītāju",
         "close": "Aizvērt",
         "invalid_email": "Ievadiet derīgu e-pasta adresi",
         "already_added": "Šis sūtītājs jau ir sarakstā",

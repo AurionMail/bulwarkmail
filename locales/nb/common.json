@@ -1630,6 +1630,8 @@
         "search_placeholder": "Søk etter avsendere...",
         "no_results": "Ingen avsendere passer med søket ditt",
         "remove": "Fjern",
+        "removed": "Fjernet fra pålitelige avsendere",
+        "remove_error": "Kunne ikke fjerne avsenderen",
         "close": "Lukk",
         "invalid_email": "Skriv inn en gyldig e-postadresse",
         "already_added": "Denne avsenderen står allerede på listen over pålitelige avsendere",

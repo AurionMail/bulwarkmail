@@ -1630,6 +1630,8 @@
         "search_placeholder": "Søg efter afsendere...",
         "no_results": "Ingen afsendere matcher din søgning",
         "remove": "Fjern",
+        "removed": "Fjernet fra betroede afsendere",
+        "remove_error": "Afsenderen kunne ikke fjernes",
         "close": "Luk",
         "invalid_email": "Indtast en gyldig e-mailadresse",
         "already_added": "Denne afsender er allerede betroet",

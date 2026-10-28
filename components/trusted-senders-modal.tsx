@@ -12,6 +12,8 @@ import { PaneSpinner, Spinner } from "@/components/ui/spinner";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useContactStore } from "@/stores/contact-store";
 import { useAuthStore } from "@/stores/auth-store";
+import { toast } from "@/stores/toast-store";
+import { UNDO_TOAST_DURATION } from "@/lib/email-action-toast";
 import { cn } from "@/lib/utils";
 
 interface TrustedSendersModalProps {
@@ -21,6 +23,7 @@ interface TrustedSendersModalProps {
 
 export function TrustedSendersModal({ isOpen, onClose }: TrustedSendersModalProps) {
   const t = useTranslations("settings.email_behavior.trusted_senders");
+  const tNotifications = useTranslations("notifications");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { trustedSenders, addTrustedSender, removeTrustedSender, trustedSendersAddressBook } = useSettingsStore();
@@ -122,12 +125,29 @@ export function TrustedSendersModal({ isOpen, onClose }: TrustedSendersModalProp
     }
   };
 
+  // Taking a sender off the list is reversible (R3): no question, a toast
+  // with Undo that adds the address back.
   const handleRemoveSender = async (email: string) => {
-    if (trustedSendersAddressBook && client) {
-      await removeFromTrustedSendersBook(client, email);
-    } else {
-      removeTrustedSender(email);
+    try {
+      if (trustedSendersAddressBook && client) {
+        await removeFromTrustedSendersBook(client, email);
+      } else {
+        removeTrustedSender(email);
+      }
+    } catch {
+      toast.error(t("remove_error"));
+      return;
     }
+    toast.success(t("removed"), {
+      message: email,
+      duration: UNDO_TOAST_DURATION,
+      action: {
+        label: tNotifications("undo"),
+        onClick: () => {
+          void addSender(email).catch(() => toast.error(t("save_error")));
+        },
+      },
+    });
   };
 
   const addRow = isAdding ? (

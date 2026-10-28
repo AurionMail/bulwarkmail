@@ -1627,6 +1627,8 @@
         "search_placeholder": "Hledat odesílatele...",
         "no_results": "Hledání neodpovídá žádný odesílatel",
         "remove": "Odstranit",
+        "removed": "Odebráno z důvěryhodných odesílatelů",
+        "remove_error": "Odesílatele se nepodařilo odebrat",
         "close": "Zavřít",
         "invalid_email": "Zadejte platnou e-mailovou adresu",
         "already_added": "Tento odesílatel je již důvěryhodný",

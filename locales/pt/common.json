@@ -1627,6 +1627,8 @@
         "search_placeholder": "Buscar remetentes...",
         "no_results": "Nenhum remetente corresponde à sua busca",
         "remove": "Remover",
+        "removed": "Removido dos remetentes confiáveis",
+        "remove_error": "Não foi possível remover o remetente",
         "close": "Fechar",
         "invalid_email": "Por favor, digite um endereço de e-mail válido",
         "already_added": "Este remetente já é confiável",

@@ -1630,6 +1630,8 @@
         "search_placeholder": "搜尋寄件者…",
         "no_results": "找不到相符的寄件者",
         "remove": "移除",
+        "removed": "已從信任的寄件者中移除",
+        "remove_error": "無法移除寄件者",
         "close": "關閉",
         "invalid_email": "請輸入有效的電子郵件地址",
         "already_added": "該寄件者已被信任",

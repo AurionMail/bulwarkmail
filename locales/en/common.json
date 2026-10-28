@@ -1630,6 +1630,8 @@
         "search_placeholder": "Search senders...",
         "no_results": "No senders match your search",
         "remove": "Remove",
+        "removed": "Removed from trusted senders",
+        "remove_error": "Couldn't remove the sender",
         "close": "Close",
         "invalid_email": "Please enter a valid email address",
         "already_added": "This sender is already trusted",
