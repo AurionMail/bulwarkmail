@@ -1002,6 +1002,7 @@
     "cancel": "Zrušit"
   },
   "common": {
+    "print": "Tisk",
     "loading": "Načítání...",
     "error": "Chyba",
     "success": "Úspěch",

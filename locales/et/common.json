@@ -1002,6 +1002,7 @@
     "cancel": "Tühista"
   },
   "common": {
+    "print": "Prindi",
     "loading": "Laadimine...",
     "error": "Viga",
     "success": "Õnnestus",

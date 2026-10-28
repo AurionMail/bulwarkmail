@@ -1002,6 +1002,7 @@
     "cancel": "İptal"
   },
   "common": {
+    "print": "Yazdır",
     "loading": "Yükleniyor...",
     "error": "Hata",
     "success": "Başarılı",

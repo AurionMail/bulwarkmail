@@ -1002,6 +1002,7 @@
     "cancel": "취소"
   },
   "common": {
+    "print": "인쇄",
     "loading": "불러오는 중...",
     "error": "오류",
     "success": "성공",

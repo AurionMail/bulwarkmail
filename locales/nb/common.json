@@ -1002,6 +1002,7 @@
     "cancel": "Avbryt"
   },
   "common": {
+    "print": "Skriv ut",
     "loading": "Laster inn...",
     "error": "Feil",
     "success": "Vellykket",

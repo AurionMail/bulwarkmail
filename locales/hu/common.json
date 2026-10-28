@@ -1002,6 +1002,7 @@
     "cancel": "Mégse"
   },
   "common": {
+    "print": "Nyomtatás",
     "loading": "Betöltés...",
     "error": "Hiba",
     "success": "Siker",

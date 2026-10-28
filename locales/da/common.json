@@ -1002,6 +1002,7 @@
     "cancel": "Annuller"
   },
   "common": {
+    "print": "Udskriv",
     "loading": "Indlæser...",
     "error": "Fejl",
     "success": "Succes",

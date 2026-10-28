@@ -1002,6 +1002,7 @@
     "cancel": "Atcelt"
   },
   "common": {
+    "print": "Drukāt",
     "loading": "Ielāde...",
     "error": "Kļūda",
     "success": "Gatavs",

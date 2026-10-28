@@ -1,0 +1,690 @@
+/*
+ * Print copies (components/print/print-root.tsx). A page that can print
+ * renders its copy into <body> next to the app; in print media the copy
+ * replaces everything else there, so the nav rail, sidebars, toolbars, open
+ * menus, toasts and plugin UI never reach the paper, and nothing is clipped
+ * by the app's fixed heights or scroll containers.
+ *
+ * The copy is always black on white with thin grey rules, whatever theme the
+ * app is in, and uses logical properties so right-to-left pages mirror.
+ * Millimetre sizes match lib/calendar-print.ts.
+ */
+
+[data-print-root] {
+  display: none;
+}
+
+@media print {
+  /* The theme sets color-scheme inline on <html>; a dark one paints the
+     page margins dark. */
+  html:has(> body > [data-print-root]) {
+    color-scheme: light !important;
+    background: #fff !important;
+  }
+
+  body:has(> [data-print-root]) {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  body:has(> [data-print-root]) > :not([data-print-root]) {
+    display: none !important;
+  }
+
+  [data-print-root] {
+    display: block;
+  }
+}
+
+.pr-root {
+  /* Landscape page area of the smaller of A4 and Letter, 12 mm margins. */
+  --pr-page-h: 184mm;
+  --pr-ink: #111;
+  --pr-muted: #555;
+  --pr-faint: #8a8a8a;
+  --pr-rule: #bdbdbd;
+  --pr-rule-light: #e2e2e2;
+  --pr-shade: #f4f4f4;
+  color: var(--pr-ink);
+  background: #fff;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 10pt;
+  line-height: 1.35;
+}
+
+/* The copy declares its orientation with @page size, which browsers apply
+   whatever the dialog's paper says; an orientation media query, though,
+   follows the dialog. So the page height goes by the declared one. */
+.pr-root[data-orientation="portrait"] {
+  --pr-page-h: 253mm;
+}
+
+.pr-root *,
+.pr-root *::before,
+.pr-root *::after {
+  border-color: var(--pr-rule);
+  box-sizing: border-box;
+}
+
+.pr-root a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ---- Header on every calendar printout and list -------------------------- */
+
+.pr-header {
+  margin-bottom: 3mm;
+  padding-bottom: 2mm;
+  border-bottom: 0.3mm solid var(--pr-rule);
+  break-after: avoid;
+}
+
+.pr-page > .pr-header {
+  height: 15mm;
+  flex: none;
+  overflow: hidden;
+  margin-bottom: 0;
+}
+
+.pr-title {
+  margin: 0;
+  font-size: 15pt;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.pr-meta {
+  margin: 0.5mm 0 0;
+  color: var(--pr-muted);
+  font-size: 8.5pt;
+}
+
+.pr-page .pr-meta {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pr-meta-sep {
+  margin-inline: 2mm;
+  color: var(--pr-faint);
+}
+
+/* A view that fills exactly one sheet (month, week, day). */
+.pr-page {
+  display: flex;
+  flex-direction: column;
+  height: var(--pr-page-h);
+  overflow: hidden;
+}
+
+/* ---- Event chips --------------------------------------------------------- */
+
+/* The calendar colour as a bar at the start, a light tint of it behind dark
+   text: readable in colour and in greyscale. */
+.pr-chip {
+  --chip: #3b82f6;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--pr-ink);
+  border-inline-start: 0.9mm solid var(--chip);
+  border-radius: 0.6mm;
+  background: color-mix(in srgb, var(--chip) 15%, #fff);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.pr-chip.is-timed {
+  background: #fff;
+}
+
+.pr-chip.is-inactive {
+  background: #fff;
+  color: var(--pr-muted);
+}
+
+.pr-chip.is-cancelled .pr-chip-title {
+  text-decoration: line-through;
+}
+
+.pr-chip.continues-before {
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+
+.pr-chip.continues-after {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+.pr-chip-time {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.pr-chip-title {
+  font-weight: 500;
+}
+
+/* One-line chips: the title keeps its own direction (it is a <bdi>), so in
+   a right-to-left page an English title is still cut at its own end. */
+.pr-lane-item > .pr-chip,
+.pr-tg-event.is-compact > .pr-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.8mm;
+}
+
+.pr-lane-item .pr-chip-title,
+.pr-tg-event.is-compact .pr-chip-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Month --------------------------------------------------------------- */
+
+.pr-month {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 0.25mm solid var(--pr-rule);
+  border-top: 0;
+}
+
+.pr-weekdays {
+  display: grid;
+  flex: none;
+  height: 6mm;
+  border-bottom: 0.25mm solid var(--pr-rule);
+}
+
+.pr-weekday {
+  align-self: end;
+  padding-bottom: 1mm;
+  text-align: center;
+  color: var(--pr-muted);
+  font-size: 7.5pt;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pr-month-week {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  border-top: 0.25mm solid var(--pr-rule);
+}
+
+.pr-month-week:first-of-type {
+  border-top: 0;
+}
+
+.pr-month-day {
+  min-width: 0;
+  padding: 0.6mm 1mm 0;
+  border-inline-start: 0.25mm solid var(--pr-rule-light);
+}
+
+.pr-month-day:first-child {
+  border-inline-start: 0;
+}
+
+.pr-month-day.is-outside {
+  background: var(--pr-shade);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.pr-day-num {
+  height: 4.4mm;
+  font-size: 8pt;
+  font-weight: 600;
+  line-height: 4.4mm;
+}
+
+.pr-month-day.is-outside .pr-day-num {
+  color: var(--pr-faint);
+  font-weight: 400;
+}
+
+.pr-day-month {
+  margin-inline-end: 1mm;
+  font-weight: 600;
+}
+
+.pr-lanes {
+  position: absolute;
+  inset-inline: 0;
+  top: 5mm;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.pr-lane-item {
+  position: absolute;
+  height: 3.6mm;
+  padding-inline: 0.4mm;
+  font-size: 7pt;
+  line-height: 3.6mm;
+}
+
+.pr-lane-item > .pr-chip {
+  height: 100%;
+  padding-inline: 0.8mm;
+}
+
+.pr-more {
+  padding-inline: 1.2mm;
+  color: var(--pr-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---- Week and day: the time grid ----------------------------------------- */
+
+.pr-tg {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 0.25mm solid var(--pr-rule);
+  border-top: 0;
+}
+
+.pr-tg-row {
+  display: grid;
+  flex: none;
+}
+
+.pr-tg-dayhead {
+  height: 9mm;
+  min-width: 0;
+  padding: 1mm 0.8mm;
+  text-align: center;
+  border-inline-start: 0.25mm solid var(--pr-rule-light);
+  border-bottom: 0.25mm solid var(--pr-rule);
+}
+
+.pr-tg-weekday {
+  color: var(--pr-muted);
+  font-size: 7.5pt;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pr-tg-date {
+  font-size: 11pt;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.pr-tg-gutter-head,
+.pr-tg-gutter {
+  border-bottom: 0.25mm solid var(--pr-rule);
+}
+
+.pr-tg-allday-label {
+  padding: 0.6mm 1mm;
+  color: var(--pr-muted);
+  font-size: 6.5pt;
+  text-align: end;
+  border-bottom: 0.25mm solid var(--pr-rule);
+}
+
+.pr-tg-allday {
+  position: relative;
+  border-inline-start: 0.25mm solid var(--pr-rule-light);
+  border-bottom: 0.25mm solid var(--pr-rule);
+}
+
+.pr-tg-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+}
+
+.pr-tg-hours {
+  position: relative;
+}
+
+.pr-tg-hour-label {
+  position: absolute;
+  inset-inline-end: 1mm;
+  transform: translateY(-50%);
+  color: var(--pr-muted);
+  font-size: 6.5pt;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.pr-tg-hour-label.is-first {
+  transform: none;
+  margin-top: 0.6mm;
+}
+
+.pr-tg-col {
+  position: relative;
+  min-width: 0;
+  border-inline-start: 0.25mm solid var(--pr-rule-light);
+}
+
+.pr-tg-line {
+  position: absolute;
+  inset-inline: 0;
+  border-top: 0.2mm solid var(--pr-rule-light);
+}
+
+.pr-tg-line.is-half {
+  border-top-style: dotted;
+}
+
+.pr-tg-event {
+  position: absolute;
+  min-height: 3.2mm;
+  padding: 0.15mm 0.3mm;
+}
+
+.pr-tg-event > .pr-chip {
+  display: block;
+  height: 100%;
+  padding: 0.3mm 0.8mm;
+  font-size: 6.8pt;
+  line-height: 1.2;
+  white-space: normal;
+}
+
+.pr-tg-event .pr-chip-time {
+  display: block;
+  font-weight: 400;
+  color: var(--pr-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pr-tg-event .pr-chip-title {
+  display: block;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Too short for two lines: start and title on one. */
+.pr-tg-event.is-compact > .pr-chip {
+  padding-block: 0;
+  white-space: nowrap;
+  line-height: 2.9mm;
+}
+
+.pr-tg-event.is-compact .pr-chip-time {
+  color: var(--pr-ink);
+  font-weight: 600;
+}
+
+.pr-tg-event .pr-chip-where {
+  display: block;
+  color: var(--pr-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Agenda, tasks, contact lists: flowing lists ------------------------- */
+
+.pr-keep {
+  break-inside: avoid;
+}
+
+.pr-day-heading {
+  margin: 4mm 0 0;
+  padding-bottom: 1mm;
+  border-bottom: 0.3mm solid var(--pr-rule);
+  font-size: 10.5pt;
+  font-weight: 600;
+  break-after: avoid;
+}
+
+.pr-list-row {
+  display: grid;
+  gap: 3mm;
+  padding-block: 1.3mm;
+  border-bottom: 0.2mm solid var(--pr-rule-light);
+  break-inside: avoid;
+}
+
+.pr-agenda-row {
+  grid-template-columns: 30mm minmax(0, 1fr);
+}
+
+.pr-agenda-time {
+  color: var(--pr-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.pr-agenda-what {
+  padding-inline-start: 2mm;
+  border-inline-start: 1mm solid var(--chip, #3b82f6);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.pr-agenda-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.pr-agenda-row.is-inactive .pr-agenda-title {
+  color: var(--pr-muted);
+}
+
+.pr-agenda-row.is-cancelled .pr-agenda-title {
+  text-decoration: line-through;
+}
+
+.pr-agenda-meta {
+  color: var(--pr-muted);
+  font-size: 8.5pt;
+  overflow-wrap: anywhere;
+}
+
+.pr-empty {
+  margin-top: 6mm;
+  color: var(--pr-muted);
+}
+
+.pr-task-row {
+  grid-template-columns: 4mm minmax(0, 1fr) 34mm 20mm;
+  align-items: start;
+}
+
+.pr-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.6mm;
+  height: 3.6mm;
+  margin-top: 0.5mm;
+  border: 0.3mm solid #333;
+  border-radius: 0.5mm;
+  font-size: 7pt;
+  line-height: 1;
+}
+
+.pr-task-title {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.pr-task-row.is-done .pr-task-title {
+  color: var(--pr-muted);
+  text-decoration: line-through;
+}
+
+.pr-task-meta {
+  color: var(--pr-muted);
+  font-size: 8.5pt;
+}
+
+.pr-column-heads {
+  display: grid;
+  gap: 3mm;
+  padding-bottom: 1mm;
+  border-bottom: 0.3mm solid var(--pr-rule);
+  color: var(--pr-muted);
+  font-size: 7.5pt;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  break-after: avoid;
+}
+
+.pr-contact-row {
+  grid-template-columns: 27% 31% 18% minmax(0, 1fr);
+  padding-block: 0.8mm;
+  font-size: 8.5pt;
+}
+
+.pr-contact-row > *,
+.pr-member-row > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pr-contact-name {
+  font-weight: 600;
+}
+
+.pr-letter {
+  margin: 3.5mm 0 0;
+  padding-bottom: 0.8mm;
+  border-bottom: 0.3mm solid var(--pr-rule);
+  font-size: 10pt;
+  font-weight: 700;
+  break-after: avoid;
+}
+
+/* ---- One-item sheets (contact, group, directory entry, event) ------------ */
+
+.pr-sheet {
+  font-size: 10.5pt;
+}
+
+.pr-sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 6mm;
+  padding-bottom: 5mm;
+  border-bottom: 0.3mm solid var(--pr-rule);
+}
+
+.pr-sheet-head h1 {
+  margin: 0;
+  font-size: 18pt;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.pr-sheet-sub {
+  margin: 1mm 0 0;
+  color: var(--pr-muted);
+}
+
+.pr-swatch {
+  flex: none;
+  width: 5mm;
+  height: 5mm;
+  border-radius: 1mm;
+  background: var(--chip, #3b82f6);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.pr-photo {
+  flex: none;
+  width: 25mm;
+  height: 25mm;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.pr-photo.is-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e5e7eb;
+  color: #4b5563;
+  font-size: 30pt;
+  font-weight: 600;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.pr-sheet section {
+  margin-top: 6mm;
+  break-inside: avoid;
+}
+
+.pr-sheet h2 {
+  margin: 0 0 2mm;
+  color: var(--pr-muted);
+  font-size: 8.5pt;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  break-after: avoid;
+}
+
+.pr-dl {
+  display: grid;
+  grid-template-columns: 38mm minmax(0, 1fr);
+  column-gap: 5mm;
+  row-gap: 1.6mm;
+  margin: 0;
+}
+
+.pr-dl > dt {
+  color: var(--pr-muted);
+  overflow-wrap: anywhere;
+}
+
+.pr-dl > dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.pr-text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* A long note or description may run over pages; its sections must not be
+   kept whole then. */
+.pr-sheet section.pr-flow {
+  break-inside: auto;
+}
+
+.pr-member-row {
+  grid-template-columns: 34% 40% minmax(0, 1fr);
+  font-size: 9.5pt;
+}
+
+.pr-status {
+  color: var(--pr-muted);
+  white-space: nowrap;
+}

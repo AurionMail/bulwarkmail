@@ -1002,6 +1002,7 @@
     "cancel": "Abbrechen"
   },
   "common": {
+    "print": "Drucken",
     "loading": "Lädt...",
     "error": "Fehler",
     "success": "Erfolg",

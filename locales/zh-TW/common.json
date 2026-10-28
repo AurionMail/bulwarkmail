@@ -1002,6 +1002,7 @@
     "cancel": "取消"
   },
   "common": {
+    "print": "列印",
     "loading": "正在載入…",
     "error": "錯誤",
     "success": "成功",

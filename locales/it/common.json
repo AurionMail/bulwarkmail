@@ -1002,6 +1002,7 @@
     "cancel": "Annulla"
   },
   "common": {
+    "print": "Stampa",
     "loading": "Caricamento...",
     "error": "Errore",
     "success": "Successo",

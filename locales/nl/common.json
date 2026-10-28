@@ -1002,6 +1002,7 @@
     "cancel": "Annuleren"
   },
   "common": {
+    "print": "Afdrukken",
     "loading": "Laden...",
     "error": "Fout",
     "success": "Geslaagd",
