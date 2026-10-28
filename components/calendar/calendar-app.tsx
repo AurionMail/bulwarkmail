@@ -2171,7 +2171,8 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
           isOpen={eventContextMenu.isOpen}
           onClose={closeEventContextMenu}
           menuRef={eventContextMenuRef}
-          onEdit={() => openEditModal(eventContextMenu.data!)}
+          // Edit opens the form, as the card's pencil and `e` do.
+          onEdit={() => openEditModal(eventContextMenu.data!, true)}
           onDuplicate={() => handleDuplicateContextMenu(eventContextMenu.data!)}
           onExportICS={() => handleExportICS(eventContextMenu.data!)}
           onCopyTitle={() => handleCopyTitle(eventContextMenu.data!)}

@@ -485,3 +485,12 @@ describe('CalendarApp on touch screens', () => {
     fireEvent.touchEnd(card);
   });
 });
+
+describe('CalendarApp event menu', () => {
+  it('opens the form from Edit event, not the summary', async () => {
+    renderApp();
+    fireEvent.contextMenu(screen.getAllByRole('button', { name: /Standup/ })[0], { clientX: 50, clientY: 50 });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'events.edit' }));
+    expect(await screen.findByPlaceholderText('form.title')).toHaveValue('Standup');
+  });
+});
