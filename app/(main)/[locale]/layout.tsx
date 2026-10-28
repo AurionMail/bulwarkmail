@@ -20,6 +20,7 @@ import { PluginOAuthCallbackListener } from "@/components/providers/plugin-oauth
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { PushNotificationPrompt } from "@/components/push-notification-prompt";
 import { AccountArchiveRestorePrompt } from "@/components/account-archive-prompt";
+import { SessionTimeoutGuard } from "@/components/session/session-timeout-guard";
 import { IS_LITE } from "@/lib/lite";
 import { setRequestLocale } from "next-intl/server";
 import { locales } from "@/i18n/routing";
@@ -62,6 +63,7 @@ export default async function LocaleLayout({
                   <ProInterfaceRedirect />
                   <ImpersonationReconciler />
                   <PushBindingsHost />
+                  <SessionTimeoutGuard />
                   {children}
                   <PluginDialogHost />
                   <ExternalRecipientConfirmHost />

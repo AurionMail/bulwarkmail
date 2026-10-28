@@ -102,6 +102,7 @@ import type { Attachment as PostalMimeAttachment } from 'postal-mime';
 import { useSettingsStore } from "@/stores/settings-store";
 import { useShallow } from "zustand/react/shallow";
 import { useEffectiveMailLayout } from "@/hooks/use-effective-mail-layout";
+import { registerComposeFlush } from "@/lib/compose-flush-registry";
 import { useUIStore } from "@/stores/ui-store";
 import { useContactStore, getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
 import { toast } from "@/stores/toast-store";
@@ -177,6 +178,8 @@ interface EmailViewerProps {
   onDownloadAttachment?: (blobId: string, name: string, type?: string, forceDownload?: boolean, source?: EmailBlobContext) => void;
   /** Resolves false when nothing was sent (the user went back), so the text stays. */
   onQuickReply?: (body: string) => Promise<boolean | void>;
+  /** Keeps the typed quick reply as a draft before an automatic sign-out (lib/compose-flush-registry.ts). */
+  onSaveQuickReplyDraft?: (body: string) => Promise<void>;
   onMarkAsSpam?: () => void;
   onUndoSpam?: () => void;
   onMoveToMailbox?: (mailboxId: string) => void;
@@ -1047,6 +1050,7 @@ export function EmailViewer({
   onSetTag,
   onDownloadAttachment,
   onQuickReply,
+  onSaveQuickReplyDraft,
   onMarkAsSpam,
   onUndoSpam,
   onMoveToMailbox,
@@ -1372,6 +1376,19 @@ export function EmailViewer({
   const [quickReplyText, setQuickReplyText] = useState("");
   const [isQuickReplyFocused, setIsQuickReplyFocused] = useState(false);
   const [isSendingQuickReply, setIsSendingQuickReply] = useState(false);
+  // An automatic sign-out keeps typed quick-reply text as a draft; text on
+  // its way out as a reply needs none.
+  const quickReplyDraftRef = useRef({ text: quickReplyText, sending: isSendingQuickReply, save: onSaveQuickReplyDraft });
+  quickReplyDraftRef.current = { text: quickReplyText, sending: isSendingQuickReply, save: onSaveQuickReplyDraft };
+  const hasQuickReplyDraft = quickReplyText.trim().length > 0 && !!onSaveQuickReplyDraft;
+  useEffect(() => {
+    if (!hasQuickReplyDraft) return;
+    return registerComposeFlush(async () => {
+      const { text, sending, save } = quickReplyDraftRef.current;
+      if (sending || !text.trim() || !save) return;
+      await save(text);
+    });
+  }, [hasQuickReplyDraft]);
   const handleSendQuickReply = async () => {
     if (!quickReplyText.trim() || !onQuickReply || isSendingQuickReply) return;
     setIsSendingQuickReply(true);
