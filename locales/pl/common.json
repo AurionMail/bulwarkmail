@@ -2625,6 +2625,10 @@
     "retry": "Ponów",
     "go_home": "Przejdź do skrzynki odbiorczej"
   },
+  "not_found": {
+    "title": "Nie znaleziono strony",
+    "description": "Ta strona nie istnieje lub została przeniesiona. Sprawdź adres albo wróć do skrzynki odbiorczej."
+  },
   "context_menu": {
     "reply": "Odpowiedz",
     "reply_all": "Odpowiedz wszystkim",

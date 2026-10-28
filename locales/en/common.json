@@ -2625,6 +2625,10 @@
     "retry": "Retry",
     "go_home": "Go to inbox"
   },
+  "not_found": {
+    "title": "Page not found",
+    "description": "This page doesn't exist or has moved. Check the address, or go back to your inbox."
+  },
   "context_menu": {
     "reply": "Reply",
     "reply_all": "Reply All",

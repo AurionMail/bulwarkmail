@@ -39,6 +39,7 @@ export const LITE_REMOVED_PATHS = [
   "instrumentation.ts",
   "instrumentation.node.ts",
   "app/(main)/[...rest]",
+  "app/(main)/[locale]/[...rest]",
   "app/(main)/protocol",
   "e2e",
   "integration",

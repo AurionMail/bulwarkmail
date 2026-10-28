@@ -2625,6 +2625,10 @@
     "retry": "Opnieuw proberen",
     "go_home": "Ga naar postvak IN"
   },
+  "not_found": {
+    "title": "Pagina niet gevonden",
+    "description": "Deze pagina bestaat niet of is verplaatst. Controleer het adres of ga terug naar je inbox."
+  },
   "context_menu": {
     "reply": "Beantwoorden",
     "reply_all": "Allen beantwoorden",

@@ -2625,6 +2625,10 @@
     "retry": "Yeniden dene",
     "go_home": "Gelen kutusuna git"
   },
+  "not_found": {
+    "title": "Sayfa bulunamadı",
+    "description": "Bu sayfa yok veya taşınmış. Adresi kontrol edin ya da gelen kutunuza dönün."
+  },
   "context_menu": {
     "reply": "Yanıtla",
     "reply_all": "Tümünü Yanıtla",

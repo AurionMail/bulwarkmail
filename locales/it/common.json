@@ -2625,6 +2625,10 @@
     "retry": "Riprova",
     "go_home": "Vai alla posta in arrivo"
   },
+  "not_found": {
+    "title": "Pagina non trovata",
+    "description": "Questa pagina non esiste o è stata spostata. Controlla l'indirizzo o torna alla posta in arrivo."
+  },
   "context_menu": {
     "reply": "Rispondi",
     "reply_all": "Rispondi a tutti",

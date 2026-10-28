@@ -2625,6 +2625,10 @@
     "retry": "Proovi uuesti",
     "go_home": "Mine postkasti"
   },
+  "not_found": {
+    "title": "Lehte ei leitud",
+    "description": "Seda lehte pole olemas või see on teisaldatud. Kontrollige aadressi või minge tagasi postkasti."
+  },
   "context_menu": {
     "reply": "Vasta",
     "reply_all": "Vasta kõigile",

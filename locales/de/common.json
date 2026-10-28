@@ -2625,6 +2625,10 @@
     "retry": "Wiederholen",
     "go_home": "Zum Posteingang"
   },
+  "not_found": {
+    "title": "Seite nicht gefunden",
+    "description": "Diese Seite gibt es nicht oder sie wurde verschoben. Prüfen Sie die Adresse oder kehren Sie zu Ihrem Posteingang zurück."
+  },
   "context_menu": {
     "reply": "Antworten",
     "reply_all": "Allen antworten",

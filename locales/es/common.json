@@ -2625,6 +2625,10 @@
     "retry": "Reintentar",
     "go_home": "Ir a bandeja de entrada"
   },
+  "not_found": {
+    "title": "No se ha encontrado la página",
+    "description": "Esta página no existe o se ha movido. Comprueba la dirección o vuelve a tu bandeja de entrada."
+  },
   "context_menu": {
     "reply": "Responder",
     "reply_all": "Responder a Todos",

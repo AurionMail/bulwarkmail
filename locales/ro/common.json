@@ -2625,6 +2625,10 @@
     "retry": "Reîncearcă",
     "go_home": "Accesați căsuța de intrare"
   },
+  "not_found": {
+    "title": "Pagina nu a fost găsită",
+    "description": "Această pagină nu există sau a fost mutată. Verificați adresa sau reveniți la Inbox."
+  },
   "context_menu": {
     "reply": "Răspunde",
     "reply_all": "Răspunde tuturor",

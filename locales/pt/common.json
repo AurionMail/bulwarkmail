@@ -2625,6 +2625,10 @@
     "retry": "Tentar novamente",
     "go_home": "Ir para caixa de entrada"
   },
+  "not_found": {
+    "title": "Página não encontrada",
+    "description": "Esta página não existe ou foi movida. Verifique o endereço ou volte à caixa de entrada."
+  },
   "context_menu": {
     "reply": "Responder",
     "reply_all": "Responder a Todos",

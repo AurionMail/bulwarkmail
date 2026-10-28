@@ -2625,6 +2625,10 @@
     "retry": "Réessayer",
     "go_home": "Aller à la boîte de réception"
   },
+  "not_found": {
+    "title": "Page introuvable",
+    "description": "Cette page n'existe pas ou a été déplacée. Vérifiez l'adresse ou revenez à votre boîte de réception."
+  },
   "context_menu": {
     "reply": "Répondre",
     "reply_all": "Répondre à tous",

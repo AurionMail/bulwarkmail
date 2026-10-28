@@ -2625,6 +2625,10 @@
     "retry": "Opakovať",
     "go_home": "Prejsť do doručenej pošty"
   },
+  "not_found": {
+    "title": "Stránka sa nenašla",
+    "description": "Táto stránka neexistuje alebo bola presunutá. Skontrolujte adresu alebo sa vráťte do doručenej pošty."
+  },
   "context_menu": {
     "reply": "Odpovedať",
     "reply_all": "Odpovedať všetkým",

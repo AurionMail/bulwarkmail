@@ -2625,6 +2625,10 @@
     "retry": "Prøv på nytt",
     "go_home": "Gå til innboksen"
   },
+  "not_found": {
+    "title": "Fant ikke siden",
+    "description": "Denne siden finnes ikke eller er flyttet. Sjekk adressen, eller gå tilbake til innboksen."
+  },
   "context_menu": {
     "reply": "Svar",
     "reply_all": "Svar alle",

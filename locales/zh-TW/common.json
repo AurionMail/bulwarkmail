@@ -2625,6 +2625,10 @@
     "retry": "重試",
     "go_home": "前往收件匣"
   },
+  "not_found": {
+    "title": "找不到頁面",
+    "description": "此頁面不存在或已移動。請檢查網址，或返回收件匣。"
+  },
   "context_menu": {
     "reply": "回覆",
     "reply_all": "全部回覆",

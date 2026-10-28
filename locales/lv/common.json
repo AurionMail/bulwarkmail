@@ -2625,6 +2625,10 @@
     "retry": "Mēģināt vēlreiz",
     "go_home": "Uz iesūtni"
   },
+  "not_found": {
+    "title": "Lapa nav atrasta",
+    "description": "Šī lapa nepastāv vai ir pārvietota. Pārbaudiet adresi vai atgriezieties iesūtnē."
+  },
   "context_menu": {
     "reply": "Atbildēt",
     "reply_all": "Atbildēt visiem",

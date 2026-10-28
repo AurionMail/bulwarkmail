@@ -2625,6 +2625,10 @@
     "retry": "Újra",
     "go_home": "Ugrás a beérkezőhöz"
   },
+  "not_found": {
+    "title": "Az oldal nem található",
+    "description": "Ez az oldal nem létezik, vagy áthelyezték. Ellenőrizze a címet, vagy térjen vissza a beérkezett üzenetekhez."
+  },
   "context_menu": {
     "reply": "Válasz",
     "reply_all": "Válasz mindenkinek",

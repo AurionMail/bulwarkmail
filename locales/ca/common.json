@@ -2625,6 +2625,10 @@
     "retry": "Reintenta",
     "go_home": "Vés a la safata d'entrada"
   },
+  "not_found": {
+    "title": "No s'ha trobat la pàgina",
+    "description": "Aquesta pàgina no existeix o s'ha mogut. Comproveu l'adreça o torneu a la safata d'entrada."
+  },
   "context_menu": {
     "reply": "Respon",
     "reply_all": "Respon a tots",
