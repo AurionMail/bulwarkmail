@@ -44,7 +44,7 @@ export function MoveTargetList({ tree, targetIds, onPick, variant = "menu" }: Mo
       const label = localizeMailboxName(node.role, node.name, (key) => tSidebar(`mailboxes.${key}`));
       const rowClass = panel
         ? "w-full pe-4 py-2.5 min-h-[44px] text-sm text-start flex items-center gap-3"
-        : "w-full pe-3 py-1.5 text-sm text-start flex items-center gap-2";
+        : "w-full pe-3 py-1.5 text-sm text-start flex items-center gap-2 pointer-coarse:min-h-11";
       const icon = <Icon className={cn(panel ? "w-5 h-5" : "w-4 h-4", "flex-shrink-0")} />;
       return (
         <div key={node.id}>

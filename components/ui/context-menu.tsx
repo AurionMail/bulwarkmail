@@ -512,7 +512,8 @@ export function ContextMenuItem({
       disabled={disabled}
       title={title}
       className={cn(
-        "w-full px-3 py-1.5 text-sm text-start flex items-center gap-2",
+        // 44px rows on a touch screen (R7); the desktop keeps its density.
+        "w-full px-3 py-1.5 text-sm text-start flex items-center gap-2 pointer-coarse:min-h-11",
         "transition-colors duration-150",
         "focus:outline-none focus-visible:bg-muted",
         disabled && "opacity-50 cursor-not-allowed",
@@ -637,7 +638,7 @@ export function ContextMenuSubMenu({
         ref={triggerRef}
         data-submenu-trigger=""
         className={cn(
-          "w-full px-3 py-1.5 text-sm flex items-center gap-2 outline-none",
+          "w-full px-3 py-1.5 text-sm flex items-center gap-2 outline-none pointer-coarse:min-h-11",
           "transition-colors duration-150",
           disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-muted focus-visible:bg-muted",
           isOpen && !disabled && "bg-muted"

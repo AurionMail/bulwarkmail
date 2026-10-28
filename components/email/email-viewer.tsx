@@ -4562,16 +4562,16 @@ export function EmailViewer({
           ) : (
             <span className="text-sm font-semibold text-foreground">{t('more_actions')}</span>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
+          <IconButton
+            size="icon-lg"
             role="menuitem"
-            aria-label={tCommon('close')}
+            label={tCommon('close')}
+            data-testid="more-panel-close"
             onClick={() => { setMoreMenuOpen(false); setMoreMenuSub(null); }}
-            className="h-9 w-9"
+            className="-me-2"
           >
             <X className="w-5 h-5" />
-          </Button>
+          </IconButton>
         </div>
         <div ref={mobileSubListRef} className="flex-1 overflow-y-auto py-2">
           {moreMenuSub === null && (
@@ -4808,16 +4808,18 @@ export function EmailViewer({
                 {/* Star inline with subject (top toolbar mode). Mountain View
                     has it on the sender's line instead. */}
                 {toolbarPosition === 'top' && !mvViewer && (
-                  <button
+                  <IconButton
                     onClick={onToggleStar}
-                    className="flex-shrink-0 p-1 rounded hover:bg-muted transition-colors"
-                    title={isStarred ? t('tooltips.unstar') : t('tooltips.star')}
+                    label={isStarred ? t('tooltips.unstar') : t('tooltips.star')}
+                    aria-pressed={!!isStarred}
+                    data-testid="subject-star"
+                    className="flex-shrink-0 -my-1"
                   >
                     <Star className={cn(
                       "w-4 h-4 lg:w-5 lg:h-5 transition-colors",
                       isStarred ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"
                     )} />
-                  </button>
+                  </IconButton>
                 )}
                 {isImportant && (
                   <span className="px-1.5 lg:px-2 py-0.5 bg-warning/15 text-warning rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 self-center">

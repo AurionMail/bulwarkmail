@@ -200,3 +200,14 @@ describe('phone More panel parity', () => {
     expect(within(menu).queryByRole('menuitem', { name: /keyboard_shortcuts/ })).toBeNull();
   });
 });
+describe('phone touch targets (MAIL-18)', () => {
+  it('draws the panel close at 44px and gives the subject star the touch hit area', () => {
+    renderViewer({ onToggleStar: vi.fn() });
+    const close = screen.getByTestId('more-panel-close');
+    expect(close.className).toContain('h-11');
+    expect(close.className).toContain('w-11');
+    const star = screen.getByTestId('subject-star');
+    expect(star).toHaveAccessibleName('tooltips.star');
+    expect(star.className).toContain('pointer-coarse:after:min-h-11');
+  });
+});
