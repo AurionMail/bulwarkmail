@@ -18,7 +18,7 @@ import { DEFAULT_ORGANISATION_POLICY, normalizeDomainList, type OrganisationPoli
 import { toAsciiDomain, toAsciiEmail } from '@/lib/idn';
 import { usePolicyStore } from '@/stores/policy-store';
 import { useAuthStore } from '@/stores/auth-store';
-import { useContactStore } from '@/stores/contact-store';
+import { TRUSTED_SENDERS_BOOK_NAME, useContactStore } from '@/stores/contact-store';
 
 export type ExternalMailPolicy = OrganisationPolicy['externalMail'];
 
@@ -125,10 +125,19 @@ export function currentInternalDomains(policy: ExternalMailPolicy = currentExter
   return internalDomains(identities.map((identity) => identity.email), policy.domains);
 }
 
-/** The addresses of every loaded contact (all address books), as addressKey makes them. */
+/**
+ * The addresses of the loaded contacts, as addressKey makes them. A card
+ * that sits only in the "Trusted Senders" book is left out: that book is
+ * the list of senders whose images load, not people the user writes to.
+ */
 export function contactAddresses(): Set<string> {
+  const { contacts, addressBooks, trustedSendersBookId } = useContactStore.getState();
+  const trustedBooks = new Set(addressBooks.filter((book) => book.name === TRUSTED_SENDERS_BOOK_NAME).map((book) => book.id));
+  if (trustedSendersBookId) trustedBooks.add(trustedSendersBookId);
   const out = new Set<string>();
-  for (const contact of useContactStore.getState().contacts) {
+  for (const contact of contacts) {
+    const books = Object.keys(contact.addressBookIds ?? {}).filter((id) => contact.addressBookIds?.[id]);
+    if (books.length > 0 && books.every((id) => trustedBooks.has(id))) continue;
     for (const entry of Object.values(contact.emails ?? {})) {
       const address = entry?.address?.trim();
       if (address) out.add(addressKey(address));

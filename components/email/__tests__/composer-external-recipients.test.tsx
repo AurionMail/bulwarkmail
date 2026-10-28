@@ -118,6 +118,8 @@ vi.mock('@/stores/settings-store', () => {
 vi.mock('@/stores/contact-store', () => {
   const state = {
     contacts: [],
+    addressBooks: [],
+    trustedSendersBookId: null,
     getAutocomplete: async () => [],
     addToTrustedSendersBook: async () => {},
   };

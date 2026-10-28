@@ -126,7 +126,7 @@ describe('the active account', () => {
   beforeEach(() => {
     setExternalMail({});
     useAuthStore.setState({ identities: [] });
-    useContactStore.setState({ contacts: [] });
+    useContactStore.setState({ contacts: [], addressBooks: [], trustedSendersBookId: null });
   });
 
   it('reads the switches from the effective policy', () => {
@@ -151,5 +151,24 @@ describe('the active account', () => {
       ] as unknown as ContactCard[],
     });
     expect([...contactAddresses()].sort()).toEqual(['dave@org-two.test', 'second@x.test']);
+  });
+
+  it('leaves out cards that are only in the Trusted Senders book', () => {
+    useContactStore.setState({
+      addressBooks: [
+        { id: 'book-main', name: 'Contacts' },
+        { id: 'acc1::book-trusted', name: 'Trusted Senders' },
+      ] as never,
+      trustedSendersBookId: 'book-trusted-raw',
+      contacts: [
+        // Only "always load images" for this sender: not a contact.
+        { id: 'c1', addressBookIds: { 'acc1::book-trusted': true }, emails: { e: { address: 'newsletter@shop.example' } } },
+        { id: 'c2', addressBookIds: { 'book-trusted-raw': true }, emails: { e: { address: 'promo@shop.example' } } },
+        // In a real book too: a contact.
+        { id: 'c3', addressBookIds: { 'book-main': true, 'acc1::book-trusted': true }, emails: { e: { address: 'dave@org-two.test' } } },
+        { id: 'c4', addressBookIds: { 'book-main': true }, emails: { e: { address: 'carol@partner.example' } } },
+      ] as unknown as ContactCard[],
+    });
+    expect([...contactAddresses()].sort()).toEqual(['carol@partner.example', 'dave@org-two.test']);
   });
 });
