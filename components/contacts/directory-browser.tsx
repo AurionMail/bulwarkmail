@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { Search, X, RefreshCw, Loader2, Lock, AlertCircle, BookUser, CheckSquare, Square, ChevronLeft, ChevronRight, Menu, Users, MapPin, Box, Printer } from "@/components/icons";
-import { Input } from "@/components/ui/input";
+import { Search, RefreshCw, Loader2, Lock, AlertCircle, BookUser, CheckSquare, Square, ChevronLeft, ChevronRight, Menu, Users, MapPin, Box, Printer } from "@/components/icons";
+import { ToolbarButton, ToolbarSearch } from "@/components/ui/toolbar";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
@@ -137,82 +137,52 @@ export function DirectoryBrowser({
 
   return (
     <div className={cn("flex flex-col h-full min-h-0", className)}>
-      <div className="border-b border-border bg-background px-3 py-3">
-        <div className="flex items-center gap-1.5">
+      <div className="border-b border-border bg-background">
+        <div className="px-3 h-14 flex items-center gap-1">
           {onMenuClick && (
-            <button
-              type="button"
-              onClick={onMenuClick}
-              className="flex-shrink-0 p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              aria-label={tContacts("open_categories")}
-            >
-              <Menu className="w-4 h-4" />
-            </button>
+            <ToolbarButton label={tContacts("open_categories")} onClick={onMenuClick}>
+              <Menu />
+            </ToolbarButton>
           )}
-          <button
-            type="button"
+          <ToolbarButton
+            label={pageAllSelected ? t("deselect_page") : t("select_page")}
             onClick={togglePage}
             disabled={pageEntries.length === 0}
-            className={cn(
-              "flex-shrink-0 p-2 rounded-md transition-colors disabled:opacity-50",
-              selected.size > 0 ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted",
-            )}
-            title={pageAllSelected ? t("deselect_page") : t("select_page")}
-            aria-label={pageAllSelected ? t("deselect_page") : t("select_page")}
+            active={selected.size > 0}
           >
-            {pageAllSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-          </button>
-          <div className="relative flex-1">
-            <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              ref={searchRef}
-              type="text"
-              placeholder={t("search_placeholder")}
-              value={query}
-              onChange={(e) => { setQuery(e.target.value); setPage(0); }}
-              className={cn("ps-9 h-9", query && "pe-8")}
-              aria-label={t("search_placeholder")}
-            />
-            {query && (
-              <button
-                type="button"
-                onClick={() => { setQuery(""); setPage(0); }}
-                className="absolute end-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                aria-label={tContacts("clear_search")}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-          <button
-            type="button"
+            {pageAllSelected ? <CheckSquare /> : <Square />}
+          </ToolbarButton>
+          <ToolbarSearch
+            ref={searchRef}
+            className="flex-1"
+            placeholder={t("search_placeholder")}
+            aria-label={t("search_placeholder")}
+            autoComplete="off"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setPage(0); }}
+            onClear={() => { setQuery(""); setPage(0); }}
+            clearLabel={tContacts("clear_search")}
+          />
+          <ToolbarButton
+            label={t("refresh")}
             onClick={refresh}
             disabled={!client || status === "loading" || status === "unavailable"}
-            className="flex-shrink-0 p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
-            title={t("refresh")}
-            aria-label={t("refresh")}
           >
-            <RefreshCw className={cn("w-4 h-4", status === "loading" && "animate-spin [animation-direction:reverse]")} />
-          </button>
+            <RefreshCw className={cn(status === "loading" && "animate-spin [animation-direction:reverse]")} />
+          </ToolbarButton>
           {onPrint && (
-            <button
-              type="button"
-              onClick={onPrint}
-              className="flex-shrink-0 p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              title={tCommon("print")}
-              aria-label={tCommon("print")}
-            >
-              <Printer className="w-4 h-4" />
-            </button>
+            <ToolbarButton label={tCommon("print")} onClick={onPrint}>
+              <Printer />
+            </ToolbarButton>
           )}
         </div>
         {entries.length > 0 && status === "error" && (
-          <p role="alert" className="mt-2 text-xs text-destructive">{t("refresh_failed")}</p>
+          <p role="alert" className="px-3 pb-2 -mt-1 text-xs text-destructive">{t("refresh_failed")}</p>
         )}
         {/* A refused listing (Stalwart 1.0 with directory queries off) still
             holds the principals the user knows; nothing failed to refresh. */}
         {entries.length > 0 && status === "forbidden" && (
-          <p role="status" className="mt-2 text-xs text-muted-foreground">{t("forbidden_hint")}</p>
+          <p role="status" className="px-3 pb-2 -mt-1 text-xs text-muted-foreground">{t("forbidden_hint")}</p>
         )}
       </div>
 

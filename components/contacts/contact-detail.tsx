@@ -14,7 +14,7 @@ import { ContactActivity } from "./contact-activity";
 import { toast } from "@/stores/toast-store";
 import { ContactContextMenu } from "./contact-context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
-import { IconButton } from "@/components/ui/icon-button";
+import { ToolbarButton } from "@/components/ui/toolbar";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { contactHooks } from "@/lib/plugin-hooks";
@@ -152,47 +152,41 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
               )}
             </div>
           </div>
-          <div className="flex gap-2 flex-shrink-0 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap">
             {email && onCompose && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onCompose}
-                className="touch-manipulation"
-              >
-                <Send className="w-4 h-4 me-1" />
+              <Button variant="outline" size="xs" onClick={onCompose} className="gap-1.5 touch-manipulation">
+                <Send />
                 {t("detail.compose_email")}
               </Button>
             )}
             {phone && (
               <a
                 href={`tel:${phone}`}
-                className="inline-flex items-center justify-center rounded-md font-medium h-9 px-3 text-sm border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors touch-manipulation"
+                className="inline-flex items-center justify-center gap-1.5 rounded-md font-medium h-8 px-2.5 text-sm border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors touch-manipulation"
               >
-                <Phone className="w-4 h-4 me-1" />
+                <Phone className="w-4 h-4" />
                 {t("context_menu.call")}
               </a>
             )}
-            <Button variant="outline" size="sm" onClick={onEdit} className="touch-manipulation">
-              <Pencil className="w-4 h-4 me-1" />
+            <Button variant="outline" size="xs" onClick={onEdit} className="gap-1.5 touch-manipulation">
+              <Pencil />
               {t("form.edit_title")}
             </Button>
             {onPrint && (
-              <IconButton variant="outline" size="sm" label={tCommon("print")} onClick={onPrint} className="touch-manipulation">
+              <ToolbarButton label={tCommon("print")} onClick={onPrint} className="touch-manipulation">
                 <Printer />
-              </IconButton>
+              </ToolbarButton>
             )}
-            <IconButton
-              variant="outline"
-              size="sm"
+            <ToolbarButton
               label={t("detail.more_actions")}
               aria-haspopup="menu"
               aria-expanded={moreMenu.contextMenu.isOpen}
+              active={moreMenu.contextMenu.isOpen}
               onClick={(e) => moreMenu.openContextMenuFrom(e.currentTarget, contact, "end")}
               className="touch-manipulation"
             >
               <MoreVertical />
-            </IconButton>
+            </ToolbarButton>
             {moreMenu.contextMenu.data && (
               <ContactContextMenu
                 contact={moreMenu.contextMenu.data}

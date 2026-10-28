@@ -9,6 +9,7 @@ import {
 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
+import { ToolbarButton, ToolbarSearch, TOOLBAR_ACTIVE } from "@/components/ui/toolbar";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { PhoneHeaderActions } from "@/components/layout/phone-header-actions";
@@ -125,7 +126,7 @@ export function FilesHeader({
   if (selection) {
     return (
       <div role="toolbar" aria-label={t("selection_actions")} className={cn(headerClass, "bg-accent/40")}>
-        <IconButton label={t("clear_selection")} className="-ms-1" onClick={selection.onClear}>
+        <IconButton label={t("clear_selection")} onClick={selection.onClear}>
           <X />
         </IconButton>
         <span className="text-sm font-medium me-2 whitespace-nowrap" aria-live="polite">
@@ -215,38 +216,30 @@ export function FilesHeader({
   };
 
   const searchField = (
-    <div className={cn("relative", compact ? "flex-1" : "w-56")}>
-      <Search className="absolute start-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-      <input
-        ref={searchInputRef}
-        type="search"
-        role="searchbox"
-        aria-label={t("search_placeholder")}
-        value={searchQuery}
-        onChange={(e) => onSearchChange(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            onSearchChange("");
-            if (compact) setSearchOpen(false);
-            (e.target as HTMLInputElement).blur();
-          }
-        }}
-        placeholder={t("search_placeholder")}
-        autoFocus={compact}
-        className="w-full h-8 rounded-md border border-input bg-background ps-8 pe-8 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-search-cancel-button]:hidden"
-      />
-      {(searchQuery || compact) && (
-        <button
-          type="button"
-          onClick={() => { onSearchChange(""); if (compact) setSearchOpen(false); }}
-          className="absolute end-1.5 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted text-muted-foreground"
-          aria-label={t("clear_search")}
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
-      )}
-    </div>
+    <ToolbarSearch
+      ref={searchInputRef}
+      className={compact ? "flex-1" : "w-56"}
+      role="searchbox"
+      aria-label={t("search_placeholder")}
+      placeholder={t("search_placeholder")}
+      autoComplete="off"
+      shortcut="/"
+      value={searchQuery}
+      onChange={(e) => onSearchChange(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          onSearchChange("");
+          if (compact) setSearchOpen(false);
+          (e.target as HTMLInputElement).blur();
+        }
+      }}
+      autoFocus={compact}
+      onClear={() => { onSearchChange(""); if (compact) setSearchOpen(false); }}
+      clearLabel={t("clear_search")}
+      alwaysShowClear={compact}
+    />
   );
+
 
   if (compact && searchOpen && !toolsHidden) {
     return (
@@ -259,14 +252,13 @@ export function FilesHeader({
   return (
     <div role="toolbar" aria-label={t("toolbar")} className={headerClass}>
       {onMenuClick && (
-        <IconButton
+        <ToolbarButton
           label={t("open_folder_tree")}
-          className="-ms-1 shrink-0"
           onClick={onMenuClick}
           aria-expanded={menuOpen}
         >
           <Menu />
-        </IconButton>
+        </ToolbarButton>
       )}
 
       <nav aria-label={t("breadcrumbs")} className="flex-1 min-w-0">
@@ -324,13 +316,13 @@ export function FilesHeader({
             </Button>
           )}
           {compact ? (
-            <IconButton label={t("search_placeholder")} onClick={() => setSearchOpen(true)}>
+            <ToolbarButton label={t("search_placeholder")} onClick={() => setSearchOpen(true)}>
               <Search />
-            </IconButton>
+            </ToolbarButton>
           ) : searchField}
-          <IconButton
+          <ToolbarButton
             label={t("sort_by")}
-            className={cn(sortMenu.contextMenu.isOpen && "bg-accent")}
+            active={sortMenu.contextMenu.isOpen}
             aria-haspopup="menu"
             aria-expanded={sortMenu.contextMenu.isOpen}
             onMouseDown={(e) => { if (sortMenu.contextMenu.isOpen) e.stopPropagation(); }}
@@ -340,8 +332,8 @@ export function FilesHeader({
             }}
           >
             <ArrowUpDown />
-          </IconButton>
-          <div className="flex items-center rounded-md border border-border p-0.5" role="radiogroup" aria-label={t("view_mode")}>
+          </ToolbarButton>
+          <div className="flex items-center h-8 rounded-md border border-input p-0.5 shrink-0" role="radiogroup" aria-label={t("view_mode")}>
             {([["list", LayoutList, t("list_view")], ["grid", LayoutGrid, t("grid_view")]] as const).map(([mode, Icon, label]) => (
               <button
                 key={mode}
@@ -352,10 +344,10 @@ export function FilesHeader({
                 title={label}
                 onClick={() => onViewModeChange(mode)}
                 className={cn(
-                  "h-6 w-7 flex items-center justify-center rounded transition-colors",
+                  "h-full w-7 flex items-center justify-center rounded transition-colors",
                   // A 44px hit area on touch, as every Button has (R1).
                   "relative pointer-coarse:after:absolute pointer-coarse:after:top-1/2 pointer-coarse:after:left-1/2 pointer-coarse:after:size-full pointer-coarse:after:min-h-11 pointer-coarse:after:min-w-11 pointer-coarse:after:-translate-x-1/2 pointer-coarse:after:-translate-y-1/2",
-                  viewMode === mode ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground",
+                  viewMode === mode ? TOOLBAR_ACTIVE : "text-muted-foreground hover:text-foreground hover:bg-muted",
                 )}
               >
                 <Icon className="w-4 h-4" />
@@ -363,9 +355,9 @@ export function FilesHeader({
             ))}
           </div>
           {!compact && (
-            <IconButton label={t("refresh")} onClick={onRefresh} disabled={isLoading}>
+            <ToolbarButton label={t("refresh")} onClick={onRefresh} disabled={isLoading}>
               <RefreshCw className={cn(isLoading && "animate-spin [animation-direction:reverse]")} />
-            </IconButton>
+            </ToolbarButton>
           )}
           <DetailsToggle showDetails={showDetails} onToggle={onToggleDetails} label={t("details")} />
           <PhoneHeaderActions
@@ -440,14 +432,9 @@ function ToolButton({ icon: Icon, label, onClick, compact, destructive }: {
 
 function DetailsToggle({ showDetails, onToggle, label }: { showDetails: boolean; onToggle: () => void; label: string }) {
   return (
-    <IconButton
-      label={label}
-      className={cn("shrink-0", showDetails && "bg-accent text-accent-foreground")}
-      onClick={onToggle}
-      aria-pressed={showDetails}
-    >
+    <ToolbarButton label={label} active={showDetails} onClick={onToggle} aria-pressed={showDetails}>
       <PanelRight />
-    </IconButton>
+    </ToolbarButton>
   );
 }
 

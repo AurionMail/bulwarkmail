@@ -3,7 +3,7 @@
 import { memo } from "react";
 import { useTranslations } from "next-intl";
 import { ArrowUpDown, Check, CheckCheck, FolderX, MailOpen, MoreVertical, RefreshCw } from "@/components/icons";
-import { IconButton } from "@/components/ui/icon-button";
+import { ToolbarButton } from "@/components/ui/toolbar";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator, ContextMenuSubMenu } from "@/components/ui/context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { useSettingsStore, getMessageListOrderFor } from "@/stores/settings-store";
@@ -11,7 +11,6 @@ import { usePolicyStore } from "@/stores/policy-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { useEmailStore } from "@/stores/email-store";
 import { isDefaultOrder, sanitizeSortLevels, type SortLevel } from "@/lib/message-list-order";
-import { cn } from "@/lib/utils";
 
 /** The orders the list header offers; Settings has the full editor. */
 export const SORT_CHOICES = [
@@ -154,12 +153,13 @@ export const MailFolderMenu = memo(function MailFolderMenu({
   const menu = useContextMenu<null>();
   return (
     <>
-      <IconButton
+      <ToolbarButton
         label={t("folder_actions")}
         aria-haspopup="menu"
         aria-expanded={menu.contextMenu.isOpen}
         disabled={disabled}
-        className={cn(menu.contextMenu.isOpen && "bg-accent", className)}
+        active={menu.contextMenu.isOpen}
+        className={className}
         data-testid="mail-folder-menu"
         onMouseDown={(e) => { if (menu.contextMenu.isOpen) e.stopPropagation(); }}
         onClick={(e) => {
@@ -168,7 +168,7 @@ export const MailFolderMenu = memo(function MailFolderMenu({
         }}
       >
         <MoreVertical />
-      </IconButton>
+      </ToolbarButton>
       <ContextMenu ref={menu.menuRef} isOpen={menu.contextMenu.isOpen} position={menu.contextMenu.position} onClose={menu.closeContextMenu}>
         {onRefresh && (
           <ContextMenuItem

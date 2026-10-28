@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Mail, UserPlus, BookUser, Printer } from "@/components/icons";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { ToolbarButton } from "@/components/ui/toolbar";
 import type { DirectoryEntry } from "@/stores/contact-store";
 
 interface DirectoryEntryDetailProps {
@@ -38,20 +39,19 @@ export function DirectoryEntryDetail({ entry, onCompose, onAddToContacts, onPrin
             <p className="text-xs text-muted-foreground mt-0.5">{t(`type.${entry.type}`)}</p>
           )}
         </div>
-        <div className="flex flex-wrap justify-center gap-2">
-          <Button size="sm" onClick={() => onCompose(entry)}>
-            <Mail className="w-4 h-4 me-1.5" />
+        <div className="flex flex-wrap items-center justify-center gap-1.5">
+          <Button size="xs" className="gap-1.5" onClick={() => onCompose(entry)}>
+            <Mail />
             {t("write_email")}
           </Button>
-          <Button size="sm" variant="outline" onClick={() => onAddToContacts(entry)}>
-            <UserPlus className="w-4 h-4 me-1.5" />
+          <Button size="xs" variant="outline" className="gap-1.5" onClick={() => onAddToContacts(entry)}>
+            <UserPlus />
             {t("add_to_contacts")}
           </Button>
           {onPrint && (
-            <Button size="sm" variant="outline" onClick={() => onPrint(entry)}>
-              <Printer className="w-4 h-4 me-1.5" />
-              {tCommon("print")}
-            </Button>
+            <ToolbarButton label={tCommon("print")} onClick={() => onPrint(entry)}>
+              <Printer />
+            </ToolbarButton>
           )}
         </div>
       </div>

@@ -125,6 +125,7 @@ import { useRegisterCommands } from "@/lib/command-registry";
 import { MoveToDialog } from "@/components/email/move-to-dialog";
 import { ResizeHandle } from "@/components/layout/resize-handle";
 import { Button } from "@/components/ui/button";
+import { ToolbarButton, ToolbarSearchAction } from "@/components/ui/toolbar";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { mailTitleContext } from "@/lib/tab-title";
 import { usePluginStore } from "@/stores/plugin-store";
@@ -5003,10 +5004,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 />
               ) : (
               <div className="px-3 h-14 flex items-center">
-                <div className="flex items-center gap-1.5 w-full">
+                <div className="flex items-center gap-1 w-full">
                   {/* Select / Select All toggle */}
-                  <button
-                    type="button"
+                  <ToolbarButton
                     onClick={() => {
                       if (selectedEmailKeys.size > 0) {
                         if (selectedEmailKeys.size === activeEmails.length) {
@@ -5024,20 +5024,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                       }
                     }}
                     disabled={isScheduledView}
-                    className={cn(
-                      "flex-shrink-0 p-2 rounded-md transition-colors",
-                      selectedEmailKeys.size > 0
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                    )}
-                    title={isScheduledView ? t('email_viewer.scheduled_actions_only') : selectedEmailKeys.size > 0 ? (selectedEmailKeys.size === activeEmails.length ? t('email_list.batch_actions.clear_selection') : t('email_list.batch_actions.select_all')) : t('email_list.batch_actions.select')}
+                    active={selectedEmailKeys.size > 0}
+                    label={selectedEmailKeys.size > 0 ? (selectedEmailKeys.size === activeEmails.length ? t('email_list.batch_actions.clear_selection') : t('email_list.batch_actions.select_all')) : t('email_list.batch_actions.select')}
+                    title={isScheduledView ? t('email_viewer.scheduled_actions_only') : undefined}
                   >
-                    {selectedEmailKeys.size > 0 ? (
-                      <CheckSquare className="w-4 h-4" />
-                    ) : (
-                      <Square className="w-4 h-4" />
-                    )}
-                  </button>
+                    {selectedEmailKeys.size > 0 ? <CheckSquare /> : <Square />}
+                  </ToolbarButton>
                   <SearchBox
                     value={searchQuery}
                     onChange={setSearchQuery}
@@ -5051,17 +5043,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     disabled={isScheduledView}
                     title={isScheduledView ? t('email_viewer.scheduled_actions_only') : undefined}
                     trailing={
-                      <button
-                        type="button"
+                      <ToolbarSearchAction
                         onClick={toggleAdvancedSearch}
                         disabled={isScheduledView}
-                        className={cn(
-                          "relative p-1.5 rounded-md transition-colors",
-                          isScheduledView && "opacity-50 cursor-not-allowed",
-                          isAdvancedSearchOpen || activeFilterCount(searchFilters) > 0
-                            ? "bg-primary/10 text-primary"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                        )}
+                        active={isAdvancedSearchOpen || activeFilterCount(searchFilters) > 0}
                         title={isScheduledView ? t('email_viewer.scheduled_actions_only') : t("advanced_search.toggle_filters")}
                         aria-label={t("advanced_search.toggle_filters")}
                         aria-pressed={isAdvancedSearchOpen}
@@ -5072,13 +5057,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                             {activeFilterCount(searchFilters)}
                           </span>
                         )}
-                      </button>
+                      </ToolbarSearchAction>
                     }
                   />
                   {/* The folder's actions, as the Mountain View list ⋮ has them. */}
                   <MailFolderMenu
                     disabled={isScheduledView}
-                    className="flex-shrink-0 text-muted-foreground"
                     folderRole={conversationRole}
                     onRefresh={handleManualRefresh}
                     refreshDisabled={!client || isManualRefreshing}

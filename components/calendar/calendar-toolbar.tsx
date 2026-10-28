@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
+import { ToolbarButton } from "@/components/ui/toolbar";
 import { ChevronLeft, ChevronRight, Plus, Upload, CalendarDays, Globe, ChevronDown, ArrowLeft, Menu, MoreVertical, RefreshCw, Search, Printer } from "@/components/icons";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
@@ -183,18 +184,15 @@ export function CalendarToolbar({
   const pick = (fn: () => void) => () => { closeMoreMenu(); fn(); };
   const moreButton = hasMoreMenu ? (
     <>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        className={cn(moreMenu.isOpen && "bg-accent text-accent-foreground")}
+      <ToolbarButton
+        label={t("toolbar.more")}
+        active={moreMenu.isOpen}
         onClick={(e) => openMoreMenuFrom(e.currentTarget, true, "end")}
-        aria-label={t("toolbar.more")}
-        title={t("toolbar.more")}
         aria-haspopup="menu"
         aria-expanded={moreMenu.isOpen}
       >
         <MoreVertical />
-      </Button>
+      </ToolbarButton>
       <ContextMenu ref={moreMenuRef} isOpen={moreMenu.isOpen} position={moreMenu.position} onClose={closeMoreMenu}>
         {onImport && <ContextMenuItem icon={Upload} label={t("toolbar.import")} onClick={pick(onImport)} />}
         {onSubscribe && <ContextMenuItem icon={Globe} label={t("toolbar.subscribe")} onClick={pick(onSubscribe)} />}
@@ -399,31 +397,25 @@ export function CalendarToolbar({
   const currentViewLabel = t(`views.${viewMode}`);
 
   return (
-    <div className="flex items-center gap-1 px-4 h-14 box-content border-b border-border flex-shrink-0">
+    <div className="flex items-center gap-1 px-3 h-14 box-content border-b border-border flex-shrink-0">
       {onMenuClick && (
-        <Button
-          variant="ghost"
-          size="icon-sm"
+        <ToolbarButton
+          label={menuTogglesSidebar ? t(sidebarOpen ? "nav_hide_sidebar" : "nav_show_sidebar") : t("nav_open_menu")}
           onClick={onMenuClick}
-          className="-ms-1 me-1"
-          aria-label={menuTogglesSidebar ? t(sidebarOpen ? "nav_hide_sidebar" : "nav_show_sidebar") : t("nav_open_menu")}
-          title={menuTogglesSidebar ? t(sidebarOpen ? "nav_hide_sidebar" : "nav_show_sidebar") : t("nav_open_menu")}
+          className="me-1"
           aria-expanded={sidebarOpen}
         >
-          <Menu className="w-4 h-4" />
-        </Button>
+          <Menu />
+        </ToolbarButton>
       )}
       {showCreateButton && (
-        <Button
-          variant="ghost"
-          size="icon-sm"
+        <ToolbarButton
+          label={createLabel ?? t("events.create")}
           onClick={onCreateEvent}
-          aria-label={createLabel ?? t("events.create")}
-          title={createLabel ?? t("events.create")}
           data-tour="create-event-button"
         >
-          <Plus className="w-4 h-4" />
-        </Button>
+          <Plus />
+        </ToolbarButton>
       )}
       {hasDateNav && (
         <>
@@ -436,22 +428,12 @@ export function CalendarToolbar({
           >
             {t("views.today")}
           </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={onPrev}
-            aria-label={t("nav_prev")}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={onNext}
-            aria-label={t("nav_next")}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
+          <ToolbarButton label={t("nav_prev")} onClick={onPrev}>
+            <ChevronLeft />
+          </ToolbarButton>
+          <ToolbarButton label={t("nav_next")} onClick={onNext}>
+            <ChevronRight />
+          </ToolbarButton>
         </>
       )}
       <h1 className="ms-2 text-base font-semibold truncate select-none" title={getDateLabel()}>

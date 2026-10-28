@@ -3,9 +3,8 @@
 import { forwardRef, useMemo, useRef, type KeyboardEvent } from "react";
 import { useTranslations } from "next-intl";
 import { format } from "date-fns";
-import { Search, X, MapPin, Repeat } from "@/components/icons";
-import { Input } from "@/components/ui/input";
-import { IconButton } from "@/components/ui/icon-button";
+import { Search, MapPin, Repeat } from "@/components/icons";
+import { ToolbarSearch } from "@/components/ui/toolbar";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
@@ -47,35 +46,21 @@ export const CalendarSearchField = forwardRef<HTMLInputElement, CalendarSearchFi
       }
     };
     return (
-      <div className={cn("relative", className)} role="search">
-        <Search className="absolute start-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
-        {/* type="search" keeps password managers out of it, as in Mail. */}
-        <Input
+      <div role="search" className={className}>
+        <ToolbarSearch
           ref={ref}
-          type="search"
           value={value}
           autoFocus={autoFocus}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
+          onClear={() => onChange("")}
+          clearLabel={t("search.clear")}
+          shortcut="/"
           placeholder={t("search.title")}
           aria-label={t("search.title")}
           autoComplete="off"
           data-calendar-search
-          className={cn(
-            "h-8 ps-8 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none",
-            value && "pe-8",
-          )}
         />
-        {value && (
-          <IconButton
-            label={t("search.clear")}
-            size="icon-sm"
-            className="absolute end-0 top-1/2 -translate-y-1/2"
-            onClick={() => onChange("")}
-          >
-            <X />
-          </IconButton>
-        )}
       </div>
     );
   },

@@ -7,6 +7,7 @@ import { useContextMenu } from "@/hooks/use-context-menu";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
+import { ToolbarButton } from "@/components/ui/toolbar";
 import { cn } from "@/lib/utils";
 import type { ContactCard } from "@/lib/jmap/types";
 import { getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
@@ -60,22 +61,21 @@ export function ContactGroupDetail({
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={onEdit} className="touch-manipulation">
-              <Pencil className="w-4 h-4 me-1" />
+          <div className="flex items-center gap-1.5">
+            <Button variant="outline" size="xs" onClick={onEdit} className="gap-1.5 touch-manipulation">
+              <Pencil />
               {t("groups.edit")}
             </Button>
-            <IconButton
-              variant="outline"
-              size="sm"
+            <ToolbarButton
               label={t("detail.more_actions")}
               aria-haspopup="menu"
               aria-expanded={menu.contextMenu.isOpen}
+              active={menu.contextMenu.isOpen}
               onClick={(e) => menu.openContextMenuFrom(e.currentTarget, null, "end")}
               className="touch-manipulation"
             >
               <MoreVertical />
-            </IconButton>
+            </ToolbarButton>
             <ContextMenu ref={menu.menuRef} isOpen={menu.contextMenu.isOpen} position={menu.contextMenu.position} onClose={menu.closeContextMenu}>
               <ContextMenuItem icon={Pencil} label={t("groups.edit")} onClick={() => { menu.closeContextMenu(); onEdit(); }} />
               {onPrint && <ContextMenuItem icon={Printer} label={tCommon("print")} onClick={() => { menu.closeContextMenu(); onPrint(); }} />}
@@ -93,7 +93,7 @@ export function ContactGroupDetail({
                 <Button
                   key={field}
                   variant="outline"
-                  size="sm"
+                  size="xs"
                   onClick={() => onComposeGroup(field)}
                   className="touch-manipulation"
                 >

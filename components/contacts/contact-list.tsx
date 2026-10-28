@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { IconButton } from "@/components/ui/icon-button";
+import { ToolbarButton, ToolbarSearch, ToolbarSearchAction } from "@/components/ui/toolbar";
 import { ContactListItem } from "./contact-list-item";
 import { ContactContextMenu } from "./contact-context-menu";
 import { useContactExportBusy } from "./contact-export";
@@ -389,13 +390,13 @@ export function ContactList({
       {/* Toolbar: select / search / filter */}
       <div className="border-b border-border bg-background">
         <div className="px-3 h-14 flex items-center">
-          <div className="flex items-center gap-1.5 w-full">
+          <div className="flex items-center gap-1 w-full">
             {onMenuClick && (
-              <IconButton label={t("open_categories")} onClick={onMenuClick} className="flex-shrink-0 text-muted-foreground hover:text-foreground">
+              <ToolbarButton label={t("open_categories")} onClick={onMenuClick}>
                 <Menu />
-              </IconButton>
+              </ToolbarButton>
             )}
-            <IconButton
+            <ToolbarButton
               label={hasSelection ? (allSelected ? t("bulk.clear") : t("bulk.select_all")) : t("filters.select")}
               onClick={() => {
                 if (hasSelection) {
@@ -408,62 +409,42 @@ export function ContactList({
                   onToggleSelection(target);
                 }
               }}
-              className={cn(
-                "flex-shrink-0",
-                hasSelection
-                  ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
+              active={hasSelection}
             >
               {hasSelection ? <CheckSquare /> : <Square />}
-            </IconButton>
-            <div className="relative flex-1">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                ref={searchRef}
-                type="text"
-                placeholder={t("search_placeholder")}
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className={cn("ps-9 h-9", searchQuery && "pe-8")}
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => onSearchChange("")}
-                  className="absolute end-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={t("clear_search")}
+            </ToolbarButton>
+            <ToolbarSearch
+              ref={searchRef}
+              className="flex-1"
+              placeholder={t("search_placeholder")}
+              aria-label={t("search_placeholder")}
+              autoComplete="off"
+              shortcut="/"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              onClear={() => onSearchChange("")}
+              clearLabel={t("clear_search")}
+              trailing={
+                <ToolbarSearchAction
+                  aria-label={t("filters.toggle")}
+                  title={t("filters.toggle")}
+                  onClick={() => setFiltersOpen((v) => !v)}
+                  aria-expanded={filtersOpen}
+                  active={filtersOpen || activeFilters > 0}
                 >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-            <IconButton
-              label={t("filters.toggle")}
-              onClick={() => setFiltersOpen((v) => !v)}
-              aria-expanded={filtersOpen}
-              className={cn(
-                "flex-shrink-0",
-                filtersOpen || activeFilters > 0
-                  ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Filter />
-              {!filtersOpen && activeFilters > 0 && (
-                <span className="absolute -top-1 -end-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
-                  {activeFilters}
-                </span>
-              )}
-            </IconButton>
+                  <Filter className="w-4 h-4" />
+                  {!filtersOpen && activeFilters > 0 && (
+                    <span className="absolute -top-1 -end-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
+                      {activeFilters}
+                    </span>
+                  )}
+                </ToolbarSearchAction>
+              }
+            />
             {onPrint && (
-              <IconButton
-                label={tCommon("print")}
-                onClick={onPrint}
-                className="hidden md:inline-flex flex-shrink-0 text-muted-foreground hover:text-foreground"
-              >
+              <ToolbarButton label={tCommon("print")} onClick={onPrint} className="hidden md:inline-flex">
                 <Printer />
-              </IconButton>
+              </ToolbarButton>
             )}
             <PhoneHeaderActions below="md" menuItems={phoneMenuItems} />
           </div>

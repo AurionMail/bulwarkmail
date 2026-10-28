@@ -9,7 +9,6 @@ import {
   LogOut,
   Settings as SettingsIcon,
   Palette,
-  Search,
   User,
   Shield,
   PalmtreeIcon,
@@ -26,13 +25,12 @@ import {
   Database,
   Users,
   RotateCcw,
-  X,
   type AppIcon,
 } from '@/components/icons';
 import { useRegisterCommands } from '@/lib/command-registry';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/icon-button';
-import { Input } from '@/components/ui/input';
+import { ToolbarSearch } from '@/components/ui/toolbar';
 import { AppearanceSettings } from '@/components/settings/appearance-settings';
 import { AppTopBannerSlot } from '@/components/plugins/app-top-banner-slot';
 import { GeneralSettings } from '@/components/settings/general-settings';
@@ -959,26 +957,15 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
 
         <div className="flex-1 overflow-y-auto" data-tour="settings-tabs">
           <div className="px-4 pt-3 pb-1">
-            <div className="relative">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <Input
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('search_placeholder')}
-                className={cn("ps-9 h-9 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none", searchQuery && "pe-8")}
-                aria-label={t('search_placeholder')}
-              />
-              {searchQuery && (
-                <IconButton
-                  label={t('search_clear')}
-                  onClick={() => setSearchQuery('')}
-                  className="absolute end-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full text-muted-foreground"
-                >
-                  <X />
-                </IconButton>
-              )}
-            </div>
+            <ToolbarSearch
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onClear={() => setSearchQuery('')}
+              clearLabel={t('search_clear')}
+              placeholder={t('search_placeholder')}
+              aria-label={t('search_placeholder')}
+              autoComplete="off"
+            />
           </div>
           <div className="py-2">
             {filteredGroupedTabs.length === 0 && (
@@ -1120,26 +1107,15 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
 
         <div className="flex-1 overflow-y-auto py-2" data-tour="settings-tabs">
           <div className="px-3 pt-1 pb-1">
-            <div className="relative">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <Input
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('search_placeholder')}
-                className={cn("ps-9 h-9 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none", searchQuery && "pe-8")}
-                aria-label={t('search_placeholder')}
-              />
-              {searchQuery && (
-                <IconButton
-                  label={t('search_clear')}
-                  onClick={() => setSearchQuery('')}
-                  className="absolute end-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full text-muted-foreground"
-                >
-                  <X />
-                </IconButton>
-              )}
-            </div>
+            <ToolbarSearch
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onClear={() => setSearchQuery('')}
+              clearLabel={t('search_clear')}
+              placeholder={t('search_placeholder')}
+              aria-label={t('search_placeholder')}
+              autoComplete="off"
+            />
           </div>
           <div className="px-2 space-y-0.5">
             {filteredGroupedTabs.length === 0 && (
