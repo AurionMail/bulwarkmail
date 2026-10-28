@@ -1,5 +1,6 @@
 import { ContactsApp } from "@/components/contacts/contacts-app";
 import { generateLiteSegmentParams } from "@/lib/lite-static-params";
+import { AppErrorBoundary } from "@/components/error/app-error-boundary";
 
 // Contact permalinks (#733): /contacts/<contactId>[/edit], plus /contacts/new
 // for the "add this sender" flow. The older query form (?contactId=, ?addEmail=)
@@ -15,5 +16,9 @@ export default async function ContactsRoute({
   params: Promise<{ segments?: string[] }>;
 }) {
   const { segments } = await params;
-  return <ContactsApp linkSegments={segments ?? []} />;
+  return (
+    <AppErrorBoundary>
+      <ContactsApp linkSegments={segments ?? []} />
+    </AppErrorBoundary>
+  );
 }

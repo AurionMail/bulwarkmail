@@ -66,3 +66,12 @@ describe('PluginActions', () => {
     expect(screen.getByRole('menuitem', { name: /Labels/ })).toHaveTextContent('99+');
   });
 });
+
+describe('PluginActions overflow button', () => {
+  it('uses the vertical "more" icon, as every other overflow menu does (R2)', () => {
+    act(() => setPluginActions('tasks', 'Email to task', 'message-bulk-actions', [{ id: 'make', label: 'Make tasks' }]));
+    render(<PluginActions surface="message-bulk-actions" context={{ emailIds: ['e1'] }} overflow />);
+    const more = screen.getByRole('button', { name: 'more_actions' });
+    expect(more.querySelector('.tabler-icon-dots-vertical')).not.toBeNull();
+  });
+});

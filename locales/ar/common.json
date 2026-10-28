@@ -50,6 +50,18 @@
     "sign_in_sso": "تسجيل الدخول عبر SSO",
     "add_account_title": "إضافة حساب",
     "add_account_subtitle": "تسجيل الدخول بحساب آخر",
+    "subtitle": "سجّل الدخول إلى حسابك",
+    "version": {
+      "details": "تفاصيل الإصدار",
+      "version_line": "الإصدار: {value}",
+      "build_line": "البنية: {value}",
+      "latest_line": "الأحدث: {value}",
+      "copy": "نسخ معلومات الإصدار",
+      "security_update": "يتوفر تحديث أمني",
+      "unsupported": "لم يعد هذا الإصدار مدعومًا",
+      "new_version": "يتوفر إصدار جديد",
+      "release_notes": "ملاحظات الإصدار"
+    },
     "cancel": "إلغاء",
     "website": "الموقع الإلكتروني",
     "imprint": "بيانات الناشر",
@@ -75,6 +87,13 @@
       "access_denied": "تم رفض الوصول. يرجى التواصل مع المسؤول.",
       "back_to_login": "العودة إلى تسجيل الدخول"
     }
+  },
+  "totp_reauth": {
+    "title": "انتهت الجلسة",
+    "description": "تغيّر رمز المصادقة الثنائية. أدخل رمزًا جديدًا من تطبيق المصادقة للمتابعة.",
+    "oauth_hint": "لكي لا تظهر هذه المطالبة مجددًا، اطلب من المسؤول تفعيل تسجيل الدخول عبر OAuth (خدمة OAuth المدمجة في Stalwart أو موفّر هوية خارجي).",
+    "code_label": "رمز المصادقة",
+    "verify": "تحقّق"
   },
   "sidebar": {
     "close": "إغلاق",
@@ -163,6 +182,7 @@
     "unified_all_starred": "كل المميز بنجمة",
     "unified_all_mail": "كل البريد",
     "remove_account": "إزالة الحساب",
+    "remove_account_title": "إزالة الحساب؟",
     "remove_account_confirm": "هل تريد إزالة {account} من هذا الجهاز؟ يمكنك إضافته مرة أخرى لاحقًا.",
     "labels": "التصنيفات",
     "create_label": "إنشاء تصنيف جديد",
@@ -2605,6 +2625,10 @@
     "retry": "إعادة المحاولة",
     "go_home": "الانتقال إلى البريد الوارد"
   },
+  "not_found": {
+    "title": "الصفحة غير موجودة",
+    "description": "هذه الصفحة غير موجودة أو نُقلت. تحقّق من العنوان أو عُد إلى صندوق الوارد."
+  },
   "context_menu": {
     "reply": "رد",
     "reply_all": "الرد على الجميع",
@@ -4243,6 +4267,14 @@
     "copied": "تم نسخ الرابط",
     "copy_failed": "تعذّر نسخ الرابط"
   },
+  "connector_link": {
+    "opening": "جارٍ الفتح…",
+    "unknown_title": "هذا الرابط أحدث من {name} هذا",
+    "unknown_body": "يفتح شيئًا لا يعرفه الإصدار {version}. تحديث {name} سيجعله يعمل.",
+    "malformed_title": "هذا الرابط غير صحيح تمامًا",
+    "malformed_body": "يطلب {label}، لكن المعامل {param} مفقود أو غير صالح. لم يُفتح أي شيء.",
+    "open_app": "فتح {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "جارٍ إكمال التفويض…",
@@ -4633,6 +4665,13 @@
   },
   "top_bar": {
     "more": "خيارات أخرى"
+  },
+  "shell": {
+    "resize": "تغيير الحجم",
+    "update_available": "يتوفر تحديث",
+    "update_important": "يتوفر تحديث مهم",
+    "folder_unread": "{count} غير مقروءة",
+    "folder_counts": "{unread} غير مقروءة، {total} إجمالًا"
   },
   "plugin_pages": {
     "loading": "جارٍ تحميل الصفحة",

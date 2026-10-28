@@ -1,10 +1,11 @@
 "use client";
 
-import { Suspense, useState, useEffect, useRef, useCallback } from "react";
+import { Suspense, useState, useEffect, useRef, useCallback, useId } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useParams, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore, consumeSignedOut } from "@/stores/auth-store";
 import { useAccountStore } from "@/stores/account-store";
@@ -57,19 +58,46 @@ function findServerByDomain(servers: PublicJmapServerEntry[], email: string | un
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || "0.0.0";
 const GIT_COMMIT = process.env.NEXT_PUBLIC_GIT_COMMIT || "unknown";
 
+/** Labels are keys under settings.appearance.theme. */
 const THEME_OPTIONS = [
-  { value: "light" as const, icon: Sun, label: "Light" },
-  { value: "dark" as const, icon: Moon, label: "Dark" },
-  { value: "system" as const, icon: Monitor, label: "System" },
+  { value: "light" as const, icon: Sun, label: "light" },
+  { value: "dark" as const, icon: Moon, label: "dark" },
+  { value: "system" as const, icon: Monitor, label: "system" },
 ];
 
 function VersionBadge() {
+  const t = useTranslations("login.version");
   const [copied, setCopied] = useState(false);
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const detailsId = useId();
   const banner = useUpdateStore(useShallow(selectBanner));
   const startPolling = useUpdateStore((s) => s.startPolling);
 
   useEffect(() => { startPolling(); }, [startPolling]);
 
+  // Opened by click or keyboard (hover alone left keyboard and touch users
+  // without it): closed again by Escape or a click elsewhere.
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  // Stays English: it is pasted into bug reports.
   const versionInfo = `Version: ${APP_VERSION}\nBuild: ${GIT_COMMIT}${banner?.latest ? `\nLatest: ${banner.latest}` : ""}`;
 
   const handleCopy = () => {
@@ -83,10 +111,10 @@ function VersionBadge() {
   const triggerText = !banner
     ? `v${APP_VERSION}`
     : banner.severity === "security"
-      ? "Security update available"
+      ? t("security_update")
       : banner.severity === "deprecated"
-        ? "Version no longer supported"
-        : "New version available";
+        ? t("unsupported")
+        : t("new_version");
 
   const triggerColor = !banner
     ? "text-muted-foreground/40"
@@ -95,41 +123,52 @@ function VersionBadge() {
       : "text-amber-600/80 dark:text-amber-400/80 hover:text-amber-600 dark:hover:text-amber-400";
 
   const triggerClass = cn(
-    "peer text-center text-xs transition-colors",
+    "peer text-center text-xs transition-colors rounded-sm underline-offset-2 hover:underline",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
     triggerColor,
-    banner?.url ? "cursor-pointer underline-offset-2 hover:underline" : "cursor-default",
-  );
-
-  const trigger = banner?.url ? (
-    <a href={banner.url} target="_blank" rel="noopener noreferrer" className={triggerClass}>
-      {triggerText}
-    </a>
-  ) : (
-    <p className={triggerClass}>{triggerText}</p>
   );
 
   return (
-    <div className="relative inline-flex justify-center">
-      {trigger}
-      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-3 py-2 rounded-md bg-popover text-popover-foreground text-xs shadow-md border border-border opacity-0 peer-hover:opacity-100 hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+    <div ref={rootRef} className="relative inline-flex justify-center">
+      <button
+        ref={triggerRef}
+        type="button"
+        className={triggerClass}
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls={detailsId}
+      >
+        {triggerText}
+      </button>
+      <div
+        id={detailsId}
+        role="group"
+        aria-label={t("details")}
+        className={cn(
+          "absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-3 py-2 rounded-md bg-popover text-popover-foreground text-xs shadow-md border border-border transition-opacity whitespace-nowrap z-10",
+          // Hover still previews it; only an opened one takes the focus.
+          open ? "visible opacity-100" : "invisible opacity-0 peer-hover:visible peer-hover:opacity-100 hover:visible hover:opacity-100",
+        )}
+      >
         <div className="flex items-center gap-2">
           <div className="space-y-0.5">
-            <p>Version: <span className="font-medium">{APP_VERSION}</span></p>
-            <p>Build: <span className="font-medium">{GIT_COMMIT}</span></p>
+            <p>{t("version_line", { value: APP_VERSION })}</p>
+            <p>{t("build_line", { value: GIT_COMMIT })}</p>
             {banner?.latest && (
-              <p>Latest: <span className="font-medium">{banner.latest}</span></p>
+              <p>{t("latest_line", { value: banner.latest })}</p>
             )}
             {banner?.advisory && (
-              <p className="text-red-500 dark:text-red-400">{banner.advisory}</p>
+              <p className="text-red-600 dark:text-red-400">{banner.advisory}</p>
+            )}
+            {banner?.url && (
+              <a href={banner.url} target="_blank" rel="noopener noreferrer" className="text-primary underline-offset-2 hover:underline">
+                {t("release_notes")}
+              </a>
             )}
           </div>
-          <button
-            onClick={handleCopy}
-            className="p-1 rounded hover:bg-muted transition-colors"
-            aria-label="Copy version info"
-          >
-            {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-          </button>
+          <IconButton label={t("copy")} onClick={handleCopy}>
+            {copied ? <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+          </IconButton>
         </div>
       </div>
     </div>
@@ -139,6 +178,7 @@ function VersionBadge() {
 function LoginPageContent() {
   const router = useRouter();
   const t = useTranslations("login");
+  const tTheme = useTranslations("settings.appearance.theme");
   const params = useParams();
   const searchParams = useSearchParams();
   const isAddAccountMode = searchParams.get("mode") === "add-account";
@@ -977,7 +1017,7 @@ function LoginPageContent() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-muted/10 to-muted/30 relative px-4">
         {/* Theme toggle, hidden while the theme policy locks the mode (#1280) */}
-        <div className="absolute top-5 right-5" ref={themeMenuRef} hidden={colorModeLocked} suppressHydrationWarning>
+        <div className="absolute top-5 end-5" ref={themeMenuRef} hidden={colorModeLocked} suppressHydrationWarning>
           <button
             type="button"
             ref={themeButtonRef}
@@ -988,21 +1028,21 @@ function LoginPageContent() {
                 ? "bg-secondary border-border text-foreground shadow-md"
                 : "bg-background/60 backdrop-blur-sm border-border/50 text-muted-foreground hover:text-foreground hover:bg-secondary/80 hover:border-border"
             )}
-            aria-label={`Theme: ${currentThemeOption.label}`}
+            aria-label={`${tTheme("label")}: ${tTheme(currentThemeOption.label)}`}
             aria-expanded={showThemeMenu}
             aria-haspopup="menu"
           >
             <CurrentThemeIcon className="w-4 h-4" />
-            <span className="hidden sm:inline" suppressHydrationWarning>{currentThemeOption.label}</span>
+            <span className="hidden sm:inline" suppressHydrationWarning>{tTheme(currentThemeOption.label)}</span>
           </button>
 
           {showThemeMenu && (
             <div
               ref={themeListRef}
               onKeyDown={onThemeMenuKeyDown}
-              className="absolute right-0 top-full mt-2 w-40 rounded-xl border border-border bg-background shadow-lg overflow-hidden animate-fade-in z-50"
+              className="absolute end-0 top-full mt-2 w-40 rounded-xl border border-border bg-background shadow-lg overflow-hidden animate-fade-in z-50"
               role="menu"
-              aria-label="Theme selection"
+              aria-label={tTheme("label")}
             >
               {THEME_OPTIONS.map((option) => {
                 const Icon = option.icon;
@@ -1022,7 +1062,7 @@ function LoginPageContent() {
                     )}
                   >
                     <Icon className="w-4 h-4" />
-                    <span className="flex-1 text-start">{option.label}</span>
+                    <span className="flex-1 text-start">{tTheme(option.label)}</span>
                     {isActive && <Check className="w-3.5 h-3.5 text-primary" />}
                   </button>
                 );
@@ -1137,7 +1177,7 @@ function LoginPageContent() {
         }}
       />
       {/* Theme toggle - top right, dropdown style; hidden while the theme policy locks the mode (#1280) */}
-      <div className="absolute top-5 right-5" ref={themeMenuRef} hidden={colorModeLocked} suppressHydrationWarning>
+      <div className="absolute top-5 end-5" ref={themeMenuRef} hidden={colorModeLocked} suppressHydrationWarning>
         <button
           type="button"
           ref={themeButtonRef}
@@ -1148,21 +1188,21 @@ function LoginPageContent() {
               ? "bg-secondary border-border text-foreground shadow-md"
               : "bg-background/60 backdrop-blur-sm border-border/50 text-muted-foreground hover:text-foreground hover:bg-secondary/80 hover:border-border"
           )}
-          aria-label={`Theme: ${currentThemeOption.label}`}
+          aria-label={`${tTheme("label")}: ${tTheme(currentThemeOption.label)}`}
           aria-expanded={showThemeMenu}
           aria-haspopup="menu"
         >
           <CurrentThemeIcon className="w-4 h-4" />
-          <span className="hidden sm:inline" suppressHydrationWarning>{currentThemeOption.label}</span>
+          <span className="hidden sm:inline" suppressHydrationWarning>{tTheme(currentThemeOption.label)}</span>
         </button>
 
         {showThemeMenu && (
           <div
             ref={themeListRef}
             onKeyDown={onThemeMenuKeyDown}
-            className="absolute right-0 top-full mt-2 w-40 rounded-xl border border-border bg-background shadow-lg overflow-hidden animate-fade-in z-50"
+            className="absolute end-0 top-full mt-2 w-40 rounded-xl border border-border bg-background shadow-lg overflow-hidden animate-fade-in z-50"
             role="menu"
-            aria-label="Theme selection"
+            aria-label={tTheme("label")}
           >
             {THEME_OPTIONS.map((option) => {
               const Icon = option.icon;
@@ -1182,7 +1222,7 @@ function LoginPageContent() {
                   )}
                 >
                   <Icon className="w-4 h-4" />
-                  <span className="flex-1 text-start">{option.label}</span>
+                  <span className="flex-1 text-start">{tTheme(option.label)}</span>
                   {isActive && <Check className="w-3.5 h-3.5 text-primary" />}
                 </button>
               );
@@ -1211,7 +1251,7 @@ function LoginPageContent() {
             )}
             {loginShowSubtitle && (
               <p className="text-sm text-muted-foreground mt-1.5">
-                {isAddAccountMode ? t("add_account_subtitle") : (t("title") !== appName ? t("title") : "Sign in to your account")}
+                {isAddAccountMode ? t("add_account_subtitle") : t("subtitle")}
               </p>
             )}
           </div>
@@ -1430,7 +1470,7 @@ function LoginPageContent() {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                        className="absolute end-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
                         aria-label={showPassword ? t("hide_password") : t("show_password")}
                         tabIndex={-1}
                       >

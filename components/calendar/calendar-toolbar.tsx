@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Plus, Upload, CalendarDays, Globe, ChevronDown, ArrowLeft, Menu, MoreVertical } from "@/components/icons";
 import { startOfWeek } from "date-fns";
+import { PhoneHeaderActions } from "@/components/layout/phone-header-actions";
 import { cn } from "@/lib/utils";
 import type { CalendarViewMode } from "@/stores/calendar-store";
 import type { Calendar } from "@/lib/jmap/types";
@@ -210,6 +211,7 @@ export function CalendarToolbar({
               <Button variant="ghost" size="sm" onClick={onToday} className="touch-manipulation text-xs h-7 px-2 ms-0.5">
                 {t("views.today")}
               </Button>
+              <PhoneHeaderActions below="md" />
             </div>
 
             {/* Row 2: View switcher pills + calendar toggle */}

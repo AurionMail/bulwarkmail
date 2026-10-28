@@ -50,6 +50,18 @@
     "sign_in_sso": "Mit SSO anmelden",
     "add_account_title": "Konto hinzufügen",
     "add_account_subtitle": "Mit einem anderen Konto anmelden",
+    "subtitle": "Melden Sie sich bei Ihrem Konto an",
+    "version": {
+      "details": "Versionsdetails",
+      "version_line": "Version: {value}",
+      "build_line": "Build: {value}",
+      "latest_line": "Neueste: {value}",
+      "copy": "Versionsinfo kopieren",
+      "security_update": "Sicherheitsupdate verfügbar",
+      "unsupported": "Version wird nicht mehr unterstützt",
+      "new_version": "Neue Version verfügbar",
+      "release_notes": "Versionshinweise"
+    },
     "cancel": "Abbrechen",
     "website": "Webseite",
     "imprint": "Impressum",
@@ -76,12 +88,19 @@
       "back_to_login": "Zurück zur Anmeldung"
     }
   },
+  "totp_reauth": {
+    "title": "Sitzung abgelaufen",
+    "description": "Ihr Zwei-Faktor-Code hat sich geändert. Geben Sie einen neuen Code aus Ihrer Authenticator-App ein, um fortzufahren.",
+    "oauth_hint": "Damit diese Abfrage nicht wiederkommt, bitten Sie Ihre Administration, die Anmeldung über OAuth einzuschalten (das integrierte OAuth von Stalwart oder einen externen Identitätsanbieter).",
+    "code_label": "Authentifizierungscode",
+    "verify": "Bestätigen"
+  },
   "sidebar": {
     "close": "Schließen",
     "compose": "Verfassen",
     "compose_hint": "Verfassen (c)",
     "search_placeholder": "E-Mails durchsuchen...",
-    "search_placeholder_hint": "E-Mails suchen... (drücke /)",
+    "search_placeholder_hint": "E-Mails suchen... (drücken Sie /)",
     "storage": "Speicher",
     "storage_used": "Belegt",
     "storage_free": "Frei",
@@ -163,6 +182,7 @@
     "unified_all_starred": "Alle markierten",
     "unified_all_mail": "Alle Mails",
     "remove_account": "Konto entfernen",
+    "remove_account_title": "Konto entfernen?",
     "remove_account_confirm": "{account} von diesem Gerät entfernen? Sie können das Konto später wieder hinzufügen.",
     "labels": "Labels",
     "create_label": "Neues Label erstellen",
@@ -186,7 +206,7 @@
     "protocol_open_mode_active_session": "Wenn möglich in aktiver Sitzung öffnen",
     "protocol_open_mode_new_tab": "Immer neuen Tab öffnen",
     "focus_notification_title": "{appName} öffnen",
-    "focus_notification_body": "Der Link wurde in {appName} geöffnet. Klicke hier, um das Fenster in den Vordergrund zu holen.",
+    "focus_notification_body": "Der Link wurde in {appName} geöffnet. Klicken Sie hier, um das Fenster in den Vordergrund zu holen.",
     "webcal_label": "Kalender-Links",
     "webcal_description": "Öffnet webcal:-Links in {appName} mit vorausgefülltem Kalender-Abo-Dialog.",
     "register_mailto": "Als E-Mail-App registrieren",
@@ -247,7 +267,7 @@
     "sections": {
       "unread": "Ungelesen",
       "everything_else": "Alles andere",
-      "unread_empty": "Du hast alle Nachrichten im Posteingang gelesen."
+      "unread_empty": "Sie haben alle Nachrichten im Posteingang gelesen."
     },
     "columns": {
       "from": "Von",
@@ -1142,7 +1162,7 @@
           "label": "Auf alle Ordner anwenden",
           "description": "Wenn ausgeschaltet, gilt die Reihenfolge nur für den Posteingang; andere Ordner bleiben chronologisch."
         },
-        "unsupported_note": "Dein Mailserver unterstützt keine Sortierung nach Lesestatus, Markierung oder Tags. Diese Ebenen werden ignoriert und die Liste bleibt chronologisch."
+        "unsupported_note": "Ihr Mailserver unterstützt keine Sortierung nach Lesestatus, Markierung oder Tags. Diese Ebenen werden ignoriert und die Liste bleibt chronologisch."
       },
       "title": "Darstellung",
       "description": "Passen Sie das Aussehen Ihres Webmails an",
@@ -1452,7 +1472,7 @@
     "email_behavior": {
       "inbox_type": {
         "label": "Posteingangstyp",
-        "description": "„Ungelesene zuerst“ zeigt deine 25 neuesten ungelesenen Nachrichten in einem eigenen Abschnitt über dem restlichen Posteingang",
+        "description": "„Ungelesene zuerst“ zeigt Ihre 25 neuesten ungelesenen Nachrichten in einem eigenen Abschnitt über dem restlichen Posteingang",
         "default": "Standard",
         "unread_first": "Ungelesene zuerst"
       },
@@ -1681,7 +1701,7 @@
       },
       "mention_adds_recipient": {
         "label": "Kontakte bei @-Erwähnungen",
-        "description": "Beim Tippen von @ werden auch deine Kontakte und Personen aus dem Verzeichnis angeboten. Wer noch kein Empfänger ist, wird beim Auswählen zur Nachricht hinzugefügt.",
+        "description": "Beim Tippen von @ werden auch Ihre Kontakte und Personen aus dem Verzeichnis angeboten. Wer noch kein Empfänger ist, wird beim Auswählen zur Nachricht hinzugefügt.",
         "to": "Zu An hinzufügen",
         "cc": "Zu CC hinzufügen",
         "off": "Nur Empfänger anbieten"
@@ -2246,7 +2266,7 @@
     },
     "downloads": {
       "title": "Downloads",
-      "description": "Lege fest, wie heruntergeladene E-Mails und Anhänge benannt werden.",
+      "description": "Legen Sie fest, wie heruntergeladene E-Mails und Anhänge benannt werden.",
       "reset": "Standard wiederherstellen",
       "preview": "Vorschau:",
       "email_template": {
@@ -2605,6 +2625,10 @@
     "retry": "Wiederholen",
     "go_home": "Zum Posteingang"
   },
+  "not_found": {
+    "title": "Seite nicht gefunden",
+    "description": "Diese Seite gibt es nicht oder sie wurde verschoben. Prüfen Sie die Adresse oder kehren Sie zu Ihrem Posteingang zurück."
+  },
   "context_menu": {
     "reply": "Antworten",
     "reply_all": "Allen antworten",
@@ -2672,7 +2696,7 @@
     "unmute_account_notifications": "Benachrichtigungen für dieses Konto einschalten",
     "reset_folder_notifications": "Ordner-Benachrichtigungen zurücksetzen",
     "mark_all_confirm_title": "Alle Ordner als gelesen markieren",
-    "mark_all_confirm_message": "Jede ungelesene Nachricht in deinem persönlichen Konto als gelesen markieren?",
+    "mark_all_confirm_message": "Jede ungelesene Nachricht in Ihrem persönlichen Konto als gelesen markieren?",
     "delete_confirm_title": "Ordner löschen",
     "delete_confirm_message": "Den Ordner \"{name}\" dauerhaft löschen? Dies kann nicht rückgängig gemacht werden.",
     "prompt_new_subfolder": "Gib einen Namen für den neuen Unterordner ein.",
@@ -2694,7 +2718,7 @@
     "toast_error_create": "Ordner konnte nicht erstellt werden",
     "toast_error_rename": "Ordner konnte nicht umbenannt werden",
     "toast_error_delete": "Ordner konnte nicht gelöscht werden",
-    "toast_error_delete_has_children": "Ordner enthält Unterordner. Entferne diese zuerst.",
+    "toast_error_delete_has_children": "Ordner enthält Unterordner. Entfernen Sie diese zuerst.",
     "toast_error_delete_has_email": "Ordner ist nicht leer. Leere ihn zuerst.",
     "delete_with_contents_title": "Ordner ist nicht leer",
     "delete_with_contents_message": "Der Ordner „{name}“ enthält noch {count, plural, one {1 Nachricht} other {# Nachrichten}}. Ordner samt allen Nachrichten löschen? Das kann nicht rückgängig gemacht werden.",
@@ -2868,14 +2892,14 @@
       "retry": "Erneut versuchen",
       "loading": "Verzeichnis wird geladen…",
       "unavailable_title": "Kein Verzeichnis",
-      "unavailable_hint": "Dein Mailserver bietet kein Verzeichnis der Konten an.",
+      "unavailable_hint": "Ihr Mailserver bietet kein Verzeichnis der Konten an.",
       "forbidden_title": "Verzeichnis nicht verfügbar",
-      "forbidden_hint": "Dein Mailserver erlaubt diesem Konto nicht, das Verzeichnis zu durchsuchen. Frag deine Administration.",
+      "forbidden_hint": "Ihr Mailserver erlaubt diesem Konto nicht, das Verzeichnis zu durchsuchen. Fragen Sie Ihre Administration.",
       "error_title": "Verzeichnis konnte nicht geladen werden",
-      "error_hint": "Prüfe deine Verbindung und versuche es erneut.",
+      "error_hint": "Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
       "empty_title": "Das Verzeichnis ist leer",
-      "empty_hint": "Dein Mailserver listet keine Konten mit E-Mail-Adresse.",
-      "no_match": "Niemand im Verzeichnis passt zu deiner Suche",
+      "empty_hint": "Ihr Mailserver listet keine Konten mit E-Mail-Adresse.",
+      "no_match": "Niemand im Verzeichnis passt zu Ihrer Suche",
       "refresh_failed": "Verzeichnis konnte nicht aktualisiert werden. Angezeigt wird die zuletzt geladene Liste.",
       "select_page": "Alle auf dieser Seite auswählen",
       "deselect_page": "Auswahl auf dieser Seite aufheben",
@@ -2890,11 +2914,11 @@
       "add_to": "Zu An",
       "add_cc": "Zu Cc",
       "add_bcc": "Zu Bcc",
-      "select_hint": "Wähle jemanden aus, um die Details zu sehen",
+      "select_hint": "Wählen Sie jemanden aus, um die Details zu sehen",
       "write_email": "E-Mail schreiben",
       "add_to_contacts": "Zu Kontakten hinzufügen",
       "email": "E-Mail",
-      "read_only_note": "Verzeichniseinträge kommen von deinem Mailserver und können hier nicht bearbeitet werden.",
+      "read_only_note": "Verzeichniseinträge kommen von Ihrem Mailserver und können hier nicht bearbeitet werden.",
       "type": {
         "individual": "Person",
         "group": "Gruppe",
@@ -3485,7 +3509,7 @@
       "visible_hours_start": "Beginn der sichtbaren Stunden",
       "visible_hours_end": "Ende der sichtbaren Stunden",
       "hide_non_working_days": "Arbeitsfreie Tage ausblenden",
-      "hide_non_working_days_desc": "Tage, an denen du nicht arbeitest, in der Wochenansicht weglassen. Ihre Termine erscheinen weiterhin in der Monats-, Tages- und Agendaansicht.",
+      "hide_non_working_days_desc": "Tage, an denen Sie nicht arbeiten, in der Wochenansicht weglassen. Ihre Termine erscheinen weiterhin in der Monats-, Tages- und Agendaansicht.",
       "working_days": "Arbeitstage",
       "title": "Kalendereinstellungen",
       "default_view": "Standardansicht",
@@ -3519,10 +3543,10 @@
       "hover_preview_delay_2s": "2 Sekunden Verzögerung",
       "hover_preview_off": "Deaktiviert",
       "organizer_identity": "Einladungen organisieren als",
-      "organizer_identity_desc": "Die Kalenderadresse, die als Organisator verwendet wird, wenn du Personen zu Terminen einlädst.",
+      "organizer_identity_desc": "Die Kalenderadresse, die als Organisator verwendet wird, wenn Sie Personen zu Terminen einladen.",
       "organizer_identity_failed": "Organisatoradresse konnte nicht geändert werden",
       "show_birthday_calendar": "Geburtstags-Kalender",
-      "show_birthday_calendar_desc": "Zeigt einen virtuellen Kalender mit Geburtstagen aus deinen Kontakten"
+      "show_birthday_calendar_desc": "Zeigt einen virtuellen Kalender mit Geburtstagen aus Ihren Kontakten"
     },
     "days": {
       "monday": "Montag",
@@ -4125,7 +4149,7 @@
     "restart_desc": "Geführte Tour durch die Oberfläche erneut abspielen",
     "restart_button": "Tour neu starten",
     "show_on_new_devices_title": "Auf neuen Geräten anzeigen",
-    "show_on_new_devices_desc": "Zeige das Willkommensbanner und die Tour beim ersten Anmelden auf einem neuen Gerät erneut, auch wenn du sie bereits anderswo abgeschlossen hast",
+    "show_on_new_devices_desc": "Das Willkommensbanner und die Tour beim ersten Anmelden auf einem neuen Gerät erneut zeigen, auch wenn Sie sie bereits anderswo abgeschlossen haben",
     "sidebar_title": "Ihre Postfächer",
     "sidebar_desc": "Dies ist Ihre Ordner-Seitenleiste. Klicken Sie auf ein Postfach, um seine E-Mails anzuzeigen. Sie können Ordner erstellen, E-Mails zwischen ihnen verschieben und ungelesene Zähler auf einen Blick sehen.",
     "compose_title": "E-Mail verfassen",
@@ -4171,16 +4195,16 @@
   },
   "calendar_event_notifications": {
     "someone": "Jemand",
-    "invited": "{name} hat dich zu „{title}“ eingeladen",
+    "invited": "{name} hat Sie zu „{title}“ eingeladen",
     "updated": "{name} hat „{title}“ aktualisiert",
     "cancelled": "{name} hat „{title}“ abgesagt",
     "untitled": "Unbenannter Termin"
   },
   "share_notifications": {
     "someone": "Jemand",
-    "shared": "{name} hat {kind} „{object}“ mit dir geteilt",
-    "changed": "{name} hat deinen Zugriff auf {kind} „{object}“ geändert",
-    "revoked": "{name} hat deinen Zugriff auf {kind} „{object}“ entfernt",
+    "shared": "{name} hat {kind} „{object}“ mit Ihnen geteilt",
+    "changed": "{name} hat Ihren Zugriff auf {kind} „{object}“ geändert",
+    "revoked": "{name} hat Ihren Zugriff auf {kind} „{object}“ entfernt",
     "object": {
       "folder": "den Ordner",
       "calendar": "den Kalender",
@@ -4236,12 +4260,20 @@
     "folder_not_found": "Dieser Ordner ist nicht mehr verfügbar.",
     "event_not_found": "Dieser Termin ist nicht mehr verfügbar.",
     "file_not_found": "Diese Datei ist nicht mehr verfügbar.",
-    "account_unavailable": "Melde dich bei diesem Konto an, um den Link zu öffnen.",
+    "account_unavailable": "Melden Sie sich bei diesem Konto an, um den Link zu öffnen.",
     "copy_message": "Link zur Nachricht kopieren",
     "copy_conversation": "Link zur Unterhaltung kopieren",
     "copy_event": "Link zum Termin kopieren",
     "copied": "Link kopiert",
     "copy_failed": "Link konnte nicht kopiert werden"
+  },
+  "connector_link": {
+    "opening": "Wird geöffnet…",
+    "unknown_title": "Dieser Link ist neuer als dieses {name}",
+    "unknown_body": "Er öffnet etwas, das Version {version} nicht kennt. Nach einem Update von {name} sollte es funktionieren.",
+    "malformed_title": "Dieser Link stimmt nicht ganz",
+    "malformed_body": "Er verlangt {label}, aber sein Parameter {param} fehlt oder ist ungültig. Es wurde nichts geöffnet.",
+    "open_app": "{name} öffnen"
   },
   "plugins": {
     "oauth_callback": {
@@ -4633,6 +4665,13 @@
   },
   "top_bar": {
     "more": "Weitere Optionen"
+  },
+  "shell": {
+    "resize": "Größe ändern",
+    "update_available": "Update verfügbar",
+    "update_important": "Wichtiges Update verfügbar",
+    "folder_unread": "{count} ungelesen",
+    "folder_counts": "{unread} ungelesen, {total} insgesamt"
   },
   "plugin_pages": {
     "loading": "Seite wird geladen",

@@ -6,6 +6,9 @@ import { useTranslations } from "next-intl";
 import { useTour } from "./tour-provider";
 import { cn } from "@/lib/utils";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { Button } from "@/components/ui/button";
+import { isEditableEventTarget } from "@/lib/keyboard";
+import { isDocumentRTL } from "@/i18n/direction";
 
 interface Rect {
   top: number;
@@ -18,14 +21,34 @@ const PADDING = 8;
 const TOOLTIP_GAP = 12;
 const TOOLTIP_MAX_W = 360;
 
+/**
+ * The first element for the selector that is on screen. The same anchor can
+ * exist twice (the rail and the phone's tab bar); one with no size is not
+ * rendered in this layout, and one in a closed drawer (inert, or pushed off
+ * the side of the screen) can't be seen: neither has anything to point at.
+ */
+export function findTourTarget(selector: string): Element | null {
+  for (const el of document.querySelectorAll(selector)) {
+    if (el.closest("[inert]")) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) continue;
+    if (r.right <= 0 || r.left >= window.innerWidth) continue;
+    return el;
+  }
+  return null;
+}
+
 function getTargetRect(selector: string): Rect | null {
-  const el = document.querySelector(selector);
+  const el = findTourTarget(selector);
   if (!el) return null;
   const r = el.getBoundingClientRect();
-  // Element might exist but be hidden (zero dimensions)
-  if (r.width === 0 && r.height === 0) return null;
   return { top: r.top, left: r.left, width: r.width, height: r.height };
 }
+
+/** Polls (100 ms apart) before a step whose target is in the DOM but has no size is skipped. */
+const HIDDEN_TARGET_ATTEMPTS = 10;
+/** Polls before a step whose target never appeared (another page loading) is skipped. */
+const MISSING_TARGET_ATTEMPTS = 50;
 
 function computeTooltipPosition(
   target: Rect,
@@ -90,7 +113,13 @@ export function TourOverlay() {
   // Use refs for callbacks to avoid stale closures in timers/intervals
   const updatePositionRef = useRef<() => void>(() => {});
   const nextStepRef = useRef<() => void>(() => {});
+  const prevStepRef = useRef<() => void>(() => {});
+  // A step with nothing to point at is skipped in the direction the user went.
+  const directionRef = useRef<1 | -1>(1);
+  const goNext = useCallback(() => { directionRef.current = 1; nextStep(); }, [nextStep]);
+  const goPrev = useCallback(() => { directionRef.current = -1; prevStep(); }, [prevStep]);
   nextStepRef.current = nextStep;
+  prevStepRef.current = prevStep;
 
   const focusTrapRef = useFocusTrap({
     isActive: visible,
@@ -123,7 +152,6 @@ export function TourOverlay() {
   // Wait for target element to appear, then show
   useEffect(() => {
     if (!step) return;
-    console.log(`[Tour] Step ${currentStep + 1}/${totalSteps}: "${step.id}" - target: ${step.target}, placement: ${step.placement}, interactive: ${!!step.interactive}`);
     setVisible(false);
     // Keep old targetRect and tooltipPos so the cutout/tooltip animate to the new position
     // instead of disappearing and reappearing
@@ -140,20 +168,16 @@ export function TourOverlay() {
     }
 
     let attempts = 0;
-    const maxAttempts = 50; // 5 seconds
     let cancelled = false;
 
     const tryFind = () => {
       if (cancelled) return true;
-      const el = document.querySelector(step.target);
+      const el = findTourTarget(step.target);
       if (el) {
-        const rect = el.getBoundingClientRect();
-        console.log(`[Tour] Step ${currentStep + 1} "${step.id}": element FOUND (${rect.width}x${rect.height} at ${Math.round(rect.left)},${Math.round(rect.top)})`);
         el.scrollIntoView({ behavior: "smooth", block: "nearest" });
         // Delay after scroll for layout to settle
         pendingTimerRef.current = setTimeout(() => {
           if (cancelled) return;
-          console.log(`[Tour] Step ${currentStep + 1} "${step.id}": showing tooltip`);
           updatePositionRef.current();
           setVisible(true);
           // Second position update after tooltip renders with final dimensions
@@ -163,24 +187,26 @@ export function TourOverlay() {
         }, 200);
         return true;
       }
-      if (attempts % 10 === 0) {
-        console.log(`[Tour] Step ${currentStep + 1} "${step.id}": element NOT found (attempt ${attempts + 1}/${maxAttempts})`);
-      }
       return false;
     };
 
     if (tryFind()) return () => { cancelled = true; };
 
-    // Poll for element appearance (for page navigation)
+    // Poll for the element to appear (another page loading). One that is in
+    // the DOM but not rendered in this layout (the rail on a phone) is given
+    // up on sooner.
     const interval = setInterval(() => {
       attempts++;
-      if (tryFind() || attempts >= maxAttempts) {
+      if (tryFind()) {
         clearInterval(interval);
-        if (attempts >= maxAttempts && !cancelled) {
-          // Skip this step if element never appears
-          console.warn(`[Tour] Step ${currentStep + 1} "${step.id}": SKIPPED - element never appeared after ${maxAttempts} attempts`);
-          nextStepRef.current();
-        }
+        return;
+      }
+      const limit = document.querySelector(step.target) ? HIDDEN_TARGET_ATTEMPTS : MISSING_TARGET_ATTEMPTS;
+      if (attempts >= limit) {
+        clearInterval(interval);
+        if (cancelled) return;
+        if (directionRef.current === -1 && currentStep > 0) prevStepRef.current();
+        else nextStepRef.current();
       }
     }, 100);
 
@@ -192,7 +218,7 @@ export function TourOverlay() {
         pendingTimerRef.current = null;
       }
     };
-  }, [step, currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [step, currentStep]);
 
   // Recalculate on resize/scroll (debounced)
   useEffect(() => {
@@ -213,17 +239,23 @@ export function TourOverlay() {
     };
   }, [visible, updatePosition]);
 
-  // Keyboard navigation
+  // Keyboard navigation. Enter on a focused button (Skip, Back) and keys
+  // typed into a field (the search step) are theirs, not the tour's.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight" || e.key === "Enter") {
+      const onControl = e.target instanceof HTMLElement && !!e.target.closest("button, a[href]");
+      const typing = isEditableEventTarget(e);
+      // The arrow pointing the way you read goes on: → in LTR, ← in RTL.
+      const forward = isDocumentRTL() ? "ArrowLeft" : "ArrowRight";
+      const back = isDocumentRTL() ? "ArrowRight" : "ArrowLeft";
+      if ((e.key === forward && !typing) || (e.key === "Enter" && !onControl && !typing)) {
         e.preventDefault();
         e.stopPropagation();
-        nextStep();
-      } else if (e.key === "ArrowLeft") {
+        goNext();
+      } else if (e.key === back && !typing) {
         e.preventDefault();
         e.stopPropagation();
-        prevStep();
+        goPrev();
       } else if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
@@ -232,7 +264,7 @@ export function TourOverlay() {
     };
     window.addEventListener("keydown", handler, true);
     return () => window.removeEventListener("keydown", handler, true);
-  }, [nextStep, prevStep, stopTour]);
+  }, [goNext, goPrev, stopTour]);
 
   // Re-position after tooltip content renders with new dimensions
   useEffect(() => {
@@ -365,31 +397,16 @@ export function TourOverlay() {
 
           {/* Navigation buttons */}
           <div className="flex items-center justify-between mt-3">
-            <button
-              onClick={stopTour}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted"
-            >
+            <Button variant="ghost" size="xs" onClick={stopTour} className="text-xs text-muted-foreground -ms-2">
               {t("tour.skip")}
-            </button>
+            </Button>
             <div className="flex gap-2">
-              <button
-                onClick={prevStep}
-                disabled={isFirst}
-                className={cn(
-                  "text-xs px-3 py-1.5 rounded-md border border-border transition-colors",
-                  isFirst
-                    ? "opacity-40 cursor-not-allowed"
-                    : "hover:bg-muted"
-                )}
-              >
+              <Button variant="outline" size="xs" onClick={goPrev} disabled={isFirst} className="text-xs">
                 {t("tour.back")}
-              </button>
-              <button
-                onClick={nextStep}
-                className="text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
+              </Button>
+              <Button size="xs" onClick={goNext} className="text-xs">
                 {isLast ? t("tour.finish") : t("tour.next")}
-              </button>
+              </Button>
             </div>
           </div>
 

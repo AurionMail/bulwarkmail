@@ -47,6 +47,18 @@
     "sign_in_sso": "היכנס באמצעות SSO",
     "add_account_title": "הוסף חשבון",
     "add_account_subtitle": "היכנס עם חשבון אחר",
+    "subtitle": "התחברו לחשבון שלכם",
+    "version": {
+      "details": "פרטי הגרסה",
+      "version_line": "גרסה: {value}",
+      "build_line": "בנייה: {value}",
+      "latest_line": "העדכנית ביותר: {value}",
+      "copy": "העתקת פרטי הגרסה",
+      "security_update": "יש עדכון אבטחה",
+      "unsupported": "הגרסה הזו כבר לא נתמכת",
+      "new_version": "יש גרסה חדשה",
+      "release_notes": "הערות שחרור"
+    },
     "cancel": "ביטול",
     "website": "אתר",
     "imprint": "פרטי מוציא לאור",
@@ -74,6 +86,13 @@
     },
     "jmap_server_label": "שרת",
     "jmap_server_auto_picked": "שרת שנבחר מדומיין הדוא״ל שלך."
+  },
+  "totp_reauth": {
+    "title": "פג תוקף ההפעלה",
+    "description": "קוד האימות הדו-שלבי השתנה. כדי להמשיך, הזינו קוד חדש מאפליקציית האימות.",
+    "oauth_hint": "כדי שהבקשה הזו לא תחזור, בקשו מהמנהל להפעיל כניסה עם OAuth (ה-OAuth המובנה של Stalwart או ספק זהויות חיצוני).",
+    "code_label": "קוד אימות",
+    "verify": "אימות"
   },
   "sidebar": {
     "unified_mailbox": "תיבת דואר מאוחדת",
@@ -162,6 +181,7 @@
     "unified_all_starred": "הכל מסומנים",
     "unified_all_mail": "הכל דוא״ל",
     "remove_account": "הסרת חשבון",
+    "remove_account_title": "להסיר את החשבון?",
     "remove_account_confirm": "להסיר את {account} מהמכשיר הזה? ניתן להוסיף אותו שוב מאוחר יותר.",
     "labels": "תוויות",
     "create_label": "יצירת תווית חדשה",
@@ -2571,6 +2591,10 @@
     "retry": "נסה שוב",
     "go_home": "עבור לתיבת הדואר הנכנס"
   },
+  "not_found": {
+    "title": "הדף לא נמצא",
+    "description": "הדף הזה לא קיים או שהועבר. בדקו את הכתובת או חזרו לתיבת הדואר הנכנס."
+  },
   "context_menu": {
     "reply": "השב",
     "reply_all": "השב לכולם",
@@ -4244,6 +4268,14 @@
     "copied": "הקישור הועתק",
     "copy_failed": "לא ניתן להעתיק את הקישור"
   },
+  "connector_link": {
+    "opening": "פותח…",
+    "unknown_title": "הקישור הזה חדש יותר מ-{name} הזה",
+    "unknown_body": "הוא פותח משהו שגרסה {version} לא מכירה. עדכון של {name} אמור לפתור את זה.",
+    "malformed_title": "הקישור הזה לא לגמרי תקין",
+    "malformed_body": "הוא מבקש {label}, אבל הפרמטר {param} חסר או שגוי. לא נפתח דבר.",
+    "open_app": "פתיחת {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "משלים אימות…",
@@ -4634,6 +4666,13 @@
   },
   "top_bar": {
     "more": "אפשרויות נוספות"
+  },
+  "shell": {
+    "resize": "שינוי גודל",
+    "update_available": "יש עדכון",
+    "update_important": "יש עדכון חשוב",
+    "folder_unread": "{count} שלא נקראו",
+    "folder_counts": "{unread} שלא נקראו, {total} בסך הכול"
   },
   "plugin_pages": {
     "loading": "טוען את הדף",

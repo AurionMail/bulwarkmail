@@ -1,4 +1,6 @@
 import { ConnectorClient } from '@/components/connector/connector-client';
+import { IntlProvider } from '@/components/providers/intl-provider';
+import enMessages from '@/locales/en/common.json';
 import { TARGET_NAMES } from '@/lib/connector/registry';
 import { IS_LITE } from '@/lib/lite';
 
@@ -23,5 +25,9 @@ export default async function ConnectorRoute({
   params: Promise<{ target: string }>;
 }) {
   const { target } = await params;
-  return <ConnectorClient target={target} />;
+  return (
+    <IntlProvider locale="en" messages={enMessages}>
+      <ConnectorClient target={target} />
+    </IntlProvider>
+  );
 }

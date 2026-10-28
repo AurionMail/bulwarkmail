@@ -50,6 +50,18 @@
     "sign_in_sso": "SSOでサインイン",
     "add_account_title": "アカウントを追加",
     "add_account_subtitle": "別のアカウントでサインイン",
+    "subtitle": "アカウントにサインイン",
+    "version": {
+      "details": "バージョンの詳細",
+      "version_line": "バージョン: {value}",
+      "build_line": "ビルド: {value}",
+      "latest_line": "最新: {value}",
+      "copy": "バージョン情報をコピー",
+      "security_update": "セキュリティ更新があります",
+      "unsupported": "このバージョンはサポートが終了しました",
+      "new_version": "新しいバージョンがあります",
+      "release_notes": "リリースノート"
+    },
     "cancel": "キャンセル",
     "website": "ウェブサイト",
     "imprint": "サイト運営者情報",
@@ -75,6 +87,13 @@
       "access_denied": "アクセスが拒否されました。管理者にお問い合わせください。",
       "back_to_login": "ログインに戻る"
     }
+  },
+  "totp_reauth": {
+    "title": "セッションの有効期限が切れました",
+    "description": "2 段階認証コードが変わりました。続けるには、認証アプリの新しいコードを入力してください。",
+    "oauth_hint": "この確認を繰り返さないようにするには、OAuth によるサインイン（Stalwart の組み込み OAuth または外部の ID プロバイダー）を有効にするよう管理者に依頼してください。",
+    "code_label": "認証コード",
+    "verify": "確認"
   },
   "sidebar": {
     "close": "閉じる",
@@ -163,6 +182,7 @@
     "unified_all_starred": "すべてのスター付き",
     "unified_all_mail": "すべてのメール",
     "remove_account": "Remove account",
+    "remove_account_title": "アカウントを削除しますか？",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "ラベル",
     "create_label": "新しいラベルを作成",
@@ -2605,6 +2625,10 @@
     "retry": "リトライ",
     "go_home": "受信トレイに移動"
   },
+  "not_found": {
+    "title": "ページが見つかりません",
+    "description": "このページは存在しないか、移動されました。アドレスを確認するか、受信トレイに戻ってください。"
+  },
   "context_menu": {
     "reply": "返信",
     "reply_all": "全員に返信",
@@ -4243,6 +4267,14 @@
     "copied": "リンクをコピーしました",
     "copy_failed": "リンクをコピーできませんでした"
   },
+  "connector_link": {
+    "opening": "開いています…",
+    "unknown_title": "このリンクはこの {name} より新しいものです",
+    "unknown_body": "バージョン {version} が知らないものを開こうとしています。{name} を更新すると開けるはずです。",
+    "malformed_title": "このリンクは正しくありません",
+    "malformed_body": "{label} を開こうとしていますが、{param} がないか不正です。何も開いていません。",
+    "open_app": "{name} を開く"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "認証を完了しています…",
@@ -4633,6 +4665,13 @@
   },
   "top_bar": {
     "more": "その他のオプション"
+  },
+  "shell": {
+    "resize": "サイズを変更",
+    "update_available": "アップデートがあります",
+    "update_important": "重要なアップデートがあります",
+    "folder_unread": "未読 {count} 件",
+    "folder_counts": "未読 {unread} 件 / 全 {total} 件"
   },
   "plugin_pages": {
     "loading": "ページを読み込んでいます",

@@ -50,6 +50,18 @@
     "sign_in_sso": "Zaloguj się przez SSO",
     "add_account_title": "Dodaj konto",
     "add_account_subtitle": "Zaloguj się na inne konto",
+    "subtitle": "Zaloguj się na swoje konto",
+    "version": {
+      "details": "Szczegóły wersji",
+      "version_line": "Wersja: {value}",
+      "build_line": "Kompilacja: {value}",
+      "latest_line": "Najnowsza: {value}",
+      "copy": "Kopiuj informacje o wersji",
+      "security_update": "Dostępna aktualizacja zabezpieczeń",
+      "unsupported": "Ta wersja nie jest już wspierana",
+      "new_version": "Dostępna nowa wersja",
+      "release_notes": "Informacje o wydaniu"
+    },
     "cancel": "Anuluj",
     "website": "Strona internetowa",
     "imprint": "Impressum",
@@ -75,6 +87,13 @@
       "access_denied": "Odmowa dostępu. Skontaktuj się z administratorem.",
       "back_to_login": "Powrót do logowania"
     }
+  },
+  "totp_reauth": {
+    "title": "Sesja wygasła",
+    "description": "Twój kod dwuskładnikowy się zmienił. Aby kontynuować, wpisz nowy kod z aplikacji uwierzytelniającej.",
+    "oauth_hint": "Aby ta prośba się nie powtarzała, poproś administratora o włączenie logowania przez OAuth (wbudowany OAuth w Stalwart lub zewnętrzny dostawca tożsamości).",
+    "code_label": "Kod uwierzytelniający",
+    "verify": "Zweryfikuj"
   },
   "sidebar": {
     "close": "Zamknij",
@@ -163,6 +182,7 @@
     "unified_all_starred": "Wszystkie oznaczone gwiazdką",
     "unified_all_mail": "Cała poczta",
     "remove_account": "Remove account",
+    "remove_account_title": "Usunąć konto?",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Etykiety",
     "create_label": "Utwórz etykietę",
@@ -2605,6 +2625,10 @@
     "retry": "Ponów",
     "go_home": "Przejdź do skrzynki odbiorczej"
   },
+  "not_found": {
+    "title": "Nie znaleziono strony",
+    "description": "Ta strona nie istnieje lub została przeniesiona. Sprawdź adres albo wróć do skrzynki odbiorczej."
+  },
   "context_menu": {
     "reply": "Odpowiedz",
     "reply_all": "Odpowiedz wszystkim",
@@ -4243,6 +4267,14 @@
     "copied": "Link skopiowany",
     "copy_failed": "Nie udało się skopiować linku"
   },
+  "connector_link": {
+    "opening": "Otwieranie…",
+    "unknown_title": "Ten link jest nowszy niż ten {name}",
+    "unknown_body": "Otwiera coś, czego wersja {version} nie zna. Aktualizacja {name} powinna to rozwiązać.",
+    "malformed_title": "Ten link nie jest do końca poprawny",
+    "malformed_body": "Prosi o {label}, ale brakuje parametru {param} lub jest on błędny. Nic nie zostało otwarte.",
+    "open_app": "Otwórz {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Kończenie autoryzacji…",
@@ -4633,6 +4665,13 @@
   },
   "top_bar": {
     "more": "Więcej opcji"
+  },
+  "shell": {
+    "resize": "Zmień rozmiar",
+    "update_available": "Dostępna aktualizacja",
+    "update_important": "Dostępna ważna aktualizacja",
+    "folder_unread": "Nieprzeczytane: {count}",
+    "folder_counts": "Nieprzeczytane: {unread}, łącznie: {total}"
   },
   "plugin_pages": {
     "loading": "Wczytywanie strony",

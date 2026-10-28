@@ -52,7 +52,7 @@ function PluginSidebarSection({ pluginId, extraProps }: { pluginId: string; extr
           className="group flex flex-1 min-w-0 items-center select-none rounded-sm hover:bg-muted/40 transition-colors"
         >
           {collapsed ? (
-            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 rtl:-scale-x-100" />
+            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
           ) : (
             <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
           )}

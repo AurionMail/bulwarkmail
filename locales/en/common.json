@@ -50,6 +50,18 @@
     "sign_in_sso": "Sign in with SSO",
     "add_account_title": "Add Account",
     "add_account_subtitle": "Sign in with another account",
+    "subtitle": "Sign in to your account",
+    "version": {
+      "details": "Version details",
+      "version_line": "Version: {value}",
+      "build_line": "Build: {value}",
+      "latest_line": "Latest: {value}",
+      "copy": "Copy version info",
+      "security_update": "Security update available",
+      "unsupported": "Version no longer supported",
+      "new_version": "New version available",
+      "release_notes": "Release notes"
+    },
     "cancel": "Cancel",
     "website": "Website",
     "imprint": "Imprint",
@@ -75,6 +87,13 @@
       "access_denied": "Access was denied. Please contact your administrator.",
       "back_to_login": "Back to login"
     }
+  },
+  "totp_reauth": {
+    "title": "Session expired",
+    "description": "Your two-factor code has changed. Enter a new code from your authenticator app to continue.",
+    "oauth_hint": "To stop this prompt from coming back, ask your administrator to turn on OAuth sign-in (Stalwart's built-in OAuth or an external identity provider).",
+    "code_label": "Authentication code",
+    "verify": "Verify"
   },
   "sidebar": {
     "close": "Close",
@@ -163,6 +182,7 @@
     "unified_all_starred": "All starred",
     "unified_all_mail": "All mail",
     "remove_account": "Remove account",
+    "remove_account_title": "Remove account?",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Labels",
     "create_label": "Create new label",
@@ -2605,6 +2625,10 @@
     "retry": "Retry",
     "go_home": "Go to inbox"
   },
+  "not_found": {
+    "title": "Page not found",
+    "description": "This page doesn't exist or has moved. Check the address, or go back to your inbox."
+  },
   "context_menu": {
     "reply": "Reply",
     "reply_all": "Reply All",
@@ -4243,6 +4267,14 @@
     "copied": "Link copied",
     "copy_failed": "Couldn't copy the link"
   },
+  "connector_link": {
+    "opening": "Opening…",
+    "unknown_title": "This link is newer than this {name}",
+    "unknown_body": "It opens something version {version} does not know about. Updating {name} should teach it.",
+    "malformed_title": "That link is not quite right",
+    "malformed_body": "It asks for {label}, but its {param} is missing or malformed. Nothing was opened.",
+    "open_app": "Open {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Completing authorization…",
@@ -4633,6 +4665,13 @@
   },
   "top_bar": {
     "more": "More options"
+  },
+  "shell": {
+    "resize": "Resize",
+    "update_available": "Update available",
+    "update_important": "Important update available",
+    "folder_unread": "{count} unread",
+    "folder_counts": "{unread} unread, {total} total"
   },
   "plugin_pages": {
     "loading": "Loading page",

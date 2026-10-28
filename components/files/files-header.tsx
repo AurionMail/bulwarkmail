@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
+import { PhoneHeaderActions } from "@/components/layout/phone-header-actions";
 import { cn } from "@/lib/utils";
 import { anchorEvent, isInternalDrag, readDraggedNames } from "@/components/files/file-item-parts";
 import { PluginActions } from "@/components/plugins/plugin-actions";
@@ -366,6 +367,7 @@ export function FilesHeader({
             </IconButton>
           )}
           <DetailsToggle showDetails={showDetails} onToggle={onToggleDetails} label={t("details")} />
+          <PhoneHeaderActions below="md" />
         </div>
       )}
 

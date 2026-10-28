@@ -222,6 +222,7 @@ function SidebarRowCounts({
   isSelected: boolean;
   onUnreadClick?: () => void;
 }) {
+  const tShell = useTranslations('shell');
   const showFolderTotalCount = useSettingsStore(s => s.showFolderTotalCount);
   const mountainView = useSettingsStore(s => s.interfaceLayout === 'mountain-view');
   // Per-folder override from the folder settings (#982).
@@ -272,7 +273,7 @@ function SidebarRowCounts({
           }
         }}
         className={cn(unreadClass, "cursor-pointer hover:underline")}
-        title={`${unreadCount} unread`}
+        title={tShell("folder_unread", { count: unreadCount })}
       >
         {unreadCount}
       </span>
@@ -284,7 +285,7 @@ function SidebarRowCounts({
   return (
     <span
       className="ms-2 flex-shrink-0 flex items-baseline gap-1"
-      title={totalCount > 0 ? `${unreadCount} unread / ${totalCount} total` : `${unreadCount} unread`}
+      title={totalCount > 0 ? tShell("folder_counts", { unread: unreadCount, total: totalCount }) : tShell("folder_unread", { count: unreadCount })}
       data-testid="folder-counts"
       data-unread={unreadCount}
       data-total={totalCount}
@@ -894,7 +895,7 @@ function VacationBanner() {
 
   return (
     <button
-      onClick={() => router.push('/settings')}
+      onClick={() => router.push(buildSettingsPath('vacation'))}
       className={cn(
         "flex items-center gap-2 w-full px-3 py-2 text-xs",
         "bg-amber-500/10 dark:bg-amber-400/10 text-amber-700 dark:text-amber-400",

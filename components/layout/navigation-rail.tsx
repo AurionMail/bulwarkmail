@@ -120,8 +120,17 @@ function StorageQuotaCircle({ quota, usagePercent }: { quota: StorageQuota; usag
       ) return;
       setOpen(false);
     };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      buttonRef.current?.focus();
+    };
     document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, [open]);
 
   // Usage can legitimately exceed the quota (e.g. limit lowered after the fact)
@@ -140,6 +149,7 @@ function StorageQuotaCircle({ quota, usagePercent }: { quota: StorageQuota; usag
         onClick={() => setOpen(!open)}
         className="relative w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors cursor-pointer"
         aria-label={t("storage")}
+        aria-expanded={open}
       >
         <svg className="w-8 h-8 -rotate-90" viewBox="0 0 32 32">
           <circle cx="16" cy="16" r="12" fill="none" className="stroke-muted" strokeWidth="3" />
@@ -243,6 +253,9 @@ export function NavigationRail({
   const startUpdatePolling = useUpdateStore((s) => s.startPolling);
   useEffect(() => { startUpdatePolling(); }, [startUpdatePolling]);
   const updateImportant = updateSeverity === 'security' || updateSeverity === 'deprecated';
+  const tShell = useTranslations("shell");
+  // Said with the admin entry; its dot alone is not announced.
+  const updateLabel = hasUpdate ? tShell(updateImportant ? "update_important" : "update_available") : null;
 
   // Account list for rail
   const accounts = useAccountStore((s) => s.accounts);
@@ -371,6 +384,7 @@ export function NavigationRail({
               key={item.id}
               href={item.href}
               onClick={handleNavClick(item.id as 'mail' | 'calendar' | 'contacts' | 'files' | 'settings')}
+              data-tour={`nav-${item.id}`}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 py-2 px-1 min-h-[44px] grow shrink-0 basis-[64px]",
                 "transition-colors duration-150",
@@ -386,7 +400,7 @@ export function NavigationRail({
               )}>
                 <Icon className="w-5 h-5" />
                 {item.badge != null && item.badge > 0 && (
-                  <span aria-hidden="true" className="absolute -top-1.5 -right-2.5 flex items-center justify-center min-w-[16px] h-4 text-[10px] font-bold rounded-full bg-red-500 text-white px-1">
+                  <span aria-hidden="true" className="absolute -top-1.5 -end-2.5 flex items-center justify-center min-w-[16px] h-4 text-[10px] font-bold rounded-full bg-red-500 text-white px-1">
                     {item.badge > 99 ? "99+" : item.badge}
                   </span>
                 )}
@@ -487,14 +501,15 @@ export function NavigationRail({
               {hasUpdate && (
                 <span
                   className={cn(
-                    "absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ring-2 ring-background",
+                    "absolute -top-0.5 -end-0.5 w-2 h-2 rounded-full ring-2 ring-background",
                     updateImportant ? "bg-red-500" : "bg-amber-500",
                   )}
-                  aria-label={updateImportant ? "Important update available" : "Update available"}
+                  aria-hidden="true"
                 />
               )}
             </span>
             <span className="text-[10px] font-medium leading-tight truncate max-w-full">{t("admin") || "Admin"}</span>
+            {updateLabel && <span className="sr-only">{`, ${updateLabel}`}</span>}
           </a>
         )}
 
@@ -601,7 +616,7 @@ export function NavigationRail({
               {item.badge != null && item.badge > 0 && (
                 <span aria-hidden="true" className={cn(
                   "absolute flex items-center justify-center min-w-[16px] h-4 text-[10px] font-bold rounded-full bg-red-500 text-white px-1",
-                  collapsed ? "-top-0.5 -right-0.5" : "right-1.5"
+                  collapsed ? "-top-0.5 -end-0.5" : "end-1.5"
                 )}>
                   {item.badge > 99 ? "99+" : item.badge}
                 </span>
@@ -718,16 +733,17 @@ export function NavigationRail({
               adminActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted",
             )}
             title={t("admin") || "Admin"}
+            aria-label={updateLabel ? `${t("admin") || "Admin"}, ${updateLabel}` : undefined}
             aria-current={adminActive ? "page" : undefined}
           >
             <Shield className="w-[18px] h-[18px]" />
             {hasUpdate && (
               <span
                 className={cn(
-                  "absolute top-2 right-2 w-2 h-2 rounded-full ring-2 ring-background",
+                  "absolute top-2 end-2 w-2 h-2 rounded-full ring-2 ring-background",
                   updateImportant ? "bg-red-500" : "bg-amber-500",
                 )}
-                aria-label={updateImportant ? "Important update available" : "Update available"}
+                aria-hidden="true"
               />
             )}
           </a>
@@ -816,7 +832,7 @@ export function NavigationRail({
                     fallbackColor={account.avatarColor}
                   />
                   {isActive && (
-                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-primary flex items-center justify-center">
+                    <span className="absolute -bottom-0.5 -end-0.5 w-3 h-3 rounded-full bg-primary flex items-center justify-center">
                       <Check className="w-2 h-2 text-primary-foreground" />
                     </span>
                   )}
@@ -868,7 +884,7 @@ export function NavigationRail({
                 {accounts.length > 1 && (
                   <button
                     onClick={() => { setLogoutMenuOpen(false); logoutAll(); }}
-                    className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-destructive hover:bg-muted transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-start text-foreground hover:bg-muted transition-colors"
                     role="menuitem"
                   >
                     <LogOut className="w-4 h-4" />

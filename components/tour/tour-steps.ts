@@ -201,11 +201,21 @@ export function getTourSteps(options: {
   isDemoMode: boolean;
   supportsCalendar: boolean;
   supportsWebDAV: boolean;
+  /** Contacts available and allowed; defaults to true. */
+  supportsContacts?: boolean;
+  /** A touch screen: no keyboard to use the shortcuts with. */
+  touch?: boolean;
 }): TourStep[] {
   let steps = [...BASE_TOUR_STEPS];
 
   if (!options.supportsCalendar) {
     steps = steps.filter((s) => s.id !== "nav-calendar");
+  }
+  if (options.supportsContacts === false) {
+    steps = steps.filter((s) => s.id !== "nav-contacts");
+  }
+  if (options.touch) {
+    steps = steps.filter((s) => s.id !== "shortcuts");
   }
 
   if (options.isDemoMode) {

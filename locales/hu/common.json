@@ -50,6 +50,18 @@
     "sign_in_sso": "Bejelentkezés SSO-val",
     "add_account_title": "Fiók hozzáadása",
     "add_account_subtitle": "Bejelentkezés másik fiókkal",
+    "subtitle": "Jelentkezzen be a fiókjába",
+    "version": {
+      "details": "Verzió részletei",
+      "version_line": "Verzió: {value}",
+      "build_line": "Build: {value}",
+      "latest_line": "Legújabb: {value}",
+      "copy": "Verzióadatok másolása",
+      "security_update": "Biztonsági frissítés érhető el",
+      "unsupported": "Ez a verzió már nem támogatott",
+      "new_version": "Új verzió érhető el",
+      "release_notes": "Kiadási megjegyzések"
+    },
     "cancel": "Mégse",
     "website": "Weboldal",
     "imprint": "Impresszum",
@@ -75,6 +87,13 @@
       "access_denied": "A hozzáférés megtagadva. Kérjük, vedd fel a kapcsolatot a rendszergazdával.",
       "back_to_login": "Vissza a bejelentkezéshez"
     }
+  },
+  "totp_reauth": {
+    "title": "A munkamenet lejárt",
+    "description": "A kétlépcsős kód megváltozott. A folytatáshoz adjon meg egy új kódot a hitelesítő alkalmazásból.",
+    "oauth_hint": "Hogy ez a kérés ne jelenjen meg újra, kérje meg a rendszergazdát, hogy kapcsolja be az OAuth-bejelentkezést (a Stalwart beépített OAuth-ját vagy egy külső identitásszolgáltatót).",
+    "code_label": "Hitelesítő kód",
+    "verify": "Ellenőrzés"
   },
   "sidebar": {
     "close": "Bezárás",
@@ -163,6 +182,7 @@
     "unified_all_starred": "Összes csillagozott",
     "unified_all_mail": "Összes levél",
     "remove_account": "Remove account",
+    "remove_account_title": "Eltávolítja a fiókot?",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Címkék",
     "create_label": "Új címke létrehozása",
@@ -2605,6 +2625,10 @@
     "retry": "Újra",
     "go_home": "Ugrás a beérkezőhöz"
   },
+  "not_found": {
+    "title": "Az oldal nem található",
+    "description": "Ez az oldal nem létezik, vagy áthelyezték. Ellenőrizze a címet, vagy térjen vissza a beérkezett üzenetekhez."
+  },
   "context_menu": {
     "reply": "Válasz",
     "reply_all": "Válasz mindenkinek",
@@ -4243,6 +4267,14 @@
     "copied": "Link másolva",
     "copy_failed": "Nem sikerült másolni a linket"
   },
+  "connector_link": {
+    "opening": "Megnyitás…",
+    "unknown_title": "Ez a hivatkozás újabb, mint ez a {name}",
+    "unknown_body": "Olyasmit nyit meg, amit a(z) {version} verzió nem ismer. A(z) {name} frissítése megoldja.",
+    "malformed_title": "Ez a hivatkozás nem egészen jó",
+    "malformed_body": "{label} megnyitását kéri, de a(z) {param} paraméter hiányzik vagy hibás. Semmi sem nyílt meg.",
+    "open_app": "{name} megnyitása"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Hitelesítés befejezése…",
@@ -4633,6 +4665,13 @@
   },
   "top_bar": {
     "more": "További lehetőségek"
+  },
+  "shell": {
+    "resize": "Átméretezés",
+    "update_available": "Frissítés érhető el",
+    "update_important": "Fontos frissítés érhető el",
+    "folder_unread": "{count} olvasatlan",
+    "folder_counts": "{unread} olvasatlan, összesen {total}"
   },
   "plugin_pages": {
     "loading": "Oldal betöltése",
