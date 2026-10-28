@@ -76,6 +76,18 @@
       "back_to_login": "Back to login"
     }
   },
+  "session_limits": {
+    "idle_title": "Are you still there?",
+    "idle_message": "You'll be signed out in {seconds, plural, one {# second} other {# seconds}} because there was no activity. Open messages are saved as drafts.",
+    "stay": "Stay signed in",
+    "sign_out_now": "Sign out now",
+    "max_title": "Your session is ending",
+    "max_message": "Your organisation ends sessions {hours, plural, one {# hour} other {# hours}} after sign-in. You'll be signed out in {seconds, plural, one {# second} other {# seconds}}. Open messages are saved as drafts.",
+    "dismiss": "OK",
+    "signing_out": "Saving drafts and signing out…",
+    "reason_idle": "You were signed out after {minutes, plural, one {# minute} other {# minutes}} without activity.",
+    "reason_max": "You were signed out because your session reached its maximum length of {hours, plural, one {# hour} other {# hours}}."
+  },
   "sidebar": {
     "close": "Close",
     "compose": "Compose",

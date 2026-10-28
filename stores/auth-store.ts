@@ -108,9 +108,10 @@ interface AuthState {
   logout: (options?: LogoutOptions) => Promise<void>;
   /**
    * Sign out of every account. Ends at most one identity provider session:
-   * see {@link pickEndSessionSlot}.
+   * see {@link pickEndSessionSlot}; none with `endProviderSession: false`
+   * (the organisation's session limits, which sign out without asking).
    */
-  logoutAll: () => Promise<void>;
+  logoutAll: (options?: LogoutOptions) => Promise<void>;
   removeAccount: (accountId: string) => void;
   switchAccount: (accountId: string) => Promise<void>;
   checkAuth: () => Promise<void>;
@@ -1267,6 +1268,8 @@ export const LOGOUT_HOOK_BUDGET_MS = 2000;
 
 function notifySignedIn(state: { activeAccountId: string | null; username: string | null }): void {
   if (!state.activeAccountId) return;
+  // The organisation's maximum session length counts from a sign-in, never from a restore.
+  useAccountStore.getState().updateAccount(state.activeAccountId, { signedInAt: Date.now() });
   void authHooks.onLogin.emit({ accountId: state.activeAccountId, username: state.username ?? '' });
 }
 
@@ -2315,12 +2318,14 @@ export const useAuthStore = create<AuthState>()(
         clearPluginStorageForAccount(accountId);
       },
 
-      logoutAll: async () => {
+      logoutAll: async (options) => {
         await beforeLogoutHooks('all');
 
         const accountStore = useAccountStore.getState();
         const allAccounts = [...accountStore.accounts];
-        const endSessionSlot = get().isDemoMode ? null : pickEndSessionSlot(allAccounts, get().activeAccountId);
+        // `options` can be a click event when the action is wired straight to onClick.
+        const endProviderSession = options?.endProviderSession !== false;
+        const endSessionSlot = get().isDemoMode || !endProviderSession ? null : pickEndSessionSlot(allAccounts, get().activeAccountId);
 
         // Starts by marking every slot closing, so nothing renews a session
         // while the clients are torn down.
@@ -3092,7 +3097,7 @@ export const useAuthStore = create<AuthState>()(
         bindClientStatusHandlers(client, set, get, accountId);
         accountStore.updateAccount(accountId, {
           awaitingSignIn: false, isConnected: true, hasError: false, errorMessage: undefined,
-          rememberMe, lastLoginAt: Date.now(),
+          rememberMe, lastLoginAt: Date.now(), signedInAt: Date.now(),
         });
         void syncAccountDisplayName(accountId, client);
         set((state) => ({ connectedAccountsRevision: state.connectedAccountsRevision + 1 }));
