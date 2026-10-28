@@ -102,6 +102,7 @@ import { calendarShortcutAction } from "@/lib/calendar-shortcuts";
 import { isEditableEventTarget } from "@/lib/keyboard";
 import { isContextMenuOpen } from "@/components/ui/context-menu";
 import { useRegisterCommands } from "@/lib/command-registry";
+import { useConfig } from "@/hooks/use-config";
 
 // `fromEditor`: asked on the way out of the event editor, which stays open
 // until a scope is picked, so Cancel goes back to it with the changes.
@@ -129,6 +130,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
   const tSidebar = useTranslations("sidebar");
   useDocumentTitle(tSidebar("calendar"));
   const tWebcalAction = useTranslations("calendar.webcal_action");
+  const { demoMode } = useConfig();
   const tDeepLink = useTranslations("deep_link");
   const isMobile = useIsMobile();
   const isDesktop = useIsDesktop();
@@ -1552,8 +1554,8 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       run: () => { setMobileReturnToMonth(false); setViewMode(mode); },
       when: () => mode !== normalizedViewMode && (mode !== "tasks" || enableCalendarTasks),
     })),
-    { id: "import", label: t("toolbar.import"), icon: Upload, run: () => setShowImportModal(true) },
-    { id: "subscribe", label: t("toolbar.subscribe"), icon: Globe, run: () => setShowSubscriptionModal(true) },
+    { id: "import", label: t("toolbar.import"), icon: Upload, run: () => setShowImportModal(true), when: () => !demoMode },
+    { id: "subscribe", label: t("toolbar.subscribe"), icon: Globe, run: () => setShowSubscriptionModal(true), when: () => !demoMode },
     { id: "refresh", label: tCommon("refresh"), icon: RefreshCw, shortcut: "F5", run: () => { void refreshCalendar(); } },
   ], isEmbedded ? isFocusedProTab : !proInterfaceActive);
 
@@ -1883,8 +1885,8 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       onViewModeChange={(mode) => { setMobileReturnToMonth(false); setViewMode(mode); }}
       onCreateEvent={openCreateForView}
       createLabel={createLabel}
-      onImport={() => setShowImportModal(true)}
-      onSubscribe={() => setShowSubscriptionModal(true)}
+      onImport={demoMode ? undefined : () => setShowImportModal(true)}
+      onSubscribe={demoMode ? undefined : () => setShowSubscriptionModal(true)}
       onRefresh={() => { void refreshCalendar(); }}
       isMobile={isMobile}
       onNavigateBack={isMobile && mobileReturnToMonth && normalizedViewMode === "day" ? navigateBackToMonth : undefined}
@@ -2040,7 +2042,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
                 }
               } : undefined}
               onCreateCalendar={client ? () => setShowCreateCalendar(true) : undefined}
-              onSubscribe={() => setShowSubscriptionModal(true)}
+              onSubscribe={demoMode ? undefined : () => setShowSubscriptionModal(true)}
               onEditSubscription={(subId) => setEditingSubscription(subId)}
               client={client}
               multiAccountMode={multiAccountEnabled && accountClients.length > 1}

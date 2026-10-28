@@ -26,6 +26,8 @@ vi.mock('@/hooks/use-refresh-gesture', () => ({ useRefreshGesture: () => ({ indi
 vi.mock('@/hooks/use-calendar-push-refresh', () => ({ useCalendarPushRefresh: () => {} }));
 vi.mock('@/hooks/use-account-principal-emails', () => ({ useAccountPrincipalEmails: () => [] }));
 vi.mock('../participant-availability', () => ({ ParticipantAvailability: () => null }));
+const config = vi.hoisted(() => ({ demoMode: false }));
+vi.mock('@/hooks/use-config', () => ({ useConfig: () => config }));
 
 import { CalendarApp } from '../calendar-app';
 import { useRegisteredCommandGroups } from '@/lib/command-registry';
@@ -561,5 +563,20 @@ describe('CalendarApp control names', () => {
     setUp([makeEvent({ title: 'Trip', showWithoutTime: true, start: '2026-10-12T00:00:00', duration: 'P1D' })], 'month');
     renderApp();
     expect(screen.getAllByRole('button', { name: /Trip/ })[0].getAttribute('aria-label')).toContain('events.all_day');
+  });
+});
+
+describe('CalendarApp in the demo', () => {
+  it('leaves Import and Subscribe out, which need a mail server', async () => {
+    config.demoMode = true;
+    try {
+      renderApp();
+      fireEvent.click(screen.getByRole('button', { name: 'toolbar.more' }));
+      expect(await screen.findByRole('menuitem', { name: 'refresh' })).toBeInTheDocument();
+      expect(screen.queryByRole('menuitem', { name: 'toolbar.import' })).toBeNull();
+      expect(screen.queryByRole('menuitem', { name: 'toolbar.subscribe' })).toBeNull();
+    } finally {
+      config.demoMode = false;
+    }
   });
 });

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback, useRef, useId } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { buildRecurrenceSummary } from "./recurrence-editor";
 import { Button } from "@/components/ui/button";
 import { Upload, Check, RefreshCw, Globe } from "@/components/icons";
 import { Dialog } from "@/components/ui/dialog";
@@ -33,6 +34,7 @@ type ImportMode = "file" | "url";
 export function ICalImportModal({ calendars, client, onClose, initialUrl }: ICalImportModalProps) {
   const t = useTranslations("calendar.import");
   const tCal = useTranslations("calendar");
+  const locale = useLocale();
   const tForm = useTranslations("calendar.form");
   const importEvents = useCalendarStore((s) => s.importEvents);
   const timeFormat = useSettingsStore((s) => s.timeFormat);
@@ -388,7 +390,7 @@ export function ICalImportModal({ calendars, client, onClose, initialUrl }: ICal
                         {event.recurrenceRules && event.recurrenceRules.length > 0 && (
                           <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                             <RefreshCw className="w-3 h-3" />
-                            {event.recurrenceRules[0].frequency}
+                            {buildRecurrenceSummary(event.recurrenceRules[0], tCal, locale) ?? tCal("recurrence.custom")}
                           </span>
                         )}
                       </div>

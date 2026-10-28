@@ -62,3 +62,21 @@ describe('import dialog from the keyboard', () => {
     expect(screen.getByRole('button', { name: /select_file/ })).toBeInTheDocument();
   });
 });
+
+describe('import preview', () => {
+  it('names a repeating event\'s rule in the app language', async () => {
+    const weekly = { title: 'Gym', start: '2026-10-12T18:00:00', duration: 'PT1H', recurrenceRules: [{ '@type': 'RecurrenceRule', frequency: 'weekly', interval: 1 }] };
+    const parsing = {
+      getAccountId: () => 'acct',
+      getCalendarsAccountId: () => 'acct',
+      uploadBlob: vi.fn().mockResolvedValue({ blobId: 'b1' }),
+      parseCalendarEvents: vi.fn().mockResolvedValue([weekly]),
+    } as unknown as IJMAPClient;
+    render(<ICalImportModal calendars={calendars} client={parsing} onClose={vi.fn()} />);
+    const file = new File(['BEGIN:VCALENDAR'], 'gym.ics', { type: 'text/calendar' });
+    fireEvent.change(document.querySelector('input[type="file"]')!, { target: { files: [file] } });
+    expect(await screen.findByText('Gym')).toBeInTheDocument();
+    expect(screen.queryByText('weekly')).toBeNull();
+    expect(screen.getByText('recurrence.weekly')).toBeInTheDocument();
+  });
+});

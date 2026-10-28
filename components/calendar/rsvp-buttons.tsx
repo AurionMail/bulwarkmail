@@ -46,9 +46,9 @@ const CHOSEN: Record<string, string> = {
 };
 
 const ANSWERS: { status: Status; label: string }[] = [
-  { status: "accepted", label: "participants.accepted" },
-  { status: "tentative", label: "participants.tentative" },
-  { status: "declined", label: "participants.declined" },
+  { status: "accepted", label: "participants.accept" },
+  { status: "tentative", label: "participants.maybe" },
+  { status: "declined", label: "participants.decline" },
 ];
 
 /** The three answers to an invitation, the current one filled. */
