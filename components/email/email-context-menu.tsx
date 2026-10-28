@@ -28,10 +28,6 @@ import {
   FolderInput,
   FolderX,
   Tag,
-  Inbox,
-  Send,
-  File,
-  Folder,
   ShieldAlert,
   ShieldCheck,
   EditIcon,
@@ -48,6 +44,7 @@ import { useCopyLink } from "@/hooks/use-copy-link";
 import { buildMailboxTree, MailboxNode } from "@/lib/utils";
 import { buildMoveTargets, resolveMoveOwnerAccountId } from "@/lib/move-targets";
 import { localizeMailboxName } from "@/lib/mailbox-label";
+import { moveMailboxIcon } from "./move-target-list";
 import { getEmailTagIds } from "@/lib/thread-utils";
 import { TagPicker } from "./tag-picker";
 import { RulesContextSubMenu } from "./rules-menu";
@@ -132,24 +129,6 @@ interface EmailContextMenuProps {
   onCopyToAccount?: (accountId: string, mailboxId: string) => void;
   onBatchForwardAsAttachment?: () => void;
 }
-
-// Get mailbox icon based on role
-const getMailboxIcon = (role?: string) => {
-  switch (role) {
-    case "inbox":
-      return Inbox;
-    case "sent":
-      return Send;
-    case "drafts":
-      return File;
-    case "trash":
-      return Trash2;
-    case "archive":
-      return Archive;
-    default:
-      return Folder;
-  }
-};
 
 export function EmailContextMenu({
   email,
@@ -259,7 +238,7 @@ export function EmailContextMenu({
     onPick: (mailboxId: string) => void,
   ): React.ReactNode =>
     nodes.map((node) => {
-      const Icon = getMailboxIcon(node.role);
+      const Icon = moveMailboxIcon(node.role);
       const nodeLabel = localizeMailboxName(node.role, node.name, (k) => tSidebar(`mailboxes.${k}`));
       return (
         <div key={node.id}>

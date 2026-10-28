@@ -125,7 +125,8 @@ describe('email viewer More actions menu', () => {
     flushFrames();
 
     const subMenu = screen.getByRole('menu', { name: 'move_to' });
-    tap(within(subMenu).getByRole('menuitem', { name: /Archive/ }));
+    // Named as the sidebar names it (the i18n mock renders the key).
+    tap(within(subMenu).getByRole('menuitem', { name: /mailboxes.archive/ }));
 
     expect(onMoveToMailbox).toHaveBeenCalledWith('archive');
   });
