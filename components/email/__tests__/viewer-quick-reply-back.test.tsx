@@ -62,3 +62,31 @@ describe('quick reply', () => {
     expect(box.value).toBe('');
   });
 });
+
+describe('automatic sign-out while the external recipient question is open', () => {
+  it('answers Back and keeps the typed reply as a draft, without asking again', async () => {
+    const { useExternalRecipientConfirmStore } = await import('@/stores/external-recipient-confirm-store');
+    const { flushComposers, resetComposeFlushRegistry } = await import('@/lib/compose-flush-registry');
+    resetComposeFlushRegistry();
+    useExternalRecipientConfirmStore.setState({ pending: null, queue: [] });
+    const onQuickReply = vi.fn((body: string) => {
+      void body;
+      return useExternalRecipientConfirmStore.getState().ask([{ address: 'org-dave@org-two.test', domain: 'org-two.test', field: 'to' }]);
+    });
+    const onSaveQuickReplyDraft = vi.fn(async () => {});
+    render(<EmailViewer email={message} isLoading={false} mailboxes={mailboxes} selectedMailbox="inbox" currentMailboxRole="inbox"
+      onQuickReply={onQuickReply} onSaveQuickReplyDraft={onSaveQuickReplyDraft} />);
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    const box = screen.getByPlaceholderText('quick_reply_placeholder') as HTMLTextAreaElement;
+    fireEvent.focus(box);
+    fireEvent.change(box, { target: { value: 'My answer' } });
+    fireEvent.click(screen.getByRole('button', { name: 'send' }));
+    await waitFor(() => expect(useExternalRecipientConfirmStore.getState().pending).not.toBeNull());
+
+    await act(async () => { await flushComposers(2000); });
+    expect(onSaveQuickReplyDraft).toHaveBeenCalledWith('My answer');
+    expect(useExternalRecipientConfirmStore.getState().pending).toBeNull();
+    expect(box.value).toBe('My answer');
+    expect(onQuickReply).toHaveBeenCalledTimes(1);
+  });
+});

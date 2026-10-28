@@ -103,6 +103,7 @@ import { useSettingsStore } from "@/stores/settings-store";
 import { useShallow } from "zustand/react/shallow";
 import { useEffectiveMailLayout } from "@/hooks/use-effective-mail-layout";
 import { registerComposeFlush } from "@/lib/compose-flush-registry";
+import { useExternalRecipientConfirmStore } from "@/stores/external-recipient-confirm-store";
 import { useUIStore } from "@/stores/ui-store";
 import { useContactStore, getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
 import { toast } from "@/stores/toast-store";
@@ -1377,7 +1378,9 @@ export function EmailViewer({
   const [isQuickReplyFocused, setIsQuickReplyFocused] = useState(false);
   const [isSendingQuickReply, setIsSendingQuickReply] = useState(false);
   // An automatic sign-out keeps typed quick-reply text as a draft; text on
-  // its way out as a reply needs none.
+  // its way out as a reply needs none. A reply still waiting on the
+  // "Send outside your organisation?" question hasn't gone out: the question
+  // is answered with Back and the text kept as a draft.
   const quickReplyDraftRef = useRef({ text: quickReplyText, sending: isSendingQuickReply, save: onSaveQuickReplyDraft });
   quickReplyDraftRef.current = { text: quickReplyText, sending: isSendingQuickReply, save: onSaveQuickReplyDraft };
   const hasQuickReplyDraft = quickReplyText.trim().length > 0 && !!onSaveQuickReplyDraft;
@@ -1385,7 +1388,12 @@ export function EmailViewer({
     if (!hasQuickReplyDraft) return;
     return registerComposeFlush(async () => {
       const { text, sending, save } = quickReplyDraftRef.current;
-      if (sending || !text.trim() || !save) return;
+      if (!text.trim() || !save) return;
+      if (sending) {
+        const confirm = useExternalRecipientConfirmStore.getState();
+        if (!confirm.pending) return;
+        confirm.cancelAll();
+      }
       await save(text);
     });
   }, [hasQuickReplyDraft]);
