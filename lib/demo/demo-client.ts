@@ -12,6 +12,7 @@ import { compareEmails, type SortLevel } from '@/lib/message-list-order';
 import { withBasePath } from '@/lib/browser-navigation';
 import { toInertBlob } from '@/lib/file-preview';
 import type { StorageQuota } from "@/lib/quota";
+import { buildDemoEml, demoEmlBlobId, demoEmlEmailId } from './demo-eml';
 
 // Fixture blobs with real bytes behind them, served from public/demo/ (see
 // fixtures/assets.ts for the list and the licences). Any other blob id falls
@@ -19,6 +20,12 @@ import type { StorageQuota } from "@/lib/quota";
 const DEMO_BLOB_ASSETS: Record<string, string> = Object.fromEntries(
   Object.entries(DEMO_ASSETS).map(([blobId, asset]) => [blobId, asset.path]),
 );
+
+/** Gives a demo message a raw-message blob (see demo-eml.ts) unless it has one. */
+function withEmlBlob(email: Email): Email {
+  if (!email.blobId) email.blobId = demoEmlBlobId(email.id);
+  return email;
+}
 
 /** localStorage key that switches the simulated incoming mail off (screenshot runs). */
 export const DEMO_SIMULATE_KEY = 'bulwark-demo-simulate';
@@ -47,7 +54,10 @@ export class DemoJMAPClient implements IJMAPClient {
     this.data = getDemoData(profile);
     // Fixtures carry raw headers the way a server sends them; derive the
     // parsed fields the viewer reads, as JMAPClient.parseEmailHeaders does.
-    for (const email of this.data.emails) this.deriveHeaderFields(email);
+    for (const email of this.data.emails) {
+      this.deriveHeaderFields(email);
+      withEmlBlob(email);
+    }
     this.recalcMailboxCounts();
     for (const s of this.data.scheduled) {
       const id = generateDemoId('submission');
@@ -807,9 +817,9 @@ export class DemoJMAPClient implements IJMAPClient {
     };
 
     if (existing >= 0) {
-      this.data.emails[existing] = email;
+      this.data.emails[existing] = withEmlBlob(email);
     } else {
-      this.data.emails.push(email);
+      this.data.emails.push(withEmlBlob(email));
     }
     this.recalcMailboxCounts();
     return id;
@@ -859,7 +869,7 @@ export class DemoJMAPClient implements IJMAPClient {
       inReplyTo: inReplyTo?.length ? inReplyTo : undefined,
       references: references?.length ? references : undefined,
     };
-    this.data.emails.push(email);
+    this.data.emails.push(withEmlBlob(email));
     let emailSubmissionId: string | undefined;
     if (delayedUntil) {
       emailSubmissionId = generateDemoId('submission');
@@ -924,6 +934,9 @@ export class DemoJMAPClient implements IJMAPClient {
     if (blobId === GONOGO_INVITE_BLOB) {
       return new Blob([createGoNoGoInvitationIcs()], { type: 'text/calendar; method=REQUEST' });
     }
+    const emlOf = demoEmlEmailId(blobId);
+    const emlEmail = emlOf ? this.data.emails.find((e) => e.id === emlOf) : undefined;
+    if (emlEmail) return new Blob([buildDemoEml(emlEmail)], { type: 'message/rfc822' });
     const asset = DEMO_BLOB_ASSETS[blobId];
     if (asset) {
       try {
@@ -1482,7 +1495,7 @@ export class DemoJMAPClient implements IJMAPClient {
       preview: 'Signed/encrypted demo message',
       hasAttachment: false,
     };
-    this.data.emails.push(email);
+    this.data.emails.push(withEmlBlob(email));
     let emailSubmissionId: string | undefined;
     if (delayedUntil) {
       emailSubmissionId = generateDemoId('submission');
@@ -1608,7 +1621,7 @@ export class DemoJMAPClient implements IJMAPClient {
       messageId: `<${id}@demo.example.com>`,
     };
 
-    this.data.emails.unshift(email);
+    this.data.emails.unshift(withEmlBlob(email));
     this.recalcMailboxCounts();
 
     // Notify state change to trigger UI refresh
