@@ -21,7 +21,7 @@ interface EmailEntry {
 interface PhoneEntry {
   number: string;
   context: "work" | "private" | "";
-  feature: "voice" | "cell" | "fax" | "pager" | "video" | "text" | "";
+  feature: "voice" | "mobile" | "fax" | "pager" | "video" | "text" | "";
 }
 
 interface OnlineServiceEntry {
@@ -319,7 +319,8 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
       return Object.values(contact.phones).map(p => ({
         number: p.number,
         context: p.contexts?.work ? "work" : p.contexts?.private ? "private" : "",
-        feature: p.features?.cell ? "cell" : p.features?.fax ? "fax" : p.features?.pager ? "pager" : p.features?.video ? "video" : p.features?.text ? "text" : p.features?.voice ? "voice" : "",
+        // RFC 9553 calls it "mobile"; cards saved by older versions of this form say "cell".
+        feature: p.features?.mobile || p.features?.cell ? "mobile" : p.features?.fax ? "fax" : p.features?.pager ? "pager" : p.features?.video ? "video" : p.features?.text ? "text" : p.features?.voice ? "voice" : "",
       }));
     }
     return [];
@@ -942,7 +943,7 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
                   >
                     <option value="">{t("phone_type")}</option>
                     <option value="voice">{t("phone_voice")}</option>
-                    <option value="cell">{t("phone_cell")}</option>
+                    <option value="mobile">{t("phone_cell")}</option>
                     <option value="fax">{t("phone_fax")}</option>
                     <option value="pager">{t("phone_pager")}</option>
                     <option value="video">{t("phone_video")}</option>

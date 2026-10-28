@@ -54,8 +54,8 @@ describe('vCard export of contact photos', () => {
     const vcf = await exported!.text();
     expect(getBlobsAsBase64).toHaveBeenCalledWith(['dbcX', 'dbcLogo'], 'a');
     expect(fetchBlob).not.toHaveBeenCalled();
-    expect(vcf).toContain('PHOTO;ENCODING=b;TYPE=image/jpeg:/9j/');
-    expect(vcf).toContain('LOGO;ENCODING=b;TYPE=image/png:iVBO');
+    expect(vcf).toContain('PHOTO:data:image/jpeg;base64,/9j/');
+    expect(vcf).toContain('LOGO:data:image/png;base64,iVBO');
   });
 
   it('downloads Stalwart 1.0 blob photos one by one when the client cannot batch them', async () => {
@@ -70,8 +70,8 @@ describe('vCard export of contact photos', () => {
     const vcf = await exported!.text();
     expect(fetchBlob).toHaveBeenCalledWith('dbcX', 'photo', 'image/jpeg', 'a');
     expect(fetchBlob).toHaveBeenCalledWith('dbcLogo', 'logo', 'image/png', 'a');
-    expect(vcf).toContain('PHOTO;ENCODING=b;TYPE=image/jpeg:/9j/');
-    expect(vcf).toContain('LOGO;ENCODING=b;TYPE=image/png:/9j/');
+    expect(vcf).toContain('PHOTO:data:image/jpeg;base64,/9j/');
+    expect(vcf).toContain('LOGO:data:image/png;base64,/9j/');
   });
 
   it('writes Stalwart 0.16 photos without a media type too', async () => {
@@ -82,8 +82,8 @@ describe('vCard export of contact photos', () => {
 
     const vcf = await exported!.text();
     expect(fetchBlob).not.toHaveBeenCalled();
-    expect(vcf).toContain('PHOTO;ENCODING=b;TYPE=image/jpeg:/9j/');
-    expect(vcf).toContain('PHOTO;ENCODING=b:/9j/');
+    expect(vcf).toContain('PHOTO:data:image/jpeg;base64,/9j/');
+    expect(vcf).toContain('PHOTO:data:;base64,/9j/');
   });
 
   it('leaves out a photo that cannot be downloaded and exports the rest', async () => {
