@@ -257,6 +257,9 @@
     "shared_account_hidden": "ซ่อนจากแถบด้านข้างแล้ว เปิดใช้งานอีกครั้งได้ที่ การตั้งค่า › รูปลักษณ์",
     "notifications_muted": "ปิดเสียงการแจ้งเตือนแล้ว",
     "folder_options": "ตัวเลือกสำหรับ {name}",
+    "unread_filter": "แสดงเฉพาะที่ยังไม่อ่าน ({count})",
+    "unread_count": "ยังไม่อ่าน {count}",
+    "unread_total": "ยังไม่อ่าน {unread} / ทั้งหมด {total}",
     "mail": "จดหมาย",
     "nav_label": "การนำทาง",
     "add_app": "แอปพลิเคชัน",
@@ -464,6 +467,7 @@
     "no_more_emails": "ไม่มีอีเมลเพิ่มเติมแล้ว",
     "batch_actions": {
       "select": "เลือกอีเมล",
+      "select_row": "เลือก {sender}: {subject}",
       "select_all": "เลือกทั้งหมด",
       "selected_messages": "{count, plural, other {เลือกแล้ว # ฉบับ}}",
       "mark_read": "ทำเครื่องหมายว่าอ่านแล้ว",
@@ -474,6 +478,7 @@
       "clear_selection": "ล้างการเลือก",
       "more": "การดำเนินการเพิ่มเติมสำหรับรายการที่เลือก"
     },
+    "skip_to_list": "ข้ามไปที่รายการข้อความ",
     "permanent_delete": "ลบถาวร",
     "permanent_delete_confirm_title": "ยืนยันการลบถาวร",
     "permanent_delete_confirm_message": "อีเมลนี้จะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้",

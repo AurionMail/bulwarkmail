@@ -156,6 +156,9 @@
     "shared_account_hidden": "Külgribal peidetud. Lülita see tagasi sisse menüüs Seaded › Paigutus.",
     "notifications_muted": "Märguanded vaigistatud",
     "folder_options": "{name}: valikud",
+    "unread_filter": "Näita ainult lugemata ({count})",
+    "unread_count": "{count} lugemata",
+    "unread_total": "{unread} lugemata / kokku {total}",
     "mail": "Kirjad",
     "nav_label": "Navigeerimine",
     "add_app": "Rakendused",
@@ -281,6 +284,7 @@
     "no_more_emails": "Rohkem kirju pole laadida",
     "batch_actions": {
       "select": "Vali kirjad",
+      "select_row": "Vali {sender}: {subject}",
       "select_all": "Vali kõik",
       "selected_messages": "{count, plural, one {1 kiri} other {# kirja}} valitud",
       "mark_read": "Märgi loetuks",
@@ -291,6 +295,7 @@
       "clear_selection": "Tühista valik",
       "more": "Rohkem toiminguid valiku jaoks"
     },
+    "skip_to_list": "Mine kirjade loendisse",
     "permanent_delete": "Kustuta jäädavalt",
     "permanent_delete_confirm_title": "Jäädav kustutamine",
     "permanent_delete_confirm_message": "See kiri kustutatakse jäädavalt. Seda toimingut ei saa tagasi võtta.",

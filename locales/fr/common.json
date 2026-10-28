@@ -159,6 +159,9 @@
     "shared_account_hidden": "Masqué de la barre latérale. Réaffichez-le dans Paramètres › Mise en page.",
     "notifications_muted": "Notifications désactivées",
     "folder_options": "Options de {name}",
+    "unread_filter": "Afficher les non lus uniquement ({count})",
+    "unread_count": "{count} non lus",
+    "unread_total": "{unread} non lus / {total} au total",
     "scheduled": "Planifiés",
     "unified_all_unread": "Tous les non lus",
     "unified_all_starred": "Tous les favoris",
@@ -281,6 +284,7 @@
     "no_more_emails": "Plus d'emails à charger",
     "batch_actions": {
       "select": "Sélectionner les e-mails",
+      "select_row": "Sélectionner {sender} : {subject}",
       "select_all": "Tout sélectionner",
       "selected_messages": "{count, plural, one {1 e-mail sélectionné} other {# e-mails sélectionnés}}",
       "mark_read": "Marquer comme lu",
@@ -291,6 +295,7 @@
       "clear_selection": "Effacer la sélection",
       "more": "Plus d'actions pour la sélection"
     },
+    "skip_to_list": "Aller à la liste des messages",
     "permanent_delete": "Supprimer définitivement",
     "permanent_delete_confirm_title": "Supprimer définitivement",
     "permanent_delete_confirm_message": "Cet e-mail sera définitivement supprimé. Cette action est irréversible.",

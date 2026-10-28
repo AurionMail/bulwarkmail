@@ -159,6 +159,9 @@
     "shared_account_hidden": "In der Seitenleiste ausgeblendet. Unter Einstellungen › Layout wieder einblenden.",
     "notifications_muted": "Benachrichtigungen stummgeschaltet",
     "folder_options": "Optionen für {name}",
+    "unread_filter": "Nur ungelesene anzeigen ({count})",
+    "unread_count": "{count} ungelesen",
+    "unread_total": "{unread} ungelesen / {total} insgesamt",
     "scheduled": "Geplant",
     "unified_all_unread": "Alle ungelesenen",
     "unified_all_starred": "Alle markierten",
@@ -281,6 +284,7 @@
     "no_more_emails": "Keine weiteren E-Mails zum Laden",
     "batch_actions": {
       "select": "E-Mails auswählen",
+      "select_row": "{sender} auswählen: {subject}",
       "select_all": "Alle auswählen",
       "selected_messages": "{count, plural, one {1 E-Mail} other {# E-Mails}} ausgewählt",
       "mark_read": "Als gelesen markieren",
@@ -291,6 +295,7 @@
       "clear_selection": "Auswahl aufheben",
       "more": "Weitere Aktionen für die Auswahl"
     },
+    "skip_to_list": "Zur Nachrichtenliste springen",
     "permanent_delete": "Endgültig löschen",
     "permanent_delete_confirm_title": "Endgültig löschen",
     "permanent_delete_confirm_message": "Diese E-Mail wird endgültig gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",

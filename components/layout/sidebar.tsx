@@ -226,6 +226,7 @@ function SidebarRowCounts({
   isSelected: boolean;
   onUnreadClick?: () => void;
 }) {
+  const t = useTranslations('sidebar');
   const showFolderTotalCount = useSettingsStore(s => s.showFolderTotalCount);
   const mountainView = useSettingsStore(s => s.interfaceLayout === 'mountain-view');
   // Per-folder override from the folder settings (#982).
@@ -261,25 +262,18 @@ function SidebarRowCounts({
 
   const unreadNode = unreadCount > 0 ? (
     onUnreadClick ? (
-      <span
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         onClick={(e) => {
           e.stopPropagation();
           onUnreadClick();
         }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            e.stopPropagation();
-            onUnreadClick();
-          }
-        }}
-        className={cn(unreadClass, "cursor-pointer hover:underline")}
-        title={`${unreadCount} unread`}
+        className={cn(unreadClass, "cursor-pointer hover:underline rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring")}
+        title={t('unread_filter', { count: unreadCount })}
+        aria-label={t('unread_filter', { count: unreadCount })}
       >
         {unreadCount}
-      </span>
+      </button>
     ) : (
       <span className={unreadClass}>{unreadCount}</span>
     )
@@ -288,7 +282,7 @@ function SidebarRowCounts({
   return (
     <span
       className="ms-2 flex-shrink-0 flex items-baseline gap-1"
-      title={totalCount > 0 ? `${unreadCount} unread / ${totalCount} total` : `${unreadCount} unread`}
+      title={totalCount > 0 ? t('unread_total', { unread: unreadCount, total: totalCount }) : t('unread_count', { count: unreadCount })}
       data-testid="folder-counts"
       data-unread={unreadCount}
       data-total={totalCount}
@@ -458,7 +452,7 @@ function SidebarRow({
         </span>
         {!isCollapsed && (
           <>
-            <span ref={labelRef} className="flex-1 truncate">{shortenedLabel}</span>
+            <span ref={labelRef} className="flex-1 truncate" title={shortenedLabel !== label ? label : undefined}>{shortenedLabel}</span>
             {muted && (
               <BellOff
                 className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground"
@@ -466,17 +460,21 @@ function SidebarRow({
                 data-testid="folder-muted"
               />
             )}
-            <SidebarRowCounts
-              unread={unread}
-              total={total}
-              role={testRole}
-              mailboxId={testMailboxId}
-              isSelected={isSelected}
-              onUnreadClick={onUnreadClick}
-            />
           </>
         )}
       </button>
+      {/* Beside the row's button, not in it: the unread count is a button
+          of its own (it filters the folder to unread). */}
+      {!isCollapsed && (
+        <SidebarRowCounts
+          unread={unread}
+          total={total}
+          role={testRole}
+          mailboxId={testMailboxId}
+          isSelected={isSelected}
+          onUnreadClick={onUnreadClick}
+        />
+      )}
       {hasMenu && !isCollapsed && (
         <IconButton
           label={t('folder_options', { name: label })}
@@ -541,73 +539,56 @@ function SidebarSectionHeader({
     ? "text-xs font-semibold text-muted-foreground truncate"
     : "text-sm font-semibold text-foreground truncate";
 
+  // The toggle is one button; Add and Settings are buttons beside it, not
+  // inside it (a button in a button is one control to the keyboard).
   return (
-    <button
-      onClick={onToggle}
+    <div
       onContextMenu={onContextMenu}
-      data-testid={testId}
-      data-section-name={label}
-      data-expanded={expanded ? 'true' : 'false'}
       className={cn(
         "group w-full flex items-center pb-1 select-none rounded-sm hover:bg-muted/40 transition-colors",
         paddingX,
         paddingY
       )}
     >
-      {expanded ? (
-        <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-      ) : (
-        <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-      )}
-      {icon && <span className="ms-1.5 flex-shrink-0">{icon}</span>}
-      <span className={cn(textClass, icon ? "ms-1.5" : "ms-1.5")}>
-        {label}
-      </span>
-      {status}
-      {onAdd && (
-        <span
-          role="button"
-          tabIndex={0}
-          onClick={(e) => {
-            e.stopPropagation();
-            onAdd();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              e.stopPropagation();
-              onAdd();
-            }
-          }}
-          className="ms-auto p-1 rounded text-muted-foreground/70 hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-          title={addTitle}
-          aria-label={addTitle}
+      <button
+        type="button"
+        onClick={onToggle}
+        data-testid={testId}
+        data-section-name={label}
+        data-expanded={expanded ? 'true' : 'false'}
+        aria-expanded={expanded}
+        className="flex flex-1 min-w-0 items-center text-start rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {expanded ? (
+          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+        ) : (
+          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+        )}
+        {icon && <span className="ms-1.5 flex-shrink-0">{icon}</span>}
+        <span className={cn(textClass, "ms-1.5")} title={label}>
+          {label}
+        </span>
+        {status}
+      </button>
+      {onAdd && addTitle && (
+        <IconButton
+          label={addTitle}
+          onClick={onAdd}
+          className="-my-1.5 text-muted-foreground/70 hover:text-foreground"
         >
           <Plus className="w-3.5 h-3.5" />
-        </span>
+        </IconButton>
       )}
-      {onSettings && (
-        <span
-          role="button"
-          tabIndex={0}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSettings();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              e.stopPropagation();
-              onSettings();
-            }
-          }}
-          className={cn(!onAdd && "ms-auto", "p-1 rounded text-muted-foreground/70 hover:text-foreground hover:bg-muted transition-colors cursor-pointer")}
-          title={settingsTitle}
+      {onSettings && settingsTitle && (
+        <IconButton
+          label={settingsTitle}
+          onClick={onSettings}
+          className="-my-1.5 text-muted-foreground/70 hover:text-foreground"
         >
           <Settings className="w-3.5 h-3.5" />
-        </span>
+        </IconButton>
       )}
-    </button>
+    </div>
   );
 }
 

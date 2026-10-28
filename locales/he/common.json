@@ -158,6 +158,9 @@
     "shared_account_hidden": "הוסתר מסרגל הצד. אפשר להציג שוב בהגדרות › פריסה.",
     "notifications_muted": "ההתראות מושתקות",
     "folder_options": "אפשרויות עבור {name}",
+    "unread_filter": "הצגת שלא נקראו בלבד ({count})",
+    "unread_count": "{count} שלא נקראו",
+    "unread_total": "{unread} שלא נקראו / {total} בסך הכול",
     "scheduled": "מתוכננים",
     "unified_all_unread": "הכל שלא נקראו",
     "unified_all_starred": "הכל מסומנים",
@@ -246,6 +249,7 @@
     "no_more_emails": "אין יותר מיילים לטעינה",
     "batch_actions": {
       "select": "בחר אימיילים",
+      "select_row": "בחירת {sender}: {subject}",
       "select_all": "בחר הכל",
       "mark_read": "סמן כנקרא",
       "mark_unread": "סמן כלא נקרא",
@@ -256,6 +260,7 @@
       "more": "פעולות נוספות לבחירה",
       "selected_messages": "{count, plural, one {דוא״ל 1} other {# דוא״ל}} שנבחרו"
     },
+    "skip_to_list": "דילוג לרשימת ההודעות",
     "permanent_delete": "מחק לצמיתות",
     "permanent_delete_confirm_title": "מחק לצמיתות",
     "permanent_delete_confirm_message": "אימייל זה יימחק לצמיתות. לא ניתן לבטל פעולה זו.",

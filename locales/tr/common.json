@@ -156,6 +156,9 @@
     "shared_account_hidden": "Kenar çubuğundan gizlendi. Ayarlar › Düzen bölümünden yeniden gösterebilirsiniz.",
     "notifications_muted": "Bildirimler sessizde",
     "folder_options": "{name} seçenekleri",
+    "unread_filter": "Yalnızca okunmamışları göster ({count})",
+    "unread_count": "{count} okunmamış",
+    "unread_total": "{unread} okunmamış / toplam {total}",
     "mail": "Posta",
     "nav_label": "Gezinme",
     "add_app": "Uygulamalar",
@@ -281,6 +284,7 @@
     "no_more_emails": "Yüklenecek başka e-posta yok",
     "batch_actions": {
       "select": "E-postaları seç",
+      "select_row": "{sender} seç: {subject}",
       "select_all": "Tümünü seç",
       "selected_messages": "{count, plural, one {1 e-posta} other {# e-posta}} seçildi",
       "mark_read": "Okundu olarak işaretle",
@@ -291,6 +295,7 @@
       "clear_selection": "Seçimi temizle",
       "more": "Seçim için diğer işlemler"
     },
+    "skip_to_list": "İleti listesine atla",
     "permanent_delete": "Kalıcı olarak sil",
     "permanent_delete_confirm_title": "Kalıcı olarak sil",
     "permanent_delete_confirm_message": "Bu e-posta kalıcı olarak silinecek. Bu işlem geri alınamaz.",

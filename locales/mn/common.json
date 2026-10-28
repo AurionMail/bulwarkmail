@@ -156,6 +156,9 @@
     "shared_account_hidden": "Хажуугийн самбараас нуусан. Тохиргоо › Байршил хэсгээс дахин харуулна уу.",
     "notifications_muted": "Мэдэгдэл хаалттай",
     "folder_options": "{name}-ийн сонголтууд",
+    "unread_filter": "Зөвхөн уншаагүйг харуулах ({count})",
+    "unread_count": "{count} уншаагүй",
+    "unread_total": "{unread} уншаагүй / нийт {total}",
     "mail": "Мэйл",
     "nav_label": "Навигаци",
     "add_app": "Програмууд",
@@ -281,6 +284,7 @@
     "no_more_emails": "Ачаалах имэйл байхгүй",
     "batch_actions": {
       "select": "Имэйл сонгох",
+      "select_row": "{sender} сонгох: {subject}",
       "select_all": "Бүгдийг нь сонго",
       "selected_messages": "{count, plural, one {1 имэйл} other {# имэйл}} сонгосон",
       "mark_read": "Уншсан гэж тэмдэглэх",
@@ -291,6 +295,7 @@
       "clear_selection": "Сонголтыг арилгах",
       "more": "Сонгосон зүйлсийн бусад үйлдэл"
     },
+    "skip_to_list": "Захидлын жагсаалт руу шилжих",
     "permanent_delete": "Бүрмөсөн устгах",
     "permanent_delete_confirm_title": "Бүрмөсөн устгах",
     "permanent_delete_confirm_message": "Энэ имэйлийг бүрмөсөн устгах болно. Энэ үйлдлийг буцаах боломжгүй.",

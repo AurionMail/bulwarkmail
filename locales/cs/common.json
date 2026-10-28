@@ -156,6 +156,9 @@
     "shared_account_hidden": "Skryto z postranního panelu. Znovu zobrazíte v Nastavení › Vzhled.",
     "notifications_muted": "Oznámení ztlumena",
     "folder_options": "Možnosti pro {name}",
+    "unread_filter": "Zobrazit jen nepřečtené ({count})",
+    "unread_count": "Nepřečteno: {count}",
+    "unread_total": "Nepřečteno {unread} / celkem {total}",
     "mail": "Pošta",
     "nav_label": "Navigace",
     "add_app": "Aplikace",
@@ -281,6 +284,7 @@
     "no_more_emails": "Žádné další zprávy k načtení",
     "batch_actions": {
       "select": "Vybrat zprávy",
+      "select_row": "Vybrat {sender}: {subject}",
       "select_all": "Vybrat vše",
       "selected_messages": "{count, plural, one {Vybraný 1 e-mail} other {Vybrané # e-maily}}",
       "mark_read": "Označit jako přečtené",
@@ -291,6 +295,7 @@
       "clear_selection": "Zrušit výběr",
       "more": "Další akce pro výběr"
     },
+    "skip_to_list": "Přeskočit na seznam zpráv",
     "permanent_delete": "Trvale odstranit",
     "permanent_delete_confirm_title": "Trvalé odstranění",
     "permanent_delete_confirm_message": "Tato zpráva bude trvale odstraněna. Tuto akci nelze vrátit zpět.",

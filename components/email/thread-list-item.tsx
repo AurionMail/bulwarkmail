@@ -379,6 +379,11 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
     // to the unified role so junk-contextual UI and avatar hiding work.
     const showRecipient = currentMailboxRole === 'sent' || currentMailboxRole === 'drafts';
     const sender = showRecipient ? (email.to?.[0] ?? email.from?.[0]) : email.from?.[0];
+    // Every row's checkbox says which message it picks (not "Select emails").
+    const selectRowLabel = tBatch('select_row', {
+      sender: sender?.name || sender?.email || '',
+      subject: email.subject || t('no_subject'),
+    });
     const formatAddress = useOwnDomainAddress();
     const { sortTagIds, tagColor } = useKeywordFormat();
     const { variant: tagVariant, placement: tagPlacement } = useTagDisplay();
@@ -601,7 +606,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
               onClick={handleCheckboxClick}
               role="checkbox"
               aria-checked={isChecked}
-              aria-label={tBatch('select')}
+              aria-label={selectRowLabel}
               className={cn(
                 "p-3 lg:p-1 rounded flex-shrink-0 transition-all duration-200",
                 !oneLineRow && 'mt-2',
@@ -625,7 +630,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
               onToggleChecked={handleCheckboxClick}
               starred={!!isStarred}
               onToggleStar={onToggleStar}
-              selectLabel={tBatch('select')}
+              selectLabel={selectRowLabel}
               starLabel={tHover('star')}
             />
           )}
@@ -640,7 +645,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                 disableImages={hideJunkAvatarImages}
                 checked={isChecked}
                 onToggle={handleCheckboxClick}
-                selectLabel={tBatch('select')}
+                selectLabel={selectRowLabel}
               />
               {isUnread && <UnreadDot besideAvatar />}
             </div>
@@ -983,6 +988,10 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
         )).slice(0, 4)
       : participantNames;
     const avatarPerson = showRecipient ? latestEmail.to?.[0] : latestEmail.from?.[0];
+    const selectRowLabel = tBatch('select_row', {
+      sender: avatarPerson?.name || avatarPerson?.email || '',
+      subject: latestEmail.subject || tEmailViewer('no_subject'),
+    });
     const hideJunkAvatarImages = currentMailboxRole === 'junk' && !showAvatarsInJunk;
 
     const { dragHandlers, isDragging: isThreadDragging } = useEmailDrag({
@@ -1184,7 +1193,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                 onClick={handleThreadCheckboxClick}
                 role="checkbox"
                 aria-checked={isChecked}
-                aria-label={tBatch('select')}
+                aria-label={selectRowLabel}
                 className={cn(
                   "p-3 lg:p-1 rounded flex-shrink-0 transition-all duration-200",
                   !oneLineRow && 'mt-2',
@@ -1208,7 +1217,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                 onToggleChecked={handleThreadCheckboxClick}
                 starred={!!hasStarred}
                 onToggleStar={onToggleStar ? () => onToggleStar(latestEmail) : undefined}
-                selectLabel={tBatch('select')}
+                selectLabel={selectRowLabel}
                 starLabel={tHover('star')}
               />
             )}
@@ -1223,7 +1232,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                   disableImages={hideJunkAvatarImages}
                   checked={isChecked}
                   onToggle={handleThreadCheckboxClick}
-                  selectLabel={tBatch('select')}
+                  selectLabel={selectRowLabel}
                 />
                 {hasUnread && <UnreadDot besideAvatar />}
                 {!isMobile && !columns && (

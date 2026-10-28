@@ -156,6 +156,9 @@
     "shared_account_hidden": "Elrejtve az oldalsávról. A Beállítások › Elrendezés alatt jelenítheted meg újra.",
     "notifications_muted": "Értesítések némítva",
     "folder_options": "{name} beállításai",
+    "unread_filter": "Csak az olvasatlanok ({count})",
+    "unread_count": "{count} olvasatlan",
+    "unread_total": "{unread} olvasatlan / összesen {total}",
     "mail": "Levelek",
     "nav_label": "Navigáció",
     "add_app": "Alkalmazások",
@@ -281,6 +284,7 @@
     "no_more_emails": "Nincs több betölthető e-mail",
     "batch_actions": {
       "select": "E-mailek kijelölése",
+      "select_row": "{sender} kijelölése: {subject}",
       "select_all": "Összes kijelölése",
       "selected_messages": "{count, plural, one {1 e-mail} other {# e-mail}} kijelölve",
       "mark_read": "Megjelölés olvasottként",
@@ -291,6 +295,7 @@
       "clear_selection": "Kijelölés megszüntetése",
       "more": "További műveletek a kijelöléshez"
     },
+    "skip_to_list": "Ugrás az üzenetlistára",
     "permanent_delete": "Végleges törlés",
     "permanent_delete_confirm_title": "Végleges törlés",
     "permanent_delete_confirm_message": "Ez az e-mail véglegesen törlődik. Ez a művelet nem vonható vissza.",

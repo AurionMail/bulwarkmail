@@ -159,6 +159,9 @@
     "shared_account_hidden": "Ukryto na pasku bocznym. Przywrócisz je w Ustawienia › Układ.",
     "notifications_muted": "Powiadomienia wyciszone",
     "folder_options": "Opcje folderu {name}",
+    "unread_filter": "Pokaż tylko nieprzeczytane ({count})",
+    "unread_count": "Nieprzeczytane: {count}",
+    "unread_total": "Nieprzeczytane: {unread} / łącznie: {total}",
     "scheduled": "Zaplanowane",
     "unified_all_unread": "Wszystkie nieprzeczytane",
     "unified_all_starred": "Wszystkie oznaczone gwiazdką",
@@ -281,6 +284,7 @@
     "no_more_emails": "Nie ma więcej wiadomości do załadowania",
     "batch_actions": {
       "select": "Zaznacz wiadomości",
+      "select_row": "Zaznacz {sender}: {subject}",
       "select_all": "Zaznacz wszystkie",
       "selected_messages": "Wybrano {count, plural, one {1 wiadomość} other {# wiadomości}} e-mail",
       "mark_read": "Oznacz jako przeczytane",
@@ -291,6 +295,7 @@
       "clear_selection": "Wyczyść zaznaczenie",
       "more": "Więcej działań dla zaznaczenia"
     },
+    "skip_to_list": "Przejdź do listy wiadomości",
     "permanent_delete": "Usuń trwale",
     "permanent_delete_confirm_title": "Trwałe usunięcie",
     "permanent_delete_confirm_message": "Ta wiadomość zostanie trwale usunięta. Tej operacji nie można cofnąć.",

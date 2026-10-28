@@ -156,6 +156,9 @@
     "shared_account_hidden": "Ascuns din bara laterală. Îl poți afișa din nou în Setări › Aspect.",
     "notifications_muted": "Notificări dezactivate",
     "folder_options": "Opțiuni pentru {name}",
+    "unread_filter": "Afișează doar necitite ({count})",
+    "unread_count": "{count} necitite",
+    "unread_total": "{unread} necitite / {total} în total",
     "mail": "E-mail",
     "nav_label": "Navigare",
     "add_app": "Aplicații",
@@ -281,6 +284,7 @@
     "no_more_emails": "Nu mai sunt e-mailuri de încărcat",
     "batch_actions": {
       "select": "Selectați e-mailurile",
+      "select_row": "Selectează {sender}: {subject}",
       "select_all": "Selectează tot",
       "selected_messages": "{count, plural, one {1 e-mail} few {# e-mailuri} other {# de e-mailuri}} selectat",
       "mark_read": "Marcați ca citit",
@@ -291,6 +295,7 @@
       "clear_selection": "Șterge selecția",
       "more": "Mai multe acțiuni pentru selecție"
     },
+    "skip_to_list": "Salt la lista de mesaje",
     "permanent_delete": "Șterge definitiv",
     "permanent_delete_confirm_title": "Șterge definitiv",
     "permanent_delete_confirm_message": "Acest e-mail va fi șters definitiv. Această acțiune nu poate fi anulată.",

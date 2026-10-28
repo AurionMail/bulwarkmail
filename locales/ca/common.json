@@ -156,6 +156,9 @@
     "shared_account_hidden": "Amagat de la barra lateral. Torna'l a mostrar a Configuració › Disposició.",
     "notifications_muted": "Notificacions silenciades",
     "folder_options": "Opcions de {name}",
+    "unread_filter": "Mostra només els no llegits ({count})",
+    "unread_count": "{count} sense llegir",
+    "unread_total": "{unread} sense llegir / {total} en total",
     "mail": "Correu",
     "nav_label": "Navegació",
     "add_app": "Aplicacions",
@@ -281,6 +284,7 @@
     "no_more_emails": "No hi ha més correus per carregar",
     "batch_actions": {
       "select": "Selecciona correus",
+      "select_row": "Selecciona {sender}: {subject}",
       "select_all": "Selecciona-ho tot",
       "selected_messages": "{count, plural, one {1 correu seleccionat} other {# correus seleccionats}}",
       "mark_read": "Marca com a llegit",
@@ -291,6 +295,7 @@
       "clear_selection": "Neteja la selecció",
       "more": "Més accions per a la selecció"
     },
+    "skip_to_list": "Salta a la llista de missatges",
     "permanent_delete": "Suprimeix definitivament",
     "permanent_delete_confirm_title": "Suprimeix definitivament",
     "permanent_delete_confirm_message": "Aquest correu se suprimirà definitivament. Aquesta acció no es pot desfer.",

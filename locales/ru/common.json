@@ -159,6 +159,9 @@
     "shared_account_hidden": "Скрыто с боковой панели. Вернуть можно в Настройки › Макет.",
     "notifications_muted": "Уведомления отключены",
     "folder_options": "Параметры: {name}",
+    "unread_filter": "Только непрочитанные ({count})",
+    "unread_count": "Непрочитанных: {count}",
+    "unread_total": "Непрочитанных: {unread} / всего: {total}",
     "scheduled": "Запланировано",
     "unified_all_unread": "Все непрочитанные",
     "unified_all_starred": "Все помеченные",
@@ -281,6 +284,7 @@
     "no_more_emails": "Больше писем нет",
     "batch_actions": {
       "select": "Выбрать письма",
+      "select_row": "Выбрать {sender}: {subject}",
       "select_all": "Выбрать все",
       "selected_messages": "Выбрано {count, plural, one {1 письмо} other {# письма}}",
       "mark_read": "Отметить прочитанными",
@@ -291,6 +295,7 @@
       "clear_selection": "Снять выделение",
       "more": "Другие действия с выбранным"
     },
+    "skip_to_list": "Перейти к списку писем",
     "permanent_delete": "Удалить навсегда",
     "permanent_delete_confirm_title": "Удалить навсегда",
     "permanent_delete_confirm_message": "Это письмо будет удалено навсегда. Действие нельзя отменить.",

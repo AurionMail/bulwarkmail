@@ -156,6 +156,9 @@
     "shared_account_hidden": "已從側邊欄隱藏。可在 設定 › 版面配置 中重新顯示。",
     "notifications_muted": "通知已靜音",
     "folder_options": "{name} 的選項",
+    "unread_filter": "只顯示未讀（{count}）",
+    "unread_count": "{count} 封未讀",
+    "unread_total": "{unread} 封未讀 / 共 {total} 封",
     "mail": "郵件",
     "nav_label": "導覽",
     "add_app": "應用程式",
@@ -281,6 +284,7 @@
     "no_more_emails": "沒有更多郵件可載入",
     "batch_actions": {
       "select": "選取郵件",
+      "select_row": "選取 {sender}：{subject}",
       "select_all": "全部選取",
       "selected_messages": "已選取 {count, plural, one {1} other {#}} 封郵件",
       "mark_read": "標示為已讀",
@@ -291,6 +295,7 @@
       "clear_selection": "清除選取",
       "more": "所選項目的更多動作"
     },
+    "skip_to_list": "跳到郵件清單",
     "permanent_delete": "永久刪除",
     "permanent_delete_confirm_title": "永久刪除",
     "permanent_delete_confirm_message": "這封郵件將永久刪除。此動作無法復原。",

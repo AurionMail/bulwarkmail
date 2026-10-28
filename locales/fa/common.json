@@ -156,6 +156,9 @@
     "shared_account_hidden": "از نوار کناری پنهان شد. از تنظیمات › چیدمان دوباره نمایش دهید.",
     "notifications_muted": "اعلان‌ها بی‌صدا",
     "folder_options": "گزینه‌های {name}",
+    "unread_filter": "فقط خوانده‌نشده‌ها ({count})",
+    "unread_count": "{count} خوانده‌نشده",
+    "unread_total": "{unread} خوانده‌نشده / {total} در کل",
     "mail": "ایمیل",
     "nav_label": "ناوبری",
     "add_app": "برنامه‌ها",
@@ -281,6 +284,7 @@
     "no_more_emails": "ایمیل بیشتری برای بارگذاری نیست",
     "batch_actions": {
       "select": "انتخاب ایمیل‌ها",
+      "select_row": "انتخاب {sender}: {subject}",
       "select_all": "انتخاب همه",
       "selected_messages": "{count, plural, one {1 ایمیل} other {# ایمیل}} انتخاب شده",
       "mark_read": "علامت‌گذاری به عنوان خوانده شده",
@@ -291,6 +295,7 @@
       "clear_selection": "پاک کردن انتخاب",
       "more": "اقدامات بیشتر برای موارد انتخاب‌شده"
     },
+    "skip_to_list": "رفتن به فهرست پیام‌ها",
     "permanent_delete": "حذف دائمی",
     "permanent_delete_confirm_title": "حذف دائمی",
     "permanent_delete_confirm_message": "این ایمیل برای همیشه حذف خواهد شد. این عملیات قابل بازگشت نیست.",

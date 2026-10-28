@@ -156,6 +156,9 @@
     "shared_account_hidden": "Skjult i sidepanelet. Vis den igen under Indstillinger › Layout.",
     "notifications_muted": "Notifikationer slået fra",
     "folder_options": "Indstillinger for {name}",
+    "unread_filter": "Vis kun ulæste ({count})",
+    "unread_count": "{count} ulæste",
+    "unread_total": "{unread} ulæste / {total} i alt",
     "mail": "Mail",
     "nav_label": "Navigation",
     "add_app": "Apps",
@@ -281,6 +284,7 @@
     "no_more_emails": "Ikke flere e-mails at indlæse",
     "batch_actions": {
       "select": "Vælg e-mails",
+      "select_row": "Vælg {sender}: {subject}",
       "select_all": "Vælg alle",
       "selected_messages": "{count, plural, one {1 e-mail} other {# e-mails}} valgt",
       "mark_read": "Markér som læst",
@@ -291,6 +295,7 @@
       "clear_selection": "Ryd markering",
       "more": "Flere handlinger for markeringen"
     },
+    "skip_to_list": "Spring til meddelelseslisten",
     "permanent_delete": "Slet permanent",
     "permanent_delete_confirm_title": "Slet permanent",
     "permanent_delete_confirm_message": "Denne e-mail vil blive slettet permanent. Denne handling kan ikke fortrydes.",

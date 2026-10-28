@@ -4611,6 +4611,17 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   return (
     <DragDropProvider>
       <div ref={appRootRef} className={cn("flex flex-col overflow-hidden pt-[env(safe-area-inset-top)]", mvShell ? "bg-[var(--mv-canvas)]" : "bg-background", isEmbedded ? "h-full" : "h-dvh")}>
+        {/* Rail and folders are many Tab stops: jump past them (WCAG 2.4.1). */}
+        <a
+          href="#message-list"
+          onClick={(e) => {
+            e.preventDefault();
+            document.getElementById('message-list')?.focus();
+          }}
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:start-2 focus:z-[70] focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-md focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          {t('email_list.skip_to_list')}
+        </a>
         <AppTopBannerSlot />
         {refreshIndicator}
         {isRateLimited && rateLimitSecondsLeft !== null && (

@@ -159,6 +159,9 @@
     "shared_account_hidden": "사이드바에서 숨겼습니다. 설정 › 레이아웃에서 다시 표시할 수 있습니다.",
     "notifications_muted": "알림 꺼짐",
     "folder_options": "{name} 옵션",
+    "unread_filter": "읽지 않은 메일만 보기 ({count})",
+    "unread_count": "읽지 않음 {count}",
+    "unread_total": "읽지 않음 {unread} / 전체 {total}",
     "scheduled": "예약됨",
     "unified_all_unread": "모든 읽지 않음",
     "unified_all_starred": "모든 별표",
@@ -281,6 +284,7 @@
     "no_more_emails": "더 이상 메일이 없어요",
     "batch_actions": {
       "select": "메일 선택",
+      "select_row": "{sender} 선택: {subject}",
       "select_all": "모두 선택",
       "selected_messages": "이메일 {count, plural, one {1개} other {#건}} 선택됨",
       "mark_read": "읽은 상태로 표시",
@@ -291,6 +295,7 @@
       "clear_selection": "선택 취소",
       "more": "선택 항목에 대한 추가 작업"
     },
+    "skip_to_list": "메시지 목록으로 건너뛰기",
     "permanent_delete": "영구 삭제",
     "permanent_delete_confirm_title": "영구 삭제",
     "permanent_delete_confirm_message": "이 메일은 영구적으로 삭제되며, 다시 복구할 수 없어요.",

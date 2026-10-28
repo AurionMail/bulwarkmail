@@ -299,7 +299,8 @@ export function EmailHoverActions({
 
   // While the picker is open the row is no longer hovered, so the toolbar has to
   // stay mounted and visible or the picker would close under its own anchor.
-  const visibilityClass = tagPickerPos ? "flex" : "hidden group-hover:flex";
+  // Shown on keyboard focus too (R7), not only on hover.
+  const visibilityClass = tagPickerPos ? "flex" : "hidden group-hover:flex group-focus-within:flex";
 
   if (hoverActionsMode === 'floating') {
     return (

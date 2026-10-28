@@ -159,6 +159,9 @@
     "shared_account_hidden": "Oculta en la barra lateral. Vuelve a mostrarla en Configuración › Diseño.",
     "notifications_muted": "Notificaciones silenciadas",
     "folder_options": "Opciones de {name}",
+    "unread_filter": "Mostrar solo no leídos ({count})",
+    "unread_count": "{count} sin leer",
+    "unread_total": "{unread} sin leer / {total} en total",
     "scheduled": "Programados",
     "unified_all_unread": "Todo no leído",
     "unified_all_starred": "Todo destacado",
@@ -281,6 +284,7 @@
     "no_more_emails": "No hay más correos para cargar",
     "batch_actions": {
       "select": "Seleccionar correos",
+      "select_row": "Seleccionar {sender}: {subject}",
       "select_all": "Seleccionar todo",
       "selected_messages": "{count, plural, one {1 correo electrónico seleccionado} other {# correos electrónicos seleccionados}}",
       "mark_read": "Marcar como leído",
@@ -291,6 +295,7 @@
       "clear_selection": "Limpiar selección",
       "more": "Más acciones para la selección"
     },
+    "skip_to_list": "Saltar a la lista de mensajes",
     "permanent_delete": "Eliminar permanentemente",
     "permanent_delete_confirm_title": "Eliminar permanentemente",
     "permanent_delete_confirm_message": "Este correo se eliminará permanentemente. Esta acción no se puede deshacer.",

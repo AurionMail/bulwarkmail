@@ -58,3 +58,12 @@ describe('folder menu on touch', () => {
     expect(screen.getByRole('menu')).toBeTruthy();
   });
 });
+
+describe('folder list from the keyboard', () => {
+  it('has no button inside another button', () => {
+    useSettingsStore.setState({ hideAccountSwitcher: true } as never);
+    const withUnread = mailboxes.map((m) => ({ ...m, unreadEmails: 3, totalEmails: 5 }) as Mailbox);
+    const { container } = render(<Sidebar mailboxes={withUnread} selectedMailbox="inbox" onUnreadFilterClick={() => {}} onCreateFolder={() => {}} />);
+    expect(container.querySelectorAll('button button, button [role="button"]')).toHaveLength(0);
+  });
+});

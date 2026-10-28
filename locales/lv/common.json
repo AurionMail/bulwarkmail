@@ -159,6 +159,9 @@
     "shared_account_hidden": "Paslēpts no sānjoslas. Atkal parādiet sadaļā Iestatījumi › Izkārtojums.",
     "notifications_muted": "Paziņojumi izslēgti",
     "folder_options": "{name} opcijas",
+    "unread_filter": "Rādīt tikai nelasītās ({count})",
+    "unread_count": "{count} nelasītas",
+    "unread_total": "{unread} nelasītas / kopā {total}",
     "scheduled": "Ieplānots",
     "unified_all_unread": "Visi nelasītie",
     "unified_all_starred": "Visi ar zvaigzni",
@@ -281,6 +284,7 @@
     "no_more_emails": "Vairāk vēstuļu nav",
     "batch_actions": {
       "select": "Atlasīt vēstules",
+      "select_row": "Atlasīt {sender}: {subject}",
       "select_all": "Atlasīt visas",
       "selected_messages": "{count, plural, one {Izvēlēta 1 e-pasta vēstule} other {Izvēlētas # e-pasta vēstules}}",
       "mark_read": "Atzīmēt kā izlasītu",
@@ -291,6 +295,7 @@
       "clear_selection": "Noņemt atlasi",
       "more": "Vairāk darbību atlasei"
     },
+    "skip_to_list": "Pāriet uz vēstuļu sarakstu",
     "permanent_delete": "Dzēst neatgriezeniski",
     "permanent_delete_confirm_title": "Dzēst neatgriezeniski",
     "permanent_delete_confirm_message": "Šī vēstule tiks dzēsta neatgriezeniski. Šo darbību nevar atcelt.",

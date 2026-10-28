@@ -159,6 +159,9 @@
     "shared_account_hidden": "サイドバーから非表示にしました。設定 › レイアウトで再表示できます。",
     "notifications_muted": "通知ミュート中",
     "folder_options": "{name} のオプション",
+    "unread_filter": "未読のみ表示（{count}）",
+    "unread_count": "未読 {count}",
+    "unread_total": "未読 {unread} / 合計 {total}",
     "scheduled": "予約済み",
     "unified_all_unread": "すべての未読",
     "unified_all_starred": "すべてのスター付き",
@@ -281,6 +284,7 @@
     "no_more_emails": "読み込むメールがありません",
     "batch_actions": {
       "select": "メールを選択",
+      "select_row": "{sender} を選択: {subject}",
       "select_all": "すべて選択",
       "selected_messages": "{count, plural, one {1} other {#}}通のメールが選択されました",
       "mark_read": "既読にする",
@@ -291,6 +295,7 @@
       "clear_selection": "選択を解除",
       "more": "選択項目のその他の操作"
     },
+    "skip_to_list": "メッセージ一覧へ移動",
     "permanent_delete": "完全に削除",
     "permanent_delete_confirm_title": "完全に削除",
     "permanent_delete_confirm_message": "このメールは完全に削除されます。この操作は取り消せません。",

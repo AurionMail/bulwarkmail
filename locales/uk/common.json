@@ -159,6 +159,9 @@
     "shared_account_hidden": "Приховано з бічної панелі. Повернути можна в Налаштування › Макет.",
     "notifications_muted": "Сповіщення вимкнено",
     "folder_options": "Параметри: {name}",
+    "unread_filter": "Лише непрочитані ({count})",
+    "unread_count": "Непрочитаних: {count}",
+    "unread_total": "Непрочитаних: {unread} / усього: {total}",
     "scheduled": "Заплановано",
     "unified_all_unread": "Усі непрочитані",
     "unified_all_starred": "Усі позначені",
@@ -281,6 +284,7 @@
     "no_more_emails": "Більше не потрібно завантажувати електронні листи",
     "batch_actions": {
       "select": "Виберіть електронні листи",
+      "select_row": "Вибрати {sender}: {subject}",
       "select_all": "Вибрати все",
       "selected_messages": "Вибрано {count, plural, one {1 електронний лист} other {# електронні листи}}",
       "mark_read": "Позначити як прочитане",
@@ -291,6 +295,7 @@
       "clear_selection": "Очистити вибір",
       "more": "Інші дії з вибраним"
     },
+    "skip_to_list": "Перейти до списку листів",
     "permanent_delete": "Видалити остаточно",
     "permanent_delete_confirm_title": "Видалити назавжди",
     "permanent_delete_confirm_message": "Цей електронний лист буде видалено назавжди. Цю дію не можна скасувати.",

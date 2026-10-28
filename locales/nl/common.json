@@ -159,6 +159,9 @@
     "shared_account_hidden": "Verborgen in de zijbalk. Zet het weer aan via Instellingen › Indeling.",
     "notifications_muted": "Meldingen gedempt",
     "folder_options": "Opties voor {name}",
+    "unread_filter": "Alleen ongelezen tonen ({count})",
+    "unread_count": "{count} ongelezen",
+    "unread_total": "{unread} ongelezen / {total} totaal",
     "scheduled": "Gepland",
     "unified_all_unread": "Alle ongelezen",
     "unified_all_starred": "Alle met ster",
@@ -281,6 +284,7 @@
     "no_more_emails": "Geen e-mails meer om te laden",
     "batch_actions": {
       "select": "E-mails selecteren",
+      "select_row": "{sender} selecteren: {subject}",
       "select_all": "Alles selecteren",
       "mark_read": "Markeren als gelezen",
       "selected_messages": "{count, plural, one {1 e-mail} other {# e-mails}} geselecteerd",
@@ -291,6 +295,7 @@
       "clear_selection": "Selectie wissen",
       "more": "Meer acties voor de selectie"
     },
+    "skip_to_list": "Naar de berichtenlijst",
     "permanent_delete": "Definitief verwijderen",
     "permanent_delete_confirm_title": "Definitief verwijderen",
     "permanent_delete_confirm_message": "Deze e-mail wordt definitief verwijderd. Deze actie kan niet ongedaan worden gemaakt.",

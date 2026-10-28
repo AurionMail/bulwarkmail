@@ -159,6 +159,9 @@
     "shared_account_hidden": "已从侧边栏隐藏。可在 设置 › 布局 中重新显示。",
     "notifications_muted": "通知已静音",
     "folder_options": "{name} 的选项",
+    "unread_filter": "仅显示未读（{count}）",
+    "unread_count": "{count} 封未读",
+    "unread_total": "{unread} 封未读 / 共 {total} 封",
     "scheduled": "已计划",
     "unified_all_unread": "全部未读",
     "unified_all_starred": "全部加星标",
@@ -281,6 +284,7 @@
     "no_more_emails": "没有更多邮件了",
     "batch_actions": {
       "select": "选择邮件",
+      "select_row": "选择 {sender}：{subject}",
       "select_all": "全选",
       "selected_messages": "已选取 {count, plural, one {1} other {#}} 封电子邮件",
       "mark_read": "标记为已读",
@@ -291,6 +295,7 @@
       "clear_selection": "清除选择",
       "more": "所选项目的更多操作"
     },
+    "skip_to_list": "跳到邮件列表",
     "permanent_delete": "永久删除",
     "permanent_delete_confirm_title": "永久删除",
     "permanent_delete_confirm_message": "该邮件将被永久删除。此操作无法撤销。",

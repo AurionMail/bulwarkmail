@@ -885,6 +885,9 @@ export function EmailList({
       {/* Batch Actions Toolbar */}
       <div
         ref={batchToolbarRef}
+        // Collapsed it is still in the page: keep its buttons out of the Tab
+        // order and away from screen readers.
+        inert={!(hasSelection && !isScheduledView && !hideBatchToolbar)}
         className={cn(
           "transition-all duration-300 ease-in-out overflow-hidden",
           hasSelection && !isScheduledView && !hideBatchToolbar ? "max-h-16 opacity-100" : "max-h-0 opacity-0"
@@ -1041,7 +1044,10 @@ export function EmailList({
       {/* Email List */}
       <div
         ref={parentRef}
-        className="flex-1 overflow-y-auto bg-background relative"
+        // The mail shell's "Skip to message list" lands here.
+        id="message-list"
+        tabIndex={-1}
+        className="flex-1 overflow-y-auto bg-background relative outline-none"
         data-tour="email-list"
         // The column header above keeps the same gutter, so its titles stay over the columns.
         style={listColumns ? { scrollbarGutter: 'stable' } : undefined}

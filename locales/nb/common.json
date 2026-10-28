@@ -156,6 +156,9 @@
     "shared_account_hidden": "Skjult fra sidepanelet. Vis den igjen under Innstillinger › Oppsett.",
     "notifications_muted": "Varsler dempet",
     "folder_options": "Alternativer for {name}",
+    "unread_filter": "Vis bare uleste ({count})",
+    "unread_count": "{count} uleste",
+    "unread_total": "{unread} uleste / {total} totalt",
     "mail": "E-post",
     "nav_label": "Navigasjon",
     "add_app": "Apper",
@@ -281,6 +284,7 @@
     "no_more_emails": "Ingen flere e-poster å laste inn",
     "batch_actions": {
       "select": "Velg e-poster",
+      "select_row": "Velg {sender}: {subject}",
       "select_all": "Velg alle",
       "selected_messages": "{count, plural, one {1 e-post} other {# e-poster}} valgt",
       "mark_read": "Merk som lest",
@@ -291,6 +295,7 @@
       "clear_selection": "Fjern valg",
       "more": "Flere handlinger for utvalget"
     },
+    "skip_to_list": "Hopp til meldingslisten",
     "permanent_delete": "Slett permanent",
     "permanent_delete_confirm_title": "Slett permanent",
     "permanent_delete_confirm_message": "Denne e-posten slettes permanent. Denne handlingen kan ikke angres.",

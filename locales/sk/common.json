@@ -156,6 +156,9 @@
     "shared_account_hidden": "Skryté z bočného panela. Znova zobrazíte v Nastavenia › Rozloženie.",
     "notifications_muted": "Upozornenia stlmené",
     "folder_options": "Možnosti pre {name}",
+    "unread_filter": "Zobraziť len neprečítané ({count})",
+    "unread_count": "Neprečítané: {count}",
+    "unread_total": "Neprečítané {unread} / spolu {total}",
     "mail": "Pošta",
     "nav_label": "Navigácia",
     "add_app": "Aplikácie",
@@ -281,6 +284,7 @@
     "no_more_emails": "Žiadne ďalšie e-maily na načítanie",
     "batch_actions": {
       "select": "Vybrať e-maily",
+      "select_row": "Vybrať {sender}: {subject}",
       "select_all": "Vybrať všetko",
       "selected_messages": "{count, plural, one {1 e-mail} other {# e-mailov}} vybraných",
       "mark_read": "Označiť ako prečítané",
@@ -291,6 +295,7 @@
       "clear_selection": "Zrušiť výber",
       "more": "Ďalšie akcie pre výber"
     },
+    "skip_to_list": "Preskočiť na zoznam správ",
     "permanent_delete": "Trvalo odstrániť",
     "permanent_delete_confirm_title": "Trvalo odstrániť",
     "permanent_delete_confirm_message": "Tento e-mail bude trvalo odstránený. Túto akciu nie je možné vrátiť.",

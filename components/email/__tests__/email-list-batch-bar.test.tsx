@@ -55,3 +55,29 @@ describe('selection bar', () => {
     expect(screen.getByTestId('ctx-batch-forward-as-attachment')).toBeTruthy();
   });
 });
+
+describe('selection bar and rows from the keyboard', () => {
+  it('keeps the collapsed bar out of the Tab order', () => {
+    useEmailStore.setState({ selectedEmailKeys: new Set() });
+    render(<EmailList emails={useEmailStore.getState().emails} />);
+    expect(screen.getByTestId('batch-delete').closest('[inert]')).not.toBeNull();
+  });
+
+  it('names each row checkbox after its message', () => {
+    // Give jsdom's virtualized rows a layout so they render.
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(300);
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(600);
+    vi.spyOn(Element.prototype, 'scrollHeight', 'get').mockReturnValue(600);
+    vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(300);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const height = this.hasAttribute('data-index') ? 60 : 300;
+      return { x: 0, y: 0, width: 600, height, top: 0, left: 0, right: 600, bottom: height, toJSON: () => ({}) } as DOMRect;
+    });
+    useEmailStore.setState({ selectedEmailKeys: new Set() });
+    render(<EmailList emails={useEmailStore.getState().emails} />);
+    // The i18n mock renders the key: "Select {sender}: {subject}".
+    const boxes = screen.getAllByRole('checkbox');
+    expect(boxes.length).toBeGreaterThan(0);
+    for (const box of boxes) expect(box.getAttribute('aria-label')).toBe('select_row');
+  });
+});

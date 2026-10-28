@@ -156,6 +156,9 @@
     "shared_account_hidden": "تم الإخفاء من الشريط الجانبي. أعد إظهاره من الإعدادات › التخطيط.",
     "notifications_muted": "الإشعارات مكتومة",
     "folder_options": "خيارات {name}",
+    "unread_filter": "عرض غير المقروءة فقط ({count})",
+    "unread_count": "{count} غير مقروءة",
+    "unread_total": "{unread} غير مقروءة / {total} إجمالًا",
     "mail": "البريد",
     "nav_label": "التنقل",
     "add_app": "التطبيقات",
@@ -281,6 +284,7 @@
     "no_more_emails": "لا مزيد من الرسائل للتحميل",
     "batch_actions": {
       "select": "تحديد الرسائل",
+      "select_row": "تحديد {sender}: {subject}",
       "select_all": "تحديد الكل",
       "selected_messages": "{count, plural, one {تم تحديد رسالة واحدة} other {تم تحديد # رسالة}}",
       "mark_read": "تمييز كمقروءة",
@@ -291,6 +295,7 @@
       "clear_selection": "إلغاء التحديد",
       "more": "مزيد من الإجراءات للمحدد"
     },
+    "skip_to_list": "الانتقال إلى قائمة الرسائل",
     "permanent_delete": "حذف نهائي",
     "permanent_delete_confirm_title": "حذف نهائي",
     "permanent_delete_confirm_message": "سيتم حذف هذه الرسالة نهائيًا. لا يمكن التراجع عن هذا الإجراء.",
