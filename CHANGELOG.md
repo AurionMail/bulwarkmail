@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- **Organisation**: Admins can sign users out after a time without activity or a fixed time after sign-in, per domain or group. A countdown with "Stay signed in" comes first, open and minimised messages and quick replies are saved as drafts, and the login page says why
+
 ## 1.18.0 (2026-10-26)
 
 1.18.0 works with Stalwart 1.0, released today, as well as with 0.16. Sign-in, calendars, contacts, files and sending were adapted to what changed in 1.0, and a Stalwart that was moved from 0.16 to 1.0 with Stalwart's migration tool keeps working with the same open tabs. It also fixes the findings of a security review of the whole webmail, more places where an action in a view that mixes accounts could hit another account's message with the same id, and a series of calendar bugs around repeating events. Plugins can show their own search results and a count on their buttons, quick reply can be turned off, and a new device offers to restore your saved account list.
