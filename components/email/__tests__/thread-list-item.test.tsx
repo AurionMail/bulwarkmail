@@ -808,6 +808,24 @@ describe('ThreadListItem hover actions', () => {
     fireEvent.pointerOver(row!, { relatedTarget: screen.getByTestId('list') });
     expect(screen.getByTestId('hover-action-delete')).toBeTruthy();
   });
+
+  // Tabbing to a row's checkbox shows them too (group-focus-within), so they
+  // have to be there without a pointer.
+  it.each([
+    ['a single message', () => groupEmailsByThread([makeEmail()])[0]],
+    ['a conversation', () => groupEmailsByThread([
+      makeEmail({ id: 'a', receivedAt: '2024-01-15T10:00:00Z' }),
+      makeEmail({ id: 'b', receivedAt: '2024-01-15T11:00:00Z' }),
+    ])[0]],
+  ])('mounts them for %s when a control in the row gets the keyboard focus', (_name, makeThread) => {
+    const { container } = renderInList(makeThread());
+    expect(screen.queryByTestId('hover-action-delete')).toBeNull();
+    const row = screen.queryByTestId('email-list-item') ?? container.querySelector('[data-unread]');
+    const control = row!.querySelector<HTMLElement>('button, [tabindex]:not([tabindex="-1"])');
+    expect(control).not.toBeNull();
+    act(() => { control!.focus(); });
+    expect(screen.getByTestId('hover-action-delete')).toBeTruthy();
+  });
 });
 
 describe('ThreadListItem open message', () => {
