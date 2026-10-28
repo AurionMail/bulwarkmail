@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { X, Plus, ChevronDown, ChevronRight, User, Building, MapPin, Globe, Cake, Heart, Tag, StickyNote, Mail, Phone, Calendar, UserCircle, Book, Camera, Trash2 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,8 @@ interface ContactFormProps {
    * may be older.
    */
   loadCurrentMedia?: () => Promise<Pick<ContactCard, "media"> | null>;
+  /** Reports whether the form holds changes not yet saved. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 /** What the user did to the photo: nothing, picked a new one (a data: URI), or removed it. */
@@ -209,7 +211,7 @@ function Select({ value, onChange, children, className }: {
   );
 }
 
-export function ContactForm({ contact, addressBooks, allKeywords, defaultAddressBookId, prefill, onSave, onCancel, loadCurrentMedia }: ContactFormProps) {
+export function ContactForm({ contact, addressBooks, allKeywords, defaultAddressBookId, prefill, onSave, onCancel, loadCurrentMedia, onDirtyChange }: ContactFormProps) {
   const t = useTranslations("contacts.form");
   const isEditing = !!contact;
 
@@ -446,6 +448,17 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailErrors, setEmailErrors] = useState<Record<number, string>>({});
+
+  // Everything the user can edit, to tell whether anything changed since the
+  // form opened (R5: leaving asks first).
+  const fields = JSON.stringify([
+    prefix, givenName, additionalName, surname, suffix, nickname, emails, phones, organization,
+    department, isOrg, jobTitle, role, addresses, onlineServices, anniversaries, personalInfoEntries,
+    keywordsStr, note, genderSex, genderIdentity, calendarUri, schedulingUri, freeBusyUri, selectedBookId,
+  ]);
+  const [initialFields] = useState(fields);
+  const dirty = fields !== initialFields || photoEdit.kind !== "unchanged";
+  useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ContactCard } from '@/lib/jmap/types';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
@@ -12,6 +12,7 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/en/contacts',
   useSearchParams: () => new URLSearchParams(),
 }));
+vi.mock('@/components/contacts/contact-activity', () => ({ ContactActivity: () => null }));
 vi.mock('@/components/layout/navigation-rail', () => ({ NavigationRail: () => <nav data-testid="rail" /> }));
 vi.mock('@/components/layout/sidebar-apps-modal', () => ({ SidebarAppsModal: () => null }));
 vi.mock('@/components/layout/inline-app-view', () => ({ InlineAppView: () => null }));
@@ -42,7 +43,9 @@ export const bob: ContactCard = {
 };
 
 // Only asked whether the server has a directory; supportsSync stays false.
-const FAKE_CLIENT = { supportsPrincipals: () => false } as unknown as IJMAPClient;
+const FAKE_CLIENT = {
+  supportsPrincipals: () => false,
+} as unknown as IJMAPClient;
 
 export function renderContacts(contacts: ContactCard[] = [alice, bob]) {
   act(() => {
@@ -93,5 +96,33 @@ describe('ContactsApp', () => {
     fireEvent.click(within(drawer()).getAllByRole('button')[0]);
     fireEvent.click(within(drawer()).getByText('create_new'));
     expect(drawer()).toHaveAttribute('inert');
+  });
+
+  it('asks before another contact replaces a contact form with changes, and keeps them on "Keep editing"', async () => {
+    renderContacts();
+    fireEvent.click(screen.getByText('Alice Smith'));
+    fireEvent.click(screen.getByRole('button', { name: /detail.edit|edit/ }));
+    fireEvent.change(screen.getByPlaceholderText('middle_name'), { target: { value: 'Marie' } });
+
+    fireEvent.click(screen.getByText('Bob Jones'));
+    const dialog = await screen.findByRole('alertdialog');
+    expect(within(dialog).getByText('form.discard_title')).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'form.keep_editing' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(screen.getByPlaceholderText('middle_name')).toHaveValue('Marie');
+
+    fireEvent.click(screen.getByText('Bob Jones'));
+    fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'form.discard' }));
+    await waitFor(() => expect(screen.queryByPlaceholderText('middle_name')).toBeNull());
+    expect(useContactStore.getState().selectedContactId).toBe('c-bob');
+  });
+
+  it('leaves an untouched contact form without asking', () => {
+    renderContacts();
+    fireEvent.click(screen.getByText('Alice Smith'));
+    fireEvent.click(screen.getByRole('button', { name: /detail.edit|edit/ }));
+    fireEvent.click(screen.getByText('Bob Jones'));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(useContactStore.getState().selectedContactId).toBe('c-bob');
   });
 });

@@ -48,6 +48,7 @@ import { useDeepLinkUrl } from "@/hooks/use-deep-link-url";
 import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
 import { useLiteLinkSegments } from "@/hooks/use-lite-link-segments";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { useCloseOnBack } from "@/hooks/use-close-on-back";
 import { MvTopBar } from "@/components/layout/mv-top-bar";
 import { useMountainViewShell } from "@/hooks/use-mountain-view-shell";
 
@@ -153,6 +154,61 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   useEffect(() => { if (!isNarrow) setNarrowSidebarOpen(false); }, [isNarrow]);
   // A new view (a form, a group, a contact) replaces whatever the drawer was for.
   useEffect(() => { setNarrowSidebarOpen(false); }, [view]);
+  // R5: an editor with unsaved changes asks before anything replaces it.
+  const [editorDirty, setEditorDirtyState] = useState(false);
+  const editorDirtyRef = useRef(false);
+  const setEditorDirty = useCallback((dirty: boolean) => {
+    editorDirtyRef.current = dirty;
+    setEditorDirtyState(dirty);
+  }, []);
+  useEffect(() => {
+    if (view !== "create" && view !== "edit" && view !== "group-create" && view !== "group-edit") setEditorDirty(false);
+  }, [view, setEditorDirty]);
+  const confirmDiscard = useCallback(async () => {
+    if (!editorDirtyRef.current) return true;
+    const discard = await confirmDialog({
+      title: t("form.discard_title"),
+      message: t("form.discard_message"),
+      confirmText: t("form.discard"),
+      cancelText: t("form.keep_editing"),
+      variant: "destructive",
+    });
+    if (discard) setEditorDirty(false);
+    return discard;
+  }, [confirmDialog, t, setEditorDirty]);
+  const guard = <A extends unknown[]>(action: (...args: A) => unknown) => (...args: A): void => {
+    if (!editorDirtyRef.current) {
+      action(...args);
+      return;
+    }
+    void confirmDiscard().then((discard) => { if (discard) action(...args); });
+  };
+  // Leaving the page or going Back asks too.
+  useEffect(() => {
+    if (!editorDirty) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [editorDirty]);
+  const handleCancelRef = useRef<() => void>(() => {});
+  // Set when the app itself goes Back (to the email it came from): the
+  // guard's history entry is in the way then, and is stepped over.
+  const leavingRef = useRef(false);
+  const backGuard = useCloseOnBack(() => {
+    if (leavingRef.current) {
+      leavingRef.current = false;
+      window.history.back();
+      return;
+    }
+    void confirmDiscard().then((discard) => {
+      if (discard) handleCancelRef.current();
+      else backGuard.rearm();
+    });
+  }, editorDirty);
+  const routerBack = useCallback(() => {
+    if (backGuard.armed()) leavingRef.current = true;
+    router.back();
+  }, [backGuard, router]);
   // Anything picked in the drawer closes it (R7).
   const fromDrawer = <A extends unknown[], R>(action: (...args: A) => R) => (...args: A): R => {
     setNarrowSidebarOpen(false);
@@ -522,15 +578,16 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     // A plugin stopped it: keep the form open with what was typed.
     if (!created) return;
     toast.success(t("toast.created"));
+    setEditorDirty(false);
     setDefaultBookIdForCreate(undefined);
     setCreatePrefill(undefined);
     if (returnToEmail) {
       setReturnToEmail(false);
-      router.back();
+      routerBack();
       return;
     }
     setView("list");
-  }, [supportsSync, client, createContact, addLocalContact, t, returnToEmail, router]);
+  }, [supportsSync, client, createContact, addLocalContact, t, returnToEmail, routerBack, setEditorDirty]);
 
   const handleSaveEdit = useCallback(async (data: Partial<ContactCard>, options?: ContactSaveOptions) => {
     if (!selectedContact) return;
@@ -544,12 +601,13 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   }, [supportsSync, client, selectedContact, updateContact, updateLocalContact, t]);
 
   const handleCancel = () => {
+    setEditorDirty(false);
     setDefaultBookIdForCreate(undefined);
     // Came from email → cancel returns to the email instead of the contact list.
     if (returnToEmail && view === "create") {
       setCreatePrefill(undefined);
       setReturnToEmail(false);
-      router.back();
+      routerBack();
       return;
     }
     if (view === "create") setCreatePrefill(undefined);
@@ -561,6 +619,8 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
       setView(selectedContact ? "detail" : "list");
     }
   };
+
+  handleCancelRef.current = handleCancel;
 
   const _handleSelectGroup = (id: string) => {
     setSelectedGroupId(id);
@@ -793,13 +853,13 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
         <DirectoryEntryDetail
           entry={directoryPrincipals.find((e) => directoryKey(e) === openDirectoryKey) ?? null}
           onCompose={(entry) => handleComposeDirectory([entry])}
-          onAddToContacts={handleAddDirectoryEntryToContacts}
+          onAddToContacts={guard(handleAddDirectoryEntryToContacts)}
         />
       );
     }
     switch (view) {
       case "create":
-        return <ContactForm addressBooks={addressBooks} allKeywords={allKeywords} defaultAddressBookId={defaultBookIdForCreate} prefill={createPrefill} onSave={handleSaveNew} onCancel={handleCancel} />;
+        return <ContactForm addressBooks={addressBooks} allKeywords={allKeywords} defaultAddressBookId={defaultBookIdForCreate} prefill={createPrefill} onSave={handleSaveNew} onCancel={guard(handleCancel)} onDirtyChange={setEditorDirty} />;
 
       case "edit":
         if (!selectedContact) return null;
@@ -809,7 +869,8 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
             addressBooks={addressBooks}
             allKeywords={allKeywords}
             onSave={handleSaveEdit}
-            onCancel={handleCancel}
+            onCancel={guard(handleCancel)}
+            onDirtyChange={setEditorDirty}
             loadCurrentMedia={supportsSync && client ? () => fetchContactFromServer(client, selectedContact.id) : undefined}
           />
         );
@@ -825,10 +886,10 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
             onRemoveMember={handleRemoveGroupMember}
             onComposeGroup={(field) => handleComposeGroupFromSidebar(selectedGroup.id, field)}
             isMobile={isMobile}
-            onSelectMember={(id) => {
+            onSelectMember={guard((id: string) => {
               setSelectedContact(id);
               setView("detail");
-            }}
+            })}
           />
         );
 
@@ -837,7 +898,8 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
           <ContactGroupForm
             individuals={individuals}
             onSave={handleSaveGroup}
-            onCancel={handleCancel}
+            onCancel={guard(handleCancel)}
+            onDirtyChange={setEditorDirty}
           />
         );
 
@@ -849,7 +911,8 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
             individuals={individuals}
             currentMemberIds={selectedGroupMembers.map(m => m.id)}
             onSave={handleSaveGroup}
-            onCancel={handleCancel}
+            onCancel={guard(handleCancel)}
+            onDirtyChange={setEditorDirty}
           />
         );
 
@@ -941,7 +1004,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     if (returnToEmail) {
       setReturnToEmail(false);
       setCreatePrefill(undefined);
-      router.back();
+      routerBack();
       return;
     }
     setView("list");
@@ -1019,12 +1082,12 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                       individuals={individuals}
                       addressBooks={addressBooks}
                       activeCategory={activeCategory}
-                      onSelectCategory={handleSelectCategory}
-                      onCreateGroup={fromDrawer(handleCreateGroup)}
-                      onCreateContact={fromDrawer(handleCreateNew)}
+                      onSelectCategory={guard(handleSelectCategory)}
+                      onCreateGroup={fromDrawer(guard(handleCreateGroup))}
+                      onCreateContact={fromDrawer(guard(handleCreateNew))}
                       onCreateAddressBook={client ? fromDrawer(() => setCreatingAddressBook(true)) : undefined}
                       onImport={fromDrawer(() => setShowImportDialog(true))}
-                      onEditGroup={fromDrawer(handleEditGroupFromSidebar)}
+                      onEditGroup={fromDrawer(guard(handleEditGroupFromSidebar))}
                       onDeleteGroup={fromDrawer(handleDeleteGroupFromSidebar)}
                       onComposeGroup={fromDrawer(handleComposeGroupFromSidebar)}
                       onDropContacts={handleDropContacts}
@@ -1039,11 +1102,11 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                           toast.error(t("address_books.set_default_failed"));
                         }
                       }) : undefined}
-                      onCreateContactInBook={fromDrawer((book: AddressBook) => {
+                      onCreateContactInBook={fromDrawer(guard((book: AddressBook) => {
                         setDefaultBookIdForCreate(book.id);
                         setSelectedContact(null);
                         setView("create");
-                      })}
+                      }))}
                       onDeleteAddressBook={client ? fromDrawer(async (book: AddressBook) => {
                         const ok = await confirmDialog({
                           title: t("address_books.delete"),
@@ -1122,8 +1185,8 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                   selectedContactId={selectedContactId}
                   searchQuery={searchQuery}
                   onSearchChange={setSearchQuery}
-                  onSelectContact={handleSelectContact}
-                  onCreateNew={handleCreateNew}
+                  onSelectContact={guard(handleSelectContact)}
+                  onCreateNew={guard(handleCreateNew)}
                   className="flex-1"
                   selectedContactIds={selectedContactIds}
                   onToggleSelection={toggleContactSelection}
@@ -1131,11 +1194,11 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                   onSelectAll={selectAllContacts}
                   onClearSelection={clearSelection}
                   onBulkDelete={handleBulkDelete}
-                  onBulkAddToGroup={handleBulkAddToGroup}
+                  onBulkAddToGroup={guard(handleBulkAddToGroup)}
                   onBulkExport={handleBulkExport}
-                  onEditContact={handleEditContact}
+                  onEditContact={guard(handleEditContact)}
                   onDeleteContact={handleDeleteContact}
-                  onAddContactToGroup={handleAddContactToGroup}
+                  onAddContactToGroup={guard(handleAddContactToGroup)}
                   onMenuClick={isNarrow ? () => setNarrowSidebarOpen(true) : undefined}
                   isLoading={supportsSync && !contactsLoaded}
                 />
@@ -1164,7 +1227,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={mobileBackToList}
+                    onClick={guard(mobileBackToList)}
                     className="touch-manipulation"
                   >
                     <ArrowLeft className="w-4 h-4 me-2" />

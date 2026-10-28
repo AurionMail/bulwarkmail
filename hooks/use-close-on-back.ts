@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { generateUUID } from "@/lib/utils";
 
 // Closing one layer can leave an asynchronous Back traversal in flight. The
@@ -16,12 +16,14 @@ let pendingHistoryBack: Promise<void> | null = null;
  *
  * `onBack` runs after the entry is gone. A layer that decides to stay open
  * (an editor that asked "Discard changes?" and heard "Keep editing") calls
- * the returned `rearm` to hold an entry again.
+ * the returned `rearm` to hold an entry again. `armed` tells whether the
+ * entry is there now, e.g. before a `router.back()` that must leave for real.
  */
-export function useCloseOnBack(onBack: () => void, active = true): { rearm: () => void } {
+export function useCloseOnBack(onBack: () => void, active = true): { rearm: () => void; armed: () => boolean } {
   const onBackRef = useRef(onBack);
   onBackRef.current = onBack;
   const rearmRef = useRef<() => void>(() => {});
+  const armedRef = useRef(false);
 
   useEffect(() => {
     if (!active) return;
@@ -32,6 +34,7 @@ export function useCloseOnBack(onBack: () => void, active = true): { rearm: () =
     const onPop = () => {
       if (!entryId) return;
       entryId = null;
+      armedRef.current = false;
       poppedByBack = true;
       window.removeEventListener("popstate", onPop);
       onBackRef.current();
@@ -39,6 +42,7 @@ export function useCloseOnBack(onBack: () => void, active = true): { rearm: () =
     const push = () => {
       if (cancelled || entryId) return;
       entryId = generateUUID();
+      armedRef.current = true;
       poppedByBack = false;
       window.history.pushState({ ...window.history.state, __filePreview: entryId }, "");
       window.addEventListener("popstate", onPop);
@@ -55,6 +59,7 @@ export function useCloseOnBack(onBack: () => void, active = true): { rearm: () =
     return () => {
       cancelled = true;
       rearmRef.current = () => {};
+      armedRef.current = false;
       window.clearTimeout(timer);
       window.removeEventListener("popstate", onPop);
       const ours = entryId;
@@ -70,5 +75,7 @@ export function useCloseOnBack(onBack: () => void, active = true): { rearm: () =
     };
   }, [active]);
 
-  return { rearm: () => rearmRef.current() };
+  // The same object every render, so callers can list it as a dependency.
+  const [api] = useState(() => ({ rearm: () => rearmRef.current(), armed: () => armedRef.current }));
+  return api;
 }

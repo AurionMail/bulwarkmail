@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Search, Check, X } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ interface ContactGroupFormProps {
   currentMemberIds?: string[];
   onSave: (name: string, memberIds: string[]) => Promise<void>;
   onCancel: () => void;
+  /** Reports whether the form holds changes not yet saved. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 export function ContactGroupForm({
@@ -24,6 +26,7 @@ export function ContactGroupForm({
   currentMemberIds = [],
   onSave,
   onCancel,
+  onDirtyChange,
 }: ContactGroupFormProps) {
   const t = useTranslations("contacts");
   const isEditing = !!group;
@@ -37,6 +40,10 @@ export function ContactGroupForm({
   const [memberSearch, setMemberSearch] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [initial] = useState(() => ({ name, members: [...selectedIds].sort().join(",") }));
+  const dirty = name !== initial.name || [...selectedIds].sort().join(",") !== initial.members;
+  useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
 
   const filteredIndividuals = useMemo(() => {
     if (!memberSearch) return individuals;
