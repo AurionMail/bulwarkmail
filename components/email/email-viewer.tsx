@@ -78,7 +78,6 @@ import {
   Minus,
   ShieldCheck,
   ShieldAlert,
-  Code,
   Copy,
   Brain,
   Keyboard,
@@ -174,7 +173,6 @@ const TOOLBAR_PRIORITY_ACTIONS: Record<string, MessageActionKey> = {
   '7': 'spam',
   '8': 'read',
   '9': 'print',
-  '10': 'view_source',
   '11': 'extra:view_mode',
 };
 const NO_ACTION_KEYS: ReadonlySet<MessageActionKey> = new Set();
@@ -4407,19 +4405,6 @@ export function EmailViewer({
           {showToolbarLabels && <span className="hidden sm:inline text-sm whitespace-nowrap">{t('print')}</span>}
         </Button>
         )}
-
-        {/* View source - hidden on mobile, overflows to More menu */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowSourceModal(true)}
-          data-overflow-item
-          data-overflow-priority="10"
-          className={cn("hidden sm:inline-flex h-8 gap-1.5", mvViewer && "order-8")}
-          title={t('view_source')}
-        >
-          <Code className="w-4 h-4" />
-        </Button>
 
         {/* Dark/light mode toggle for HTML emails. Always mounted: `isHtml`
             flips from false to true once the body arrives, and mounting the
