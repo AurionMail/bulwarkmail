@@ -86,6 +86,7 @@ import type { ParsedWebcal } from "@/lib/protocol-handlers/webcal";
 import { appPath, buildCalendarPath, parseCalendarPath, type CalendarDeepLink } from "@/lib/deep-links";
 import { consumePendingDeepLinkEntry, subscribePendingDeepLink } from "@/lib/deep-link-handoff";
 import { useDeepLinkUrl } from "@/hooks/use-deep-link-url";
+import { useCloseOnBack } from "@/hooks/use-close-on-back";
 import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
 import { useCalendarLocale } from "@/hooks/use-calendar-locale";
 import {
@@ -941,6 +942,24 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       ? (isFocusedProTab ? calendarLinkPath : null)
       : proInterfaceActive ? null : calendarLinkPath,
   );
+
+  // Browser Back closes the event or task editor (asking first when it has
+  // unsaved changes) instead of leaving the calendar (R5).
+  const closeEditors = useCallback(() => {
+    setShowEventModal(false);
+    setEditEvent(null);
+    setPendingPreview(null);
+    setDefaultCalendarIdForCreate(undefined);
+    setDefaultModalAllDay(false);
+    setShowTaskModal(false);
+    setEditTask(null);
+  }, []);
+  useCloseOnBack({
+    open: showEventModal || showTaskModal,
+    enabled: isEmbedded ? isFocusedProTab : !proInterfaceActive,
+    shouldHold: () => eventEditorDirtyRef.current || taskEditorDirtyRef.current,
+    onBack: () => whenEditorsDiscarded(closeEditors),
+  });
 
   const handleEditFromDetail = useCallback(() => {
     if (detailEvent) {

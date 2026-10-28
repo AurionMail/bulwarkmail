@@ -254,6 +254,52 @@ describe('CalendarApp unsaved editor changes', () => {
   });
 });
 
+describe('CalendarApp browser Back with an editor open (R5)', () => {
+  const backEntry = () => (window.history.state as Record<string, unknown> | null)?.__closeOnBack;
+  // Earlier tests leave history behind: wait for this editor's own entry.
+  const openEditorEntry = async () => {
+    const before = backEntry();
+    fireEvent.keyDown(document.body, { key: 'n', code: 'KeyN' });
+    await waitFor(() => expect(backEntry()).toBeTruthy());
+    await waitFor(() => expect(backEntry()).not.toBe(before));
+  };
+
+  it('closes an untouched editor instead of leaving the calendar', async () => {
+    renderApp();
+    await openEditorEntry();
+    window.history.back();
+    await waitFor(() => expect(screen.queryByPlaceholderText('form.title')).toBeNull());
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(backEntry()).toBeUndefined();
+  });
+
+  it('asks before Back drops changes, and asks again after Keep editing', async () => {
+    renderApp();
+    await openEditorEntry();
+    fireEvent.change(screen.getByPlaceholderText('form.title'), { target: { value: 'Lunch' } });
+    window.history.back();
+    const ask = await screen.findByRole('alertdialog', { name: 'discard.title' });
+    fireEvent.click(within(ask).getByRole('button', { name: 'discard.keep' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(screen.getByPlaceholderText('form.title')).toHaveValue('Lunch');
+    // The entry is back, so the next Back asks again
+    expect(backEntry()).toBeTruthy();
+
+    window.history.back();
+    const again = await screen.findByRole('alertdialog', { name: 'discard.title' });
+    fireEvent.click(within(again).getByRole('button', { name: 'discard.confirm' }));
+    await waitFor(() => expect(screen.queryByPlaceholderText('form.title')).toBeNull());
+    await waitFor(() => expect(backEntry()).toBeUndefined());
+  });
+
+  it('takes its history entry back off when the editor closes another way', async () => {
+    renderApp();
+    await openEditorEntry();
+    fireEvent.click(screen.getByText('form.cancel'));
+    await waitFor(() => expect(backEntry()).toBeUndefined());
+  });
+});
+
 function toastTitles(): string[] {
   return useToastStore.getState().toasts.map((t) => t.title);
 }
