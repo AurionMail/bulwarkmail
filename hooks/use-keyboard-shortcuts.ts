@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useRef } from "react";
 import { Email } from "@/lib/jmap/types";
-import { isEditableEventTarget } from "@/lib/keyboard";
+import { isActivatableEventTarget, isEditableEventTarget } from "@/lib/keyboard";
 import { keyboardHooks } from "@/lib/plugin-hooks";
 
 export interface KeyboardShortcutHandlers {
@@ -198,6 +198,8 @@ export function useKeyboardShortcuts({
 
         case "enter":
         case "o":
+          // Enter on a focused link or button (the skip link) is the control's.
+          if (key === "enter" && isActivatableEventTarget(event)) break;
           if (selectedEmailId) {
             event.preventDefault();
             run("open-email", h.onOpenEmail);

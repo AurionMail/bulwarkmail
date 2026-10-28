@@ -24,3 +24,20 @@ export function isEditableEventTarget(event: Event): boolean {
     return attr === "" || attr === "true" || attr === "plaintext-only";
   });
 }
+
+/**
+ * Whether a key event comes from a control that Enter or Space activates
+ * itself (a link, a button): a page-wide shortcut on those keys must leave it
+ * alone, or a focused "Skip to message list" link opens a message instead.
+ */
+export function isActivatableEventTarget(event: Event): boolean {
+  const path =
+    typeof event.composedPath === "function"
+      ? event.composedPath()
+      : [event.target];
+  return path.some(
+    (node) =>
+      node instanceof HTMLElement &&
+      node.matches('a[href], button, summary, [role="button"], [role="link"], [role="checkbox"], [role="menuitem"], [role="option"], [role="tab"], [role="switch"]'),
+  );
+}
