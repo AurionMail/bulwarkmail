@@ -3200,6 +3200,7 @@
       "deleted": "{count, plural, one {1 contact șters} few {# contacte șterse} other {# de contacte șterse}}",
       "add_to_group": "Adaugă la grup",
       "choose_group": "Alegeți un grup",
+      "new_group": "Grup nou…",
       "adding_contacts": "Adăugare {count, plural, one {1 contact} few {# contacte} other {# de contacte}}",
       "added_to_group": "Contacte adăugate la grup",
       "export": "Export",

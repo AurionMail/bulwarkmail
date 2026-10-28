@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useCallback, useRef, useMemo } from "rea
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
-import { ArrowLeft, Users, AlertTriangle } from "@/components/icons";
+import { ArrowLeft, Users, UsersRound, AlertTriangle } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
@@ -130,6 +130,8 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   const [returnToEmail, setReturnToEmail] = useState(false);
   const [renamingKeyword, setRenamingKeyword] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  // Who a new group starts with: the selection when it came from "Add to group".
+  const [newGroupMemberIds, setNewGroupMemberIds] = useState<string[]>([]);
   const [directorySelection, setDirectorySelection] = useState<Set<string>>(() => new Set());
   const [openDirectoryKey, setOpenDirectoryKey] = useState<string | null>(null);
   const directoryPrincipals = useContactStore((s) => s.directoryPrincipals);
@@ -538,6 +540,8 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     clearSelection();
     toggleContactSelection(id);
     if (groups.length === 0) {
+      // No group to add to yet: a new one, with the contact already in it.
+      setNewGroupMemberIds([id]);
       setView("group-create");
       return;
     }
@@ -630,6 +634,14 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
 
   const handleCreateGroup = () => {
     setSelectedGroupId(null);
+    setNewGroupMemberIds([]);
+    setView("group-create");
+  };
+
+  // "Add to group": a new group starting with the selected contacts.
+  const handleCreateGroupFromSelection = () => {
+    setSelectedGroupId(null);
+    setNewGroupMemberIds(Array.from(selectedContactIds));
     setView("group-create");
   };
 
@@ -769,9 +781,10 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     } else {
       await createGroup(jmapClient, name, memberIds);
       toast.success(t("toast.created"));
+      clearSelection();
       setView("list");
     }
-  }, [view, selectedGroup, selectedGroupMembers, supportsSync, client, createGroup, updateGroup, addMembersToGroup, removeMembersFromGroup, t]);
+  }, [view, selectedGroup, selectedGroupMembers, supportsSync, client, createGroup, updateGroup, addMembersToGroup, removeMembersFromGroup, clearSelection, t]);
 
   const handleRemoveGroupMember = async (memberId: string) => {
     if (!selectedGroup) return;
@@ -815,7 +828,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   const handleBulkAddToGroup = () => {
     if (selectedContactIds.size === 0) return;
     if (groups.length === 0) {
-      setView("group-create");
+      handleCreateGroupFromSelection();
       return;
     }
     setView("bulk-add-to-group");
@@ -897,6 +910,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
         return (
           <ContactGroupForm
             individuals={individuals}
+            currentMemberIds={newGroupMemberIds}
             onSave={handleSaveGroup}
             onCancel={guard(handleCancel)}
             onDirtyChange={setEditorDirty}
@@ -926,6 +940,16 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
               </p>
             </div>
             <div className="flex-1 overflow-y-auto divide-y divide-border">
+              <button
+                type="button"
+                onClick={handleCreateGroupFromSelection}
+                className="w-full flex items-center gap-3 px-6 py-3 text-start hover:bg-muted transition-colors"
+              >
+                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <UsersRound className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0 text-sm font-medium">{t("bulk.new_group")}</div>
+              </button>
               {groups.map((group) => {
                 const gName = getContactDisplayName(group);
                 const memberCount = group.members

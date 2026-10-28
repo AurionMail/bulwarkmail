@@ -3200,6 +3200,7 @@
       "deleted": "{count, plural, one {已刪除 1 位聯絡人} other {已刪除 # 位聯絡人}}",
       "add_to_group": "新增至群組",
       "choose_group": "選擇群組",
+      "new_group": "新增群組…",
       "adding_contacts": "正在新增{count, plural, one {1 位聯絡人} other {# 位聯絡人}}",
       "added_to_group": "聯絡人已新增至群組",
       "export": "匯出",

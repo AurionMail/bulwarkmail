@@ -3199,6 +3199,7 @@
       "deleted": "{count, plural, one {1 kişi silindi} other {# kişi silindi}}",
       "add_to_group": "Gruba ekle",
       "choose_group": "Grup seçin",
+      "new_group": "Yeni grup…",
       "adding_contacts": "{count, plural, one {1 kişi} other {# kişi}} ekleniyor",
       "added_to_group": "Kişiler gruba eklendi",
       "export": "Dışa Aktar",

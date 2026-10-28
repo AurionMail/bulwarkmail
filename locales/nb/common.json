@@ -3200,6 +3200,7 @@
       "deleted": "{count, plural, one {1 kontakt slettet} other {# kontakter slettet}}",
       "add_to_group": "Legg til i gruppe",
       "choose_group": "Velg en gruppe",
+      "new_group": "Ny gruppe…",
       "adding_contacts": "Legger til {count, plural, one {1 kontakt} other {# kontakter}}",
       "added_to_group": "Kontaktene er lagt til i gruppen",
       "export": "Eksporter",

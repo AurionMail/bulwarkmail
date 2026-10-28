@@ -3103,6 +3103,7 @@
       "deleted": "{count, plural, one {נמחק איש קשר אחד} other {נמחקו # אנשי קשר}}",
       "add_to_group": "הוסף לקבוצה",
       "choose_group": "בחר קבוצה",
+      "new_group": "קבוצה חדשה…",
       "adding_contacts": "מוסיף {count, plural, one {איש קשר אחד} other {# אנשי קשר}}",
       "added_to_group": "אנשי קשר נוספו לקבוצה",
       "export": "ייצוא",

@@ -3200,6 +3200,7 @@
       "deleted": "{count, plural, one {1 névjegy törölve} other {# névjegy törölve}}",
       "add_to_group": "Hozzáadás a csoporthoz",
       "choose_group": "Csoport kiválasztása",
+      "new_group": "Új csoport…",
       "adding_contacts": "{count, plural, one {1 névjegy} other {# névjegy}} hozzáadása",
       "added_to_group": "Névjegyek hozzáadva a csoporthoz",
       "export": "Exportálás",

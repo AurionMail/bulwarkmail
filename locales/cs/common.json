@@ -3199,6 +3199,7 @@
       "deleted": "{count, plural, one {Odstraněn 1 kontakt} few {Odstraněny # kontakty} other {Odstraněno # kontaktů}}",
       "add_to_group": "Přidat do skupiny",
       "choose_group": "Vyberte skupinu",
+      "new_group": "Nová skupina…",
       "adding_contacts": "Přidávání {count, plural, one {1 kontaktu} few {# kontaktů} other {# kontaktů}}",
       "added_to_group": "Kontakty byly přidány do skupiny",
       "export": "Exportovat",

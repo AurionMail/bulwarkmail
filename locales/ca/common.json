@@ -3200,6 +3200,7 @@
       "deleted": "{count, plural, one {1 contacte suprimit} other {# contactes suprimits}}",
       "add_to_group": "Afegeix al grup",
       "choose_group": "Trieu un grup",
+      "new_group": "Grup nou…",
       "adding_contacts": "Afegint {count, plural, one {1 contacte} other {# contactes}}",
       "added_to_group": "Contactes afegits al grup",
       "export": "Exporta",

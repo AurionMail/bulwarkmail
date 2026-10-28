@@ -3199,6 +3199,7 @@
       "deleted": "{count, plural, one {1 контакт видалено} few {# контакти видалено} many {# контактів видалено} other {# контактів видалено}}",
       "add_to_group": "Додати до групи",
       "choose_group": "Виберіть групу",
+      "new_group": "Нова група…",
       "adding_contacts": "Додавання {count, plural, one {1 contact} other {# contacts}}",
       "added_to_group": "Контакти додано до групи",
       "export": "Експорт",

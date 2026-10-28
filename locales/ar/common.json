@@ -3200,6 +3200,7 @@
       "deleted": "{count, plural, one {تم حذف جهة اتصال واحدة} other {تم حذف # جهة اتصال}}",
       "add_to_group": "إضافة إلى مجموعة",
       "choose_group": "اختر مجموعة",
+      "new_group": "مجموعة جديدة…",
       "adding_contacts": "جارٍ إضافة {count, plural, one {جهة اتصال واحدة} other {# جهة اتصال}}",
       "added_to_group": "تمت إضافة جهات الاتصال إلى المجموعة",
       "export": "تصدير",

@@ -3200,6 +3200,7 @@
       "deleted": "{count, plural, one {۱ مخاطب حذف شد} other {# مخاطب حذف شد}}",
       "add_to_group": "افزودن به گروه",
       "choose_group": "انتخاب گروه",
+      "new_group": "گروه جدید…",
       "adding_contacts": "افزودن {count, plural, one {۱ مخاطب} other {# مخاطب}}",
       "added_to_group": "مخاطبین به گروه اضافه شدند",
       "export": "خروجی",

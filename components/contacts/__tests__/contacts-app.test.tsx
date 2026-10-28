@@ -125,4 +125,20 @@ describe('ContactsApp', () => {
     expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(useContactStore.getState().selectedContactId).toBe('c-bob');
   });
+
+  it('starts a new group with the contact when "Add to group" finds no group to add to', () => {
+    renderContacts();
+    fireEvent.contextMenu(screen.getByText('Alice Smith'));
+    fireEvent.click(screen.getByText('context_menu.add_to_group'));
+    expect(screen.getByText('groups.members_label (1)')).toBeInTheDocument();
+  });
+
+  it('offers a new group, with the selection in it, next to the existing groups', () => {
+    const team: ContactCard = { id: 'g-team', kind: 'group', addressBookIds: {}, name: { full: 'Team' }, members: {} };
+    renderContacts([alice, bob, team]);
+    fireEvent.contextMenu(screen.getByText('Bob Jones'));
+    fireEvent.click(screen.getByText('context_menu.add_to_group'));
+    fireEvent.click(screen.getByText('bulk.new_group'));
+    expect(screen.getByText('groups.members_label (1)')).toBeInTheDocument();
+  });
 });

@@ -3199,6 +3199,7 @@
       "deleted": "{count, plural, one {已删除 1 位联系人} other {已删除 # 位联系人}}",
       "add_to_group": "添加到群组",
       "choose_group": "选择一个组",
+      "new_group": "新建群组…",
       "adding_contacts": "正在添加{count, plural, one {1 位联系人} other {# 位联系人}}",
       "added_to_group": "联系人已添加至群组",
       "export": "导出",

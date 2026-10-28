@@ -3200,6 +3200,7 @@
       "deleted": "{count, plural, one {1 контакт устгагдлаа} other {# контакт устгагдлаа}}",
       "add_to_group": "Бүлэгт нэмэх",
       "choose_group": "Бүлэг сонгох",
+      "new_group": "Шинэ бүлэг…",
       "adding_contacts": "{count, plural, one {1 контакт} other {# контакт}} нэмэж байна",
       "added_to_group": "Харилцагчдыг группт нэмсэн",
       "export": "Экспорт хийх",

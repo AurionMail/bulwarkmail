@@ -3200,6 +3200,7 @@
       "deleted": "{count, plural, one {1 contact deleted} other {# contacts deleted}}",
       "add_to_group": "Add to group",
       "choose_group": "Choose a group",
+      "new_group": "New group…",
       "adding_contacts": "Adding {count, plural, one {1 contact} other {# contacts}}",
       "added_to_group": "Contacts added to group",
       "export": "Export",

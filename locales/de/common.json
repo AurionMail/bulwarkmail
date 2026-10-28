@@ -3199,6 +3199,7 @@
       "deleted": "{count, plural, one {1 Kontakt gelöscht} other {# Kontakte gelöscht}}",
       "add_to_group": "Zur Gruppe hinzufügen",
       "choose_group": "Gruppe wählen",
+      "new_group": "Neue Gruppe…",
       "adding_contacts": "{count, plural, one {1 Kontakt} other {# Kontakte}} hinzufügen",
       "added_to_group": "Kontakte zur Gruppe hinzugefügt",
       "export": "Exportieren",

@@ -3195,6 +3195,7 @@
       "deleted": "Izdzēsts {count, plural, one {1 kontakts} other {# kontakti}}",
       "add_to_group": "Pievienot grupai",
       "choose_group": "Izvēlēties grupu",
+      "new_group": "Jauna grupa…",
       "adding_contacts": "Pievieno {count, plural, one {1 kontaktu} other {# kontaktus}}",
       "added_to_group": "Kontakti pievienoti grupai",
       "export": "Eksportēt",

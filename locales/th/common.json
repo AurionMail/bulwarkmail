@@ -2514,6 +2514,7 @@
       "deleted": "{count, plural, one {ลบผู้ติดต่อแล้ว 1 รายการ} other {ลบผู้ติดต่อแล้ว # รายการ}}",
       "add_to_group": "เพิ่มในกลุ่ม",
       "choose_group": "เลือกกลุ่ม",
+      "new_group": "กลุ่มใหม่…",
       "adding_contacts": "กำลังเพิ่มผู้ติดต่อ {count, plural, one {1 รายการ} other {# รายการ}}",
       "added_to_group": "เพิ่มผู้ติดต่อในกลุ่มแล้ว",
       "export": "ส่งออก",
