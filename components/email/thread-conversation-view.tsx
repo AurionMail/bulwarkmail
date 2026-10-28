@@ -389,7 +389,7 @@ function EmailCard({
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <span className={cn(
+            <span dir="auto" className={cn(
               "font-medium truncate",
               isUnread ? "text-foreground" : "text-muted-foreground"
             )}>
@@ -406,7 +406,7 @@ function EmailCard({
             {formatDate(emailDisplayDate(email))}
           </div>
           {!isExpanded && density !== 'extra-compact' && (
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+            <p dir="auto" className="text-sm text-muted-foreground mt-1 line-clamp-2">
               {cleanPreview(email.preview) || t('email_viewer.no_preview_available')}
             </p>
           )}

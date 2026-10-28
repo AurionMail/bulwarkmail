@@ -760,7 +760,7 @@ function MvConversationCard({ email, onOpen, timeFormat, compact }: { email: Ema
       <Avatar name={sender?.name} email={sender?.email} size="md" className="w-10 h-10 flex-shrink-0" />
       <span className="flex-1 min-w-0">
         <span className="flex items-baseline gap-2">
-          <span className={cn("text-sm truncate", unread ? "font-bold" : "font-semibold")}>
+          <span dir="auto" className={cn("text-sm truncate", unread ? "font-bold" : "font-semibold")}>
             {sender?.name || sender?.email || ''}
           </span>
           <span className="ms-auto ps-2 text-xs text-muted-foreground whitespace-nowrap">
@@ -876,7 +876,7 @@ export function MvExpandedConversationCard({
         <Avatar name={sender?.name} email={sender?.email} size="md" className="w-10 h-10 flex-shrink-0" />
         <span className="flex-1 min-w-0">
           <span className="flex items-baseline gap-2">
-            <span className="text-sm font-semibold truncate">{sender?.name || sender?.email || ''}</span>
+            <span dir="auto" className="text-sm font-semibold truncate">{sender?.name || sender?.email || ''}</span>
             {!compact && sender?.name && sender.email && (
               <span className="text-xs text-muted-foreground truncate">&lt;{sender.email}&gt;</span>
             )}

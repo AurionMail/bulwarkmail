@@ -875,3 +875,25 @@ describe('ThreadListItem swipe on a conversation', () => {
     expect(onArchive).toHaveBeenCalledWith(expect.objectContaining({ id: 'b' }));
   });
 });
+
+// R11: in an Arabic interface an English subject was cut on the wrong side.
+// The text takes its direction from itself, wherever it sits.
+describe('ThreadListItem text direction', () => {
+  beforeEach(() => {
+    useSettingsStore.setState({ emailKeywords: [...DEFAULT_KEYWORDS], showPreview: true, mailLayout: 'split', interfaceLayout: 'default' });
+  });
+
+  it.each([
+    ['a single message', () => groupEmailsByThread([makeEmail({ preview: 'Preview text here' })])[0]],
+    ['a conversation', () => groupEmailsByThread([
+      makeEmail({ id: 'a', receivedAt: '2024-01-15T10:00:00Z', preview: 'Preview text here' }),
+      makeEmail({ id: 'b', receivedAt: '2024-01-15T11:00:00Z', preview: 'Preview text here' }),
+    ])[0]],
+  ])('gives the sender, subject and preview of %s dir="auto"', (_name, makeThread) => {
+    render(<ThreadListItem thread={makeThread()} isExpanded={false} onToggleExpand={() => {}} onEmailSelect={() => {}} />);
+    for (const text of ['Alice', 'Test Subject', 'Preview text here']) {
+      const el = screen.getAllByText((_c, node) => node?.textContent?.trim() === text && node.children.length === 0)[0];
+      expect(el.closest('[dir="auto"]'), text).not.toBeNull();
+    }
+  });
+});
