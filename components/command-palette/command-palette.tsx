@@ -16,6 +16,7 @@ import {
   Settings,
   Sun,
   UserCircle,
+  X,
   iconForName,
 } from "@/components/icons";
 import type { AppIcon } from "@/components/icons";
@@ -37,6 +38,8 @@ import { shortcutAlternatives } from "@/lib/shortcut-keys";
 import { toUnicodeEmail } from "@/lib/idn";
 import { isEditableEventTarget } from "@/lib/keyboard";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
 
 interface PaletteCommand {
@@ -131,6 +134,7 @@ export function CommandPaletteHost() {
 
 function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onShowShortcuts: () => void }) {
   const t = useTranslations("command_palette");
+  const tCommon = useTranslations("common");
   const tSidebar = useTranslations("sidebar");
   const tGlobalSearch = useTranslations("global_search");
   const router = useRouter();
@@ -150,8 +154,11 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
   const registeredGroups = useRegisteredCommandGroups();
   const accounts = useAccountStore((s) => s.accounts);
   const activeAccountId = useAuthStore((s) => s.activeAccountId);
+  // A touch screen has no keyboard to use the shortcuts with (R8).
+  const touch = useMediaQuery("(pointer: coarse)");
 
-  const dialogRef = useFocusTrap({ isActive: true, onEscape: onClose, restoreFocus: true });
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useFocusTrap({ isActive: true, onEscape: onClose, restoreFocus: true, initialFocus: () => inputRef.current });
 
   const commands = useMemo<PaletteCommand[]>(() => {
     const go = (href: string) => () => router.push(href);
@@ -209,7 +216,9 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
         run: () => useThemeStore.getState().setTheme(resolvedTheme === "dark" ? "light" : "dark"),
       });
     }
-    list.push({ id: "shortcuts", group: actions, icon: Keyboard, label: t("shortcuts"), shortcut: "?", run: onShowShortcuts });
+    if (!touch) {
+      list.push({ id: "shortcuts", group: actions, icon: Keyboard, label: t("shortcuts"), shortcut: "?", run: onShowShortcuts });
+    }
     // Account: switch to each other signed-in account, sign out.
     for (const entry of accounts) {
       if (entry.id === activeAccountId) continue;
@@ -235,7 +244,7 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
       });
     }
     return list;
-  }, [client, supportsCalendar, isFeatureEnabled, colorModeLocked, resolvedTheme, pluginActions, registeredGroups, accounts, activeAccountId, router, t, tSidebar, tGlobalSearch, onShowShortcuts]);
+  }, [client, supportsCalendar, isFeatureEnabled, colorModeLocked, resolvedTheme, pluginActions, registeredGroups, accounts, activeAccountId, router, t, tSidebar, tGlobalSearch, onShowShortcuts, touch]);
 
   const needle = query.trim();
   const visible = needle
@@ -301,6 +310,7 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
         <div className="flex items-center gap-2 border-b border-border px-3">
           <Search className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
           <input
+            ref={inputRef}
             type="text"
             role="combobox"
             aria-expanded="true"
@@ -317,6 +327,10 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
             className="h-12 flex-1 min-w-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
           <kbd className="hidden sm:inline-flex items-center rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">Esc</kbd>
+          {/* Full screen on a phone: no backdrop to tap and no Escape key (R4). */}
+          <IconButton label={tCommon("close")} size="icon-lg" className="sm:hidden -me-2" onClick={onClose}>
+            <X />
+          </IconButton>
         </div>
         <ul
           ref={listRef}

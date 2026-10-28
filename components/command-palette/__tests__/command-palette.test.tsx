@@ -184,3 +184,30 @@ describe('command palette', () => {
     expect(screen.getByRole('option', { name: 'shortcuts' })).toBeInTheDocument();
   });
 });
+
+describe('command palette on a phone', () => {
+  const realMatchMedia = window.matchMedia;
+  beforeEach(() => {
+    window.matchMedia = ((query: string) => ({
+      matches: query === '(pointer: coarse)',
+      media: query, onchange: null,
+      addListener: () => {}, removeListener: () => {}, addEventListener: () => {}, removeEventListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+  });
+  afterEach(() => { window.matchMedia = realMatchMedia; });
+
+  it('has a close button, as it fills the screen with nothing to tap around it', () => {
+    render(<CommandPaletteHost />);
+    act(() => appCommands.openCommandPalette());
+    act(() => { fireEvent.click(screen.getByRole('button', { name: 'close' })); });
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('offers no keyboard shortcuts on a touch screen', () => {
+    render(<CommandPaletteHost />);
+    act(() => appCommands.openCommandPalette());
+    expect(screen.queryByRole('option', { name: 'shortcuts' })).toBeNull();
+    expect(screen.getByRole('option', { name: 'compose' })).toBeInTheDocument();
+  });
+});
