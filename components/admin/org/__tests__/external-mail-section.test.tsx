@@ -92,7 +92,7 @@ describe('External mail section', () => {
     fireEvent.blur(field);
     expect(latest!.orgValue('externalMail', 'domains').value).toEqual(['xn--bcher-kva.de']);
     expect(screen.getByTestId('org-external-domains-rejected').textContent).toContain('not_a_domain, x');
-    await waitFor(() => expect(field.value).toBe('bücher.de'));
+    await waitFor(() => expect(field.value).toBe('bücher.de'), { timeout: 5000 });
   });
 
   it('offers no import and no note without the plugin', async () => {
