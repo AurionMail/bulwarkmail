@@ -41,7 +41,7 @@ import { DEFAULT_SEARCH_FILTERS, normalizePluginFilter } from '../jmap/search-ut
 import { awaitDialog, awaitPrompt, awaitCustomDialog, type PromptField } from './host-dialog';
 import { fileStorage } from '../plugin-storage';
 import { generateUUID } from '../utils';
-import { AddressBook, ContactCard, Identity } from '../jmap/types';
+import { AddressBook, ContactCard, Email, Identity } from '../jmap/types';
 import { EncryptionAtRestConfig, PublicKeyInfo, PublicKeyInput, useAccountSecurityStore } from '@/stores/account-security-store';
 import {
   doCalendarCreateEvent, doCalendarDeleteEvent, doCalendarGetEvent, doCalendarGetEvents,
@@ -155,11 +155,12 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   'addressbook.create': 'contacts:write',
   // user
   'user.getAccounts': 'account:read',
-  // The user's own account (principal id) and address, which mail accounts
-  // are team (group) mailboxes, and people from the server's directory.
+  // The user's own account (principal id) and address, and which mail
+  // accounts are team (group) mailboxes.
   'user.getSelf': 'account:read',
   'user.getMailAccounts': 'account:read',
-  'user.findPeople': 'account:read',
+  // People from the server's directory: names and addresses of others.
+  'user.findPeople': 'directory:read',
   // A plugin's own value in a mail account's shared Inbox metadata.
   'accountData.get': 'email:read',
   'accountData.set': 'email:write',
@@ -1323,6 +1324,22 @@ function assertPluginKeyword(keyword: unknown): string {
   return keyword;
 }
 
+/**
+ * Keywords that change what the app and the server do with a message, not
+ * just how it is labelled: a draft opens in the composer, $junk and
+ * $notjunk train the spam filter, $phishing hides the content. The
+ * email.* keyword methods leave them to the app's own actions.
+ */
+const PROTECTED_KEYWORDS = new Set(['$draft', '$junk', '$notjunk', '$phishing']);
+
+function assertMailKeyword(keyword: unknown): string {
+  const checked = assertPluginKeyword(keyword);
+  if (PROTECTED_KEYWORDS.has(checked.toLowerCase())) {
+    throw new Error(`JMAP keyword "${checked}" can't be changed by a plugin`);
+  }
+  return checked;
+}
+
 function assertPluginKeywords(value: unknown): Record<string, true> {
   if (!isPlainObject(value)) {
     throw new Error('jmap.setKeywords: keywords must be an object');
@@ -1384,7 +1401,7 @@ async function doEmailUpdateKeywords(emailIdArg: unknown, changesArg: unknown, a
   if (entries.length > MAX_PLUGIN_KEYWORD_CHANGES) throw new Error(`${method}: at most ${MAX_PLUGIN_KEYWORD_CHANGES} keywords at once`);
   const changes: Record<string, boolean> = {};
   for (const [keyword, value] of entries) {
-    assertPluginKeyword(keyword);
+    assertMailKeyword(keyword);
     if (typeof value !== 'boolean') throw new Error(`${method}: keyword "${keyword}" must be true (set) or false (clear)`);
     changes[keyword] = value;
   }
@@ -1394,16 +1411,46 @@ async function doEmailUpdateKeywords(emailIdArg: unknown, changesArg: unknown, a
   const own = client.getAccountId();
   const wanted = accountId && accountId !== own ? accountId : undefined;
   const state = useEmailStore.getState();
-  const row = [...state.emails, ...(state.selectedEmail ? [state.selectedEmail] : [])].find((email) => {
+  const isTarget = (email: Email) => {
     if (email.id !== emailId) return false;
     const owner = resolveEmailBlobContext(email, client);
     if (owner.client !== client) return false;
     return (owner.accountId && owner.accountId !== own ? owner.accountId : undefined) === wanted;
+  };
+  const row = [...state.emails, ...(state.selectedEmail ? [state.selectedEmail] : [])].find(isTarget);
+  let done = true;
+  if (row) {
+    done = await state.patchEmailKeywords(client, emailId, changes, emailKeyFor(row));
+  } else {
+    const patch = Object.fromEntries(Object.entries(changes).map(([keyword, value]) => [keywordPointer(keyword), value ? true : null]));
+    await client.batchUpdateKeywords([emailId], patch, wanted);
+  }
+  if (done) patchThreadCache(isTarget, changes);
+  return done;
+}
+
+/**
+ * The same change on the messages of expanded conversations
+ * (threadEmailsCache), whose inner rows patchEmailKeywords doesn't touch.
+ */
+function patchThreadCache(isTarget: (email: Email) => boolean, changes: Record<string, boolean>): void {
+  useEmailStore.setState((state) => {
+    let cache: Map<string, Email[]> | null = null;
+    for (const [key, members] of state.threadEmailsCache) {
+      if (!members.some(isTarget)) continue;
+      cache ??= new Map(state.threadEmailsCache);
+      cache.set(key, members.map((email) => {
+        if (!isTarget(email)) return email;
+        const keywords = { ...email.keywords };
+        for (const [keyword, on] of Object.entries(changes)) {
+          if (on) keywords[keyword] = true;
+          else delete keywords[keyword];
+        }
+        return { ...email, keywords };
+      }));
+    }
+    return cache ? { threadEmailsCache: cache } : {};
   });
-  if (row) return state.patchEmailKeywords(client, emailId, changes, emailKeyFor(row));
-  const patch = Object.fromEntries(Object.entries(changes).map(([keyword, value]) => [keywordPointer(keyword), value ? true : null]));
-  await client.batchUpdateKeywords([emailId], patch, wanted);
-  return true;
 }
 
 // ─── Native keyword definitions ──────────────────────────────
@@ -2154,7 +2201,7 @@ export async function dispatchApiCall(
 
     case 'email.setKeyword': {
       const emailId = assertEmailId(args[0], 'email.setKeyword');
-      const keyword = assertPluginKeyword(args[1]);
+      const keyword = assertMailKeyword(args[1]);
       const accountId = assertOptionalAccountId(args[2], 'email.setKeyword');
       await requireClient().setKeyword(emailId, keyword, accountId);
       return undefined;
@@ -2162,7 +2209,7 @@ export async function dispatchApiCall(
     case 'email.updateKeywords': return doEmailUpdateKeywords(args[0], args[1], args[2]);
     case 'email.removeKeyword': {
       const emailId = assertEmailId(args[0], 'email.removeKeyword');
-      const keyword = assertPluginKeyword(args[1]);
+      const keyword = assertMailKeyword(args[1]);
       const accountId = assertOptionalAccountId(args[2], 'email.removeKeyword');
       await requireClient().removeKeyword(emailId, keyword, accountId);
       return undefined;

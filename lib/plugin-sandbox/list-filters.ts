@@ -8,6 +8,7 @@
 
 import type { MailAccountKind } from './account-kind';
 import { MAIL_ACCOUNT_KINDS } from './account-kind';
+import { PLUGIN_ICON_RE } from './actions';
 
 export interface PluginListFilter {
   id: string;
@@ -36,7 +37,6 @@ export interface RegisteredListFilter extends PluginListFilter {
 
 export const MAX_LIST_FILTERS_PER_PLUGIN = 4;
 const ID_RE = /^[a-z0-9][a-z0-9-_.]{0,39}$/i;
-const ICON_RE = /^[A-Za-z0-9-]{1,40}$/;
 const ROLE_RE = /^[a-z]{1,20}$/;
 // The keyword rule of the plugin API (host-api.ts PLUGIN_KEYWORD_RE).
 const KEYWORD_RE = /^[a-z0-9$][a-z0-9$_.:-]{0,127}$/i;
@@ -61,7 +61,7 @@ export function checkListFilters(value: unknown): PluginListFilter[] {
     }
     if (!out.hasKeyword && !out.notKeyword) throw new Error(`filters[${i}] needs hasKeyword or notKeyword`);
     if (f.icon !== undefined) {
-      if (typeof f.icon !== 'string' || !ICON_RE.test(f.icon)) throw new Error(`filters[${i}].icon is invalid`);
+      if (typeof f.icon !== 'string' || !PLUGIN_ICON_RE.test(f.icon)) throw new Error(`filters[${i}].icon is invalid`);
       out.icon = f.icon;
     }
     if (f.accounts !== undefined) {

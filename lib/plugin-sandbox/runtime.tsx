@@ -442,12 +442,14 @@ function buildPluginApi(manifest: PluginManifest) {
         accountId: string; name: string; kind: 'personal' | 'group' | 'shared'; isReadOnly: boolean; isOpen: boolean;
       }>>,
       /**
-       * People from the server's directory, by principal id or by a part of
-       * their name or address (at most 20). `complete` is false when the
-       * administrator turned directory lookups off; only the people the user
-       * shares an account with are known then. Needs account:read.
+       * People from the server's directory, as the named mail account (else
+       * the user's own) sees it: by principal id (at most 20) or by a part
+       * of their name or address (3 characters or more). At most 20 results
+       * and 10 lookups a minute. `complete` is false when the administrator
+       * turned directory lookups off; only the people the user shares an
+       * account with are known then. Needs directory:read.
        */
-      findPeople: (query: { text?: string; ids?: string[] }) =>
+      findPeople: (query: { text?: string; ids?: string[]; accountId?: string }) =>
         callApi('user.findPeople', [query], NETWORK_API_TIMEOUT_MS) as Promise<{
           people: Array<{ id: string; type: string; name: string; email: string }>; complete: boolean;
         }>,
@@ -757,9 +759,10 @@ function buildPluginApi(manifest: PluginManifest) {
       updateKeywords: (emailId: string, changes: Record<string, boolean>, accountId?: string) =>
         callApi('email.updateKeywords', [emailId, changes, accountId]) as Promise<boolean>,
     },
-    // A small JSON value (at most 8 KB) the plugin keeps in a mail account's
+    // A small JSON value (at most 4 KB) the plugin keeps in a mail account's
     // Inbox, shared with everyone who can open that account (Stalwart 1.0
-    // metadata). get needs email:read, set email:write.
+    // metadata; it counts against the mailbox's metadata room). get needs
+    // email:read, set email:write; 30 reads and 20 changes a minute.
     accountData: {
       /** `supported` is false on servers without metadata; `value` is then null. */
       get: (accountId?: string) =>

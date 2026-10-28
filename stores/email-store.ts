@@ -814,7 +814,7 @@ function pluginFilterFolder(mailbox: Mailbox): ListFilterFolder {
   const client = viewing ? auth.getClientForAccount(viewing) : auth.client;
   return {
     role: mailbox.role ?? null,
-    accountKind: client ? mailAccountKind(client, mailbox.isShared ? mailbox.accountId : undefined, viewing ?? auth.activeAccountId) : null,
+    accountKind: client ? mailAccountKind(client, mailbox.isShared ? mailbox.accountId : undefined) : null,
   };
 }
 

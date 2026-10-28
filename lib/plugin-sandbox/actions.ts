@@ -62,7 +62,8 @@ export interface RegisteredAction extends PluginAction {
 
 export const MAX_ACTIONS_PER_SURFACE = 8;
 const ID_RE = /^[a-z0-9][a-z0-9-_.]{0,39}$/i;
-const ICON_RE = /^[A-Za-z0-9-]{1,40}$/;
+/** A host icon name, the one rule for plugin actions, list filters and row badges. */
+export const PLUGIN_ICON_RE = /^[A-Za-z0-9-]{1,40}$/;
 const ROLE_RE = /^[a-z]{1,20}$/;
 const MIME_RE = /^[a-z0-9.+-]+\/[a-z0-9.+*-]*$/i;
 // A JMAP keyword as plugins may set one (host-api.ts), or its start and `*`.
@@ -87,7 +88,7 @@ export function checkActions(value: unknown): PluginAction[] {
     if (typeof a.label !== 'string' || !a.label.trim() || a.label.length > 60) throw new Error(`actions[${i}].label is required (max 60 characters)`);
     const out: PluginAction = { id: a.id, label: a.label.trim() };
     if (a.icon !== undefined) {
-      if (typeof a.icon !== 'string' || !ICON_RE.test(a.icon)) throw new Error(`actions[${i}].icon is invalid`);
+      if (typeof a.icon !== 'string' || !PLUGIN_ICON_RE.test(a.icon)) throw new Error(`actions[${i}].icon is invalid`);
       out.icon = a.icon;
     }
     if (a.order !== undefined) {

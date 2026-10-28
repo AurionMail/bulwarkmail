@@ -12,8 +12,8 @@ import type { InstalledPlugin } from '../plugin-types';
 import { useAccountStore } from '@/stores/account-store';
 import { useIdentityStore } from '@/stores/identity-store';
 import { resolveEmailBlobContext } from '@/stores/email-store';
-import { isValidMetadataKey, MAX_METADATA_ENTRY_BYTES, MetadataTooLargeError, metadataValueBytes } from '../jmap/bulwark-metadata';
-import { mailAccountKind, type MailAccountKind } from './account-kind';
+import { isValidMetadataKey, MetadataTooLargeError, metadataValueBytes } from '../jmap/bulwark-metadata';
+import { confirmGroups, mailAccountKind, type MailAccountKind } from './account-kind';
 import { readObject, readString, sessionClient, withinRate } from './host-api-input';
 
 export interface PluginSelfView {
@@ -57,15 +57,26 @@ export function doUserGetSelf(): PluginSelfView {
   };
 }
 
-export function doUserGetMailAccounts(): PluginMailAccountView[] {
-  const client = sessionClient('user.getMailAccounts');
+function mailAccountIds(client: IJMAPClient): string[] {
   const own = client.getAccountId();
-  const open = resolveEmailBlobContext({}, client);
-  const openId = open.client === client ? open.accountId || own : null;
   const shared = typeof client.getSharedAccounts === 'function' ? client.getSharedAccounts() : [];
   const ids = shared.length > 0 ? shared.filter((a) => a.isPrimary || a.capabilities.mail).map((a) => a.id) : [own];
   if (!ids.includes(own)) ids.unshift(own);
-  return ids.map((accountId) => {
+  return ids;
+}
+
+/**
+ * The mail accounts of the signed-in login, each with its kind. Waits for
+ * the server's word on which are groups (account-kind.ts), so a plugin
+ * asking right after sign-in already hears "group" for a team mailbox.
+ */
+export async function doUserGetMailAccounts(): Promise<PluginMailAccountView[]> {
+  const client = sessionClient('user.getMailAccounts');
+  await confirmGroups(client);
+  const own = client.getAccountId();
+  const open = resolveEmailBlobContext({}, client);
+  const openId = open.client === client ? open.accountId || own : null;
+  return mailAccountIds(client).map((accountId) => {
     const info = client.getAccountInfo?.(accountId);
     return {
       accountId,
@@ -77,97 +88,129 @@ export function doUserGetMailAccounts(): PluginMailAccountView[] {
   });
 }
 
-// ─── Directory ────────────────────────────────────────────────
+/** `accountArg` as one of the login's mail accounts, or the user's own when not given. */
+function namedAccount(client: IJMAPClient, method: string, accountArg: unknown): string {
+  if (accountArg === undefined) return client.getAccountId();
+  const accountId = readString(accountArg, method, 'accountId', 256, { min: 1 });
+  if (!mailAccountIds(client).includes(accountId)) throw new Error(`${method}: no mail account "${accountId}"`);
+  return accountId;
+}
+
+// ─── Directory (directory:read) ───────────────────────────────
 
 /** Most people one user.findPeople call returns. */
 export const MAX_PLUGIN_PEOPLE = 20;
+/** Most ids one call may ask for. */
+export const MAX_PLUGIN_PEOPLE_IDS = 20;
+/** The shortest search text: one or two letters would page through the directory. */
+export const MIN_PLUGIN_PEOPLE_TEXT = 3;
+/** Lookups one plugin may make a minute. */
+export const PLUGIN_PEOPLE_PER_MINUTE = 10;
 const DIRECTORY_TTL_MS = 5 * 60_000;
 
 interface DirectoryCache {
-  client: IJMAPClient;
   at: number;
   complete: boolean;
   people: PluginPersonView[];
 }
 
-let directory: DirectoryCache | null = null;
-let directoryLoad: Promise<DirectoryCache> | null = null;
+/** Per client, per account: the listing and the load in flight. */
+const directories = new WeakMap<object, Map<string, DirectoryCache>>();
+const directoryLoads = new WeakMap<object, Map<string, Promise<DirectoryCache>>>();
 
-async function loadDirectory(client: IJMAPClient): Promise<DirectoryCache> {
-  if (directory && directory.client === client && Date.now() - directory.at < DIRECTORY_TTL_MS) return directory;
-  if (directoryLoad) return directoryLoad;
-  directoryLoad = (async () => {
+async function loadDirectory(client: IJMAPClient, accountId: string): Promise<DirectoryCache> {
+  const cached = directories.get(client)?.get(accountId);
+  if (cached && Date.now() - cached.at < DIRECTORY_TTL_MS) return cached;
+  let loads = directoryLoads.get(client);
+  if (!loads) {
+    loads = new Map();
+    directoryLoads.set(client, loads);
+  }
+  const running = loads.get(accountId);
+  if (running) return running;
+  const inFlight = loads;
+  const load = (async () => {
     let complete = false;
     let principals: Array<{ id: string; type?: string; name?: string; description?: string | null; email?: string | null }> = [];
     if (client.supportsPrincipals()) {
       if (typeof client.listPrincipals === 'function') {
-        const listing = await client.listPrincipals();
+        const listing = await client.listPrincipals(accountId);
         complete = listing.status === 'ok';
         principals = listing.principals;
       } else {
-        principals = await client.getPrincipals();
+        principals = await client.getPrincipals(accountId);
         complete = true;
       }
     }
-    const people = principals.map((p) => ({
-      id: p.id,
-      type: typeof p.type === 'string' ? p.type : 'individual',
-      name: (p.description || p.name || p.email || p.id).trim(),
-      email: (p.email || (p.name?.includes('@') ? p.name : '') || '').trim().toLowerCase(),
-    }));
-    directory = { client, at: Date.now(), complete, people };
-    return directory;
-  })().finally(() => { directoryLoad = null; });
-  return directoryLoad;
+    const entry: DirectoryCache = {
+      at: Date.now(),
+      complete,
+      people: principals.map((p) => ({
+        id: p.id,
+        type: typeof p.type === 'string' ? p.type : 'individual',
+        name: (p.description || p.name || p.email || p.id).trim(),
+        email: (p.email || (p.name?.includes('@') ? p.name : '') || '').trim().toLowerCase(),
+      })),
+    };
+    let byAccount = directories.get(client);
+    if (!byAccount) {
+      byAccount = new Map();
+      directories.set(client, byAccount);
+    }
+    byAccount.set(accountId, entry);
+    return entry;
+  })().finally(() => { inFlight.delete(accountId); });
+  inFlight.set(accountId, load);
+  return load;
 }
 
 /**
- * People from the server's directory: by principal id (`ids`), or whose
- * name or address contains `text`. `complete` is false when the
+ * People from the server's directory, as the account named (`accountId`,
+ * else the user's own) sees it: by principal id (`ids`, at most 20), or
+ * whose name or address contains `text` (3 characters or more). At most 20
+ * results and 10 lookups a minute. `complete` is false when the
  * administrator turned directory lookups off: then only the people the user
  * already shares an account with (their own and their groups) are known.
  */
 export async function doUserFindPeople(plugin: InstalledPlugin, query: unknown): Promise<{ people: PluginPersonView[]; complete: boolean }> {
   const method = 'user.findPeople';
-  const opts = readObject(query, method, 'query', ['text', 'ids']);
+  const opts = readObject(query, method, 'query', ['text', 'ids', 'accountId']);
   const client = sessionClient(method);
-  if (!withinRate('directory', plugin.id, 30)) throw new Error(`${method}: too many lookups, try again in a minute`);
   let ids: Set<string> | null = null;
   if (opts.ids !== undefined) {
-    if (!Array.isArray(opts.ids) || opts.ids.length > 100 || !opts.ids.every((id) => typeof id === 'string' && id.length > 0 && id.length <= 256)) {
-      throw new Error(`${method}: ids must be a list of up to 100 ids`);
+    if (!Array.isArray(opts.ids) || opts.ids.length === 0 || opts.ids.length > MAX_PLUGIN_PEOPLE_IDS
+      || !opts.ids.every((id) => typeof id === 'string' && id.length > 0 && id.length <= 256)) {
+      throw new Error(`${method}: ids must be a list of 1 to ${MAX_PLUGIN_PEOPLE_IDS} ids`);
     }
     ids = new Set(opts.ids as string[]);
   }
   const text = opts.text === undefined ? '' : readString(opts.text, method, 'text', 200, { trim: true }).toLowerCase();
   if (!ids && !text) throw new Error(`${method}: give text or ids`);
-  const { people, complete } = await loadDirectory(client);
+  if (text && text.length < MIN_PLUGIN_PEOPLE_TEXT) throw new Error(`${method}: text needs at least ${MIN_PLUGIN_PEOPLE_TEXT} characters`);
+  const accountId = namedAccount(client, method, opts.accountId);
+  if (!withinRate('directory', plugin.id, PLUGIN_PEOPLE_PER_MINUTE)) throw new Error(`${method}: too many lookups, try again in a minute`);
+  const { people, complete } = await loadDirectory(client, accountId);
   const found = people.filter((p) => (!ids || ids.has(p.id))
     && (!text || p.name.toLowerCase().includes(text) || p.email.includes(text)));
   return { people: found.slice(0, MAX_PLUGIN_PEOPLE), complete };
 }
 
-/** Test helper. */
-export function resetPluginDirectory(): void {
-  directory = null;
-  directoryLoad = null;
-}
-
 // ─── Shared data in a mail account ────────────────────────────
+
+/**
+ * Largest value a plugin keeps in one account: half of the 8 KB Stalwart
+ * takes per entry. Every entry counts against the mailbox's 64 KB, which
+ * Bulwark's own shared tags and team templates need too.
+ */
+export const MAX_PLUGIN_DATA_BYTES = 4096;
+/** Reads and changes one plugin may make a minute. */
+export const PLUGIN_DATA_READS_PER_MINUTE = 30;
+export const PLUGIN_DATA_WRITES_PER_MINUTE = 20;
 
 /** The metadata key a plugin's data lives under: org.bulwarkmail.plugin.<id>. */
 export function pluginDataKey(pluginId: string): string | null {
   const key = `plugin.${pluginId.toLowerCase()}`;
   return isValidMetadataKey(key) ? key : null;
-}
-
-function dataAccount(method: string, accountArg: unknown): { client: IJMAPClient; accountId: string } {
-  const client = sessionClient(method);
-  if (accountArg === undefined) return { client, accountId: client.getAccountId() };
-  const accountId = readString(accountArg, method, 'accountId', 256, { min: 1 });
-  const known = doUserGetMailAccounts().some((a) => a.accountId === accountId);
-  if (!known) throw new Error(`${method}: no mail account "${accountId}"`);
-  return { client, accountId };
 }
 
 /**
@@ -177,11 +220,13 @@ function dataAccount(method: string, accountArg: unknown): { client: IJMAPClient
  */
 export async function doAccountDataGet(plugin: InstalledPlugin, accountArg: unknown): Promise<{ supported: boolean; value: unknown }> {
   const method = 'accountData.get';
-  const { client, accountId } = dataAccount(method, accountArg);
+  const client = sessionClient(method);
+  const accountId = namedAccount(client, method, accountArg);
   const key = pluginDataKey(plugin.id);
   if (!key || typeof client.getBulwarkMetadata !== 'function' || !client.supportsBulwarkMetadata?.(accountId)) {
     return { supported: false, value: null };
   }
+  if (!withinRate('account-data-read', plugin.id, PLUGIN_DATA_READS_PER_MINUTE)) throw new Error(`${method}: too many reads, try again in a minute`);
   const entries = await client.getBulwarkMetadata(accountId);
   if (!entries) return { supported: false, value: null };
   return { supported: true, value: entries[key] ?? null };
@@ -190,7 +235,8 @@ export async function doAccountDataGet(plugin: InstalledPlugin, accountArg: unkn
 /** Replace (or with null remove) the plugin's value in the account's shared Inbox metadata. */
 export async function doAccountDataSet(plugin: InstalledPlugin, accountArg: unknown, value: unknown): Promise<void> {
   const method = 'accountData.set';
-  const { client, accountId } = dataAccount(method, accountArg);
+  const client = sessionClient(method);
+  const accountId = namedAccount(client, method, accountArg);
   const key = pluginDataKey(plugin.id);
   if (!key || typeof client.setBulwarkMetadata !== 'function' || !client.supportsBulwarkMetadata?.(accountId)) {
     throw new Error(`${method}: this server keeps no shared data for plugins`);
@@ -198,10 +244,10 @@ export async function doAccountDataSet(plugin: InstalledPlugin, accountArg: unkn
   if (value === undefined) throw new Error(`${method}: value is required (null removes it)`);
   let size: number;
   try { size = metadataValueBytes(value); } catch { throw new Error(`${method}: value must be JSON`); }
-  if (value !== null && size > MAX_METADATA_ENTRY_BYTES) {
-    throw new Error(`${method}: the value is ${size} bytes; at most ${MAX_METADATA_ENTRY_BYTES} fit`);
+  if (value !== null && size > MAX_PLUGIN_DATA_BYTES) {
+    throw new Error(`${method}: the value is ${size} bytes; at most ${MAX_PLUGIN_DATA_BYTES} fit`);
   }
-  if (!withinRate('account-data', plugin.id, 20)) throw new Error(`${method}: too many changes, try again in a minute`);
+  if (!withinRate('account-data', plugin.id, PLUGIN_DATA_WRITES_PER_MINUTE)) throw new Error(`${method}: too many changes, try again in a minute`);
   try {
     await client.setBulwarkMetadata(accountId, key, value);
   } catch (error) {

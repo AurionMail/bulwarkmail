@@ -4379,7 +4379,7 @@
       },
       "email_write": {
         "title": "Change and organise your email",
-        "body": "Add or remove tags, flags and other keywords on your messages, move them between your folders and to the archive, and save drafts."
+        "body": "Add or remove tags, flags and other keywords on your messages, move them between your folders and to the archive, and save drafts. It can also store a small value that every member of a team mailbox can read."
       },
       "email_send": {
         "title": "Change mail before it is sent",
@@ -4495,7 +4495,11 @@
       },
       "account_read": {
         "title": "See your accounts",
-        "body": "See the accounts you added with their addresses and servers, which mail accounts are team mailboxes, and look up people in your organisation's directory."
+        "body": "See the accounts you added with their addresses and servers, and which mail accounts are team mailboxes."
+      },
+      "directory_read": {
+        "title": "Look up people",
+        "body": "Look up people in your organisation's directory."
       },
       "http_post": {
         "title": "Use the webmail server for you",
