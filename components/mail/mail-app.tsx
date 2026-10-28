@@ -113,6 +113,8 @@ import { WopiEditor } from "@/components/files/wopi-editor";
 import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
 import { isFilePreviewable } from "@/lib/file-preview";
 import { prepareQuickReply } from "@/lib/outgoing/quick-reply";
+// Registers the organisation signature check and the disclaimer on the send path.
+import "@/lib/org/outgoing";
 import { computeReplyThreadingHeaders } from "@/lib/email-threading";
 import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
 import { findDraftIdentityId, findReplyIdentityId, resolveComposeAccountEmail } from "@/lib/reply-identity";
@@ -3905,6 +3907,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const prepared = await prepareQuickReply({
       body,
       signatureIdentity,
+      sendingIdentity,
       separator: useSettingsStore.getState().signatureSeparatorEnabled,
       to: recipients,
       fromEmail: headerFromEmail,

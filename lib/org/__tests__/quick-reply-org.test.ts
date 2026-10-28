@@ -1,0 +1,65 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { prepareQuickReply } from '@/lib/outgoing/quick-reply';
+import { resetSendPipeline } from '@/lib/outgoing/send-pipeline';
+import { registerOrgOutgoing } from '@/lib/org/outgoing';
+import { DEFAULT_POLICY, type SettingsPolicy } from '@/lib/admin/types';
+import { DEFAULT_ORGANISATION_POLICY, type OrganisationPolicy } from '@/lib/admin/organisation-policy';
+import { usePolicyStore } from '@/stores/policy-store';
+import { useSettingsStore } from '@/stores/settings-store';
+import { useIdentityStore } from '@/stores/identity-store';
+import type { Identity } from '@/lib/jmap/types';
+
+vi.mock('@/lib/debug', () => ({ debug: { log: () => {}, warn: () => {}, error: () => {} } }));
+
+// Quick reply (mail-app handleQuickReply → prepareQuickReply) must carry
+// the organisation signature like the composer.
+
+const ME = { id: 'id-me', name: 'Me', email: 'me@example.org', mayDelete: false, htmlSignature: '<b>Mine</b>', textSignature: 'Mine' } as Identity;
+const TEAM = { id: 'id-team', name: 'Team', email: 'team@example.org', mayDelete: false } as Identity;
+
+function setOrganisation(organisation: Partial<OrganisationPolicy>, locked = false) {
+  const policy: SettingsPolicy = {
+    ...DEFAULT_POLICY,
+    restrictions: locked ? { signature: { locked: true } } : {},
+    organisation: { ...DEFAULT_ORGANISATION_POLICY, ...organisation },
+  };
+  usePolicyStore.setState({ policy, rawPolicy: policy, subject: null });
+}
+
+const reply = (sendingIdentity: Identity, signatureIdentity: Identity) => prepareQuickReply({
+  body: 'Thanks',
+  signatureIdentity,
+  sendingIdentity,
+  separator: true,
+  to: ['bob@example.com'],
+  fromEmail: sendingIdentity.email,
+  identityId: sendingIdentity.id,
+});
+
+const SIGNATURE = { html: '<p>{name} | ACME</p>', text: '', fields: [] };
+
+describe('quick reply and the organisation', () => {
+  beforeEach(() => {
+    resetSendPipeline();
+    registerOrgOutgoing();
+    useIdentityStore.setState({ identities: [ME, TEAM] });
+    useSettingsStore.setState({ signatureDetails: { title: '', department: '', phone: '', mobile: '' } });
+  });
+  afterEach(() => {
+    resetSendPipeline();
+    usePolicyStore.setState({ policy: DEFAULT_POLICY, rawPolicy: DEFAULT_POLICY });
+  });
+
+  it('signs with a locked organisation signature once, filled in for the sending identity', async () => {
+    setOrganisation({ signature: SIGNATURE }, true);
+    const out = await reply(TEAM, ME);
+    expect(out?.html).toBe('<div>Thanks</div><br><br>-- <br><p>Team | ACME</p>');
+    expect(out?.text).toBe('Thanks\n\n-- \nTeam | ACME');
+  });
+
+  it('uses it for an identity without a signature, and keeps an own one when not locked', async () => {
+    setOrganisation({ signature: SIGNATURE });
+    expect((await reply(TEAM, TEAM))?.text).toBe('Thanks\n\n-- \nTeam | ACME');
+    expect((await reply(ME, ME))?.text).toBe('Thanks\n\n-- \nMine');
+  });
+});

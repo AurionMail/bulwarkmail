@@ -2833,6 +2833,23 @@
     "delete_button": "Löschen",
     "delete_confirm_title": "Identität löschen"
   },
+  "org_signature": {
+    "disclaimer_added_on_send": "Wird beim Senden angefügt",
+    "identity_signature_label": "Signatur",
+    "identity_no_signature": "Keine Signatur",
+    "identity_default": "Lassen Sie beide Signaturen leer, um von dieser Adresse die Signatur Ihrer Organisation zu senden.",
+    "details": {
+      "title": "Ihre Angaben",
+      "description": "Die Signatur Ihrer Organisation zeigt diese Angaben. Sie füllen sie einmal aus, und jede Adresse, von der Sie senden, verwendet sie.",
+      "preview": "Ihre Signatur",
+      "fields": {
+        "title": "Position",
+        "department": "Abteilung",
+        "phone": "Telefon",
+        "mobile": "Mobil"
+      }
+    }
+  },
   "templates": {
     "picker_title": "Vorlage wählen",
     "search_placeholder": "Vorlagen suchen...",

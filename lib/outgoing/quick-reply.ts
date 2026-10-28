@@ -1,21 +1,27 @@
 import type { Identity } from '@/lib/jmap/types';
 import { appendHtmlSignature, appendPlainTextSignature } from '@/lib/signature-utils';
+import { currentSignatureIdentity } from '@/lib/org/signature-state';
 import { finalizeOutgoing, runPreSendChecks, type OutgoingBodies } from './send-pipeline';
 
 /**
  * The bodies a quick reply sends: the typed text with the signature, as
  * HTML too when the signature is HTML, after the same pre-send checks and
  * finalisers as the composer's send. Null when a check stopped the send.
+ * The organisation signature applies as in the composer
+ * (`signatureIdentity` is what the reply would sign with on its own,
+ * `sendingIdentity` the identity it goes out from).
  */
 export async function prepareQuickReply(input: {
   body: string;
   signatureIdentity: Identity | null | undefined;
+  sendingIdentity?: Identity | null;
   separator: boolean;
   to: string[];
   fromEmail?: string;
   identityId?: string;
 }): Promise<OutgoingBodies | null> {
-  const { body, signatureIdentity, separator } = input;
+  const { body, separator } = input;
+  const signatureIdentity = currentSignatureIdentity(input.signatureIdentity, input.sendingIdentity ?? undefined);
   const text = appendPlainTextSignature(body, signatureIdentity, { separator });
 
   // When the identity has an HTML signature, send a matching HTML body so the

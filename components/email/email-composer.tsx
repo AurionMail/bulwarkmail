@@ -86,6 +86,7 @@ import { useContactStore, getContactDisplayName, getContactPrimaryEmail } from "
 import { useTemplateStore, renderTemplateWithPlugins, notifyTemplateApplied } from "@/stores/template-store";
 import { notifyIdentitySelected } from "@/stores/identity-store";
 import { usePluginSignature } from "@/hooks/use-plugin-signature";
+import { useOrgSignatureIdentity } from "@/hooks/use-org-signature";
 import { SubAddressHelper } from "@/components/identity/sub-address-helper";
 import { generateSubAddress } from "@/lib/sub-addressing";
 import { substitutePlaceholders, spliceTemplateAboveSignature, composeBodyHasUserContent } from "@/lib/template-utils";
@@ -549,9 +550,13 @@ export function EmailComposer({
   const initialCurrentIdentityForSig = initialData?.selectedIdentityId
     ? identities.find((i) => i.id === initialData.selectedIdentityId) || primaryIdentity
     : primaryIdentity;
-  const initialSignatureIdentity = (initialCurrentIdentityForSig?.htmlSignature || initialCurrentIdentityForSig?.textSignature)
-    ? initialCurrentIdentityForSig
-    : primaryIdentity;
+  // The organisation signature applies here as below (hooks/use-org-signature.ts).
+  const initialSignatureIdentity = useOrgSignatureIdentity(
+    (initialCurrentIdentityForSig?.htmlSignature || initialCurrentIdentityForSig?.textSignature)
+      ? initialCurrentIdentityForSig
+      : primaryIdentity,
+    initialCurrentIdentityForSig,
+  );
   const hasInitialSignature = !!(initialSignatureIdentity?.htmlSignature || initialSignatureIdentity?.textSignature);
   const shouldEmbedSignatureAboveQuote =
     (mode === 'reply' || mode === 'replyAll' || mode === 'forward') &&
@@ -1146,8 +1151,11 @@ export function EmailComposer({
   const ownSignatureIdentity = identityPickedByUser || currentIdentity?.htmlSignature || currentIdentity?.textSignature
     ? currentIdentity
     : primaryIdentity;
-  // Plugins may rewrite the signature (onSignatureRender).
-  const { identity: signatureIdentity, revision: pluginSignatureRevision } = usePluginSignature(ownSignatureIdentity);
+  // Then the organisation signature: the default for an identity without
+  // one, or in place of every signature when the admin locked it. Plugins
+  // may rewrite the result (onSignatureRender).
+  const orgSignatureIdentity = useOrgSignatureIdentity(ownSignatureIdentity, currentIdentity);
+  const { identity: signatureIdentity, revision: pluginSignatureRevision } = usePluginSignature(orgSignatureIdentity);
 
   // Hold the TipTap editor instance so we can swap the embedded signature
   // when the user switches identity in "above quote" mode without rebuilding

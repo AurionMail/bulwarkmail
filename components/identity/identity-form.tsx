@@ -7,6 +7,9 @@ import { Input } from '@/components/ui/input';
 import type { Identity, EmailAddress } from '@/lib/jmap/types';
 import { sanitizeSignatureHtml, sanitizeSignatureHtmlForDisplay } from '@/lib/email-sanitization';
 import { getEmailValidationError, validateEmailList } from '@/lib/validation';
+import { getPlainTextSignature } from '@/lib/signature-utils';
+import { useOrgSignatureSetup } from '@/hooks/use-org-signature';
+import { OrgLockedNote } from '@/components/settings/org-locked-note';
 
 // Stalwarts JMAP Identity/set caps signature fields at 2047 UTF-8 bytes
 const SIGNATURE_MAX_BYTES = 2047;
@@ -52,6 +55,7 @@ export function IdentityForm({ identity, onSave, onCancel }: IdentityFormProps) 
   const t = useTranslations('identities.form');
   const tValidation = useTranslations('identities.validation_errors');
   const tDisplay = useTranslations('identities.display');
+  const tOrg = useTranslations('org_signature');
   const isEditing = !!identity;
 
   const [formData, setFormData] = useState<IdentityFormData>({
@@ -72,6 +76,13 @@ export function IdentityForm({ identity, onSave, onCancel }: IdentityFormProps) 
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // The admin's `signature` restriction: locked shows the signature this
+  // address sends with, read-only; hidden shows no signature editor.
+  const org = useOrgSignatureSetup({ name: formData.name, email: formData.email || identity?.email || '' });
+  const signatureHidden = org.restriction.hidden;
+  const signatureLocked = org.restriction.locked && !signatureHidden;
+  const signatureEditable = !signatureHidden && !signatureLocked;
 
   const parseEmailList = (input: string): EmailAddress[] | undefined => {
     if (!input.trim()) return undefined;
@@ -132,6 +143,11 @@ export function IdentityForm({ identity, onSave, onCancel }: IdentityFormProps) 
         replyTo: parseEmailList(replyToInput) ?? null,
         bcc: parseEmailList(bccInput) ?? null,
       };
+      // A locked or hidden signature leaves the identity's own as it is.
+      if (!signatureEditable) {
+        delete sanitizedData.textSignature;
+        delete sanitizedData.htmlSignature;
+      }
 
       await onSave(sanitizedData);
     } finally {
@@ -266,6 +282,14 @@ export function IdentityForm({ identity, onSave, onCancel }: IdentityFormProps) 
         )}
       </div>
 
+      {signatureLocked && (
+        <LockedSignature
+          html={org.signature ? org.signature.html : formData.htmlSignature ?? ''}
+          text={org.signature ? org.signature.text : formData.textSignature ?? ''}
+        />
+      )}
+
+      {signatureEditable && (<>
       {/* Text Signature */}
       <div>
         <label htmlFor="identity-text-sig" className="block text-sm font-medium mb-1">
@@ -282,6 +306,11 @@ export function IdentityForm({ identity, onSave, onCancel }: IdentityFormProps) 
           className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground transition-all duration-200 placeholder:text-muted-foreground hover:border-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50"
         />
         <SignatureByteCounter id="identity-text-sig-counter" value={formData.textSignature || ''} />
+        {org.signature && (
+          <p className="text-xs text-muted-foreground mt-1" data-testid="identity-org-signature-default">
+            {tOrg('identity_default')}
+          </p>
+        )}
       </div>
 
       {/* HTML Signature */}
@@ -311,6 +340,7 @@ export function IdentityForm({ identity, onSave, onCancel }: IdentityFormProps) 
           </div>
         )}
       </div>
+      </>)}
 
       {/* Actions */}
       <div className="flex justify-end gap-2 pt-4">
@@ -331,6 +361,28 @@ export function IdentityForm({ identity, onSave, onCancel }: IdentityFormProps) 
         </Button>
       </div>
     </form>
+  );
+}
+
+/** The signature an address sends with when the admin locked signatures, read-only. */
+function LockedSignature({ html, text }: { html: string; text: string }) {
+  const t = useTranslations('org_signature');
+  const preview = html.trim() ? sanitizeSignatureHtmlForDisplay(html) : '';
+  const plain = preview ? '' : getPlainTextSignature({ textSignature: text, htmlSignature: html });
+  return (
+    <div data-testid="identity-locked-signature">
+      <span className="block text-sm font-medium mb-1">{t('identity_signature_label')}</span>
+      <div className="p-2 border rounded bg-muted text-sm break-words min-w-0">
+        {preview ? (
+          <div dangerouslySetInnerHTML={{ __html: preview }} />
+        ) : plain ? (
+          <div className="whitespace-pre-wrap">{plain}</div>
+        ) : (
+          <div className="text-muted-foreground">{t('identity_no_signature')}</div>
+        )}
+      </div>
+      <OrgLockedNote className="mt-1" />
+    </div>
   );
 }
 
