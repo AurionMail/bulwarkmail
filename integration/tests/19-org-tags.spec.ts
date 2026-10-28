@@ -30,13 +30,16 @@ import {
 test.describe.configure({ mode: 'serial' });
 
 const SUBJECT = `Shared tags ${Date.now()}`;
+const OWN_SUBJECT = `Own tags ${Date.now()}`;
 const HAS_METADATA = ORG_SERVER === '1.0.0';
 
 // --- JMAP, as org-alice, straight to the server --------------------------
 
 type Call = [string, Record<string, unknown>, string];
-let api: { url: string; team: string; inbox: string } | null = null;
+let api: { url: string; team: string; inbox: string; own: string; ownInbox: string } | null = null;
 let messageId: string | null = null;
+/** A message in org-alice's own Inbox with the same keyword, for the unified inbox. */
+let ownMessageId: string | null = null;
 
 const auth = () => `Basic ${Buffer.from(`${ORG.alice}:${ORG_PASSWORD}`).toString('base64')}`;
 
@@ -45,9 +48,14 @@ async function ensureApi(): Promise<NonNullable<typeof api>> {
   if (!api) {
     const session = await (await fetch(`${JMAP_URL}/.well-known/jmap`, { headers: { Authorization: auth() } })).json();
     const team = Object.entries(session.accounts as Record<string, { name: string }>).find(([, a]) => a.name === ORG.team)![0];
-    api = { url: `${JMAP_URL}${new URL(session.apiUrl).pathname}`, team, inbox: '' };
-    const res = await jmapRaw([['Mailbox/query', { accountId: team, filter: { role: 'inbox' } }, 'q']]);
+    const own = session.primaryAccounts['urn:ietf:params:jmap:mail'] as string;
+    api = { url: `${JMAP_URL}${new URL(session.apiUrl).pathname}`, team, inbox: '', own, ownInbox: '' };
+    const res = await jmapRaw([
+      ['Mailbox/query', { accountId: team, filter: { role: 'inbox' } }, 'q'],
+      ['Mailbox/query', { accountId: own, filter: { role: 'inbox' } }, 'o'],
+    ]);
     api.inbox = res[0][1].ids[0];
+    api.ownInbox = res[1][1].ids[0];
   }
   return api;
 }
@@ -118,27 +126,28 @@ test.beforeAll(async ({ browser }) => {
   // A message in org-team's Inbox; on servers without metadata it carries a
   // tag set by another client, which must still show.
   const keywords = HAS_METADATA ? {} : { '$label:from-another-client': true };
-  const { team, inbox } = await ensureApi();
-  const res = await jmap([['Email/set', {
-    accountId: team,
-    create: {
-      m: {
-        mailboxIds: { [inbox]: true },
-        from: [{ name: 'Org Alice', email: ORG.alice }],
-        to: [{ email: ORG.team }],
-        subject: SUBJECT,
-        keywords,
-        bodyValues: { b: { value: 'A message for the shared tags spec.' } },
-        textBody: [{ partId: 'b', type: 'text/plain' }],
-      },
-    },
-  }, 'c']]);
+  const { team, inbox, own, ownInbox } = await ensureApi();
+  const message = (mailbox: string, to: string, subject: string, kw: Record<string, boolean>) => ({
+    mailboxIds: { [mailbox]: true },
+    from: [{ name: 'Org Alice', email: ORG.alice }],
+    to: [{ email: to }],
+    subject,
+    keywords: kw,
+    bodyValues: { b: { value: 'A message for the shared tags spec.' } },
+    textBody: [{ partId: 'b', type: 'text/plain' }],
+  });
+  const res = await jmap([['Email/set', { accountId: team, create: { m: message(inbox, ORG.team, SUBJECT, keywords) } }, 'c']]);
   messageId = res[0][1].created.m.id;
+  if (HAS_METADATA) {
+    const mine = await jmap([['Email/set', { accountId: own, create: { m: message(ownInbox, ORG.alice, OWN_SUBJECT, { '$label:urgent': true }) } }, 'c']]);
+    ownMessageId = mine[0][1].created.m.id;
+  }
   if (HAS_METADATA) await clearSharedTags();
 });
 
 test.afterAll(async ({ browser }) => {
   if (messageId) await jmap([['Email/set', { accountId: api!.team, destroy: [messageId] }, 'd']]);
+  if (ownMessageId) await jmap([['Email/set', { accountId: api!.own, destroy: [ownMessageId] }, 'd']]);
   if (HAS_METADATA && api) {
     await clearSharedTags();
     expect(await sharedTagsOnServer()).toBeNull();
@@ -191,7 +200,41 @@ test.describe('on a server with metadata', () => {
     await expect(chip).toHaveClass(/bg-red-500\/10/);
     await expect(bob.getByTestId('shared-account-tags').getByText('Urgent')).toBeVisible();
     await shot(bob, 'tags-member-view');
+
+    // Another member's edit arrives without a reload (push: the Inbox's
+    // Mailbox state changes with its metadata).
+    await jmap([['Mailbox/set', { accountId: api!.team, update: { [api!.inbox]: { 'metadata/org.bulwarkmail.tags': { list: [{ id: 'urgent', label: 'Very urgent', color: 'orange' }] } } } }, 's']], META_USING);
+    const renamed = emailItem(bob, SUBJECT).first().getByTitle('Very urgent');
+    await expect(renamed).toBeVisible({ timeout: 30000 });
+    await expect(renamed).toHaveClass(/bg-orange-500\/10/);
+    await jmap([['Mailbox/set', { accountId: api!.team, update: { [api!.inbox]: { 'metadata/org.bulwarkmail.tags': { list: [{ id: 'urgent', label: 'Urgent', color: 'red' }] } } } }, 's']], META_USING);
+    await expect(emailItem(bob, SUBJECT).first().getByTitle('Urgent')).toBeVisible({ timeout: 30000 });
     await bob.context().close();
+  });
+
+  test('the unified inbox names the tags of each message by its own account', async ({ browser }) => {
+    // Unified inbox with the group inbox in it, pinned by the policy so a
+    // synced setting of the account can't turn it off.
+    const admin = await adminContext(browser);
+    const policy = await getPolicy(admin);
+    await putPolicy(admin, {
+      ...policy,
+      restrictions: {
+        ...(policy.restrictions as Record<string, unknown>),
+        enableUnifiedMailbox: { locked: true, value: true },
+        includeGroupInUnified: { locked: true, value: true },
+      },
+    });
+    const alice = await userPage(browser, ORG.alice);
+    await folderRow(alice, { name: 'unified-inbox' }).first().click({ timeout: 60000 });
+    // The same keyword: the group's shared name on the team message, the
+    // bare keyword on her own (she has no tag of that name).
+    await expect(emailItem(alice, SUBJECT).first().getByTitle('Urgent')).toBeVisible({ timeout: 30000 });
+    await expect(emailItem(alice, OWN_SUBJECT).first().getByTitle('urgent', { exact: true })).toBeVisible();
+    await shot(alice, 'tags-unified-inbox');
+    await alice.context().close();
+    await putPolicy(admin, policy);
+    await admin.close();
   });
 
   test('a lock applies only to the scope that sets it, read-only with the reason in place', async ({ browser }) => {
