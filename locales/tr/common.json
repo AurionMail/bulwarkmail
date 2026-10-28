@@ -2674,6 +2674,8 @@
     "pin": "Sabitle",
     "unpin": "Sabitlemeyi kaldır",
     "move_to": "Şuraya taşı...",
+    "move_to_dialog": "Şuraya taşı…",
+    "go_to_folder": "{folder} klasörüne git",
     "copy_to_account": "Hesaba kopyala...",
     "remove_from_folder": "Bu klasörden kaldır",
     "archive": "Arşivle",

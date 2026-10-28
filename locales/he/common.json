@@ -2640,6 +2640,8 @@
     "pin": "הצמד",
     "unpin": "בטל הצמדה",
     "move_to": "העבר ל...",
+    "move_to_dialog": "העברה אל…",
+    "go_to_folder": "מעבר אל {folder}",
     "copy_to_account": "העתק לחשבון...",
     "remove_from_folder": "הסרה מתיקייה זו",
     "archive": "ארכיון",

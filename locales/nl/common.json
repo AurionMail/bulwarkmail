@@ -2674,6 +2674,8 @@
     "pin": "Vastmaken",
     "unpin": "Losmaken",
     "move_to": "Verplaatsen naar...",
+    "move_to_dialog": "Verplaatsen naar…",
+    "go_to_folder": "Naar {folder}",
     "copy_to_account": "Kopiëren naar account...",
     "remove_from_folder": "Uit deze map verwijderen",
     "archive": "Archiveren",

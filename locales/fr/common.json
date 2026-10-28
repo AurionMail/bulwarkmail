@@ -2674,6 +2674,8 @@
     "pin": "Épingler",
     "unpin": "Désépingler",
     "move_to": "Déplacer vers...",
+    "move_to_dialog": "Déplacer vers…",
+    "go_to_folder": "Aller à {folder}",
     "copy_to_account": "Copier vers un compte...",
     "remove_from_folder": "Retirer de ce dossier",
     "archive": "Archiver",

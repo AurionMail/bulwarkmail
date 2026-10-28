@@ -2674,6 +2674,8 @@
     "pin": "고정",
     "unpin": "고정 해제",
     "move_to": "이동...",
+    "move_to_dialog": "이동…",
+    "go_to_folder": "{folder}(으)로 이동",
     "copy_to_account": "계정으로 복사...",
     "remove_from_folder": "이 폴더에서 제거",
     "archive": "보관",

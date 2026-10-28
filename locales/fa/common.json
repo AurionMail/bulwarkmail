@@ -2674,6 +2674,8 @@
     "pin": "سنجاق کردن",
     "unpin": "برداشتن سنجاق",
     "move_to": "انتقال به...",
+    "move_to_dialog": "انتقال به…",
+    "go_to_folder": "رفتن به {folder}",
     "copy_to_account": "کپی به حساب...",
     "remove_from_folder": "حذف از این پوشه",
     "archive": "بایگانی",

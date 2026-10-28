@@ -2674,6 +2674,8 @@
     "pin": "ピン留め",
     "unpin": "ピン留めを外す",
     "move_to": "移動...",
+    "move_to_dialog": "移動…",
+    "go_to_folder": "{folder} に移動",
     "copy_to_account": "アカウントにコピー...",
     "remove_from_folder": "このフォルダから削除",
     "archive": "アーカイブ",

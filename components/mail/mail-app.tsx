@@ -120,7 +120,9 @@ import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
 import { findDraftIdentityId, findReplyIdentityId, resolveComposeAccountEmail } from "@/lib/reply-identity";
 import { buildReplyRecipients, isSelfSent } from "@/lib/reply-recipients";
 import { useProMultiAccountIdentities } from "@/hooks/use-pro-multi-account-identities";
-import { Filter, ChevronDown, X, Paperclip, Star, Mail, MailOpen, RotateCcw, PenSquare, PenLine, CheckSquare, Square, AlertTriangle, ArrowLeft, RefreshCw } from "@/components/icons";
+import { Filter, ChevronDown, X, Paperclip, Star, Mail, MailOpen, RotateCcw, PenSquare, PenLine, CheckSquare, Square, AlertTriangle, ArrowLeft, RefreshCw, Reply, ReplyAll, Forward, Archive, Trash2, FolderInput, ShieldAlert, ShieldCheck, Folder } from "@/components/icons";
+import { useRegisterCommands } from "@/lib/command-registry";
+import { MoveToDialog } from "@/components/email/move-to-dialog";
 import { ResizeHandle } from "@/components/layout/resize-handle";
 import { Button } from "@/components/ui/button";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -251,6 +253,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const { showAppsModal, inlineApp, loadedApps, handleManageApps, handleInlineApp, closeInlineApp, closeAppsModal } = useSidebarApps();
   const [initialCheckDone, setInitialCheckDone] = useState(() => useAuthStore.getState().isAuthenticated && !!useAuthStore.getState().client);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  // The message the palette's "Move to…" was picked for.
+  const [moveDialogEmail, setMoveDialogEmail] = useState<Email | null>(null);
   // The scheduled message Reschedule was picked for in the list's menu.
   const [rescheduleTarget, setRescheduleTarget] = useState<Email | null>(null);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
@@ -4197,6 +4201,54 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     onAccountMailboxSelect: handleAccountMailboxSelect,
   });
 
+  // Mail's commands in the palette (Ctrl/⌘+K), on the open message, plus a
+  // "Go to" for every folder. Compose is the palette's own.
+  const paletteEmail = isScheduledView ? null : selectedEmail;
+  const hasPaletteEmail = () => !!paletteEmail;
+  useRegisterCommands(t('sidebar.mail'), [
+    { id: 'reply', label: t('context_menu.reply'), icon: Reply, shortcut: 'r', when: hasPaletteEmail, run: () => void handleReply() },
+    { id: 'reply-all', label: t('context_menu.reply_all'), icon: ReplyAll, shortcut: 'a', when: hasPaletteEmail, run: () => void handleReplyAll() },
+    { id: 'forward', label: t('context_menu.forward'), icon: Forward, shortcut: 'f', when: hasPaletteEmail, run: () => void handleForward() },
+    {
+      id: 'archive', label: t('context_menu.archive'), icon: Archive, shortcut: 'e',
+      when: () => !!paletteEmail && archiveActionEnabled && conversationRole !== 'archive',
+      run: () => void handleArchive(paletteEmail),
+    },
+    { id: 'delete', label: t('context_menu.delete'), icon: Trash2, shortcut: '#', when: hasPaletteEmail, run: () => void handleDelete(paletteEmail) },
+    {
+      id: 'move', label: t('context_menu.move_to_dialog'), icon: FolderInput, keywords: [t('context_menu.move_to')],
+      when: hasPaletteEmail, run: () => setMoveDialogEmail(paletteEmail),
+    },
+    {
+      id: 'mark-unread', label: t('context_menu.mark_unread'), icon: Mail, shortcut: 'u',
+      when: () => !!paletteEmail?.keywords?.$seen,
+      run: () => { if (client && paletteEmail) void markAsRead(client, paletteEmail.id, false, emailKeyFor(paletteEmail)).catch(toastUpdateFailure); },
+    },
+    {
+      id: 'mark-read', label: t('context_menu.mark_read'), icon: MailOpen, shortcut: 'Shift + I',
+      when: () => !!paletteEmail && !paletteEmail.keywords?.$seen,
+      run: () => { if (client && paletteEmail) void markAsRead(client, paletteEmail.id, true, emailKeyFor(paletteEmail)).catch(toastUpdateFailure); },
+    },
+    {
+      id: 'spam', label: conversationInJunk ? t('context_menu.not_spam') : t('context_menu.mark_as_spam'),
+      icon: conversationInJunk ? ShieldCheck : ShieldAlert, shortcut: '!',
+      when: () => !!paletteEmail && conversationSpamApplicable,
+      run: () => void (conversationInJunk ? handleUndoSpam(paletteEmail) : handleMarkAsSpam(paletteEmail)),
+    },
+    ...mailboxes
+      .filter((mb) => !mb.id.startsWith('shared-') && mb.id !== selectedMailbox)
+      .map((mb) => {
+        const name = localizeMailboxName(mb.role, mb.name, (k) => t(`sidebar.mailboxes.${k}`));
+        return {
+          id: `go-${mb.id}`,
+          label: t('context_menu.go_to_folder', { folder: name }),
+          icon: Folder,
+          keywords: [name],
+          run: () => void handleMailboxSelect(mb.id),
+        };
+      }),
+  ], !isEmbedded);
+
   if (!initialCheckDone || authLoading || (!isAuthenticated || !client)) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -5657,6 +5709,15 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           />
         )}
         <ConfirmDialog {...confirmDialogProps} />
+        <MoveToDialog
+          email={moveDialogEmail}
+          mailboxes={mailboxes}
+          selectedMailbox={selectedMailbox}
+          onClose={() => setMoveDialogEmail(null)}
+          onMove={(mailboxId) => {
+            if (moveDialogEmail) void handleMoveToMailbox(moveDialogEmail.id, mailboxId, emailKeyFor(moveDialogEmail));
+          }}
+        />
         {rescheduleTarget && (
           <ScheduleSendDialog
             isOpen

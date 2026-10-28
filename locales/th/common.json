@@ -563,6 +563,8 @@
     "pin": "ปักหมุด",
     "unpin": "ถอนหมุด",
     "move_to": "ย้ายไปที่...",
+    "move_to_dialog": "ย้ายไปที่…",
+    "go_to_folder": "ไปที่ {folder}",
     "copy_to_account": "คัดลอกไปยังบัญชี...",
     "remove_from_folder": "นำออกจากโฟลเดอร์นี้",
     "archive": "เก็บถาวร",

@@ -2674,6 +2674,8 @@
     "pin": "Fixar",
     "unpin": "Desafixar",
     "move_to": "Mover para...",
+    "move_to_dialog": "Mover para…",
+    "go_to_folder": "Ir para {folder}",
     "copy_to_account": "Copiar para conta...",
     "remove_from_folder": "Remover desta pasta",
     "archive": "Arquivar",

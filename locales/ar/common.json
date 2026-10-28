@@ -2674,6 +2674,8 @@
     "pin": "تثبيت",
     "unpin": "إلغاء التثبيت",
     "move_to": "نقل إلى...",
+    "move_to_dialog": "نقل إلى…",
+    "go_to_folder": "الانتقال إلى {folder}",
     "copy_to_account": "نسخ إلى حساب...",
     "remove_from_folder": "إزالة من هذا المجلد",
     "archive": "أرشفة",

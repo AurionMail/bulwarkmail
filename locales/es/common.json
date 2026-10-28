@@ -2674,6 +2674,8 @@
     "pin": "Anclar",
     "unpin": "Desanclar",
     "move_to": "Mover a...",
+    "move_to_dialog": "Mover a…",
+    "go_to_folder": "Ir a {folder}",
     "copy_to_account": "Copiar a cuenta...",
     "remove_from_folder": "Quitar de esta carpeta",
     "archive": "Archivar",

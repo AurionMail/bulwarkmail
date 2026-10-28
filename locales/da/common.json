@@ -2674,6 +2674,8 @@
     "pin": "Fastgør",
     "unpin": "Frigør",
     "move_to": "Flyt til...",
+    "move_to_dialog": "Flyt til…",
+    "go_to_folder": "Gå til {folder}",
     "copy_to_account": "Kopiér til konto...",
     "remove_from_folder": "Fjern fra denne mappe",
     "archive": "Arkivér",

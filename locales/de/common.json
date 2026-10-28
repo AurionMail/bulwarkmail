@@ -2674,6 +2674,8 @@
     "pin": "Anheften",
     "unpin": "Lösen",
     "move_to": "Verschieben nach...",
+    "move_to_dialog": "Verschieben nach…",
+    "go_to_folder": "Zu {folder} wechseln",
     "copy_to_account": "In Konto kopieren...",
     "remove_from_folder": "Aus diesem Ordner entfernen",
     "archive": "Archivieren",

@@ -2674,6 +2674,8 @@
     "pin": "Piespraust",
     "unpin": "Atspraust",
     "move_to": "Pārvietot uz...",
+    "move_to_dialog": "Pārvietot uz…",
+    "go_to_folder": "Doties uz {folder}",
     "copy_to_account": "Kopēt uz kontu...",
     "remove_from_folder": "Noņemt no šīs mapes",
     "archive": "Arhivēt",

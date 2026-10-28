@@ -2674,6 +2674,8 @@
     "pin": "Rögzítés",
     "unpin": "Rögzítés feloldása",
     "move_to": "Áthelyezés ide...",
+    "move_to_dialog": "Áthelyezés ide…",
+    "go_to_folder": "Ugrás ide: {folder}",
     "copy_to_account": "Másolás fiókba...",
     "remove_from_folder": "Eltávolítás ebből a mappából",
     "archive": "Archiválás",

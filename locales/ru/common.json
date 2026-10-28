@@ -2674,6 +2674,8 @@
     "pin": "Закрепить",
     "unpin": "Открепить",
     "move_to": "Переместить в...",
+    "move_to_dialog": "Переместить в…",
+    "go_to_folder": "Перейти в {folder}",
     "copy_to_account": "Копировать в аккаунт...",
     "remove_from_folder": "Убрать из этой папки",
     "archive": "В архив",

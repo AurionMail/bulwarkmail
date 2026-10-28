@@ -2674,6 +2674,8 @@
     "pin": "Připnout",
     "unpin": "Odepnout",
     "move_to": "Přesunout do...",
+    "move_to_dialog": "Přesunout do…",
+    "go_to_folder": "Přejít do {folder}",
     "copy_to_account": "Kopírovat do účtu...",
     "remove_from_folder": "Odebrat z této složky",
     "archive": "Archivovat",

@@ -2674,6 +2674,8 @@
     "pin": "Kinnita",
     "unpin": "Eemalda kinnitus",
     "move_to": "Liiguta kausta...",
+    "move_to_dialog": "Teisalda…",
+    "go_to_folder": "Mine kausta {folder}",
     "copy_to_account": "Kopeeri kontole...",
     "remove_from_folder": "Eemalda sellest kaustast",
     "archive": "Arhiveeri",

@@ -2674,6 +2674,8 @@
     "pin": "Pin",
     "unpin": "Unpin",
     "move_to": "Move to...",
+    "move_to_dialog": "Move to…",
+    "go_to_folder": "Go to {folder}",
     "copy_to_account": "Copy to account...",
     "remove_from_folder": "Remove from this folder",
     "archive": "Archive",

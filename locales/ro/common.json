@@ -2674,6 +2674,8 @@
     "pin": "Fixează",
     "unpin": "Anulează fixarea",
     "move_to": "Mergi la...",
+    "move_to_dialog": "Mută în…",
+    "go_to_folder": "Mergi la {folder}",
     "copy_to_account": "Copiază în cont...",
     "remove_from_folder": "Elimină din acest dosar",
     "archive": "Arhivează",
