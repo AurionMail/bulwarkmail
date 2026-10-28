@@ -102,6 +102,20 @@ function isValidOriginUrl(value: string): boolean {
   return /^https?:\/\/[^/]+$/.test(value);
 }
 
+// The setup acts as the mail account signed in to this webmail, not as the
+// admin: a login to the Stalwart web admin sets no cookie here.
+const NOT_SIGNED_IN =
+  'Sign in to this webmail with a Stalwart admin account in this browser, then retry. '
+  + 'A login to the Stalwart web admin does not count.';
+
+/** Which mail account the setup would run as, so the page can say before it starts. */
+export async function GET(request: NextRequest) {
+  const auth = await requireAdminAuth(request);
+  if ('error' in auth) return auth.error;
+  const creds = await getStalwartCredentials(request);
+  return NextResponse.json(creds ? { signedIn: true, username: creds.username } : { signedIn: false });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireAdminAuth(request);
@@ -120,10 +134,7 @@ export async function POST(request: NextRequest) {
     const ip = getClientIP(request);
     const creds = await getStalwartCredentials(request);
     if (!creds) {
-      return NextResponse.json(
-        { error: 'No Stalwart session available. Sign in to your mail account in another tab and retry.' },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: NOT_SIGNED_IN }, { status: 400 });
     }
 
     const body = await request.json() as SetupRequestBody;

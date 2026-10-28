@@ -7,6 +7,7 @@ import { NextRequest } from 'next/server';
 let readOnly = false;
 let saveError: Error | null = null;
 let stalwart016 = false;
+let signedIn = true;
 const jmapCalls: Array<[string, Record<string, unknown>]> = [];
 
 vi.mock('@/lib/admin/session', () => ({
@@ -14,12 +15,14 @@ vi.mock('@/lib/admin/session', () => ({
   getClientIP: () => '127.0.0.1',
 }));
 vi.mock('@/lib/stalwart/credentials', () => ({
-  getStalwartCredentials: async () => ({
-    serverUrl: 'https://mail.example.org',
-    authHeader: 'Basic x',
-    trusted: true,
-    username: 'admin@example.org',
-  }),
+  getStalwartCredentials: async () => (signedIn
+    ? {
+      serverUrl: 'https://mail.example.org',
+      authHeader: 'Basic x',
+      trusted: true,
+      username: 'admin@example.org',
+    }
+    : null),
 }));
 vi.mock('@/lib/admin/paths', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/admin/paths')>()),
@@ -49,7 +52,7 @@ vi.mock('@/lib/stalwart/server-fetch', () => ({
   },
 }));
 
-import { POST } from '../route';
+import { GET, POST } from '../route';
 
 function setup() {
   return POST(new NextRequest('http://localhost/api/admin/oauth/setup', {
@@ -62,6 +65,7 @@ beforeEach(() => {
   readOnly = false;
   saveError = null;
   stalwart016 = false;
+  signedIn = true;
   jmapCalls.length = 0;
 });
 
@@ -89,6 +93,14 @@ describe('POST /api/admin/oauth/setup', () => {
     expect(create).not.toHaveProperty('firstParty');
   });
 
+  it('tells the admin to sign in to the webmail when no mail account is signed in here', async () => {
+    signedIn = false;
+    const res = await setup();
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/Sign in to this webmail.*Stalwart web admin does not count/);
+    expect(jmapCalls).toEqual([]);
+  });
+
   it('refuses in read-only mode without sending anything to Stalwart (#1250)', async () => {
     readOnly = true;
     const res = await setup();
@@ -102,5 +114,25 @@ describe('POST /api/admin/oauth/setup', () => {
     const res = await setup();
     expect(res.status).toBe(500);
     expect(jmapCalls.at(-1)).toEqual(['x:OAuthClient/set', { accountId: 'a', destroy: ['h'] }]);
+  });
+});
+
+describe('GET /api/admin/oauth/setup', () => {
+  const check = () => GET(new NextRequest('http://localhost/api/admin/oauth/setup'));
+
+  it('names the mail account the setup would run as', async () => {
+    const res = await check();
+    expect(await res.json()).toEqual({ signedIn: true, username: 'admin@example.org' });
+  });
+
+  it('says so when no mail account is signed in to this webmail', async () => {
+    signedIn = false;
+    const res = await check();
+    expect(await res.json()).toEqual({ signedIn: false });
+  });
+
+  it('never hands the credential to the page', async () => {
+    const body = JSON.stringify(await (await check()).json());
+    expect(body).not.toContain('Basic');
   });
 });

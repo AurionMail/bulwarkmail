@@ -34,12 +34,25 @@ export function AuthPage() {
   const setMessage = useAdminFeedback();
   const [configReadOnly, setConfigReadOnly] = useState(false);
 
+  // The setup runs as the mail account signed in to this webmail. Asked again
+  // on focus, since the admin signs in from another tab and comes back.
+  const [setupSignIn, setSetupSignIn] = useState<{ signedIn: boolean; username?: string } | null>(null);
+
   useEffect(() => {
     fetchConfig();
     apiFetch('/api/setup/status')
       .then(res => (res.ok ? res.json() : null))
       .then(data => setConfigReadOnly(data?.readOnly === true))
       .catch(() => {});
+    const checkSignIn = () => {
+      apiFetch('/api/admin/oauth/setup')
+        .then(res => (res.ok ? res.json() : null))
+        .then(data => { if (data) setSetupSignIn(data); })
+        .catch(() => {});
+    };
+    checkSignIn();
+    window.addEventListener('focus', checkSignIn);
+    return () => window.removeEventListener('focus', checkSignIn);
   }, []);
 
   async function fetchConfig() {
@@ -260,7 +273,7 @@ export function AuthPage() {
             description="Registers an OAuth client on the connected Stalwart server, generates a client secret, and saves the settings here. Requires your Stalwart account to have admin permissions."
           >
             <div className="flex flex-col items-start gap-1 sm:items-end">
-              <Button type="button" size="sm" className="gap-2" onClick={openSetupDialog} disabled={setupRunning || configReadOnly}>
+              <Button type="button" size="sm" className="gap-2" onClick={openSetupDialog} disabled={setupRunning || configReadOnly || setupSignIn?.signedIn === false}>
                 {setupRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 {setupRunning ? 'Configuring…' : 'Set up automagically'}
               </Button>
@@ -268,6 +281,16 @@ export function AuthPage() {
                 <p className="text-xs text-destructive">
                   Not available while the configuration is read-only (ADMIN_CONFIG_READONLY).
                 </p>
+              )}
+              {!configReadOnly && setupSignIn?.signedIn === false && (
+                <p className="max-w-xs text-xs text-muted-foreground sm:text-end">
+                  Only works while you are signed in to{' '}
+                  <a href="/" target="_blank" rel="noopener" className="text-primary hover:underline">this webmail</a>
+                  {' '}with a Stalwart admin account in this browser. A login to the Stalwart web admin does not count.
+                </p>
+              )}
+              {!configReadOnly && setupSignIn?.signedIn && setupSignIn.username && (
+                <p className="text-xs text-muted-foreground">Runs as {setupSignIn.username}</p>
               )}
             </div>
           </SettingItem>
