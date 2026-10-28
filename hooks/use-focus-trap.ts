@@ -70,7 +70,11 @@ export function useFocusTrap({
     const handleKeyDown = (e: KeyboardEvent) => {
       // Handle Escape
       if (e.key === 'Escape' && onEscapeRef.current) {
-        if (isTopmost()) onEscapeRef.current();
+        if (!isTopmost()) return;
+        // Escape closes the innermost layer only (R8): the page's own
+        // handlers (Files clears its selection) must not see it too.
+        e.stopPropagation();
+        onEscapeRef.current();
         return;
       }
 

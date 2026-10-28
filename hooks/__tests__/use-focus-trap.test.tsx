@@ -141,3 +141,19 @@ describe('useFocusTrap', () => {
     expect(screen.getByTestId('panel')).not.toHaveAttribute('tabindex');
   });
 });
+
+describe('useFocusTrap and the page behind', () => {
+  it('keeps an Escape that closed the dialog from the page', () => {
+    const page = vi.fn();
+    document.addEventListener('keydown', page);
+    try {
+      const onEscape = vi.fn();
+      render(<Page open onEscape={onEscape} />);
+      fireEvent.keyDown(screen.getByLabelText('name'), { key: 'Escape' });
+      expect(onEscape).toHaveBeenCalledTimes(1);
+      expect(page).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener('keydown', page);
+    }
+  });
+});
