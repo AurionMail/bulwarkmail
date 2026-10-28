@@ -401,7 +401,7 @@ export function ShareCollectionDialog({
                           )}
                         </div>
                         {p.email && p.email !== p.name && (
-                          <div className="text-xs text-muted-foreground truncate">{p.email}</div>
+                          <div dir="ltr" className="text-xs text-muted-foreground truncate rtl:text-right">{p.email}</div>
                         )}
                       </div>
                       {savingId === p.id && <Loader2 className="w-4 h-4 animate-spin" />}

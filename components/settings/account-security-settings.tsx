@@ -334,7 +334,7 @@ function TotpSection() {
             </div>
           )}
           <div className="flex items-center gap-2">
-            <code className="text-xs bg-background px-2 py-1 rounded border border-border flex-1 truncate">{setupUrl}</code>
+            <code dir="ltr" className="text-xs bg-background px-2 py-1 rounded border border-border flex-1 truncate">{setupUrl}</code>
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">{t('password.current')}</label>

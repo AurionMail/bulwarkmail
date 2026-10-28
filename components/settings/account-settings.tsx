@@ -155,13 +155,13 @@ export function AccountSettings() {
 
         {/* Email Address */}
         <SettingItem label={t('email.label')}>
-          <span className="text-sm text-foreground">{email ? toUnicodeEmail(email) : tCommon('unknown')}</span>
+          <span dir={email ? 'ltr' : undefined} className="text-sm text-foreground">{email ? toUnicodeEmail(email) : tCommon('unknown')}</span>
         </SettingItem>
 
         {/* Username / Login (show when it differs from email) */}
         {username && username !== email && (
           <SettingItem label={t('username_label')}>
-            <span className="text-sm text-foreground">{toUnicodeEmail(username)}</span>
+            <span dir="ltr" className="text-sm text-foreground">{toUnicodeEmail(username)}</span>
           </SettingItem>
         )}
 
@@ -410,7 +410,7 @@ function AccountRow({
             <Star className="w-3 h-3 text-amber-500 flex-shrink-0 fill-amber-500" aria-label={labels.default} />
           )}
         </div>
-        <p className="text-xs text-muted-foreground truncate">
+        <p dir="ltr" className="text-xs text-muted-foreground truncate rtl:text-right">
           {toUnicodeEmail(account.email || account.username)}
         </p>
         <div className="flex items-center gap-1 mt-0.5">

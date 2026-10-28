@@ -727,7 +727,8 @@ export function CalendarManagementSettings() {
                   return (
                     <div className="flex items-center gap-1 mt-0.5">
                       <Link className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                      <span className="text-xs text-muted-foreground truncate" title={caldavUrl}>
+                      {/* An address reads left to right in Arabic too, cut at its end. */}
+                      <span dir="ltr" className="text-xs text-muted-foreground truncate" title={caldavUrl}>
                         {caldavUrl}
                       </span>
                       <IconButton
@@ -881,7 +882,7 @@ export function CalendarManagementSettings() {
                   {(() => {
                     const safeUrl = redactUrlCredentials(sub.url);
                     return (
-                      <span className="text-xs text-muted-foreground truncate block" title={safeUrl}>
+                      <span dir="ltr" className="text-xs text-muted-foreground truncate block rtl:text-right" title={safeUrl}>
                         {safeUrl}
                       </span>
                     );

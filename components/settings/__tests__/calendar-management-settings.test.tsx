@@ -68,8 +68,21 @@ describe('CalendarManagementSettings CalDAV fallback address', () => {
 
     render(<CalendarManagementSettings />);
 
-    expect(await screen.findByText('https://host.example/stalwart/.well-known/caldav')).toBeInTheDocument();
+    const url = await screen.findByText('https://host.example/stalwart/.well-known/caldav');
+    // Left to right in Arabic too: the start of the address stays in view.
+    expect(url).toHaveAttribute('dir', 'ltr');
     vi.restoreAllMocks();
+  });
+
+  it('shows a subscription address left to right', () => {
+    useAuthStore.setState({ client: { getAccountId: () => 'acct-1' }, serverUrl: null, username: null } as never);
+    useCalendarStore.setState({
+      calendars: [appleColored],
+      icalSubscriptions: [{ id: 's', name: 'Holidays', url: 'https://example.com/holidays.ics', color: '#ff0000', calendarId: 'x' }],
+      updateCalendar: vi.fn(),
+    } as never);
+    render(<CalendarManagementSettings />);
+    expect(screen.getByText('https://example.com/holidays.ics')).toHaveAttribute('dir', 'ltr');
   });
 });
 
