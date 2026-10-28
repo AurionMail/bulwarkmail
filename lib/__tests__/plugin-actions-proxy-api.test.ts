@@ -17,6 +17,7 @@ import { actionsFor, resetActions, runAction, checkActions } from '../plugin-san
 import { dayLabelsByDate, resetDayLabels } from '../plugin-sandbox/day-labels';
 import { allPages, resetPages } from '../plugin-sandbox/pages';
 import { onPanelRequest, resetPanelRequests } from '../plugin-sandbox/panel-requests';
+import { onPageNavigation, resetPageNavigation } from '../plugin-sandbox/page-navigation';
 import type { StreamSink } from '../plugin-sandbox/proxy-client';
 import '../plugin-sandbox/loader';
 
@@ -130,6 +131,43 @@ describe('day labels and pages', () => {
 
     expect(allPages()).toEqual([expect.objectContaining({ pluginId: 'p1', id: 'files', title: 'Nextcloud' })]);
     await expect(dispatchApiCall(plugin({ permissions: ['ui:app-page'] }), 'ui.setPages', [[{ id: 'A B', title: 'x' }]])).rejects.toThrow(/id/);
+  });
+
+  describe('ui.openPage', () => {
+    const paged = plugin({ permissions: ['ui:app-page'] });
+    const seen: string[] = [];
+    beforeEach(async () => {
+      resetPageNavigation();
+      seen.length = 0;
+      await dispatchApiCall(paged, 'ui.setPages', [[{ id: 'files', title: 'Nextcloud' }]]);
+    });
+
+    it('moves the tab to the plugin\'s own page, each path segment encoded once', async () => {
+      onPageNavigation((href) => { seen.push(href); });
+      await expect(dispatchApiCall(paged, 'ui.openPage', ['files'])).resolves.toBe(true);
+      await expect(dispatchApiCall(paged, 'ui.openPage', ['files', '/docs/a b/x?tab=1'])).resolves.toBe(true);
+      expect(seen).toEqual(['/apps/p1/files', '/apps/p1/files/docs/a%20b/x%3Ftab%3D1']);
+    });
+
+    it('needs ui:app-page and refuses another plugin\'s page or a page it did not set', async () => {
+      onPageNavigation((href) => { seen.push(href); });
+      await expect(dispatchApiCall(plugin(), 'ui.openPage', ['files'])).rejects.toThrow(/lacks permission/);
+      await expect(dispatchApiCall(plugin({ id: 'p2', permissions: ['ui:app-page'] }), 'ui.openPage', ['files'])).rejects.toThrow(/not a page of this plugin/);
+      await expect(dispatchApiCall(paged, 'ui.openPage', ['other'])).rejects.toThrow(/not a page of this plugin/);
+      expect(seen).toEqual([]);
+    });
+
+    it('refuses a path that would leave the page', async () => {
+      onPageNavigation((href) => { seen.push(href); });
+      await expect(dispatchApiCall(paged, 'ui.openPage', ['files', '../../settings'])).rejects.toThrow(/\.\./);
+      await expect(dispatchApiCall(paged, 'ui.openPage', ['files', 42])).rejects.toThrow(/string/);
+      await expect(dispatchApiCall(paged, 'ui.openPage', ['files', 'x'.repeat(2001)])).rejects.toThrow(/longer/);
+      expect(seen).toEqual([]);
+    });
+
+    it('answers false while nothing can move the tab', async () => {
+      await expect(dispatchApiCall(paged, 'ui.openPage', ['files'])).resolves.toBe(false);
+    });
   });
 });
 
