@@ -182,3 +182,21 @@ describe('email viewer More actions menu', () => {
     expect(panel.className).toContain('transition-transform');
   });
 });
+
+describe('phone More panel parity', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'setTimeout'] });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('offers the message and conversation links the row menu has, and no keyboard shortcuts', () => {
+    renderViewer({ onShowShortcuts: vi.fn() } as never);
+    openMoreMenu();
+    const menu = screen.getByRole('menu', { name: 'more_actions' });
+    expect(within(menu).getByRole('menuitem', { name: /copy_message/ })).toBeTruthy();
+    expect(within(menu).getByRole('menuitem', { name: /copy_conversation/ })).toBeTruthy();
+    expect(within(menu).queryByRole('menuitem', { name: /keyboard_shortcuts/ })).toBeNull();
+  });
+});

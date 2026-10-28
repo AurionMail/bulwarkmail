@@ -95,6 +95,7 @@ import {
   PenSquare,
   CalendarClock,
   CalendarX,
+  MessagesSquare,
   Link as LinkIcon,
   Maximize2,
   Minimize2,
@@ -4390,6 +4391,22 @@ export function EmailViewer({
                   {tDeepLink('copy_message')}
                 </button>
               )}
+              {/* The conversation's link, as the row's menu has it (R6). */}
+              {email?.threadId && (
+                <button
+                  role="menuitem"
+                  data-testid="more-copy-conversation-link"
+                  onClick={() => {
+                    void copyLink(buildMailPath({ mailboxId: null, emailId: null, threadId: email.threadId!, ...emailLinkSource(email) }));
+                    setMoreMenuOpen(false);
+                    setMoreMenuSub(null);
+                  }}
+                  className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
+                >
+                  <MessagesSquare className="w-4 h-4" />
+                  {tDeepLink('copy_conversation')}
+                </button>
+              )}
               {/* Forward as attachment */}
               {onForwardAsAttachment && email?.blobId && (
                 <button
@@ -4650,6 +4667,34 @@ export function EmailViewer({
                 <Code className="w-5 h-5" />
                 {t('view_source')}
               </button>
+              {/* The links the row's menu and the desktop ⋮ offer (R6). */}
+              {email && (
+                <button
+                  role="menuitem"
+                  data-testid="panel-copy-message-link"
+                  onClick={() => {
+                    void copyLink(buildMailPath({ mailboxId: null, emailId: email.id, threadId: null, ...emailLinkSource(email) }));
+                    setMoreMenuOpen(false);
+                  }}
+                  className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
+                >
+                  <LinkIcon className="w-5 h-5" />
+                  {tDeepLink('copy_message')}
+                </button>
+              )}
+              {email?.threadId && (
+                <button
+                  role="menuitem"
+                  onClick={() => {
+                    void copyLink(buildMailPath({ mailboxId: null, emailId: null, threadId: email.threadId!, ...emailLinkSource(email) }));
+                    setMoreMenuOpen(false);
+                  }}
+                  className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
+                >
+                  <MessagesSquare className="w-5 h-5" />
+                  {tDeepLink('copy_conversation')}
+                </button>
+              )}
               {effectiveEmailContent.isHtml && (
                 <button
                   role="menuitem"
@@ -4687,16 +4732,6 @@ export function EmailViewer({
                 <Upload className="w-5 h-5" />
                 {t('import_email')}
               </button>
-              {onShowShortcuts && (
-                <button
-                  role="menuitem"
-                  onClick={() => { onShowShortcuts(); setMoreMenuOpen(false); }}
-                  className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-                >
-                  <Keyboard className="w-5 h-5" />
-                  {t('keyboard_shortcuts')}
-                </button>
-              )}
               {email && (
                 <PluginPanelEntries
                   surface="reader-actions"
