@@ -11,7 +11,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { join } from "node:path";
 import {
   STALWART_EXCLUDED_DIRS, STALWART_EXCLUDED_FILES, STALWART_ZIP_NAME,
-  buildCaddyExample, buildConnectorCapabilities, buildHeaders, buildLiteConfig, buildLitePolicy, buildManifest, buildNginxExample, buildNotFoundShim, buildReadme, buildRedirects, buildRootRedirect,
+  buildCaddyExample, buildConnectorCapabilities, buildHeaders, buildLiteConfig, buildLitePolicy, buildManifest, buildNginxExample, buildNotFoundShim, buildReadme, readNotFoundMessages, buildRedirects, buildRootRedirect,
   buildStalwartAppManifest, buildStalwartEntry, buildStalwartManifest,buildStalwartReadme, buildZip, collectZipEntries, discoverBuiltLocales, discoverShellDirs, findSegmentPrefetchDirs, isMainModule, makeBuildId, normalizeBasePath, parseLiteTarget, resolveRepoRoot,
   withScriptHashCsp,
 } from "./lib.mjs";
@@ -41,7 +41,7 @@ export function runPostbuild({ root = repoRoot, env = process.env, log = console
   const config = buildLiteConfig(env, { target });
   const files = target === "stalwart"
     ? stalwartFiles({ outDir, config, locales, defaultLocale, version, commit, buildId })
-    : staticFiles({ config, basePath, locales, defaultLocale, version, commit });
+    : staticFiles({ config, basePath, locales, defaultLocale, version, commit, notFoundMessages: readNotFoundMessages(root, locales) });
   files["lite-build.json"] = JSON.stringify({ version, commit, target, buildId, basePath, locales, builtAt: new Date().toISOString() }, null, 2) + "\n";
 
   mkdirSync(outDir, { recursive: true });
@@ -66,7 +66,7 @@ export function runPostbuild({ root = repoRoot, env = process.env, log = console
   return { outDir, locales, basePath, target, buildId, zipPath, files: Object.keys(files) };
 }
 
-function staticFiles({ config, basePath, locales, defaultLocale, version, commit }) {
+function staticFiles({ config, basePath, locales, defaultLocale, version, commit, notFoundMessages }) {
   const connectSrc = config.allowCustomJmapEndpoint || !config.jmapServerUrl ? "*" : new URL(config.jmapServerUrl).origin;
   return {
     "config.json": JSON.stringify(config, null, 2) + "\n",
@@ -78,7 +78,7 @@ function staticFiles({ config, basePath, locales, defaultLocale, version, commit
     "index.html": buildRootRedirect({ basePath, locales, defaultLocale }),
     // Replaces Next's default not-found page: only this shim replays deep links
     // on hosts without rewrite rules (see buildNotFoundShim).
-    "404.html": buildNotFoundShim({ basePath, locales, defaultLocale }),
+    "404.html": buildNotFoundShim({ basePath, locales, defaultLocale, messages: notFoundMessages }),
     "_redirects": buildRedirects({ basePath, locales }),
     "_headers": buildHeaders({ basePath, connectSrc }),
     "nginx.conf.example": buildNginxExample({ basePath, connectSrc }),

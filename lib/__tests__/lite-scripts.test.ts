@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -47,6 +47,7 @@ import {
   normalizeBasePath,
   parseBool,
   parseLiteTarget,
+  readNotFoundMessages,
   readZipEntry,
   resolveStalwartBoot,
   rewriteFlightForMount,
@@ -228,6 +229,41 @@ describe('lite build helpers', () => {
     expect(run('/webmail/de/mail/thread/x', ['en'])).toBe('/webmail/de/mail/');
     // Outside the mount nothing happens.
     expect(run('/other/login', ['de'])).toBeUndefined();
+  });
+
+  // /de/gibtsnicht showed the shim's English "This page could not be found".
+  it('shows a page that stays a 404 in the language of its URL, else the reader one', () => {
+    const messages = readNotFoundMessages(process.cwd(), ['ar', 'de', 'en']);
+    const html = buildNotFoundShim({ basePath: '/webmail', locales: ['ar', 'de', 'en'], defaultLocale: 'en', messages });
+    // Without scripts the page reads in English.
+    expect(html).toContain(`<h1 id="not-found-title">${messages.en.title}</h1>`);
+    const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)][1][1];
+    const run = (pathname: string, languages: string[], stored: string | null = null) => {
+      const node = () => ({ textContent: '', attrs: {} as Record<string, string>, setAttribute(k: string, v: string) { this.attrs[k] = v; } });
+      const nodes: Record<string, ReturnType<typeof node>> = { 'not-found-title': node(), 'not-found-text': node(), 'not-found-home': node() };
+      const document = { documentElement: { lang: 'en', dir: '' }, title: '404', getElementById: (id: string) => nodes[id] };
+      new Function('location', 'navigator', 'localStorage', 'document', script)(
+        { pathname }, { languages, language: languages[0] }, { getItem: () => stored }, document,
+      );
+      return {
+        lang: document.documentElement.lang, dir: document.documentElement.dir, title: nodes['not-found-title'].textContent,
+        text: nodes['not-found-text'].textContent, home: nodes['not-found-home'].textContent, href: nodes['not-found-home'].attrs.href,
+      };
+    };
+    expect(run('/webmail/de/gibtsnicht', ['en-US'])).toEqual({
+      lang: 'de', dir: 'ltr', title: messages.de.title, text: messages.de.description, home: messages.de.home, href: '/webmail/de/',
+    });
+    expect(run('/webmail/ar/nope', ['de'])).toMatchObject({ lang: 'ar', dir: 'rtl', title: messages.ar.title, href: '/webmail/ar/' });
+    // No locale in the URL: the one picked in Settings, then the browser's.
+    expect(run('/webmail/', ['fr'], JSON.stringify({ state: { locale: 'ar' } }))).toMatchObject({ lang: 'ar' });
+    expect(run('/webmail/', ['de-AT'])).toMatchObject({ lang: 'de', title: messages.de.title });
+    expect(run('/webmail/', ['fr'])).toMatchObject({ lang: 'en', title: messages.en.title });
+  });
+
+  it('has not-found texts for every locale', () => {
+    const locales = readdirSync(join(process.cwd(), 'locales'));
+    const messages = readNotFoundMessages(process.cwd(), locales);
+    expect(Object.keys(messages).sort()).toEqual([...locales].sort());
   });
 
   it('renders host snippets and the README for the built variant', () => {
