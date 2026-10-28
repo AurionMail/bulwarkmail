@@ -102,7 +102,9 @@ export function CalendarMonthView({
   const overlayTop = isMobile ? 34 : 30;
   const rowHeight = isMobile ? 18 : 22;
   const chipHeight = rowHeight - 2;
-  const baseRowMinHeight = isMobile ? 52 : 100;
+  // A wide-screen week row fits at least three entries and the "N more"
+  // link, so a short window (1280x720) does not cut every day to one.
+  const baseRowMinHeight = isMobile ? 52 : overlayTop + 4 + 8 + 4 * rowHeight;
   const {
     dayHeaderKeys,
     getMonthGridDays,

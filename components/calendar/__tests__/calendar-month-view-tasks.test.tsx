@@ -108,17 +108,19 @@ describe('CalendarMonthView tasks', () => {
     const onOpenDay = vi.fn();
     renderView({
       events: [makeAllDayEvent('e1', '2026-09-10')],
-      tasks: ['a', 'b', 'c'].map((id) => makeTask(id, '2026-09-10')),
+      tasks: ['a', 'b', 'c', 'd'].map((id) => makeTask(id, '2026-09-10')),
       onOpenDay,
     });
     const row = document.querySelector<HTMLElement>('[data-week="2026-09-07"]');
-    // jsdom measures no viewport, so rows keep the 100px minimum: room for
-    // two 22px rows under the 30 + 4 offset, the second taken by the link.
-    expect(row?.style.minHeight).toBe('100px');
+    // jsdom measures no viewport, so rows keep the 130px minimum: room for
+    // four 22px rows under the 30 + 4 offset, the last taken by the link -
+    // three entries, not one, on a short desktop window.
+    expect(row?.style.minHeight).toBe('130px');
     expect(screen.getByText('Event e1')).toBeInTheDocument();
-    expect(document.querySelector('[data-calendar-task="a"]')).toBeNull();
+    expect(document.querySelector('[data-calendar-task="b"]')).not.toBeNull();
+    expect(document.querySelector('[data-calendar-task="c"]')).toBeNull();
     const more = screen.getByRole('button', { name: 'events.more' });
-    expect(more.parentElement?.style.top).toBe('22px');
+    expect(more.parentElement?.style.top).toBe('66px');
     fireEvent.click(more);
     expect(onOpenDay).toHaveBeenCalledWith(new Date(2026, 8, 10));
   });
