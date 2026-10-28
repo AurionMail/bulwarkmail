@@ -112,7 +112,7 @@ import { FilePreviewModal } from "@/components/files/file-preview-modal";
 import { WopiEditor } from "@/components/files/wopi-editor";
 import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
 import { isFilePreviewable } from "@/lib/file-preview";
-import { appendHtmlSignature, appendPlainTextSignature } from "@/lib/signature-utils";
+import { prepareQuickReply } from "@/lib/outgoing/quick-reply";
 import { computeReplyThreadingHeaders } from "@/lib/email-threading";
 import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
 import { findDraftIdentityId, findReplyIdentityId, resolveComposeAccountEmail } from "@/lib/reply-identity";
@@ -3900,21 +3900,18 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const signatureIdentity = (sendingIdentity?.htmlSignature || sendingIdentity?.textSignature)
       ? sendingIdentity
       : primaryIdentity;
-    const separator = useSettingsStore.getState().signatureSeparatorEnabled;
-    const finalBody = appendPlainTextSignature(body, signatureIdentity, { separator });
-
-    // When the identity has an HTML signature, send a matching HTML body so the
-    // signature keeps its formatting; appendPlainTextSignature would otherwise
-    // flatten it to plain text. Text-only identities keep the plain-text-only
-    // behavior (htmlBody stays undefined).
-    const escapedBody = body
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/\n/g, '<br>');
-    const finalHtmlBody = signatureIdentity?.htmlSignature?.trim()
-      ? appendHtmlSignature(`<div>${escapedBody}</div>`, signatureIdentity, { separator })
-      : undefined;
+    // The same checks and finalisers as the composer's send
+    // (lib/outgoing/send-pipeline.ts): a quick reply is no way around them.
+    const prepared = await prepareQuickReply({
+      body,
+      signatureIdentity,
+      separator: useSettingsStore.getState().signatureSeparatorEnabled,
+      to: recipients,
+      fromEmail: headerFromEmail,
+      identityId: sendingIdentity?.id,
+    });
+    if (!prepared) return;
+    const { html: finalHtmlBody, text: finalBody } = prepared;
 
     const originalEmailId = selectedEmail.id;
     const originalSource = emailWriteSource(selectedEmail, client);

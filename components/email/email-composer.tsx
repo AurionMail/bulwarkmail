@@ -96,6 +96,7 @@ import { TemplateForm } from "@/components/templates/template-form";
 import type { EmailTemplate } from "@/lib/template-types";
 import { appendPlainTextSignature, getPlainTextSignature, plainTextBodyHasSignature, plainTextBodyWithoutSignature } from "@/lib/signature-utils";
 import { wantsSignatureSeparator } from "@/lib/signature-delimiter";
+import { finalizeOutgoing, runPreSendChecks, type OutgoingContext } from "@/lib/outgoing/send-pipeline";
 import { findComposeIdentityId, findDraftIdentityId, findReplyIdentityId, resolveReplyFrom } from "@/lib/reply-identity";
 import { buildReplyRecipients, isSelfSent, ownReplyAddresses } from "@/lib/reply-recipients";
 import { computeReplyThreadingHeaders, type ReplyThreadingHeaders } from "@/lib/email-threading";
@@ -3091,6 +3092,8 @@ export function EmailComposer({
   // second click in the same tick - and isSending drives button disabling.
   const [isSending, setIsSending] = useState(false);
   const isSendingRef = useRef(false);
+  // A pre-send check is waiting for the user (send-pipeline).
+  const preSendCheckingRef = useRef(false);
 
   // Attachments still uploading when Send is clicked used to be silently
   // dropped from the outgoing message (the filters below exclude anything
@@ -3275,6 +3278,29 @@ export function EmailComposer({
       }
     }
 
+    // Checks other features register (lib/outgoing/send-pipeline.ts), such
+    // as the external-recipient confirm. They may ask the user, so a second
+    // click meanwhile does nothing.
+    if (preSendCheckingRef.current) return;
+    const outgoingContext: OutgoingContext = {
+      surface: 'composer',
+      to: toAddresses.map(r => r.email),
+      cc: ccAddresses.map(r => r.email),
+      bcc: bccAddresses.map(r => r.email),
+      fromEmail: (fromOverrideEnabled && fromOverrideEmail.trim()) || currentIdentity?.email || undefined,
+      identityId: currentIdentity?.id,
+      mode,
+      plainText: plainTextMode,
+    };
+    preSendCheckingRef.current = true;
+    let checksPassed = false;
+    try {
+      checksPassed = await runPreSendChecks(outgoingContext);
+    } finally {
+      preSendCheckingRef.current = false;
+    }
+    if (!checksPassed) return;
+
     // Past every "don't send" early return - mark the send in flight so a
     // second click is a no-op until this resolves (reset in the finally below).
     isSendingRef.current = true;
@@ -3347,7 +3373,7 @@ export function EmailComposer({
 
     // In plain text mode, send text/plain only (no HTML body)
     const signatureOpts = { separator: signatureSeparatorEnabled };
-    const finalBody = plainTextMode
+    const builtTextBody = plainTextMode
       ? (signatureAlreadyInBody ? body : appendPlainTextSignature(body, signatureIdentity, signatureOpts))
       : (signatureAlreadyInBody ? htmlToPlainText(body) : appendPlainTextSignature(htmlToPlainText(body), signatureIdentity, signatureOpts));
 
@@ -3367,9 +3393,12 @@ export function EmailComposer({
     }
 
     const rewritten = plainTextMode ? null : rewriteInlineImages(body);
-    const finalHtmlBody = plainTextMode
-      ? undefined
-      : `<div>${rewritten!.html}</div>${buildSignatureHtml()}`;
+    // What the send-pipeline finalisers add (disclaimer, organisation
+    // signature) goes in here, on the send only: drafts never get it.
+    const { html: finalHtmlBody, text: finalBody } = finalizeOutgoing({
+      html: plainTextMode ? undefined : `<div>${rewritten!.html}</div>${buildSignatureHtml()}`,
+      text: builtTextBody,
+    }, outgoingContext);
     const inlineAttachments = rewritten?.attachments ?? [];
 
     try {
