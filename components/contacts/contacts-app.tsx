@@ -727,6 +727,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
       bcc: field === "bcc" ? recipients : [],
       subject: "",
       body: "",
+      inApp: true,
     });
     router.push("/");
   }, [router]);

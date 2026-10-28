@@ -235,4 +235,12 @@ describe('ContactsApp', () => {
     fireEvent.click(screen.getByRole('button', { name: /import.title/ }));
     expect(screen.getByRole('dialog', { name: 'import.title' })).toBeInTheDocument();
   });
+
+  it("marks a message started from Contacts as the app's own, so Mail does not ask for an account", async () => {
+    const { consumePendingMailto } = await import('@/lib/protocol-handlers/session');
+    renderContacts();
+    fireEvent.contextMenu(screen.getByText('Alice Smith'));
+    fireEvent.click(screen.getByText('context_menu.send_email'));
+    expect(consumePendingMailto()).toMatchObject({ to: [expect.stringContaining('alice@example.com')], inApp: true });
+  });
 });

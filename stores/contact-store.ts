@@ -178,15 +178,16 @@ function resolveRawAddressBookIds(
 
 export function getContactDisplayName(contact: ContactCard): string {
   if (contact.name) {
-    // Try given + surname from components first
+    // The card's own display name (RFC 9553 name.full, vCard FN) first: an
+    // imported "Dr. Jürgen Müller" stays that, and this app's form keeps it
+    // in step with the parts it writes.
+    if (contact.name.full?.trim()) return contact.name.full.trim();
     if (contact.name.components && contact.name.components.length > 0) {
       const given = contact.name.components.find(c => c.kind === 'given')?.value || '';
       const surname = contact.name.components.find(c => c.kind === 'surname')?.value || '';
       const full = [given, surname].filter(Boolean).join(' ');
       if (full) return full;
     }
-    // Fall back to name.full (RFC 9553 - used by Stalwart and other JMAP servers)
-    if (contact.name.full) return contact.name.full;
   }
   if (contact.nicknames) {
     const nick = Object.values(contact.nicknames)[0];

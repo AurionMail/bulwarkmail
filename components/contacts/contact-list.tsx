@@ -577,7 +577,8 @@ export function ContactList({
 
       {/* Bulk action bar */}
       {hasSelection && (
-        <div className="px-3 py-1.5 border-b border-border bg-accent/30 flex items-center gap-2 flex-wrap">
+        // One line at any width: below 28rem the buttons show only their icons.
+        <div className="@container px-3 py-1.5 border-b border-border bg-accent/30 flex items-center gap-1 flex-nowrap min-w-0">
           <button
             type="button"
             role="checkbox"
@@ -599,34 +600,36 @@ export function ContactList({
               <Square className="w-4 h-4 text-muted-foreground" />
             )}
           </button>
-          <span className="text-xs font-medium text-foreground">
+          <span className="text-xs font-medium text-foreground whitespace-nowrap">
             {t("bulk.selected", { count: selectedContactIds.size })}
           </span>
           <div className="flex-1" />
-          <Button variant="ghost" size="xs" onClick={onBulkAddToGroup}>
-            <Users className="w-3.5 h-3.5 me-1" />
-            {t("bulk.add_to_group")}
+          <Button variant="ghost" size="xs" onClick={onBulkAddToGroup} aria-label={t("bulk.add_to_group")} title={t("bulk.add_to_group")} className="shrink-0">
+            <Users className="w-3.5 h-3.5 @md:me-1" />
+            <span className="hidden @md:inline">{t("bulk.add_to_group")}</span>
           </Button>
           {onMoveContacts && (
-            <Button variant="ghost" size="xs" onClick={() => onMoveContacts([...selectedContactIds])}>
-              <FolderInput className="w-3.5 h-3.5 me-1" />
-              {t("address_books.move_to")}
+            <Button variant="ghost" size="xs" onClick={() => onMoveContacts([...selectedContactIds])} aria-label={t("address_books.move_to")} title={t("address_books.move_to")} className="shrink-0">
+              <FolderInput className="w-3.5 h-3.5 @md:me-1" />
+              <span className="hidden @md:inline">{t("address_books.move_to")}</span>
             </Button>
           )}
-          <Button variant="ghost" size="xs" onClick={onBulkExport} disabled={exporting} aria-busy={exporting}>
+          <Button variant="ghost" size="xs" onClick={onBulkExport} disabled={exporting} aria-busy={exporting} aria-label={t("bulk.export")} title={t("bulk.export")} className="shrink-0">
             {exporting
-              ? <Loader2 className="w-3.5 h-3.5 me-1 animate-spin" />
-              : <Download className="w-3.5 h-3.5 me-1" />}
-            {exporting ? t("export.exporting") : t("bulk.export")}
+              ? <Loader2 className="w-3.5 h-3.5 @md:me-1 animate-spin" />
+              : <Download className="w-3.5 h-3.5 @md:me-1" />}
+            <span className="hidden @md:inline">{exporting ? t("export.exporting") : t("bulk.export")}</span>
           </Button>
           <Button
             variant="ghost"
             size="xs"
             onClick={onBulkDelete}
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            aria-label={t("bulk.delete")}
+            title={t("bulk.delete")}
+            className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
           >
-            <Trash2 className="w-3.5 h-3.5 me-1" />
-            {t("bulk.delete")}
+            <Trash2 className="w-3.5 h-3.5 @md:me-1" />
+            <span className="hidden @md:inline">{t("bulk.delete")}</span>
           </Button>
           <PluginActions surface="contact-list-actions" context={pluginContext} />
           <IconButton label={t("bulk.clear")} onClick={onClearSelection}>

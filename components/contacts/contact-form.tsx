@@ -821,15 +821,11 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
                     <Input value={prefix} onChange={(e) => setPrefix(e.target.value)} placeholder={t("prefix_placeholder")} className="w-20" />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">
-                      {t("given_name")} <span className="text-destructive">*</span>
-                    </label>
+                    <label className="text-xs text-muted-foreground mb-1 block">{t("given_name")}</label>
                     <Input value={givenName} onChange={(e) => setGivenName(e.target.value)} placeholder={t("given_name")} autoFocus />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">
-                      {t("surname")} <span className="text-destructive">*</span>
-                    </label>
+                    <label className="text-xs text-muted-foreground mb-1 block">{t("surname")}</label>
                     <Input value={surname} onChange={(e) => setSurname(e.target.value)} placeholder={t("surname")} />
                   </div>
                   <div>
@@ -837,6 +833,8 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
                     <Input value={suffix} onChange={(e) => setSuffix(e.target.value)} placeholder={t("suffix_placeholder")} className="w-20" />
                   </div>
                 </div>
+                {/* Either name is enough (or an organization), so neither is starred. */}
+                <p className="text-xs text-muted-foreground -mt-1">{t("name_required")}</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">{t("middle_name")}</label>

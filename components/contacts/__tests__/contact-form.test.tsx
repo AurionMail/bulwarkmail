@@ -44,7 +44,7 @@ describe('ContactForm', () => {
     render(<ContactForm onSave={onSave} onCancel={vi.fn()} />);
     fireEvent.submit(screen.getByText('save').closest('form')!);
     await waitFor(() => {
-      expect(screen.getByText('name_required')).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toHaveTextContent('name_required');
     });
     expect(onSave).not.toHaveBeenCalled();
   });
@@ -460,7 +460,7 @@ describe('ContactForm', () => {
     fireEvent.submit(screen.getByText('save').closest('form')!);
 
     await waitFor(() => {
-      expect(screen.getByText('name_required')).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toHaveTextContent('name_required');
     });
     expect(onSave).not.toHaveBeenCalled();
   });
