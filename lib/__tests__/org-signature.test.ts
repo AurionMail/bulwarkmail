@@ -92,6 +92,22 @@ describe('fillHtmlTemplate', () => {
     expect(fillHtmlTemplate('<p>{mobile}</p><p><br></p><hr><p>Static</p>', NO_DETAILS))
       .toBe('<p><br></p><hr><p>Static</p>');
   });
+
+  it('finds lines inside inline wrappers, the way Outlook and Gmail write signatures', () => {
+    const outlook = '<div><span style="font-family:Arial"><b>{name}</b><br>Phone: {phone}<br>Mobile: {mobile}</span></div>';
+    expect(fillHtmlTemplate(outlook, { ...NO_DETAILS, phone: '1' }))
+      .toBe('<div><span style="font-family:Arial"><b>Alex Example</b><br>Phone: 1</span></div>');
+    const gmail = '<div dir="ltr"><font face="arial"><span>{name}<br></span><span>T: {phone}<br></span><span>ACME</span></font></div>';
+    expect(fillHtmlTemplate(gmail, NO_DETAILS))
+      .toBe('<div dir="ltr"><font face="arial"><span>Alex Example<br></span><span>ACME</span></font></div>');
+    expect(fillHtmlTemplate('<p>{name}<br><b>Mobile:</b> <i>{mobile}</i><br>ACME</p>', NO_DETAILS)).toBe('<p>Alex Example<br>ACME</p>');
+  });
+
+  it('keeps a logo on a line whose placeholders are empty, and an image that took a placeholder goes', () => {
+    expect(fillHtmlTemplate('<div><img src="https://acme.test/logo.png" alt="ACME"> {phone}</div><div>{name}</div>', NO_DETAILS))
+      .toBe('<div><img src="https://acme.test/logo.png" alt="ACME"></div><div>Alex Example</div>');
+    expect(fillHtmlTemplate('<p>{name}<br><img src="https://acme.test/{title}.png"></p>', NO_DETAILS)).toBe('<p>Alex Example</p>');
+  });
 });
 
 describe('buildOrgSignature', () => {

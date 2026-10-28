@@ -23,6 +23,7 @@
 import type { Identity } from '@/lib/jmap/types';
 import type { SettingRestriction } from '@/lib/admin/types';
 import { SIGNATURE_FIELDS, type OrganisationPolicy, type SignatureField } from '@/lib/admin/organisation-policy';
+import { escapeHtml } from '@/lib/email-sanitization';
 
 export const SIGNATURE_PLACEHOLDERS = [
   'name',
@@ -102,20 +103,13 @@ export function fillTextTemplate(template: string, values: SignatureValues): str
     .trim();
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 const BLOCK_TAGS = new Set([
   'ADDRESS', 'ARTICLE', 'ASIDE', 'BLOCKQUOTE', 'CENTER', 'DD', 'DIV', 'DL', 'DT', 'FOOTER', 'H1', 'H2', 'H3',
   'H4', 'H5', 'H6', 'HEADER', 'HR', 'LI', 'OL', 'P', 'PRE', 'SECTION', 'TABLE', 'TBODY', 'TD', 'TFOOT', 'TH',
   'THEAD', 'TR', 'UL',
 ]);
+/** Content that shows without text: kept when its line's placeholders are empty. */
+const MEDIA_TAGS = new Set(['IMG', 'SVG', 'PICTURE', 'VIDEO']);
 
 const isElement = (node: Node): node is Element => node.nodeType === 1;
 const isBlock = (node: Node) => isElement(node) && BLOCK_TAGS.has(node.tagName);
@@ -137,54 +131,115 @@ function placeholdersOfNodes(nodes: Node[]): string[] {
 }
 
 const hasVisibleContent = (el: Element) =>
-  (el.textContent ?? '').trim().length > 0 || el.querySelector('img, hr, svg') !== null;
+  (el.textContent ?? '').trim().length > 0 || el.querySelector('img, hr, svg, picture, video') !== null;
+
+/** One line of a block: its leaves (text and media) and what ends it. */
+interface Line {
+  leaves: Node[];
+  /** The <br> that ends the line; null when a block or the end of the block ends it. */
+  br: Element | null;
+  /** A nested block ends it, so the line before it doesn't belong to the same run. */
+  endsAtBlock: boolean;
+}
+
+/**
+ * The lines of `block`, at any depth of inline wrappers (span, font, a, b,
+ * ...): a `<br>` anywhere inside them ends a line, a nested block ends one
+ * too and is handled on its own.
+ */
+function linesOf(block: Element): Line[] {
+  const lines: Line[] = [];
+  let leaves: Node[] = [];
+  const end = (br: Element | null, endsAtBlock: boolean) => {
+    lines.push({ leaves, br, endsAtBlock });
+    leaves = [];
+  };
+  const walk = (node: Node) => {
+    if (node.nodeType === 3) {
+      leaves.push(node);
+      return;
+    }
+    if (!isElement(node)) return;
+    if (isBlock(node)) end(null, true);
+    else if (node.tagName === 'BR') end(node, false);
+    else if (MEDIA_TAGS.has(node.tagName)) leaves.push(node);
+    else node.childNodes.forEach(walk);
+  };
+  block.childNodes.forEach(walk);
+  end(null, false);
+  return lines;
+}
+
+/** The placeholders of a line: in its text, its media, and the attributes of the inline wrappers around it. */
+function placeholdersOfLine(line: Line, block: Element): string[] {
+  const keys = placeholdersOfNodes(line.leaves);
+  const wrappers = new Set<Element>();
+  for (const leaf of line.leaves) {
+    for (let parent = leaf.parentElement; parent && parent !== block; parent = parent.parentElement) wrappers.add(parent);
+  }
+  for (const wrapper of wrappers) {
+    for (const attr of Array.from(wrapper.attributes)) keys.push(...placeholdersIn(attr.value));
+  }
+  return keys;
+}
+
+/** Removes `node`, then each inline wrapper up to `block` that is left with nothing to show. */
+function removeWithEmptyWrappers(node: Node, block: Element): void {
+  let parent = node.parentElement;
+  node.parentNode?.removeChild(node);
+  while (parent && parent !== block && !hasVisibleContent(parent) && !parent.querySelector('br')) {
+    const next: HTMLElement | null = parent.parentElement;
+    parent.remove();
+    parent = next;
+  }
+}
 
 /**
  * Removes the lines of `el` whose placeholders are all empty, deepest
- * blocks first. A block that had placeholders and is empty afterwards goes
- * too, so "<p>{mobile}</p>" leaves no empty paragraph.
+ * blocks first. Text goes; an image or icon on the line stays, unless its
+ * own attributes held the empty placeholders. A block that had
+ * placeholders and is empty afterwards goes too, so "<p>{mobile}</p>"
+ * leaves no empty paragraph.
  */
 function dropEmptyLines(el: Element, values: SignatureValues, isRoot: boolean): void {
-  const hadPlaceholders = placeholdersOfNodes([el]).length > 0;
-  if (!hadPlaceholders) return;
+  if (placeholdersOfNodes([el]).length === 0) return;
   // A table row is one line: "Phone: | {phone}" goes as a whole.
   if (el.tagName === 'TR' && allPlaceholdersEmpty(placeholdersOfNodes([el]), values)) {
     el.remove();
     return;
   }
-  Array.from(el.children).forEach((child) => {
-    if (BLOCK_TAGS.has(child.tagName)) dropEmptyLines(child, values, false);
-  });
-
-  // Each line, with the <br> that ends it; `block` when a block ends it.
-  const runs: Array<{ nodes: Node[]; br: Element | null; block?: boolean }> = [];
-  let run: Node[] = [];
-  for (const node of Array.from(el.childNodes)) {
-    if (isBlock(node)) {
-      runs.push({ nodes: run, br: null, block: true });
-      run = [];
-    } else if (isElement(node) && node.tagName === 'BR') {
-      runs.push({ nodes: run, br: node });
-      run = [];
-    } else {
-      run.push(node);
+  // Nested blocks first, wherever they sit in inline wrappers.
+  const nested: Element[] = [];
+  const collect = (node: Element) => {
+    for (const child of Array.from(node.children)) {
+      if (BLOCK_TAGS.has(child.tagName)) nested.push(child);
+      else collect(child);
     }
-  }
-  runs.push({ nodes: run, br: null });
+  };
+  collect(el);
+  nested.forEach((child) => dropEmptyLines(child, values, false));
 
-  runs.forEach((line, index) => {
-    if (!allPlaceholdersEmpty(placeholdersOfNodes(line.nodes), values)) return;
-    line.nodes.forEach((node) => node.parentNode?.removeChild(node));
+  const lines = linesOf(el);
+  lines.forEach((line, index) => {
+    if (!allPlaceholdersEmpty(placeholdersOfLine(line, el), values)) return;
+    let kept = false;
+    for (const leaf of line.leaves) {
+      const media = isElement(leaf) && MEDIA_TAGS.has(leaf.tagName);
+      if (media && placeholdersOfNodes([leaf]).length === 0) kept = true;
+      else removeWithEmptyWrappers(leaf, el);
+    }
+    // An image left on the line keeps its line break.
+    if (kept) return;
     // The line break that belonged to the line goes with it: the one after
-    // it, or for the last line the one before it that is still there.
+    // it, or for the last line of a run the one before it that is still there.
     if (line.br) {
-      line.br.remove();
+      removeWithEmptyWrappers(line.br, el);
       return;
     }
-    for (let j = index - 1; j >= 0 && !runs[j].block; j--) {
-      const previous = runs[j].br;
+    for (let j = index - 1; j >= 0 && !lines[j].endsAtBlock; j--) {
+      const previous = lines[j].br;
       if (previous?.parentNode) {
-        previous.remove();
+        removeWithEmptyWrappers(previous, el);
         break;
       }
     }
