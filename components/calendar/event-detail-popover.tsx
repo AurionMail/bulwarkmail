@@ -253,16 +253,39 @@ export function EventDetailPopover({
     return () => observer.disconnect();
   }, [anchorRect, isMobile]);
 
+  // A card opened by click or Enter takes the focus, and gives it back to
+  // the event when it closes.
   useEffect(() => {
     if (!pinned) return;
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const node = popoverRef.current;
-    node?.querySelector<HTMLElement>("button")?.focus({ preventScroll: true });
     return () => {
       const active = document.activeElement;
       if (opener?.isConnected && (!active || active === document.body || node?.contains(active))) opener.focus({ preventScroll: true });
     };
   }, [pinned]);
+
+  // The focus goes in once the card is placed: before, it is hidden and
+  // can't take the focus, which stayed on the event. A card that just
+  // turned visible can still count as hidden for a frame, so it tries again
+  // on the next ones, unless the focus moved somewhere else meanwhile.
+  const placed = position !== null;
+  useEffect(() => {
+    const node = popoverRef.current;
+    if (!pinned || !placed || !node) return;
+    const from = document.activeElement;
+    let frame = 0;
+    let tries = 0;
+    const attempt = () => {
+      const active = document.activeElement;
+      if (node.contains(active) || active !== from) return;
+      const first = node.querySelector<HTMLElement>("button");
+      first?.focus({ preventScroll: true });
+      if (first && document.activeElement !== first && ++tries < 30) frame = requestAnimationFrame(attempt);
+    };
+    attempt();
+    return () => cancelAnimationFrame(frame);
+  }, [pinned, placed]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
