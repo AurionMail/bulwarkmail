@@ -1393,6 +1393,11 @@ export class DemoJMAPClient implements IJMAPClient {
     return node;
   }
 
+  async copyBlobs(_fromAccountId: string, blobIds: string[], _toAccountId: string): Promise<Record<string, string>> {
+    // One demo store holds every account's blobs.
+    return Object.fromEntries(blobIds.map((id) => [id, id]));
+  }
+
   async createFileNode(name: string, blobId: string, type: string, size: number, parentId: string | null): Promise<FileNode> {
     const node: FileNode = {
       id: generateDemoId('file'),

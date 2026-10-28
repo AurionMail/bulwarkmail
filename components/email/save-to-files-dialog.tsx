@@ -20,8 +20,14 @@ export interface SaveableAttachment {
 interface SaveToFilesDialogProps {
   /** The attachment to save; the dialog is open while it is set. */
   attachment: SaveableAttachment | null;
-  /** The mail login's client: the attachment's blob is in its own account, as are its files. */
+  /** The mail login's client; its Files account takes the file. */
   client: IJMAPClient;
+  /**
+   * The JMAP account the attachment's blob is in, when not the Files
+   * account (a shared or group mailbox of the same login): the blob is
+   * copied over first with Blob/copy.
+   */
+  blobAccountId?: string;
   onClose: () => void;
 }
 
@@ -30,10 +36,11 @@ const NO_CURRENT_FOLDER = "#none";
 
 /**
  * "Save to Files" for an attachment: pick a folder with the Files app's
- * folder picker. The attachment's blob is already on the server, in the same
- * account as the files, so it is filed by blobId with no download or upload.
+ * folder picker. The attachment's blob is already on the server, so it is
+ * filed by blobId with no download or upload; from another account of the
+ * login it is copied into the Files account first (Blob/copy, RFC 8620 §6.3).
  */
-export function SaveToFilesDialog({ attachment, client, onClose }: SaveToFilesDialogProps) {
+export function SaveToFilesDialog({ attachment, client, blobAccountId, onClose }: SaveToFilesDialogProps) {
   const t = useTranslations("email_viewer.save_to_files");
   const tFiles = useTranslations("files");
   const [nodes, setNodes] = useState<FileNode[]>([]);
@@ -68,9 +75,13 @@ export function SaveToFilesDialog({ attachment, client, onClose }: SaveToFilesDi
     if (!attachment?.blobId) return;
     const folderName = parentId ? (folders.find((f) => f.id === parentId)?.name ?? "") : tFiles("my_files");
     try {
+      const filesAccountId = blobAccountId ? client.getFilesAccountId() : undefined;
+      const blobId = blobAccountId && filesAccountId && blobAccountId !== filesAccountId
+        ? (await client.copyBlobs(blobAccountId, [attachment.blobId], filesAccountId))[attachment.blobId]
+        : attachment.blobId;
       await client.createFileNode(
         attachment.name || "attachment",
-        attachment.blobId,
+        blobId,
         attachment.type || "application/octet-stream",
         attachment.size,
         parentId,

@@ -9601,6 +9601,26 @@ export class JMAPClient implements IJMAPClient {
    * `size` is not sent: every server works it out from the blob, and
    * Stalwart 1.0 refuses a create whose size differs from the blob's.
    */
+  async copyBlobs(fromAccountId: string, blobIds: string[], toAccountId: string): Promise<Record<string, string>> {
+    if (blobIds.length === 0 || fromAccountId === toAccountId) {
+      return Object.fromEntries(blobIds.map((id) => [id, id]));
+    }
+    const response = await this.request([
+      ["Blob/copy", { fromAccountId, accountId: toAccountId, blobIds }, "bc0"],
+    ]);
+    const [name, result] = response.methodResponses?.[0] ?? [];
+    if (name !== "Blob/copy" || !result) {
+      throw jmapError(result?.description || result?.type || "Blob/copy failed", result);
+    }
+    const copied = (result.copied ?? {}) as Record<string, string>;
+    const missing = blobIds.filter((id) => !copied[id]);
+    if (missing.length > 0) {
+      const error = (result.notCopied ?? {})[missing[0]];
+      throw jmapError(error?.description || error?.type || "Blob/copy did not copy the blob", error);
+    }
+    return copied;
+  }
+
   async createFileNode(name: string, blobId: string, type: string, _size: number, parentId: string | null): Promise<FileNode> {
     const parent = this.resolveFileNodeId(parentId);
 

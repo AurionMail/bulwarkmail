@@ -1470,8 +1470,10 @@ export function EmailViewer({
   const blobClient = blobSource ? blobSource.client : legacyBlobClient;
   const blobAccountId = blobSource ? blobSource.accountId : legacyBlobAccountId;
   const filesFeatureEnabled = usePolicyStore((s) => s.isFeatureEnabled('filesEnabled'));
-  const canSaveToFiles = filesFeatureEnabled && !!client && blobClient === client
-    && !!client.supportsFiles?.() && (!blobAccountId || blobAccountId === client.getAccountId());
+  // The blob must be reachable from the Files account's session: the
+  // login's own mail, or a shared or group account of the same login, whose
+  // blob is copied over (Blob/copy). Another login's mail can't be.
+  const canSaveToFiles = filesFeatureEnabled && !!client && blobClient === client && !!client.supportsFiles?.();
 
   // List-Unsubscribe mailto: send the message ourselves - this is a webmail
   // client, handing a mailto: URL to the OS mail handler goes nowhere for
@@ -6258,7 +6260,7 @@ export function EmailViewer({
       )}
 
       {canSaveToFiles && client && saveToFilesTarget && (
-        <SaveToFilesDialog attachment={saveToFilesTarget} client={client} onClose={() => setSaveToFilesTarget(null)} />
+        <SaveToFilesDialog attachment={saveToFilesTarget} client={client} blobAccountId={blobAccountId} onClose={() => setSaveToFilesTarget(null)} />
       )}
 
       {/* View source: the raw message the server holds. */}

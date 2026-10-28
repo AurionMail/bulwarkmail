@@ -644,6 +644,12 @@ export interface IJMAPClient {
   getFileNodes(ids: string[] | null, properties?: string[]): Promise<FileNode[]>;
   createFileDirectory(name: string, parentId: string | null): Promise<FileNode>;
   createFileNode(name: string, blobId: string, type: string, size: number, parentId: string | null): Promise<FileNode>;
+  /**
+   * Blob/copy (RFC 8620 §6.3): copies blobs from one account of this session
+   * into another, on the server. Returns the new id of each copied blob;
+   * throws when one was not copied.
+   */
+  copyBlobs(fromAccountId: string, blobIds: string[], toAccountId: string): Promise<Record<string, string>>;
   updateFileNode(id: string, updates: Partial<Pick<FileNode, 'name' | 'parentId'>>): Promise<void>;
   updateFileNodes(updates: Record<string, Partial<Pick<FileNode, 'name' | 'parentId'>>>): Promise<{ updated: string[]; notUpdated: Record<string, string> }>;
   destroyFileNodes(ids: string[]): Promise<{ destroyed: string[]; notDestroyed: string[] }>;

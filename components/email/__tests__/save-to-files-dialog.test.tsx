@@ -28,4 +28,24 @@ describe('SaveToFilesDialog', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(useToastStore.getState().toasts.some((toast) => toast.title === 'saved')).toBe(true);
   });
+
+  // A shared mailbox's attachment: the blob is in the team's account, the
+  // file goes into the user's own Files account.
+  it('copies the blob of a shared account into the Files account first', async () => {
+    const createFileNode = vi.fn().mockResolvedValue({});
+    const copyBlobs = vi.fn().mockResolvedValue({ 'blob-1': 'blob-mine' });
+    const client = {
+      listAllFileNodes: vi.fn().mockResolvedValue(nodes),
+      getFilesAccountId: () => 'me',
+      copyBlobs,
+      createFileNode,
+    } as unknown as IJMAPClient;
+    render(<SaveToFilesDialog attachment={attachment} client={client} blobAccountId="team" onClose={vi.fn()} />);
+
+    fireEvent.click(await screen.findByText('Documents'));
+    fireEvent.click(screen.getByRole('button', { name: 'save_here' }));
+
+    await waitFor(() => expect(createFileNode).toHaveBeenCalledWith('invoice.pdf', 'blob-mine', 'application/pdf', 1234, 'docs'));
+    expect(copyBlobs).toHaveBeenCalledWith('team', ['blob-1'], 'me');
+  });
 });
