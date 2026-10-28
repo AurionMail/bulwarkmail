@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { X, Download, Loader2, ExternalLink } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { ZoomableImage } from "@/components/files/zoomable-image";
 import { getFilePreviewKind, imageBlobUrl, isMimeTypeSafeForInlinePreview, previewBlobType } from "@/lib/file-preview";
 import dynamic from "next/dynamic";
@@ -295,12 +296,12 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
               <ExternalLink className="w-4 h-4" />
             </Button>
           )}
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => void onDownload()}>
-            <Download className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
-            <X className="w-4 h-4" />
-          </Button>
+          <IconButton label={t("download")} onClick={() => void onDownload()}>
+            <Download />
+          </IconButton>
+          <IconButton label={t("close_preview")} onClick={onClose}>
+            <X />
+          </IconButton>
         </div>
       </div>
 

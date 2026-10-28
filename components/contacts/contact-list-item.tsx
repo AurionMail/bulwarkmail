@@ -88,6 +88,10 @@ export function ContactListItem({ contact, isSelected, isChecked, hasSelection, 
     >
       {hasSelection && (
         <button
+          type="button"
+          role="checkbox"
+          aria-checked={isChecked}
+          aria-label={t("select_contact", { name: name || email || "-" })}
           onClick={onCheckboxClick}
           className={cn(
             "p-1 rounded flex-shrink-0 transition-all duration-200",

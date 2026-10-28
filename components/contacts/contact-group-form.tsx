@@ -182,7 +182,9 @@ export function ContactGroupForm({
                   <button
                     type="button"
                     onClick={() => toggleMember(id)}
-                    className="hover:text-red-600 dark:hover:text-red-400"
+                    aria-label={t("groups.remove_member", { name: getContactDisplayName(contact) })}
+                    title={t("groups.remove_member", { name: getContactDisplayName(contact) })}
+                    className="hover:text-destructive"
                   >
                     <X className="w-3 h-3" />
                   </button>

@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { Search, BookUser, Trash2, Users, Download, X, UserPlus, CheckSquare, Square, Filter, Mail, Phone, Image as ImageIcon, RotateCcw, Menu, ArrowDownAZ, Loader2, FolderInput } from "@/components/icons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { ContactListItem } from "./contact-list-item";
 import { ContactContextMenu } from "./contact-context-menu";
 import { useContactExportBusy } from "./contact-export";
@@ -399,6 +400,7 @@ export function ContactList({
                   : "text-muted-foreground hover:text-foreground hover:bg-muted",
               )}
               title={hasSelection ? (allSelected ? t("bulk.clear") : t("bulk.select_all")) : t("filters.select")}
+              aria-label={hasSelection ? (allSelected ? t("bulk.clear") : t("bulk.select_all")) : t("filters.select")}
             >
               {hasSelection ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
             </button>
@@ -579,6 +581,11 @@ export function ContactList({
       {hasSelection && (
         <div className="px-3 py-1.5 border-b border-border bg-accent/30 flex items-center gap-2 flex-wrap">
           <button
+            type="button"
+            role="checkbox"
+            aria-checked={allSelected ? true : "mixed"}
+            aria-label={allSelected ? t("bulk.clear") : t("bulk.select_all")}
+            title={allSelected ? t("bulk.clear") : t("bulk.select_all")}
             onClick={() => {
               if (allSelected) {
                 onClearSelection();
@@ -624,9 +631,9 @@ export function ContactList({
             {t("bulk.delete")}
           </Button>
           <PluginActions surface="contact-list-actions" context={pluginContext} />
-          <Button variant="ghost" size="icon" onClick={onClearSelection} className="h-7 w-7">
-            <X className="w-3.5 h-3.5" />
-          </Button>
+          <IconButton label={t("bulk.clear")} onClick={onClearSelection}>
+            <X />
+          </IconButton>
         </div>
       )}
 

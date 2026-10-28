@@ -1,10 +1,9 @@
 "use client";
 
-import { useMemo, useState, useCallback, useEffect, useRef, type DragEvent } from "react";
+import { useMemo, useState, useCallback, useRef, type DragEvent } from "react";
 import { useTranslations } from "next-intl";
 import { BookUser, Building2, User, Users, Plus, Share2, Book, BookPlus, ChevronRight, ChevronDown, UserPlus, UsersRound, Upload, Tag, Pencil, Trash2, Settings, Mail, Star, MoreVertical } from "@/components/icons";
 import { useRouter } from "@/i18n/navigation";
-import { Button } from "@/components/ui/button";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator, ContextMenuSubMenu } from "@/components/ui/context-menu";
 import { isContextMenuKey, useContextMenu } from "@/hooks/use-context-menu";
 import { useLongPress } from "@/hooks/use-long-press";
@@ -132,9 +131,7 @@ export function ContactsSidebar({
   } : {};
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(loadCollapsed);
-  const [showMenu, setShowMenu] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const menuBtnRef = useRef<HTMLButtonElement>(null);
+  const newMenu = useContextMenu<null>();
 
   const toggleSection = useCallback((key: string) => {
     setCollapsed(prev => {
@@ -143,21 +140,6 @@ export function ContactsSidebar({
       return next;
     });
   }, []);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    if (!showMenu) return;
-    const handler = (e: MouseEvent) => {
-      if (
-        menuRef.current && !menuRef.current.contains(e.target as Node) &&
-        menuBtnRef.current && !menuBtnRef.current.contains(e.target as Node)
-      ) {
-        setShowMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [showMenu]);
 
   const sortedGroups = useMemo(() => {
     return [...groups].sort((a, b) =>
@@ -291,54 +273,31 @@ export function ContactsSidebar({
       <div className="px-3 h-14 box-content border-b border-border flex items-center justify-between flex-shrink-0">
         <span className="text-sm font-semibold truncate">{t("title")}</span>
         <div className="relative flex-shrink-0">
-          <Button
-            ref={menuBtnRef}
-            size="icon"
-            variant="ghost"
-            onClick={() => setShowMenu(v => !v)}
-            className="h-7 w-7"
+          <IconButton
+            label={t("new")}
+            aria-haspopup="menu"
+            aria-expanded={newMenu.contextMenu.isOpen}
+            onMouseDown={(e) => { if (newMenu.contextMenu.isOpen) e.stopPropagation(); }}
+            onClick={(e) => {
+              if (newMenu.contextMenu.isOpen) newMenu.closeContextMenu();
+              else newMenu.openContextMenuFrom(e.currentTarget, null, "end");
+            }}
           >
-            <Plus className="w-4 h-4" />
-          </Button>
-          {showMenu && (
-            <div
-              ref={menuRef}
-              className="absolute end-0 top-full mt-1 w-44 rounded-md border border-border bg-background text-foreground shadow-md z-50 py-1"
-            >
-              <button
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors text-start"
-                onClick={() => { setShowMenu(false); onCreateContact(); }}
-              >
-                <UserPlus className="w-4 h-4" />
-                {t("create_new")}
-              </button>
-              <button
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors text-start"
-                onClick={() => { setShowMenu(false); onCreateGroup(); }}
-              >
-                <UsersRound className="w-4 h-4" />
-                {t("groups.create")}
-              </button>
-              {onCreateAddressBook && (
-                <button
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors text-start"
-                  onClick={() => { setShowMenu(false); onCreateAddressBook(); }}
-                >
-                  <BookPlus className="w-4 h-4" />
-                  {t("address_books.create")}
-                </button>
-              )}
-              {onImport && (
-                <button
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors text-start"
-                  onClick={() => { setShowMenu(false); onImport(); }}
-                >
-                  <Upload className="w-4 h-4" />
-                  {t("import.title")}
-                </button>
-              )}
-            </div>
-          )}
+            <Plus />
+          </IconButton>
+          <ContextMenu ref={newMenu.menuRef} isOpen={newMenu.contextMenu.isOpen} position={newMenu.contextMenu.position} onClose={newMenu.closeContextMenu}>
+            <ContextMenuItem icon={UserPlus} label={t("create_new")} onClick={() => { newMenu.closeContextMenu(); onCreateContact(); }} />
+            <ContextMenuItem icon={UsersRound} label={t("groups.create")} onClick={() => { newMenu.closeContextMenu(); onCreateGroup(); }} />
+            {onCreateAddressBook && (
+              <ContextMenuItem icon={BookPlus} label={t("address_books.create")} onClick={() => { newMenu.closeContextMenu(); onCreateAddressBook(); }} />
+            )}
+            {onImport && (
+              <>
+                <ContextMenuSeparator />
+                <ContextMenuItem icon={Upload} label={t("import.title")} onClick={() => { newMenu.closeContextMenu(); onImport(); }} />
+              </>
+            )}
+          </ContextMenu>
         </div>
       </div>
 
@@ -471,17 +430,16 @@ export function ContactsSidebar({
                     {t("address_books.title")}
                   </span>
                 </button>
-                <button
+                <IconButton
+                  label={t("address_books.manage")}
                   onClick={(e) => {
                     e.stopPropagation();
-                    try { localStorage.setItem('settings-active-tab', 'contacts'); } catch { /* ignore */ }
-                    router.push('/settings');
+                    router.push('/settings/contacts');
                   }}
-                  className="p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-150 hover:bg-muted"
-                  title={t("address_books.manage")}
+                  className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 transition-opacity duration-150"
                 >
-                  <Settings className="w-3 h-3 text-muted-foreground" />
-                </button>
+                  <Settings className="text-muted-foreground" />
+                </IconButton>
               </div>
               {!collapsed.addressBooks && personalBooks.map((book) => (
                 <AddressBookItem
@@ -611,17 +569,16 @@ export function ContactsSidebar({
                   {t("address_books.shared_prefix", { name: group.accountName })}
                 </span>
               </button>
-              <button
+              <IconButton
+                label={t("address_books.manage")}
                 onClick={(e) => {
                   e.stopPropagation();
-                  try { localStorage.setItem('settings-active-tab', 'contacts'); } catch { /* ignore */ }
-                  router.push('/settings');
+                  router.push('/settings/contacts');
                 }}
-                className="p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-150 hover:bg-muted"
-                title={t("address_books.manage")}
+                className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 transition-opacity duration-150"
               >
-                <Settings className="w-3 h-3 text-muted-foreground" />
-              </button>
+                <Settings className="text-muted-foreground" />
+              </IconButton>
             </div>
             {!collapsed[`shared-${group.accountId}`] && group.books.map((book) => (
               <AddressBookItem

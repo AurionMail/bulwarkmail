@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Users, Pencil, Trash2, UserMinus, Mail } from "@/components/icons";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
 import type { ContactCard } from "@/lib/jmap/types";
 import { getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
@@ -60,7 +61,9 @@ export function ContactGroupDetail({
               variant="outline"
               size="sm"
               onClick={onDelete}
-              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950 touch-manipulation"
+              aria-label={t("groups.delete")}
+              title={t("groups.delete")}
+              className="text-destructive hover:text-destructive hover:bg-destructive/10 touch-manipulation"
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -117,17 +120,16 @@ export function ContactGroupDetail({
                       )}
                     </div>
                   </button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
+                  <IconButton
+                    label={t("groups.remove_member", { name: mName })}
                     className={cn(
-                      "h-8 w-8 transition-opacity",
-                      isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                      "transition-opacity",
+                      isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100"
                     )}
                     onClick={() => onRemoveMember(member.id)}
                   >
-                    <UserMinus className="w-4 h-4 text-muted-foreground" />
-                  </Button>
+                    <UserMinus className="text-muted-foreground" />
+                  </IconButton>
                 </div>
               );
             })}

@@ -107,8 +107,8 @@ describe('ContactsApp', () => {
     expect(drawer()).not.toHaveAttribute('inert');
 
     // The header's "+" menu, then "New contact".
-    fireEvent.click(within(drawer()).getAllByRole('button')[0]);
-    fireEvent.click(within(drawer()).getByText('create_new'));
+    fireEvent.click(within(drawer()).getByRole('button', { name: 'new' }));
+    fireEvent.click(screen.getByText('create_new'));
     expect(drawer()).toHaveAttribute('inert');
   });
 
@@ -159,8 +159,8 @@ describe('ContactsApp', () => {
   it('imports in a real dialog that Escape closes', () => {
     renderContacts();
     fireEvent.click(screen.getAllByRole('button', { name: 'open_categories' })[0]);
-    fireEvent.click(within(drawer()).getAllByRole('button')[0]);
-    fireEvent.click(within(drawer()).getByText('import.title'));
+    fireEvent.click(within(drawer()).getByRole('button', { name: 'new' }));
+    fireEvent.click(screen.getByText('import.title'));
     const dialog = screen.getByRole('dialog', { name: 'import.title' });
     fireEvent.keyDown(dialog, { key: 'Escape' });
     expect(screen.queryByRole('dialog', { name: 'import.title' })).toBeNull();
@@ -196,8 +196,8 @@ describe('ContactsApp', () => {
   it('shows a new contact once it is saved, instead of an empty pane', async () => {
     renderContacts();
     fireEvent.click(screen.getAllByRole('button', { name: 'open_categories' })[0]);
-    fireEvent.click(within(drawer()).getAllByRole('button')[0]);
-    fireEvent.click(within(drawer()).getByText('create_new'));
+    fireEvent.click(within(drawer()).getByRole('button', { name: 'new' }));
+    fireEvent.click(screen.getByText('create_new'));
     fireEvent.change(screen.getByPlaceholderText('given_name'), { target: { value: 'Zed' } });
     fireEvent.click(screen.getByRole('button', { name: 'save' }));
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Zed' })).toBeInTheDocument());
