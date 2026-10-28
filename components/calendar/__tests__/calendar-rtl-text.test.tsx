@@ -27,6 +27,15 @@ describe('user text and times in a right-to-left layout', () => {
     expect(screen.getByText('Dinner with Carlos and co.')).toHaveAttribute('dir', 'auto');
   });
 
+  // The month view: short and cut titles start at the same edge, the
+  // title's own start, as task titles do.
+  it.each(['chip', 'span'] as const)('lets the title fill the pill from its own start (%s)', (variant) => {
+    render(<EventCard event={dinner} variant={variant} />);
+    const title = screen.getByText('Dinner with Carlos and co.');
+    expect(title.className).toMatch(/(^| )flex-1( |$)/);
+    expect(title.className).toMatch(/(^| )text-start( |$)/);
+  });
+
   it('keeps start before end in a block', () => {
     render(<EventCard event={dinner} variant="block" />);
     expect(isolatedLtr(screen.getByText('09:15 – 10:15'))).toBe(true);

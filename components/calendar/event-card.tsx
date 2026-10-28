@@ -197,7 +197,9 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
         )}
         style={{ ...eventFillStyle(color, { inactive: isInactive, selected: isSelected }), ...style }}
       >
-        <span dir="auto" className={cn("truncate", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
+        {/* The whole width, aligned to the title's own start: a short English
+            title in Arabic sat at the right, a cut one filled to the left. */}
+        <span dir="auto" className={cn("flex-1 min-w-0 truncate text-start", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
       </button>
     );
   }
@@ -227,7 +229,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
           {showTimeInMonthView && !event.showWithoutTime && (
             <span className="flex-shrink-0 font-normal opacity-85">{format(startDate, timeFmt)}</span>
           )}
-          <span dir="auto" className={cn("truncate font-medium", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
+          <span dir="auto" className={cn("flex-1 min-w-0 truncate text-start font-medium", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
         </div>
       </button>
     );
