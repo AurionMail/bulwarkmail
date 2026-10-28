@@ -148,6 +148,8 @@ export interface IJMAPClient {
   // ── Push / state ──────────────────────────────────────────────
   setupPushNotifications(): boolean;
   closePushNotifications(): void;
+  /** Whether this client holds one of the tab's live event streams (vs. slow-polling or none). */
+  hasSSEStream(): boolean;
   onConnectionChange(callback: (connected: boolean) => void): void;
   onRateLimit(callback: (rateLimited: boolean, retryAfterMs: number) => void): void;
   isRateLimited(): boolean;

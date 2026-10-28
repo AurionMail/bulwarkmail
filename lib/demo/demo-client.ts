@@ -164,6 +164,8 @@ export class DemoJMAPClient implements IJMAPClient {
 
   setupPushNotifications(): boolean { return true; }
   closePushNotifications(): void { /* no-op in demo */ }
+  // Demo changes arrive through the state-change callback, not a live stream.
+  hasSSEStream(): boolean { return false; }
   onConnectionChange(callback: (connected: boolean) => void): void { this.connectionCallback = callback; }
   onRateLimit(): void { /* no-op in demo */ }
   isRateLimited(): boolean { return false; }

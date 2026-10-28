@@ -17,7 +17,8 @@ export type PushRole = 'active' | 'background';
 export interface PushBindable {
   setupPushNotifications(): unknown;
   closePushNotifications(): void;
-  hasSSEStream(): boolean;
+  /** Optional: a client without it (demo, tests) counts as having no live stream. */
+  hasSSEStream?(): boolean;
 }
 
 export interface PushBinding {
@@ -77,7 +78,7 @@ export function reconcilePushBindings<C extends PushBindable>({
     if (!bound) {
       bind(client, accountId, role);
     } else if (bound.role !== role) {
-      if (role === 'active' && !client.hasSSEStream()) {
+      if (role === 'active' && !(typeof client.hasSSEStream === 'function' && client.hasSSEStream())) {
         // Newly active on a slow poll: take the stream from the login that
         // just stopped being active - re-bound as background below - so the
         // account the user is looking at still updates live.
