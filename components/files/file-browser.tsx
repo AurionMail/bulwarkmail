@@ -19,7 +19,7 @@ import { fileNameProblem } from "@/lib/file-name-rules";
 import { EmptyFolder, NoSearchResults } from "@/components/files/file-empty-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { isAudioFile, isImageFile, isPdfFile, isTextFile, isVideoFile } from "@/components/files/file-icons";
-import { loadFilesSettings, saveFilesSettings, type FilesSettings } from "@/components/files/files-settings";
+import { useFilesSettings } from "@/components/files/files-settings";
 import { FilesSidebar, type CreateKind } from "@/components/files/files-sidebar";
 import { FilesHeader, type Crumb, type SortDir, type SortKey, type ViewMode } from "@/components/files/files-header";
 import { FileGridView, FileListView, type FileItemHandlers } from "@/components/files/file-views";
@@ -231,32 +231,17 @@ export function FileBrowser({
   }, [storeClient, loadSharedRoots]);
 
   // ---- Settings --------------------------------------------------------------
-  const [settings, setSettings] = useState<FilesSettings>(loadFilesSettings);
+  const [settings, updateSettings] = useFilesSettings();
   const [sortKey, setSortKey] = useState<SortKey>(() => settings.defaultSortKey);
   const [sortDir, setSortDir] = useState<SortDir>(() => settings.defaultSortDir);
+  // A new default order (Settings > Files, another device) applies at once.
   useEffect(() => {
-    const reload = () => {
-      const next = loadFilesSettings();
-      setSettings(next);
-      setSortKey(next.defaultSortKey);
-      setSortDir(next.defaultSortDir);
-    };
-    const handleStorage = (e: StorageEvent) => { if (e.key === "files-settings") reload(); };
-    // StorageEvent fires cross-tab, the custom event same-tab
-    window.addEventListener("storage", handleStorage);
-    window.addEventListener("files-settings-changed", reload);
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-      window.removeEventListener("files-settings-changed", reload);
-    };
-  }, []);
+    setSortKey(settings.defaultSortKey);
+    setSortDir(settings.defaultSortDir);
+  }, [settings.defaultSortKey, settings.defaultSortDir]);
   const viewMode: ViewMode = settings.defaultViewMode;
-  const handleViewModeChange = useCallback((mode: ViewMode) => {
-    // The toggle and Settings > Files edit the same preference.
-    const next = { ...loadFilesSettings(), defaultViewMode: mode };
-    setSettings(next);
-    saveFilesSettings(next);
-  }, []);
+  // The toggle and Settings > Files edit the same preference.
+  const handleViewModeChange = useCallback((mode: ViewMode) => updateSettings({ defaultViewMode: mode }), [updateSettings]);
   const iconOptions = useMemo(() => ({
     showIcons: settings.showIcons,
     coloredIcons: settings.coloredIcons,

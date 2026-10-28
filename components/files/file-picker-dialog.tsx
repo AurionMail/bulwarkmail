@@ -9,7 +9,7 @@ import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { debug } from "@/lib/debug";
 import { cn, formatFileSize } from "@/lib/utils";
 import { getFileIconByName } from "@/components/files/file-icons";
-import { loadFilesSettings } from "@/components/files/files-settings";
+import { getFilesSettings } from "@/components/files/files-settings";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import type { FileNode } from "@/lib/jmap/types";
 
@@ -51,7 +51,7 @@ export function FilePickerDialog({ client, onClose, onPick }: FilePickerDialogPr
   const [trail, setTrail] = useState<{ id: string; name: string }[]>([]);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Map<string, FileNode>>(() => new Map());
-  const [showHidden] = useState(() => loadFilesSettings().showHiddenFiles);
+  const [showHidden] = useState(() => getFilesSettings().showHiddenFiles);
 
   const modalRef = useFocusTrap({ isActive: true, onEscape: onClose, restoreFocus: true });
 

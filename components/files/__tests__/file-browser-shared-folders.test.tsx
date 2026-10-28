@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { FileBrowser } from '../file-browser';
 import { useFileStore, type FileResource } from '@/stores/file-store';
+import { useSettingsStore } from '@/stores/settings-store';
+import { DEFAULT_FILES_SETTINGS } from '@/lib/files-settings';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { FileNode } from '@/lib/jmap/types';
 
@@ -132,7 +134,10 @@ function list() {
 }
 
 describe('FileBrowser', () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => {
+    localStorage.clear();
+    act(() => { useSettingsStore.setState({ filesSettings: DEFAULT_FILES_SETTINGS }); });
+  });
   afterEach(() => {
     act(() => { useFileStore.setState({ client: null, sharedRoots: [], allFolders: [] }); });
   });
@@ -228,7 +233,7 @@ describe('FileBrowser', () => {
   });
 
   it('starts in the default view and sort from the settings', () => {
-    localStorage.setItem('files-settings', JSON.stringify({ defaultSortKey: 'name', defaultSortDir: 'desc' }));
+    act(() => { useSettingsStore.setState({ filesSettings: { ...DEFAULT_FILES_SETTINGS, defaultSortKey: 'name', defaultSortDir: 'desc' } }); });
     const files = ['a.txt', 'c.txt', 'b.txt'].map((n, i) => resource(node(`f${i}`, n, null, { blobId: `b${i}`, type: 'text/plain', size: 1 })));
     renderBrowser({ resources: files, allFolders: [] });
     const names = within(list()).getAllByRole('row').slice(1).map((r) => r.getAttribute('data-resource'));
