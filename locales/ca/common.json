@@ -2274,7 +2274,10 @@
       "no_address_books": "No s'ha trobat cap llibreta d'adreces",
       "categories_title": "Categories",
       "categories_description": "Canvieu el nom de les categories de contactes",
-      "no_categories": "No s'ha trobat cap categoria"
+      "no_categories": "No s'ha trobat cap categoria",
+      "delete_category": "Suprimeix la categoria",
+      "category_deleted": "Categoria suprimida",
+      "category_delete_failed": "No s'ha pogut suprimir la categoria"
     },
     "calendar_management": {
       "delete_title": "Voleu suprimir el calendari?",

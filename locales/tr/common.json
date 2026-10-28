@@ -2267,7 +2267,10 @@
       "no_address_books": "Adres defteri bulunamadı",
       "categories_title": "Kategoriler",
       "categories_description": "Kişi kategorilerini yeniden adlandırın",
-      "no_categories": "Kategori bulunamadı"
+      "no_categories": "Kategori bulunamadı",
+      "delete_category": "Kategoriyi sil",
+      "category_deleted": "Kategori silindi",
+      "category_delete_failed": "Kategori silinemedi"
     },
     "calendar_management": {
       "delete_title": "Takvim silinsin mi?",

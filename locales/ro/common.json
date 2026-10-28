@@ -2274,7 +2274,10 @@
       "no_address_books": "Nu s-au găsit agende de adrese",
       "categories_title": "Categorii",
       "categories_description": "Redenumiți categoriile de contacte",
-      "no_categories": "Nu s-au găsit categorii"
+      "no_categories": "Nu s-au găsit categorii",
+      "delete_category": "Șterge categoria",
+      "category_deleted": "Categorie ștearsă",
+      "category_delete_failed": "Categoria nu a putut fi ștearsă"
     },
     "calendar_management": {
       "delete_title": "Ștergeți calendarul?",

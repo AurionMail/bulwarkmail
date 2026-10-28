@@ -2274,7 +2274,10 @@
       "no_address_books": "Neboli nájdené žiadne adresáre",
       "categories_title": "Kategórie",
       "categories_description": "Premenovať kategórie kontaktov",
-      "no_categories": "Neboli nájdené žiadne kategórie"
+      "no_categories": "Neboli nájdené žiadne kategórie",
+      "delete_category": "Odstrániť kategóriu",
+      "category_deleted": "Kategória bola odstránená",
+      "category_delete_failed": "Kategóriu sa nepodarilo odstrániť"
     },
     "calendar_management": {
       "delete_title": "Odstrániť kalendár?",

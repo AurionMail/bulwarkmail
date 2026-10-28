@@ -2274,7 +2274,10 @@
       "no_address_books": "Aadressiraamatuid ei leitud",
       "categories_title": "Kategooriad",
       "categories_description": "Nimeta kontaktikategooriad ümber",
-      "no_categories": "Kategooriaid ei leitud"
+      "no_categories": "Kategooriaid ei leitud",
+      "delete_category": "Kustuta kategooria",
+      "category_deleted": "Kategooria kustutatud",
+      "category_delete_failed": "Kategooriat ei õnnestunud kustutada"
     },
     "calendar_management": {
       "delete_title": "Kustutada kalender?",

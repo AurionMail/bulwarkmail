@@ -2274,7 +2274,10 @@
       "no_address_books": "No address books found",
       "categories_title": "Categories",
       "categories_description": "Rename contact categories",
-      "no_categories": "No categories found"
+      "no_categories": "No categories found",
+      "delete_category": "Delete category",
+      "category_deleted": "Category deleted",
+      "category_delete_failed": "Couldn't delete the category"
     },
     "calendar_management": {
       "delete_title": "Delete calendar?",

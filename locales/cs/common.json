@@ -2267,7 +2267,10 @@
       "no_address_books": "Nenalezeny žádné adresáře",
       "categories_title": "Kategorie",
       "categories_description": "Přejmenovat kategorie kontaktů",
-      "no_categories": "Nenalezeny žádné kategorie"
+      "no_categories": "Nenalezeny žádné kategorie",
+      "delete_category": "Odstranit kategorii",
+      "category_deleted": "Kategorie byla odstraněna",
+      "category_delete_failed": "Kategorii se nepodařilo odstranit"
     },
     "calendar_management": {
       "delete_title": "Odstranit kalendář?",

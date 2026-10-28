@@ -2274,7 +2274,10 @@
       "no_address_books": "دفترچه آدرسی یافت نشد",
       "categories_title": "دسته‌بندی‌ها",
       "categories_description": "تغییر نام دسته‌بندی‌های مخاطبین",
-      "no_categories": "دسته‌بندی یافت نشد"
+      "no_categories": "دسته‌بندی یافت نشد",
+      "delete_category": "حذف دسته",
+      "category_deleted": "دسته حذف شد",
+      "category_delete_failed": "حذف دسته ممکن نشد"
     },
     "calendar_management": {
       "delete_title": "تقویم حذف شود؟",

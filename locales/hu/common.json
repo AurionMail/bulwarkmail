@@ -2270,7 +2270,10 @@
       "no_address_books": "Nincs címjegyzék",
       "categories_title": "Kategóriák",
       "categories_description": "Névjegy kategóriák átnevezése",
-      "no_categories": "Nincs kategória"
+      "no_categories": "Nincs kategória",
+      "delete_category": "Kategória törlése",
+      "category_deleted": "Kategória törölve",
+      "category_delete_failed": "Nem sikerült törölni a kategóriát"
     },
     "calendar_management": {
       "delete_title": "Törli a naptárt?",
