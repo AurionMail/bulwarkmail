@@ -131,6 +131,21 @@ describe('ContactsApp', () => {
     expect(useContactStore.getState().selectedContactId).toBe('c-bob');
   });
 
+  it('adds the open contact to the selection on Ctrl+click, as Files does', () => {
+    renderContacts();
+    fireEvent.click(screen.getByText('Alice Smith'));
+    fireEvent.click(screen.getByText('Bob Jones'), { ctrlKey: true });
+    expect([...useContactStore.getState().selectedContactIds].sort()).toEqual(['c-alice', 'c-bob']);
+  });
+
+  it('selects from the open contact on Shift+click', () => {
+    const carol: ContactCard = { ...bob, id: 'c-carol', name: { full: 'Carol King' }, emails: { e0: { address: 'carol@example.com' } } };
+    renderContacts([alice, bob, carol]);
+    fireEvent.click(screen.getByText('Bob Jones'));
+    fireEvent.click(screen.getByText('Carol King'), { shiftKey: true });
+    expect([...useContactStore.getState().selectedContactIds].sort()).toEqual(['c-bob', 'c-carol']);
+  });
+
   it('leaves an untouched contact form without asking', () => {
     renderContacts();
     fireEvent.click(screen.getByText('Alice Smith'));
