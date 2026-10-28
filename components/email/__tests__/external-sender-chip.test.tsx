@@ -63,7 +63,7 @@ beforeEach(() => {
 describe('External sender chip', () => {
   it('names the sender domain in its tooltip when the label is on', () => {
     setExternalMail({ senderLabel: true });
-    const { container } = render(<ExternalSenderChip fromEmail="org-dave@org-two.test" />);
+    const { container } = render(<ExternalSenderChip from={[{ email: "org-dave@org-two.test" }]} />);
     const chip = container.querySelector('[data-external-sender-chip]');
     expect(chip?.textContent).toContain('sender_label');
     expect(chip?.getAttribute('title')).toBe('sender_tooltip');
@@ -79,7 +79,7 @@ describe('External sender chip', () => {
     setExternalMail({ senderLabel: true });
     const { container } = await openMessage('org-bob@example.org');
     expect(container.querySelector('[data-external-sender-chip]')).toBeNull();
-    const sub = render(<ExternalSenderChip fromEmail="someone@eu.example.org" />);
+    const sub = render(<ExternalSenderChip from={[{ email: "someone@eu.example.org" }]} />);
     expect(sub.container.querySelector('[data-external-sender-chip]')).toBeNull();
   });
 

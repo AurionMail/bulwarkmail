@@ -101,10 +101,31 @@ export function externalRecipients(
   return out;
 }
 
-/** The sender's domain when it is outside the organisation, else null. */
-export function externalSenderDomain(fromEmail: string | null | undefined, internal: readonly string[]): string | null {
-  if (!fromEmail || !isExternalAddress(fromEmail, internal)) return null;
-  return addressDomain(fromEmail);
+export interface ExternalSender {
+  address: string;
+  /** ASCII domain; '' for an address without one. */
+  domain: string;
+}
+
+/**
+ * The From addresses that are outside the organisation. A message counts as
+ * external when any of them is, and an address without a domain
+ * ("CEO <ceo>") counts too: no organisation sends like that. A forged
+ * internal From is not caught here; the sender check warns about that.
+ */
+export function externalSenders(
+  from: readonly { email?: string | null }[] | null | undefined,
+  internal: readonly string[],
+): ExternalSender[] {
+  if (!from || internal.length === 0) return [];
+  const out: ExternalSender[] = [];
+  for (const sender of from) {
+    const address = String(sender?.email ?? '').trim();
+    const domain = addressDomain(address);
+    if (domain && domainMatches(domain, internal)) continue;
+    out.push({ address, domain });
+  }
+  return out;
 }
 
 // ─── The active account ──────────────────────────────────────

@@ -661,7 +661,8 @@
   },
   "external_mail": {
     "sender_label": "External",
-    "sender_tooltip": "From outside your organisation: {domain}",
+    "sender_tooltip": "From {domain}, outside your organisation",
+    "sender_tooltip_no_domain": "From an address without a domain, outside your organisation",
     "confirm_title": "Send outside your organisation?",
     "confirm_message": "{count, plural, one {This recipient is} other {These # recipients are}} outside your organisation. Send only if you mean to.",
     "field_to": "To",

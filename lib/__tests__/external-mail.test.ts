@@ -7,7 +7,7 @@ import {
   currentInternalDomains,
   domainMatches,
   externalRecipients,
-  externalSenderDomain,
+  externalSenders,
   internalDomains,
   isExternalAddress,
 } from '../external-mail';
@@ -114,11 +114,25 @@ describe('externalRecipients', () => {
   });
 });
 
-describe('externalSenderDomain', () => {
-  it('names the domain of an external sender and nothing for internal ones', () => {
-    expect(externalSenderDomain('dave@org-two.test', ['example.org'])).toBe('org-two.test');
-    expect(externalSenderDomain('bob@example.org', ['example.org'])).toBeNull();
-    expect(externalSenderDomain(undefined, ['example.org'])).toBeNull();
+describe('externalSenders', () => {
+  const internal = ['example.org'];
+  it('names the external senders and nothing for internal ones', () => {
+    expect(externalSenders([{ email: 'dave@org-two.test' }], internal)).toEqual([{ address: 'dave@org-two.test', domain: 'org-two.test' }]);
+    expect(externalSenders([{ email: 'bob@example.org' }], internal)).toEqual([]);
+    expect(externalSenders(undefined, internal)).toEqual([]);
+  });
+
+  it('counts a message as external when any of several From addresses is', () => {
+    expect(externalSenders([{ email: 'bob@example.org' }, { email: 'eve@evil.example' }], internal))
+      .toEqual([{ address: 'eve@evil.example', domain: 'evil.example' }]);
+  });
+
+  it('counts a From without a domain as external', () => {
+    expect(externalSenders([{ email: 'ceo' }], internal)).toEqual([{ address: 'ceo', domain: '' }]);
+  });
+
+  it('calls nobody external when no internal domain is known', () => {
+    expect(externalSenders([{ email: 'ceo' }, { email: 'dave@org-two.test' }], [])).toEqual([]);
   });
 });
 

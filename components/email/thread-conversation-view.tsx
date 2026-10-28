@@ -397,7 +397,7 @@ function EmailCard({
             )}>
               {sender?.name || (sender?.email && formatAddress(sender.email)) || "Unknown"}
             </span>
-            <ExternalSenderChip fromEmail={sender?.email} />
+            <ExternalSenderChip from={email.from} interactive={false} />
             {isStarred && (
               <Star className="w-4 h-4 fill-amber-400 text-amber-400 flex-shrink-0" />
             )}
