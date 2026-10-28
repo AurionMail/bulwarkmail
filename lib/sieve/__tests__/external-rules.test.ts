@@ -287,6 +287,24 @@ describe('external rule preservation (issue #201)', () => {
       expect(externalAfter[0].name).toBe('Untouchable');
       expect(externalAfter[0].conditions[0]).toMatchObject({ field: 'header', headerName: 'X-Spam' });
     });
+
+    it('writes the same script on every save, with no blank lines piling up around external rules', () => {
+      const initial = `${generateScript([makeBulwarkRule({ name: 'Mine' })])}\n\n# rule:[First]\nif header :is "X-Spam" "yes" {\n    discard;\n}\n\n\n# rule:[Second]\nif header :contains "Subject" "invoice" {\n    fileinto "Finance";\n}\n\n`;
+      const save = (script: string) => {
+        const parsed = parseScript(script);
+        return generateScript(parsed.rules, parsed.vacation, { externalRequires: parsed.externalRequires });
+      };
+
+      const first = save(initial);
+      const second = save(first);
+      const third = save(second);
+
+      expect(second).toBe(first);
+      expect(third).toBe(first);
+      expect(first).not.toMatch(/\n\n\n/);
+      expect(first).toContain('# --- External rules (managed outside Bulwark) ---\n# rule:[First]');
+      expect(first).toContain('}\n\n# rule:[Second]');
+    });
   });
 
   describe('Nextcloud Mail marker regions', () => {
