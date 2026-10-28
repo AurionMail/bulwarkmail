@@ -288,7 +288,8 @@
       "delete": "Supprimer",
       "delete_confirm_title": "Supprimer les e-mails",
       "delete_confirm_message": "Voulez-vous vraiment supprimer {count, plural, one {1 e-mail} other {# e-mails}} ?",
-      "clear_selection": "Effacer la sélection"
+      "clear_selection": "Effacer la sélection",
+      "more": "Plus d'actions pour la sélection"
     },
     "permanent_delete": "Supprimer définitivement",
     "permanent_delete_confirm_title": "Supprimer définitivement",

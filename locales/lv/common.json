@@ -288,7 +288,8 @@
       "delete": "Dzēst",
       "delete_confirm_title": "Dzēst vēstules",
       "delete_confirm_message": "Vai tiešām vēlaties dzēst {count, plural, one {1 vēstuli} other {# vēstules}}?",
-      "clear_selection": "Noņemt atlasi"
+      "clear_selection": "Noņemt atlasi",
+      "more": "Vairāk darbību atlasei"
     },
     "permanent_delete": "Dzēst neatgriezeniski",
     "permanent_delete_confirm_title": "Dzēst neatgriezeniski",

@@ -288,7 +288,8 @@
       "delete": "Устгах",
       "delete_confirm_title": "Имэйл устгах",
       "delete_confirm_message": "Та устгахдаа итгэлтэй байна уу{count, plural, one {1 имэйл} other {# имэйл}}?",
-      "clear_selection": "Сонголтыг арилгах"
+      "clear_selection": "Сонголтыг арилгах",
+      "more": "Сонгосон зүйлсийн бусад үйлдэл"
     },
     "permanent_delete": "Бүрмөсөн устгах",
     "permanent_delete_confirm_title": "Бүрмөсөн устгах",

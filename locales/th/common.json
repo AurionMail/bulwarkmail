@@ -471,7 +471,8 @@
       "delete": "ลบ",
       "delete_confirm_title": "ยืนยันการลบอีเมล",
       "delete_confirm_message": "คุณแน่ใจหรือไม่ว่าต้องการลบอีเมล {count, plural, other {# ฉบับ}} ที่เลือกไว้?",
-      "clear_selection": "ล้างการเลือก"
+      "clear_selection": "ล้างการเลือก",
+      "more": "การดำเนินการเพิ่มเติมสำหรับรายการที่เลือก"
     },
     "permanent_delete": "ลบถาวร",
     "permanent_delete_confirm_title": "ยืนยันการลบถาวร",

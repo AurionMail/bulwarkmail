@@ -288,7 +288,8 @@
       "delete": "Șterge",
       "delete_confirm_title": "Ștergeți e-mailurile",
       "delete_confirm_message": "Sunteți sigur că doriți să ștergeți {count, plural, one {1 e-mail} few {# e-mailuri} other {# de e-mailuri}}?",
-      "clear_selection": "Șterge selecția"
+      "clear_selection": "Șterge selecția",
+      "more": "Mai multe acțiuni pentru selecție"
     },
     "permanent_delete": "Șterge definitiv",
     "permanent_delete_confirm_title": "Șterge definitiv",

@@ -288,7 +288,8 @@
       "delete": "Odstrániť",
       "delete_confirm_title": "Odstrániť e-maily",
       "delete_confirm_message": "Naozaj chcete odstrániť {count, plural, one {1 e-mail} other {# e-mailov}}?",
-      "clear_selection": "Zrušiť výber"
+      "clear_selection": "Zrušiť výber",
+      "more": "Ďalšie akcie pre výber"
     },
     "permanent_delete": "Trvalo odstrániť",
     "permanent_delete_confirm_title": "Trvalo odstrániť",

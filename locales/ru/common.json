@@ -288,7 +288,8 @@
       "delete": "Удалить",
       "delete_confirm_title": "Удалить письма",
       "delete_confirm_message": "Вы уверены, что хотите удалить {count, plural, one {1 письмо} other {# писем}}?",
-      "clear_selection": "Снять выделение"
+      "clear_selection": "Снять выделение",
+      "more": "Другие действия с выбранным"
     },
     "permanent_delete": "Удалить навсегда",
     "permanent_delete_confirm_title": "Удалить навсегда",

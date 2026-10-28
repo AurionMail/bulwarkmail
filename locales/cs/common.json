@@ -288,7 +288,8 @@
       "delete": "Odstranit",
       "delete_confirm_title": "Odstranit zprávy",
       "delete_confirm_message": "Opravdu chcete odstranit {count, plural, one {1 zprávu} few {# zprávy} other {# zpráv}}?",
-      "clear_selection": "Zrušit výběr"
+      "clear_selection": "Zrušit výběr",
+      "more": "Další akce pro výběr"
     },
     "permanent_delete": "Trvale odstranit",
     "permanent_delete_confirm_title": "Trvalé odstranění",

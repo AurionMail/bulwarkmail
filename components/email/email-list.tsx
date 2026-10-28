@@ -11,9 +11,12 @@ import { listVerificationCode } from "@/lib/verification-code";
 import { EmailContextMenu, type CopyTargetAccount } from "./email-context-menu";
 import { BatchTagButton } from "./batch-tag-button";
 import { cn, cleanPreview } from "@/lib/utils";
-import { Trash2, Mail, MailX, MailOpen, Loader2, SearchX, AlertTriangle, CalendarClock, ShieldCheck, X, FolderX } from "@/components/icons";
+import { Trash2, Mail, MailX, MailOpen, Loader2, SearchX, AlertTriangle, CalendarClock, ShieldCheck, ShieldAlert, Archive, MoreVertical, X, FolderX } from "@/components/icons";
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
+import { Spinner } from "@/components/ui/spinner";
+import { useArchiveActionEnabled } from "@/lib/archive-gate";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder, restoreBatchesForSelection, isAggregateListView, type ListRow } from "@/stores/email-store";
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
@@ -243,6 +246,8 @@ export function EmailList({
   const effectiveMailboxRole =
     mailboxes.find(m => m.id === selectedMailbox)?.role
     ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined);
+  // Spam is pointless on your own outgoing mail, as in the context menu.
+  const spamApplicable = !['sent', 'drafts', 'scheduled'].includes(effectiveMailboxRole || '');
 
   const disableThreading = useSettingsStore((state) => state.disableThreading);
   // The order the current folder view was fetched in (#718), so thread
@@ -313,7 +318,8 @@ export function EmailList({
   const sectionRowCount = useMemo(() => unreadSectionRowCount(emails, unreadSection), [emails, unreadSection]);
   const totalEmails = useEmailStore((state) => state.totalEmails);
 
-  const { contextMenu, openContextMenu, closeContextMenu, menuRef } = useContextMenu<Email>();
+  const { contextMenu, openContextMenu, openContextMenuFrom, closeContextMenu, menuRef } = useContextMenu<Email>();
+  const archiveActionEnabled = useArchiveActionEnabled();
   /**
    * The row the menu was opened on, as the list currently has it. The menu holds
    * the message it was handed when it opened, but tags can be applied from
@@ -887,35 +893,33 @@ export function EmailList({
               {t('batch_actions.selected_messages', { count: selectedEmailKeys.size })}
             </span>
           </div>
-          <div className={cn("flex items-center flex-shrink-0 animate-in fade-in slide-in-from-right-3 duration-300", batchNarrow ? "gap-0.5 [&_button]:px-2" : "gap-1")}>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleBatchMarkAsRead(true)}
-              title={t('batch_actions.mark_read')}
+          <div className={cn("flex items-center flex-shrink-0 animate-in fade-in slide-in-from-right-3 duration-300", batchNarrow ? "gap-0" : "gap-0.5")}>
+            {/* The context menu's batch entries, in its order (R6). What
+                doesn't fit a narrow bar is in its ⋮, which is that menu. */}
+            {archiveActionEnabled && effectiveMailboxRole !== 'archive' && (
+              <IconButton label={tContextMenu('archive')} onClick={() => void handleBatchArchive()} disabled={isProcessing} data-testid="batch-archive">
+                <Archive />
+              </IconButton>
+            )}
+            <IconButton
+              label={t('batch_actions.delete')}
+              onClick={handleBatchDelete}
               disabled={isProcessing}
-              className="hover:bg-accent transition-colors disabled:opacity-50"
+              data-testid="batch-delete"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
             >
-              {isProcessing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <MailOpen className="w-4 h-4" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleBatchMarkAsRead(false)}
-              title={t('batch_actions.mark_unread')}
-              disabled={isProcessing}
-              className="hover:bg-accent transition-colors disabled:opacity-50"
-            >
-              {isProcessing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Mail className="w-4 h-4" />
-              )}
-            </Button>
+              <Trash2 />
+            </IconButton>
+            {selectionCanLeaveFolder && !batchNarrow && (
+              <IconButton
+                label={tContextMenu('remove_from_folder')}
+                onClick={handleBatchRemoveFromFolder}
+                disabled={isProcessing}
+                data-testid="batch-remove-from-folder"
+              >
+                <FolderX />
+              </IconButton>
+            )}
             <BatchTagButton
               key={hasSelection ? 'selection' : 'none'}
               title={tContextMenu('tag')}
@@ -925,54 +929,38 @@ export function EmailList({
               active={hasSelection && !isScheduledView}
               disabled={isProcessing}
             />
-            {effectiveMailboxRole === 'junk' && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBatchUndoSpam}
-                title={tContextMenu('not_spam')}
+            {spamApplicable && !batchNarrow && (
+              <IconButton
+                label={effectiveMailboxRole === 'junk' ? tContextMenu('not_spam') : tContextMenu('mark_as_spam')}
+                onClick={effectiveMailboxRole === 'junk' ? handleBatchUndoSpam : handleBatchMarkAsSpam}
                 disabled={isProcessing}
-                className="text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100/50 dark:hover:bg-emerald-950/30 transition-colors disabled:opacity-50"
+                data-testid={effectiveMailboxRole === 'junk' ? 'batch-not-spam' : 'batch-spam'}
               >
-                {isProcessing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <ShieldCheck className="w-4 h-4" />
-                )}
-              </Button>
+                {effectiveMailboxRole === 'junk' ? <ShieldCheck /> : <ShieldAlert />}
+              </IconButton>
             )}
-            {selectionCanLeaveFolder && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBatchRemoveFromFolder}
-                title={tContextMenu('remove_from_folder')}
-                aria-label={tContextMenu('remove_from_folder')}
-                disabled={isProcessing}
-                data-testid="batch-remove-from-folder"
-                className="hover:bg-accent transition-colors disabled:opacity-50"
-              >
-                {isProcessing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <FolderX className="w-4 h-4" />
-                )}
-              </Button>
+            {!batchNarrow && (
+              <>
+                <IconButton label={t('batch_actions.mark_read')} onClick={() => handleBatchMarkAsRead(true)} disabled={isProcessing}>
+                  <MailOpen />
+                </IconButton>
+                <IconButton label={t('batch_actions.mark_unread')} onClick={() => handleBatchMarkAsRead(false)} disabled={isProcessing}>
+                  <Mail />
+                </IconButton>
+              </>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleBatchDelete}
-              title={t('batch_actions.delete')}
-              disabled={isProcessing}
-              className="text-red-600 dark:text-red-400 hover:bg-red-100/50 dark:hover:bg-red-950/30 transition-colors disabled:opacity-50"
+            <IconButton
+              label={t('batch_actions.more')}
+              aria-haspopup="menu"
+              data-testid="batch-more"
+              disabled={isProcessing || selectedEmailsForRemoval.length === 0}
+              onClick={(e) => {
+                const anchor = selectedEmailsForRemoval[0];
+                if (anchor) openContextMenuFrom(e.currentTarget, anchor, 'end');
+              }}
             >
-              {isProcessing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4" />
-              )}
-            </Button>
+              {isProcessing ? <Spinner size="sm" /> : <MoreVertical />}
+            </IconButton>
             {hasSelection && (
               <PluginActions
                 surface="message-bulk-actions"

@@ -288,7 +288,8 @@
       "delete": "Sil",
       "delete_confirm_title": "E-postaları sil",
       "delete_confirm_message": "{count, plural, one {1 e-postayı} other {# e-postayı}} silmek istediğinizden emin misiniz?",
-      "clear_selection": "Seçimi temizle"
+      "clear_selection": "Seçimi temizle",
+      "more": "Seçim için diğer işlemler"
     },
     "permanent_delete": "Kalıcı olarak sil",
     "permanent_delete_confirm_title": "Kalıcı olarak sil",

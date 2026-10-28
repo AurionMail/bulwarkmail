@@ -288,7 +288,8 @@
       "delete": "Kustuta",
       "delete_confirm_title": "Kirjade kustutamine",
       "delete_confirm_message": "Kas oled kindel, et soovid kustutada {count, plural, one {1 kirja} other {# kirja}}?",
-      "clear_selection": "Tühista valik"
+      "clear_selection": "Tühista valik",
+      "more": "Rohkem toiminguid valiku jaoks"
     },
     "permanent_delete": "Kustuta jäädavalt",
     "permanent_delete_confirm_title": "Jäädav kustutamine",

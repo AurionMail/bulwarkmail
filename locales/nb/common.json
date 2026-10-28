@@ -288,7 +288,8 @@
       "delete": "Slett",
       "delete_confirm_title": "Slett e-poster",
       "delete_confirm_message": "Er du sikker på at du vil slette {count, plural, one {1 e-post} other {# e-poster}}?",
-      "clear_selection": "Fjern valg"
+      "clear_selection": "Fjern valg",
+      "more": "Flere handlinger for utvalget"
     },
     "permanent_delete": "Slett permanent",
     "permanent_delete_confirm_title": "Slett permanent",

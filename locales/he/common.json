@@ -253,6 +253,7 @@
       "delete_confirm_title": "מחק מיילים",
       "delete_confirm_message": "האם למחוק {count, plural, one {הודעת דוא״ל אחת} other {# הודעות דוא״ל}}?",
       "clear_selection": "נקה בחירה",
+      "more": "פעולות נוספות לבחירה",
       "selected_messages": "{count, plural, one {דוא״ל 1} other {# דוא״ל}} שנבחרו"
     },
     "permanent_delete": "מחק לצמיתות",

@@ -288,7 +288,8 @@
       "delete": "Suprimeix",
       "delete_confirm_title": "Suprimeix els correus",
       "delete_confirm_message": "Segur que voleu suprimir {count, plural, one {1 correu} other {# correus}}?",
-      "clear_selection": "Neteja la selecció"
+      "clear_selection": "Neteja la selecció",
+      "more": "Més accions per a la selecció"
     },
     "permanent_delete": "Suprimeix definitivament",
     "permanent_delete_confirm_title": "Suprimeix definitivament",

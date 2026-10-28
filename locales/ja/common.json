@@ -288,7 +288,8 @@
       "delete": "削除",
       "delete_confirm_title": "メールを削除",
       "delete_confirm_message": "{count, plural, one {1件} other {#件}}のメールを削除しますか？",
-      "clear_selection": "選択を解除"
+      "clear_selection": "選択を解除",
+      "more": "選択項目のその他の操作"
     },
     "permanent_delete": "完全に削除",
     "permanent_delete_confirm_title": "完全に削除",

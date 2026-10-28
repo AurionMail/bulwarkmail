@@ -288,7 +288,8 @@
       "delete": "Törlés",
       "delete_confirm_title": "E-mailek törlése",
       "delete_confirm_message": "Biztosan törölni szeretnéd {count, plural, one {az 1 e-mailt} other {a # e-mailt}}?",
-      "clear_selection": "Kijelölés megszüntetése"
+      "clear_selection": "Kijelölés megszüntetése",
+      "more": "További műveletek a kijelöléshez"
     },
     "permanent_delete": "Végleges törlés",
     "permanent_delete_confirm_title": "Végleges törlés",

@@ -288,7 +288,8 @@
       "delete": "حذف",
       "delete_confirm_title": "حذف ایمیل‌ها",
       "delete_confirm_message": "آیا از حذف {count, plural, one {1 ایمیل} other {# ایمیل}} اطمینان دارید؟",
-      "clear_selection": "پاک کردن انتخاب"
+      "clear_selection": "پاک کردن انتخاب",
+      "more": "اقدامات بیشتر برای موارد انتخاب‌شده"
     },
     "permanent_delete": "حذف دائمی",
     "permanent_delete_confirm_title": "حذف دائمی",

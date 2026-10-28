@@ -288,7 +288,8 @@
       "delete": "Slet",
       "delete_confirm_title": "Slet e-mails",
       "delete_confirm_message": "Er du sikker på, at du vil slette {count, plural, one {1 e-mail} other {# e-mails}}?",
-      "clear_selection": "Ryd markering"
+      "clear_selection": "Ryd markering",
+      "more": "Flere handlinger for markeringen"
     },
     "permanent_delete": "Slet permanent",
     "permanent_delete_confirm_title": "Slet permanent",

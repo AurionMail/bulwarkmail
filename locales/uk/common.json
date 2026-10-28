@@ -288,7 +288,8 @@
       "delete": "Видалити",
       "delete_confirm_title": "Видалити електронні листи",
       "delete_confirm_message": "Ви впевнені, що хочете видалити {count, plural, one {1 email} other {# emails}}?",
-      "clear_selection": "Очистити вибір"
+      "clear_selection": "Очистити вибір",
+      "more": "Інші дії з вибраним"
     },
     "permanent_delete": "Видалити остаточно",
     "permanent_delete_confirm_title": "Видалити назавжди",

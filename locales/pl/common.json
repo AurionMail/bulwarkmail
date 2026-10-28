@@ -288,7 +288,8 @@
       "delete": "Usuń",
       "delete_confirm_title": "Usuń wiadomości",
       "delete_confirm_message": "Czy na pewno chcesz usunąć {count, plural, one {1 wiadomość} other {# wiadomości}}?",
-      "clear_selection": "Wyczyść zaznaczenie"
+      "clear_selection": "Wyczyść zaznaczenie",
+      "more": "Więcej działań dla zaznaczenia"
     },
     "permanent_delete": "Usuń trwale",
     "permanent_delete_confirm_title": "Trwałe usunięcie",

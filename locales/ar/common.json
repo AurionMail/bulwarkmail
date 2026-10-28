@@ -288,7 +288,8 @@
       "delete": "حذف",
       "delete_confirm_title": "حذف الرسائل",
       "delete_confirm_message": "هل أنت متأكد أنك تريد حذف {count, plural, one {رسالة واحدة} other {# رسالة}}؟",
-      "clear_selection": "إلغاء التحديد"
+      "clear_selection": "إلغاء التحديد",
+      "more": "مزيد من الإجراءات للمحدد"
     },
     "permanent_delete": "حذف نهائي",
     "permanent_delete_confirm_title": "حذف نهائي",

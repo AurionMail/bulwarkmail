@@ -288,7 +288,8 @@
       "delete": "삭제",
       "delete_confirm_title": "메일 삭제",
       "delete_confirm_message": "정말 선택한 {count, plural, other {#개의 메일}}을 삭제할까요?",
-      "clear_selection": "선택 취소"
+      "clear_selection": "선택 취소",
+      "more": "선택 항목에 대한 추가 작업"
     },
     "permanent_delete": "영구 삭제",
     "permanent_delete_confirm_title": "영구 삭제",
