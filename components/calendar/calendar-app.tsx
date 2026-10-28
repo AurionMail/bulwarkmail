@@ -2437,6 +2437,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
           && userOrganizes(pendingScopeAction.event, currentUserEmails)
           ? t("participants.cancel_notification")
           : undefined}
+        eventTitle={pendingScopeAction?.event.title || t("events.no_title")}
         onSelect={handleScopeSelect}
         onClose={() => setPendingScopeAction(null)}
       />

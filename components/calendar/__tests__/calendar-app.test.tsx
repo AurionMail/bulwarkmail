@@ -402,7 +402,7 @@ describe('CalendarApp deleting', () => {
     renderApp();
     fireEvent.click(screen.getAllByRole('button', { name: /Standup/ })[0]);
     fireEvent.click(within(screen.getByRole('dialog', { name: 'Standup' })).getByRole('button', { name: 'events.delete' }));
-    expect(await screen.findByRole('dialog', { name: 'delete_title' })).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: 'delete_question' })).toBeInTheDocument();
     expect(screen.queryByRole('alertdialog')).toBeNull();
   });
 

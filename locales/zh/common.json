@@ -3774,6 +3774,10 @@
     "recurrence_scope": {
       "edit_title": "编辑重复事件",
       "delete_title": "删除重复事件",
+      "delete_question": "删除重复事件？",
+      "delete_this_message": "仅删除“{title}”的这一次，且无法撤销。",
+      "delete_following_message": "将删除“{title}”的这一次及之后的所有重复，且无法撤销。",
+      "delete_all_message": "将删除“{title}”的所有重复，且无法撤销。",
       "description": "这是一个重复事件。您想修改哪些事件？",
       "this_event": "仅限本次活动",
       "this_and_future": "本次及后续活动",

@@ -3774,6 +3774,10 @@
     "recurrence_scope": {
       "edit_title": "Yinelenen etkinliği düzenle",
       "delete_title": "Yinelenen etkinliği sil",
+      "delete_question": "Yinelenen etkinlik silinsin mi?",
+      "delete_this_message": "\"{title}\" etkinliğinin yalnızca bu tekrarı silinecek. Bu işlem geri alınamaz.",
+      "delete_following_message": "\"{title}\" etkinliğinin bu ve sonraki tüm tekrarları silinecek. Bu işlem geri alınamaz.",
+      "delete_all_message": "\"{title}\" etkinliğinin tüm tekrarları silinecek. Bu işlem geri alınamaz.",
       "description": "Bu yinelenen bir etkinlik. Hangi etkinlikleri değiştirmek istersiniz?",
       "this_event": "Yalnızca bu etkinlik",
       "this_and_future": "Bu ve sonraki etkinlikler",

@@ -3774,6 +3774,10 @@
     "recurrence_scope": {
       "edit_title": "Editați evenimentul recurent",
       "delete_title": "Șterge evenimentul recurent",
+      "delete_question": "Ștergeți evenimentul recurent?",
+      "delete_this_message": "Va fi ștearsă doar această apariție a „{title}”. Acțiunea nu poate fi anulată.",
+      "delete_following_message": "Vor fi șterse această apariție și toate cele următoare ale „{title}”. Acțiunea nu poate fi anulată.",
+      "delete_all_message": "Vor fi șterse toate aparițiile „{title}”. Acțiunea nu poate fi anulată.",
       "description": "Acesta este un eveniment recurent. Ce evenimente doriți să modificați?",
       "this_event": "Numai acest eveniment",
       "this_and_future": "Acest eveniment și evenimentele următoare",

@@ -3774,6 +3774,10 @@
     "recurrence_scope": {
       "edit_title": "繰り返しイベントを編集",
       "delete_title": "繰り返しイベントを削除",
+      "delete_question": "繰り返しの予定を削除しますか？",
+      "delete_this_message": "「{title}」のこの回だけを削除します。元に戻すことはできません。",
+      "delete_following_message": "「{title}」のこの回以降をすべて削除します。元に戻すことはできません。",
+      "delete_all_message": "「{title}」のすべての回を削除します。元に戻すことはできません。",
       "description": "これは繰り返しイベントです。どのイベントを変更しますか？",
       "this_event": "このイベントのみ",
       "this_and_future": "これ以降のすべてのイベント",

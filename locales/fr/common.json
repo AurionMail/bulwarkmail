@@ -3774,6 +3774,10 @@
     "recurrence_scope": {
       "edit_title": "Modifier l'événement récurrent",
       "delete_title": "Supprimer l'événement récurrent",
+      "delete_question": "Supprimer l'événement récurrent ?",
+      "delete_this_message": "Seule cette occurrence de « {title} » sera supprimée. Cette action est irréversible.",
+      "delete_following_message": "Cette occurrence et toutes les suivantes de « {title} » seront supprimées. Cette action est irréversible.",
+      "delete_all_message": "Toutes les occurrences de « {title} » seront supprimées. Cette action est irréversible.",
       "description": "Ceci est un événement récurrent. Quels événements souhaitez-vous modifier ?",
       "this_event": "Cet événement uniquement",
       "this_and_future": "Cet événement et les suivants",

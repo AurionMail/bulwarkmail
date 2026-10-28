@@ -3692,6 +3692,10 @@
     "recurrence_scope": {
       "edit_title": "ערוך אירוע חוזר",
       "delete_title": "מחק אירוע חוזר",
+      "delete_question": "למחוק את האירוע החוזר?",
+      "delete_this_message": "רק המופע הזה של \"{title}\" יימחק. לא ניתן לבטל פעולה זו.",
+      "delete_following_message": "המופע הזה וכל המופעים הבאים של \"{title}\" יימחקו. לא ניתן לבטל פעולה זו.",
+      "delete_all_message": "כל המופעים של \"{title}\" יימחקו. לא ניתן לבטל פעולה זו.",
       "description": "זהו אירוע שחוזר על עצמו. אילו אירועים תרצה לשנות?",
       "this_event": "אירוע זה בלבד",
       "this_and_future": "זה והאירועים הבאים",

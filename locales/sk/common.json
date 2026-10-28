@@ -3774,6 +3774,10 @@
     "recurrence_scope": {
       "edit_title": "Upraviť opakujúcu sa udalosť",
       "delete_title": "Odstrániť opakujúcu sa udalosť",
+      "delete_question": "Odstrániť opakujúcu sa udalosť?",
+      "delete_this_message": "Odstráni sa iba tento výskyt udalosti \"{title}\". Túto akciu nemožno vrátiť.",
+      "delete_following_message": "Odstráni sa tento a všetky ďalšie výskyty udalosti \"{title}\". Túto akciu nemožno vrátiť.",
+      "delete_all_message": "Odstránia sa všetky výskyty udalosti \"{title}\". Túto akciu nemožno vrátiť.",
       "description": "Toto je opakujúca sa udalosť. Ktoré udalosti chcete upraviť?",
       "this_event": "Iba túto udalosť",
       "this_and_future": "Túto a všetky nasledujúce udalosti",

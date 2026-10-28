@@ -3774,6 +3774,10 @@
     "recurrence_scope": {
       "edit_title": "Wiederkehrendes Ereignis bearbeiten",
       "delete_title": "Wiederkehrendes Ereignis löschen",
+      "delete_question": "Wiederkehrenden Termin löschen?",
+      "delete_this_message": "Nur dieser Termin von „{title}“ wird gelöscht. Das kann nicht rückgängig gemacht werden.",
+      "delete_following_message": "Dieser und alle folgenden Termine von „{title}“ werden gelöscht. Das kann nicht rückgängig gemacht werden.",
+      "delete_all_message": "Alle Termine von „{title}“ werden gelöscht. Das kann nicht rückgängig gemacht werden.",
       "description": "Dies ist ein wiederkehrendes Ereignis. Welche Ereignisse möchten Sie ändern?",
       "this_event": "Nur dieses Ereignis",
       "this_and_future": "Dieses und folgende Ereignisse",

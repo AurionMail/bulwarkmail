@@ -3774,6 +3774,10 @@
     "recurrence_scope": {
       "edit_title": "Edita l'esdeveniment periòdic",
       "delete_title": "Suprimeix l'esdeveniment periòdic",
+      "delete_question": "Voleu suprimir l'esdeveniment periòdic?",
+      "delete_this_message": "Només se suprimirà aquesta repetició de «{title}». No es pot desfer.",
+      "delete_following_message": "Se suprimiran aquesta repetició i totes les següents de «{title}». No es pot desfer.",
+      "delete_all_message": "Se suprimiran totes les repeticions de «{title}». No es pot desfer.",
       "description": "Aquest és un esdeveniment periòdic. Quins esdeveniments voleu modificar?",
       "this_event": "Només aquest esdeveniment",
       "this_and_future": "Aquest i els següents esdeveniments",

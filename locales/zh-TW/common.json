@@ -3774,6 +3774,10 @@
     "recurrence_scope": {
       "edit_title": "編輯重複活動",
       "delete_title": "刪除重複活動",
+      "delete_question": "要刪除重複活動嗎？",
+      "delete_this_message": "僅刪除「{title}」的這一次，且無法復原。",
+      "delete_following_message": "將刪除「{title}」的這一次及之後的所有重複，且無法復原。",
+      "delete_all_message": "將刪除「{title}」的所有重複，且無法復原。",
       "description": "這是重複活動。您要修改哪些活動？",
       "this_event": "僅限本次活動",
       "this_and_future": "本次及後續活動",

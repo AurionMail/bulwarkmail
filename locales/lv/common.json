@@ -3773,6 +3773,10 @@
     "recurrence_scope": {
       "edit_title": "Rediģēt atkārtotu pasākumu",
       "delete_title": "Dzēst atkārtotu pasākumu",
+      "delete_question": "Dzēst atkārtotu notikumu?",
+      "delete_this_message": "Tiks dzēsta tikai šī «{title}» reize. To nevar atsaukt.",
+      "delete_following_message": "Tiks dzēsta šī un visas nākamās «{title}» reizes. To nevar atsaukt.",
+      "delete_all_message": "Tiks dzēstas visas «{title}» reizes. To nevar atsaukt.",
       "description": "Šis ir atkārtots pasākums. Kuras instances vēlaties mainīt?",
       "this_event": "Tikai šo pasākumu",
       "this_and_future": "Šo un turpmākos",

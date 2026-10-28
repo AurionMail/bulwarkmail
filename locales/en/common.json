@@ -3774,6 +3774,10 @@
     "recurrence_scope": {
       "edit_title": "Edit recurring event",
       "delete_title": "Delete recurring event",
+      "delete_question": "Delete recurring event?",
+      "delete_this_message": "Only this occurrence of \"{title}\" will be deleted. This can't be undone.",
+      "delete_following_message": "This and every later occurrence of \"{title}\" will be deleted. This can't be undone.",
+      "delete_all_message": "Every occurrence of \"{title}\" will be deleted. This can't be undone.",
       "description": "This is a recurring event. Which events would you like to modify?",
       "this_event": "This event only",
       "this_and_future": "This and following events",
