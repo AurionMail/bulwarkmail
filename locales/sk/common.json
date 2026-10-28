@@ -2668,7 +2668,7 @@
     },
     "read_only": {
       "title": "Konfigurácia je len na čítanie",
-      "body": "Zväzok s konfiguráciou je pripojený len na čítanie alebo je nastavená premenná {variable}. Pripojte ho na zápis alebo premennú odstráňte a reštartujte kontajner."
+      "body": "Zväzok s konfiguráciou je pripojený len na čítanie alebo je nastavená premenná <code>{variable}</code>. Pripojte ho na zápis alebo premennú odstráňte a reštartujte kontajner."
     },
     "done": {
       "title": "Všetko je pripravené",
@@ -2720,9 +2720,9 @@
       "not_jmap_hint": "Stáva sa to, keď reverzná proxy smeruje JMAP na tej istej doméne zvlášť. Inak je URL zvyčajne nesprávna.",
       "not_jmap_confirm": "Som si istý, že URL je správna, aj tak pokračovať.",
       "http_title": "Táto URL používa nešifrované HTTP.",
-      "http_body": "Heslá a obsah e-mailov sa budú medzi používateľmi a vaším serverom prenášať nešifrovane. V prevádzke použite {https}: ukončite TLS na poštovom serveri alebo v reverznej proxy pred ním.",
+      "http_body": "Heslá a obsah e-mailov sa budú medzi používateľmi a vaším serverom prenášať nešifrovane. V prevádzke použite <code>{https}</code>: ukončite TLS na poštovom serveri alebo v reverznej proxy pred ním.",
       "local_title": "Táto URL funguje len lokálne.",
-      "local_body": "Pošta sa načítava priamo v prehliadači používateľa, takže URL JMAP musí byť dostupná odkiaľkoľvek, kde sa používatelia prihlasujú, nielen z tohto počítača alebo lokálnej siete. V prevádzke použite verejný názov hostiteľa (napr. {example}).",
+      "local_body": "Pošta sa načítava priamo v prehliadači používateľa, takže URL JMAP musí byť dostupná odkiaľkoľvek, kde sa používatelia prihlasujú, nielen z tohto počítača alebo lokálnej siete. V prevádzke použite verejný názov hostiteľa (napr. <code>{example}</code>).",
       "additional_title": "Ďalšie servery JMAP",
       "additional_hint": "Voliteľné. Ponúknite pri prihlásení viac serverov, užitočné pre hostingy s viacerými inštanciami Stalwart.",
       "additional_show": "Zobraziť ({count})",
@@ -2841,7 +2841,7 @@
       "defaults": "Predvolené hodnoty",
       "company": "Názov firmy",
       "password_title": "Zvoľte heslo správcu",
-      "password_hint": "Budete sa ním prihlasovať na {path}. Aspoň 8 znakov.",
+      "password_hint": "Budete sa ním prihlasovať na <code>{path}</code>. Aspoň 8 znakov.",
       "new_password": "Nové heslo",
       "confirm": "Potvrdiť",
       "too_short": "Aspoň 8 znakov.",

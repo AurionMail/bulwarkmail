@@ -97,6 +97,9 @@ const STEPS = [
 
 type SetupT = ReturnType<typeof useTranslations<'setup'>>;
 
+/** Literal values in the texts (a variable, a URL, a path) as inline code, for t.rich. */
+const code = (chunks: ReactNode) => <code className="font-mono text-xs text-foreground">{chunks}</code>;
+
 export default function SetupWizardPage() {
   const t = useTranslations('setup');
   // For the one-time status load: a language switch must not rerun it.
@@ -215,7 +218,7 @@ export default function SetupWizardPage() {
       <CenteredCard>
         <h1 className="text-lg font-semibold">{t('read_only.title')}</h1>
         <p className="text-sm text-muted-foreground mt-2">
-          {t('read_only.body', { variable: 'ADMIN_CONFIG_READONLY' })}
+          {t.rich('read_only.body', { variable: 'ADMIN_CONFIG_READONLY', code })}
         </p>
       </CenteredCard>
     );
@@ -748,7 +751,7 @@ function ServerStep({ config, setConfig, onNext }: Pick<StepProps, 'config' | 's
                 {t('server.http_title')}
               </p>
               <p className="text-sm text-muted-foreground mt-0.5 leading-relaxed">
-                {t('server.http_body', { https: 'https://' })}
+                {t.rich('server.http_body', { https: 'https://', code })}
               </p>
             </div>
           </div>
@@ -763,7 +766,7 @@ function ServerStep({ config, setConfig, onNext }: Pick<StepProps, 'config' | 's
                 {t('server.local_title')}
               </p>
               <p className="text-sm text-muted-foreground mt-0.5 leading-relaxed">
-                {t('server.local_body', { example: 'https://mail.example.com' })}
+                {t.rich('server.local_body', { example: 'https://mail.example.com', code })}
               </p>
             </div>
           </div>
@@ -1539,7 +1542,7 @@ function ReviewStep({ config, onBack, onFinish }: { config: WizardConfig; onBack
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium">{t('review.password_title')}</div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {t('review.password_hint', { path: '/admin' })}
+              {t.rich('review.password_hint', { path: '/admin', code })}
             </p>
           </div>
         </div>

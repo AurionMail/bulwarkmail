@@ -2668,7 +2668,7 @@
     },
     "read_only": {
       "title": "De configuratie is alleen-lezen",
-      "body": "Het configuratievolume is alleen-lezen gekoppeld of {variable} is ingesteld. Koppel het met schrijfrechten of verwijder die variabele en start de container opnieuw."
+      "body": "Het configuratievolume is alleen-lezen gekoppeld of <code>{variable}</code> is ingesteld. Koppel het met schrijfrechten of verwijder die variabele en start de container opnieuw."
     },
     "done": {
       "title": "Alles is klaar",
@@ -2720,9 +2720,9 @@
       "not_jmap_hint": "Dit kan gebeuren als een reverse proxy JMAP apart routeert op hetzelfde domein. Anders is de URL meestal onjuist.",
       "not_jmap_confirm": "Ik weet zeker dat dit de juiste URL is, toch doorgaan.",
       "http_title": "Deze URL gebruikt onversleuteld HTTP.",
-      "http_body": "Wachtwoorden en e-mailinhoud gaan onversleuteld tussen gebruikers en je server. Gebruik {https} in productie: beëindig TLS op de mailserver of in een reverse proxy ervoor.",
+      "http_body": "Wachtwoorden en e-mailinhoud gaan onversleuteld tussen gebruikers en je server. Gebruik <code>{https}</code> in productie: beëindig TLS op de mailserver of in een reverse proxy ervoor.",
       "local_title": "Deze URL werkt alleen lokaal.",
-      "local_body": "E-mail wordt rechtstreeks door de browser van de gebruiker opgehaald, dus de JMAP-URL moet bereikbaar zijn overal waar gebruikers zich aanmelden, niet alleen vanaf deze computer of dit lokale netwerk. Gebruik in productie een openbare hostnaam (bijv. {example}).",
+      "local_body": "E-mail wordt rechtstreeks door de browser van de gebruiker opgehaald, dus de JMAP-URL moet bereikbaar zijn overal waar gebruikers zich aanmelden, niet alleen vanaf deze computer of dit lokale netwerk. Gebruik in productie een openbare hostnaam (bijv. <code>{example}</code>).",
       "additional_title": "Extra JMAP-servers",
       "additional_hint": "Optioneel. Bied meerdere servers aan in de keuzelijst bij het aanmelden, handig voor hosts met meerdere Stalwart-instanties.",
       "additional_show": "Tonen ({count})",
@@ -2841,7 +2841,7 @@
       "defaults": "Standaardwaarden",
       "company": "Naam van het bedrijf",
       "password_title": "Kies een beheerderswachtwoord",
-      "password_hint": "Hiermee meld je je aan op {path}. Minimaal 8 tekens.",
+      "password_hint": "Hiermee meld je je aan op <code>{path}</code>. Minimaal 8 tekens.",
       "new_password": "Nieuw wachtwoord",
       "confirm": "Bevestigen",
       "too_short": "Minimaal 8 tekens.",

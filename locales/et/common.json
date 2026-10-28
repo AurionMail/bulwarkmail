@@ -2668,7 +2668,7 @@
     },
     "read_only": {
       "title": "Seadistus on kirjutuskaitstud",
-      "body": "Seadistuse köide on ühendatud kirjutuskaitstuna või on määratud {variable}. Ühenda see kirjutusõigusega või eemalda muutuja ja käivita konteiner uuesti."
+      "body": "Seadistuse köide on ühendatud kirjutuskaitstuna või on määratud <code>{variable}</code>. Ühenda see kirjutusõigusega või eemalda muutuja ja käivita konteiner uuesti."
     },
     "done": {
       "title": "Kõik on valmis",
@@ -2720,9 +2720,9 @@
       "not_jmap_hint": "See võib juhtuda, kui pöördpuhverserver suunab JMAP-i samal domeenil eraldi. Muidu on URL tavaliselt vale.",
       "not_jmap_confirm": "Olen kindel, et URL on õige, jätka ikkagi.",
       "http_title": "See URL kasutab krüpteerimata HTTP-d.",
-      "http_body": "Paroolid ja kirjade sisu liiguvad kasutajate ja sinu serveri vahel krüpteerimata. Kasuta tootmises {https}: lõpeta TLS meiliserveris või selle ees olevas pöördpuhverserveris.",
+      "http_body": "Paroolid ja kirjade sisu liiguvad kasutajate ja sinu serveri vahel krüpteerimata. Kasuta tootmises <code>{https}</code>: lõpeta TLS meiliserveris või selle ees olevas pöördpuhverserveris.",
       "local_title": "See URL töötab ainult kohalikult.",
-      "local_body": "Post laaditakse otse kasutaja brauserist, seega peab JMAP-i URL olema kättesaadav kõikjal, kus kasutajad sisse logivad, mitte ainult sellest arvutist või kohtvõrgust. Kasuta tootmises avalikku hostinime (nt {example}).",
+      "local_body": "Post laaditakse otse kasutaja brauserist, seega peab JMAP-i URL olema kättesaadav kõikjal, kus kasutajad sisse logivad, mitte ainult sellest arvutist või kohtvõrgust. Kasuta tootmises avalikku hostinime (nt <code>{example}</code>).",
       "additional_title": "Täiendavad JMAP-serverid",
       "additional_hint": "Valikuline. Paku sisselogimisel mitut serverit, kasulik mitme Stalwarti eksemplariga teenusepakkujale.",
       "additional_show": "Näita ({count})",
@@ -2841,7 +2841,7 @@
       "defaults": "Vaikeväärtused",
       "company": "Ettevõtte nimi",
       "password_title": "Vali administraatori parool",
-      "password_hint": "Selle abil logid sisse aadressil {path}. Vähemalt 8 märki.",
+      "password_hint": "Selle abil logid sisse aadressil <code>{path}</code>. Vähemalt 8 märki.",
       "new_password": "Uus parool",
       "confirm": "Kinnita",
       "too_short": "Vähemalt 8 märki.",

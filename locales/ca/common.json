@@ -2668,7 +2668,7 @@
     },
     "read_only": {
       "title": "La configuració és només de lectura",
-      "body": "El volum de configuració està muntat només de lectura o la variable {variable} està definida. Torneu-lo a muntar amb escriptura o elimineu la variable i reinicieu el contenidor."
+      "body": "El volum de configuració està muntat només de lectura o la variable <code>{variable}</code> està definida. Torneu-lo a muntar amb escriptura o elimineu la variable i reinicieu el contenidor."
     },
     "done": {
       "title": "Tot a punt",
@@ -2720,9 +2720,9 @@
       "not_jmap_hint": "Pot passar quan un servidor intermediari invers encamina JMAP per separat al mateix domini. Si no, normalment l’URL és incorrecte.",
       "not_jmap_confirm": "Estic segur que l’URL és correcte, continua igualment.",
       "http_title": "Aquest URL fa servir HTTP sense xifrar.",
-      "http_body": "Les contrasenyes i el contingut dels correus viatjaran sense xifrar entre els usuaris i el vostre servidor. En producció feu servir {https}: acabeu el TLS al servidor de correu o en un servidor intermediari invers al davant.",
+      "http_body": "Les contrasenyes i el contingut dels correus viatjaran sense xifrar entre els usuaris i el vostre servidor. En producció feu servir <code>{https}</code>: acabeu el TLS al servidor de correu o en un servidor intermediari invers al davant.",
       "local_title": "Aquest URL només funciona en local.",
-      "local_body": "El correu s’obté directament des del navegador de l’usuari, per tant l’URL de JMAP ha de ser accessible des de qualsevol lloc on els usuaris iniciïn la sessió, no només des d’aquest ordinador o xarxa local. En producció feu servir un nom d’amfitrió públic (p. ex. {example}).",
+      "local_body": "El correu s’obté directament des del navegador de l’usuari, per tant l’URL de JMAP ha de ser accessible des de qualsevol lloc on els usuaris iniciïn la sessió, no només des d’aquest ordinador o xarxa local. En producció feu servir un nom d’amfitrió públic (p. ex. <code>{example}</code>).",
       "additional_title": "Servidors JMAP addicionals",
       "additional_hint": "Opcional. Oferiu diversos servidors a la llista d’inici de sessió, útil per a proveïdors amb diverses instàncies de Stalwart.",
       "additional_show": "Mostra ({count})",
@@ -2841,7 +2841,7 @@
       "defaults": "Valors predeterminats",
       "company": "Nom de l’empresa",
       "password_title": "Trieu una contrasenya d’administrador",
-      "password_hint": "La fareu servir per iniciar la sessió a {path}. Mínim 8 caràcters.",
+      "password_hint": "La fareu servir per iniciar la sessió a <code>{path}</code>. Mínim 8 caràcters.",
       "new_password": "Contrasenya nova",
       "confirm": "Confirma",
       "too_short": "Almenys 8 caràcters.",

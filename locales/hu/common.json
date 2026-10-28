@@ -2668,7 +2668,7 @@
     },
     "read_only": {
       "title": "A konfiguráció csak olvasható",
-      "body": "A konfigurációs kötet csak olvasásra van csatolva, vagy be van állítva a(z) {variable}. Csatolja írhatóként vagy törölje a változót, majd indítsa újra a konténert."
+      "body": "A konfigurációs kötet csak olvasásra van csatolva, vagy be van állítva a(z) <code>{variable}</code>. Csatolja írhatóként vagy törölje a változót, majd indítsa újra a konténert."
     },
     "done": {
       "title": "Minden kész",
@@ -2720,9 +2720,9 @@
       "not_jmap_hint": "Ez előfordulhat, ha egy fordított proxy ugyanazon a tartományon külön irányítja a JMAP-ot. Egyébként általában rossz az URL.",
       "not_jmap_confirm": "Biztos vagyok benne, hogy az URL helyes, folytatás így is.",
       "http_title": "Ez az URL titkosítatlan HTTP-t használ.",
-      "http_body": "A jelszavak és a levelek tartalma titkosítás nélkül utaznak a felhasználók és a szerver között. Éles környezetben használja a(z) {https} előtagot: a TLS-t a levelezőszerveren vagy egy előtte álló fordított proxyban zárja le.",
+      "http_body": "A jelszavak és a levelek tartalma titkosítás nélkül utaznak a felhasználók és a szerver között. Éles környezetben használja a(z) <code>{https}</code> előtagot: a TLS-t a levelezőszerveren vagy egy előtte álló fordított proxyban zárja le.",
       "local_title": "Ez az URL csak helyben érhető el.",
-      "local_body": "A leveleket közvetlenül a felhasználó böngészője tölti le, ezért a JMAP-URL-nek mindenhonnan elérhetőnek kell lennie, ahol a felhasználók bejelentkeznek, nem csak erről a gépről vagy helyi hálózatból. Éles környezetben használjon nyilvános gépnevet (pl. {example}).",
+      "local_body": "A leveleket közvetlenül a felhasználó böngészője tölti le, ezért a JMAP-URL-nek mindenhonnan elérhetőnek kell lennie, ahol a felhasználók bejelentkeznek, nem csak erről a gépről vagy helyi hálózatból. Éles környezetben használjon nyilvános gépnevet (pl. <code>{example}</code>).",
       "additional_title": "További JMAP-szerverek",
       "additional_hint": "Nem kötelező. Több szervert kínálhat a bejelentkezési listában, hasznos több Stalwart-példányt futtató szolgáltatóknak.",
       "additional_show": "Megjelenítés ({count})",
@@ -2841,7 +2841,7 @@
       "defaults": "Alapértelmezések",
       "company": "A cég neve",
       "password_title": "Válasszon rendszergazdai jelszót",
-      "password_hint": "Ezzel jelentkezik be itt: {path}. Legalább 8 karakter.",
+      "password_hint": "Ezzel jelentkezik be itt: <code>{path}</code>. Legalább 8 karakter.",
       "new_password": "Új jelszó",
       "confirm": "Megerősítés",
       "too_short": "Legalább 8 karakter.",

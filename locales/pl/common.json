@@ -2668,7 +2668,7 @@
     },
     "read_only": {
       "title": "Konfiguracja jest tylko do odczytu",
-      "body": "Wolumin konfiguracji jest zamontowany tylko do odczytu lub ustawiono zmienną {variable}. Zamontuj go z prawem zapisu lub usuń tę zmienną, a potem uruchom ponownie kontener."
+      "body": "Wolumin konfiguracji jest zamontowany tylko do odczytu lub ustawiono zmienną <code>{variable}</code>. Zamontuj go z prawem zapisu lub usuń tę zmienną, a potem uruchom ponownie kontener."
     },
     "done": {
       "title": "Wszystko gotowe",
@@ -2720,9 +2720,9 @@
       "not_jmap_hint": "Tak bywa, gdy odwrotne proxy kieruje JMAP osobno w tej samej domenie. W przeciwnym razie adres URL jest zwykle błędny.",
       "not_jmap_confirm": "Jestem pewien, że ten adres URL jest prawidłowy, kontynuuj mimo to.",
       "http_title": "Ten adres URL używa niezaszyfrowanego HTTP.",
-      "http_body": "Hasła i treść wiadomości będą przesyłane bez szyfrowania między użytkownikami a Twoim serwerem. W środowisku produkcyjnym użyj {https}: zakończ TLS na serwerze poczty lub w odwrotnym proxy przed nim.",
+      "http_body": "Hasła i treść wiadomości będą przesyłane bez szyfrowania między użytkownikami a Twoim serwerem. W środowisku produkcyjnym użyj <code>{https}</code>: zakończ TLS na serwerze poczty lub w odwrotnym proxy przed nim.",
       "local_title": "Ten adres URL działa tylko lokalnie.",
-      "local_body": "Poczta jest pobierana bezpośrednio przez przeglądarkę użytkownika, więc adres URL JMAP musi być osiągalny wszędzie, gdzie użytkownicy się logują, nie tylko z tego komputera czy sieci lokalnej. W środowisku produkcyjnym użyj publicznej nazwy hosta (np. {example}).",
+      "local_body": "Poczta jest pobierana bezpośrednio przez przeglądarkę użytkownika, więc adres URL JMAP musi być osiągalny wszędzie, gdzie użytkownicy się logują, nie tylko z tego komputera czy sieci lokalnej. W środowisku produkcyjnym użyj publicznej nazwy hosta (np. <code>{example}</code>).",
       "additional_title": "Dodatkowe serwery JMAP",
       "additional_hint": "Opcjonalnie. Pokaż kilka serwerów na liście przy logowaniu, przydatne dla dostawców z kilkoma instancjami Stalwart.",
       "additional_show": "Pokaż ({count})",
@@ -2841,7 +2841,7 @@
       "defaults": "Wartości domyślne",
       "company": "Nazwa firmy",
       "password_title": "Wybierz hasło administratora",
-      "password_hint": "Użyjesz go do logowania pod adresem {path}. Co najmniej 8 znaków.",
+      "password_hint": "Użyjesz go do logowania pod adresem <code>{path}</code>. Co najmniej 8 znaków.",
       "new_password": "Nowe hasło",
       "confirm": "Potwierdź",
       "too_short": "Co najmniej 8 znaków.",

@@ -2668,7 +2668,7 @@
     },
     "read_only": {
       "title": "配置为只读",
-      "body": "配置卷以只读方式挂载，或设置了 {variable}。请以可写方式重新挂载或取消该变量，然后重启容器。"
+      "body": "配置卷以只读方式挂载，或设置了 <code>{variable}</code>。请以可写方式重新挂载或取消该变量，然后重启容器。"
     },
     "done": {
       "title": "一切就绪",
@@ -2720,9 +2720,9 @@
       "not_jmap_hint": "当反向代理在同一域名下单独路由 JMAP 时可能出现这种情况。否则通常是 URL 有误。",
       "not_jmap_confirm": "我确定这个 URL 正确，仍然继续。",
       "http_title": "此 URL 使用未加密的 HTTP。",
-      "http_body": "密码和邮件内容将在用户与服务器之间以未加密方式传输。生产环境请使用 {https}：在邮件服务器或其前方的反向代理上终止 TLS。",
+      "http_body": "密码和邮件内容将在用户与服务器之间以未加密方式传输。生产环境请使用 <code>{https}</code>：在邮件服务器或其前方的反向代理上终止 TLS。",
       "local_title": "此 URL 只能在本地访问。",
-      "local_body": "邮件直接由用户的浏览器获取，因此 JMAP URL 必须能从用户登录的任何地方访问，而不仅是本机或局域网。生产环境请使用公共主机名（例如 {example}）。",
+      "local_body": "邮件直接由用户的浏览器获取，因此 JMAP URL 必须能从用户登录的任何地方访问，而不仅是本机或局域网。生产环境请使用公共主机名（例如 <code>{example}</code>）。",
       "additional_title": "其他 JMAP 服务器",
       "additional_hint": "可选。在登录列表中提供多个服务器，适合运行多个 Stalwart 实例的托管方。",
       "additional_show": "显示 ({count})",
@@ -2841,7 +2841,7 @@
       "defaults": "使用默认值",
       "company": "公司名称",
       "password_title": "选择管理员密码",
-      "password_hint": "你将用它在 {path} 登录。至少 8 个字符。",
+      "password_hint": "你将用它在 <code>{path}</code> 登录。至少 8 个字符。",
       "new_password": "新密码",
       "confirm": "确认",
       "too_short": "至少 8 个字符。",

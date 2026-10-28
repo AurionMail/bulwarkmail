@@ -2668,7 +2668,7 @@
     },
     "read_only": {
       "title": "Konfigurācija ir tikai lasāma",
-      "body": "Konfigurācijas sējums ir pievienots tikai lasīšanai vai ir iestatīts {variable}. Pievienojiet to ar rakstīšanas tiesībām vai noņemiet mainīgo un restartējiet konteineru."
+      "body": "Konfigurācijas sējums ir pievienots tikai lasīšanai vai ir iestatīts <code>{variable}</code>. Pievienojiet to ar rakstīšanas tiesībām vai noņemiet mainīgo un restartējiet konteineru."
     },
     "done": {
       "title": "Viss gatavs",
@@ -2720,9 +2720,9 @@
       "not_jmap_hint": "Tā var notikt, ja reversais starpniekserveris tajā pašā domēnā JMAP maršrutē atsevišķi. Citādi URL parasti ir nepareizs.",
       "not_jmap_confirm": "Esmu pārliecināts, ka URL ir pareizs, tomēr turpināt.",
       "http_title": "Šis URL izmanto nešifrētu HTTP.",
-      "http_body": "Paroles un vēstuļu saturs starp lietotājiem un jūsu serveri tiks pārsūtīts nešifrēti. Ražošanā izmantojiet {https}: pārtrauciet TLS pasta serverī vai tā priekšā esošā reversajā starpniekserverī.",
+      "http_body": "Paroles un vēstuļu saturs starp lietotājiem un jūsu serveri tiks pārsūtīts nešifrēti. Ražošanā izmantojiet <code>{https}</code>: pārtrauciet TLS pasta serverī vai tā priekšā esošā reversajā starpniekserverī.",
       "local_title": "Šis URL darbojas tikai lokāli.",
-      "local_body": "Pasts tiek ielādēts tieši lietotāja pārlūkā, tāpēc JMAP URL jābūt sasniedzamam visur, kur lietotāji piesakās, nevis tikai no šī datora vai lokālā tīkla. Ražošanā izmantojiet publisku resursdatora nosaukumu (piem., {example}).",
+      "local_body": "Pasts tiek ielādēts tieši lietotāja pārlūkā, tāpēc JMAP URL jābūt sasniedzamam visur, kur lietotāji piesakās, nevis tikai no šī datora vai lokālā tīkla. Ražošanā izmantojiet publisku resursdatora nosaukumu (piem., <code>{example}</code>).",
       "additional_title": "Papildu JMAP serveri",
       "additional_hint": "Neobligāti. Piedāvājiet pieteikšanās sarakstā vairākus serverus, noderīgi pakalpojumu sniedzējiem ar vairākām Stalwart instancēm.",
       "additional_show": "Rādīt ({count})",
@@ -2841,7 +2841,7 @@
       "defaults": "Noklusējuma vērtības",
       "company": "Uzņēmuma nosaukums",
       "password_title": "Izvēlieties administratora paroli",
-      "password_hint": "Ar to piesakīsieties vietnē {path}. Vismaz 8 rakstzīmes.",
+      "password_hint": "Ar to piesakīsieties vietnē <code>{path}</code>. Vismaz 8 rakstzīmes.",
       "new_password": "Jaunā parole",
       "confirm": "Apstiprināt",
       "too_short": "Vismaz 8 rakstzīmes.",

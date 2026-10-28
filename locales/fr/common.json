@@ -2668,7 +2668,7 @@
     },
     "read_only": {
       "title": "La configuration est en lecture seule",
-      "body": "Le volume de configuration est monté en lecture seule ou la variable {variable} est définie. Remontez-le en lecture-écriture ou supprimez cette variable, puis redémarrez le conteneur."
+      "body": "Le volume de configuration est monté en lecture seule ou la variable <code>{variable}</code> est définie. Remontez-le en lecture-écriture ou supprimez cette variable, puis redémarrez le conteneur."
     },
     "done": {
       "title": "Tout est prêt",
@@ -2720,9 +2720,9 @@
       "not_jmap_hint": "Cela peut arriver quand un proxy inverse achemine JMAP séparément sur le même domaine. Sinon, l’URL est généralement fausse.",
       "not_jmap_confirm": "Je suis sûr que cette URL est la bonne, continuer quand même.",
       "http_title": "Cette URL utilise HTTP non chiffré.",
-      "http_body": "Les mots de passe et le contenu des e-mails circuleront sans chiffrement entre les utilisateurs et votre serveur. Utilisez {https} en production : terminez TLS sur le serveur de messagerie ou sur un proxy inverse placé devant.",
+      "http_body": "Les mots de passe et le contenu des e-mails circuleront sans chiffrement entre les utilisateurs et votre serveur. Utilisez <code>{https}</code> en production : terminez TLS sur le serveur de messagerie ou sur un proxy inverse placé devant.",
       "local_title": "Cette URL ne fonctionne qu’en local.",
-      "local_body": "Les e-mails sont récupérés directement par le navigateur de l’utilisateur : l’URL JMAP doit donc être accessible partout où les utilisateurs se connectent, pas seulement depuis cette machine ou ce réseau local. Utilisez un nom d’hôte public (par ex. {example}) en production.",
+      "local_body": "Les e-mails sont récupérés directement par le navigateur de l’utilisateur : l’URL JMAP doit donc être accessible partout où les utilisateurs se connectent, pas seulement depuis cette machine ou ce réseau local. Utilisez un nom d’hôte public (par ex. <code>{example}</code>) en production.",
       "additional_title": "Serveurs JMAP supplémentaires",
       "additional_hint": "Facultatif. Proposez plusieurs serveurs dans la liste de connexion, utile pour les hébergeurs qui exploitent plusieurs instances Stalwart.",
       "additional_show": "Afficher ({count})",
@@ -2841,7 +2841,7 @@
       "defaults": "Valeurs par défaut",
       "company": "Nom de l’entreprise",
       "password_title": "Choisissez un mot de passe administrateur",
-      "password_hint": "Vous l’utiliserez pour vous connecter sur {path}. 8 caractères minimum.",
+      "password_hint": "Vous l’utiliserez pour vous connecter sur <code>{path}</code>. 8 caractères minimum.",
       "new_password": "Nouveau mot de passe",
       "confirm": "Confirmer",
       "too_short": "8 caractères minimum.",

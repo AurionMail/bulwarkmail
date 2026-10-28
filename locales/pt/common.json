@@ -2668,7 +2668,7 @@
     },
     "read_only": {
       "title": "A configuração é só de leitura",
-      "body": "O volume de configuração está montado só de leitura ou a variável {variable} está definida. Volte a montá-lo com escrita ou remova essa variável e reinicie o contentor."
+      "body": "O volume de configuração está montado só de leitura ou a variável <code>{variable}</code> está definida. Volte a montá-lo com escrita ou remova essa variável e reinicie o contentor."
     },
     "done": {
       "title": "Está tudo pronto",
@@ -2720,9 +2720,9 @@
       "not_jmap_hint": "Pode acontecer quando um proxy inverso encaminha o JMAP à parte no mesmo domínio. Caso contrário, o URL costuma estar errado.",
       "not_jmap_confirm": "Tenho a certeza de que o URL está certo, continuar mesmo assim.",
       "http_title": "Este URL usa HTTP sem encriptação.",
-      "http_body": "As palavras-passe e o conteúdo dos emails vão circular sem encriptação entre os utilizadores e o seu servidor. Use {https} em produção: termine o TLS no servidor de correio ou num proxy inverso à frente dele.",
+      "http_body": "As palavras-passe e o conteúdo dos emails vão circular sem encriptação entre os utilizadores e o seu servidor. Use <code>{https}</code> em produção: termine o TLS no servidor de correio ou num proxy inverso à frente dele.",
       "local_title": "Este URL só funciona localmente.",
-      "local_body": "O correio é obtido diretamente pelo navegador do utilizador, por isso o URL JMAP tem de estar acessível em qualquer lugar onde os utilizadores iniciem sessão, não só a partir desta máquina ou rede local. Em produção, use um nome de anfitrião público (por ex. {example}).",
+      "local_body": "O correio é obtido diretamente pelo navegador do utilizador, por isso o URL JMAP tem de estar acessível em qualquer lugar onde os utilizadores iniciem sessão, não só a partir desta máquina ou rede local. Em produção, use um nome de anfitrião público (por ex. <code>{example}</code>).",
       "additional_title": "Servidores JMAP adicionais",
       "additional_hint": "Opcional. Ofereça vários servidores na lista de início de sessão, útil para quem tem várias instâncias Stalwart.",
       "additional_show": "Mostrar ({count})",
@@ -2841,7 +2841,7 @@
       "defaults": "Valores predefinidos",
       "company": "Nome da empresa",
       "password_title": "Escolha uma palavra-passe de administrador",
-      "password_hint": "Vai usá-la para iniciar sessão em {path}. Mínimo de 8 caracteres.",
+      "password_hint": "Vai usá-la para iniciar sessão em <code>{path}</code>. Mínimo de 8 caracteres.",
       "new_password": "Nova palavra-passe",
       "confirm": "Confirmar",
       "too_short": "Pelo menos 8 caracteres.",

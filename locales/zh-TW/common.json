@@ -2668,7 +2668,7 @@
     },
     "read_only": {
       "title": "設定為唯讀",
-      "body": "設定磁碟區以唯讀方式掛載，或設定了 {variable}。請以可寫入方式重新掛載或取消該變數，然後重新啟動容器。"
+      "body": "設定磁碟區以唯讀方式掛載，或設定了 <code>{variable}</code>。請以可寫入方式重新掛載或取消該變數，然後重新啟動容器。"
     },
     "done": {
       "title": "一切就緒",
@@ -2720,9 +2720,9 @@
       "not_jmap_hint": "當反向代理伺服器在同一網域下另外路由 JMAP 時可能發生這種情況。否則通常是 URL 有誤。",
       "not_jmap_confirm": "我確定此 URL 正確，仍要繼續。",
       "http_title": "此 URL 使用未加密的 HTTP。",
-      "http_body": "密碼和郵件內容將在使用者與伺服器之間以未加密方式傳送。正式環境請使用 {https}：在郵件伺服器或其前方的反向代理伺服器上終止 TLS。",
+      "http_body": "密碼和郵件內容將在使用者與伺服器之間以未加密方式傳送。正式環境請使用 <code>{https}</code>：在郵件伺服器或其前方的反向代理伺服器上終止 TLS。",
       "local_title": "此 URL 只能在本機存取。",
-      "local_body": "郵件直接由使用者的瀏覽器擷取，因此 JMAP URL 必須能從使用者登入的任何地方存取，而不僅是本機或區域網路。正式環境請使用公開的主機名稱（例如 {example}）。",
+      "local_body": "郵件直接由使用者的瀏覽器擷取，因此 JMAP URL 必須能從使用者登入的任何地方存取，而不僅是本機或區域網路。正式環境請使用公開的主機名稱（例如 <code>{example}</code>）。",
       "additional_title": "其他 JMAP 伺服器",
       "additional_hint": "選用。在登入清單中提供多台伺服器，適合執行多個 Stalwart 執行個體的託管業者。",
       "additional_show": "顯示 ({count})",
@@ -2841,7 +2841,7 @@
       "defaults": "使用預設值",
       "company": "公司名稱",
       "password_title": "選擇管理員密碼",
-      "password_hint": "你將用它在 {path} 登入。至少 8 個字元。",
+      "password_hint": "你將用它在 <code>{path}</code> 登入。至少 8 個字元。",
       "new_password": "新密碼",
       "confirm": "確認",
       "too_short": "至少 8 個字元。",

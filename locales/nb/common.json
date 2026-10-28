@@ -2668,7 +2668,7 @@
     },
     "read_only": {
       "title": "Konfigurasjonen er skrivebeskyttet",
-      "body": "Konfigurasjonsvolumet er montert skrivebeskyttet, eller {variable} er satt. Monter det med skrivetilgang eller fjern variabelen, og start containeren på nytt."
+      "body": "Konfigurasjonsvolumet er montert skrivebeskyttet, eller <code>{variable}</code> er satt. Monter det med skrivetilgang eller fjern variabelen, og start containeren på nytt."
     },
     "done": {
       "title": "Alt er klart",
@@ -2720,9 +2720,9 @@
       "not_jmap_hint": "Dette kan skje når en omvendt proxy ruter JMAP separat på samme domene. Ellers er URL-en som regel feil.",
       "not_jmap_confirm": "Jeg er sikker på at URL-en er riktig, fortsett likevel.",
       "http_title": "Denne URL-en bruker ukryptert HTTP.",
-      "http_body": "Passord og e-postinnhold sendes ukryptert mellom brukerne og serveren din. Bruk {https} i produksjon: avslutt TLS på e-postserveren eller i en omvendt proxy foran den.",
+      "http_body": "Passord og e-postinnhold sendes ukryptert mellom brukerne og serveren din. Bruk <code>{https}</code> i produksjon: avslutt TLS på e-postserveren eller i en omvendt proxy foran den.",
       "local_title": "Denne URL-en virker bare lokalt.",
-      "local_body": "E-post hentes direkte fra brukerens nettleser, så JMAP-URL-en må kunne nås overalt der brukerne logger på, ikke bare fra denne maskinen eller det lokale nettverket. Bruk et offentlig vertsnavn (f.eks. {example}) i produksjon.",
+      "local_body": "E-post hentes direkte fra brukerens nettleser, så JMAP-URL-en må kunne nås overalt der brukerne logger på, ikke bare fra denne maskinen eller det lokale nettverket. Bruk et offentlig vertsnavn (f.eks. <code>{example}</code>) i produksjon.",
       "additional_title": "Flere JMAP-servere",
       "additional_hint": "Valgfritt. Vis flere servere i listen ved pålogging, nyttig for leverandører med flere Stalwart-instanser.",
       "additional_show": "Vis ({count})",
@@ -2841,7 +2841,7 @@
       "defaults": "Standardverdier",
       "company": "Firmanavn",
       "password_title": "Velg et administratorpassord",
-      "password_hint": "Du bruker det til å logge på {path}. Minst 8 tegn.",
+      "password_hint": "Du bruker det til å logge på <code>{path}</code>. Minst 8 tegn.",
       "new_password": "Nytt passord",
       "confirm": "Bekreft",
       "too_short": "Minst 8 tegn.",
