@@ -1630,6 +1630,10 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     [editabilityContext],
   );
 
+  // The event the user opened, marked in the grid (APP.md: the selected
+  // event gets the primary ring).
+  const selectedEventId = detailPinned ? detailEvent?.id ?? null : showEventModal ? editEvent?.id ?? null : null;
+
   const visibleEvents = useMemo(() => {
     const filtered = events.filter((e) => {
       if (!e.start || !e.calendarIds) return false;
@@ -1755,6 +1759,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               onSelectTask={openEditTaskModal}
               currentUserEmails={currentUserEmails}
               canEditEvent={canEditEvent}
+              selectedEventId={selectedEventId}
               onMoveEvent={handleMoveEvent}
             />
           );
@@ -1783,6 +1788,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               onSelectTask={openEditTaskModal}
               currentUserEmails={currentUserEmails}
               canEditEvent={canEditEvent}
+              selectedEventId={selectedEventId}
               onMoveEvent={handleMoveEvent}
               revealAt={revealAt}
             />
@@ -1808,6 +1814,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               onSelectTask={openEditTaskModal}
               currentUserEmails={currentUserEmails}
               canEditEvent={canEditEvent}
+              selectedEventId={selectedEventId}
               onMoveEvent={handleMoveEvent}
               revealAt={revealAt}
             />

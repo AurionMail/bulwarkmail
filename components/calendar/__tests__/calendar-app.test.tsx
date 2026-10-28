@@ -629,3 +629,14 @@ describe('CalendarApp empty agenda', () => {
     expect(screen.getByRole('heading', { name: 'events.create' })).toBeInTheDocument();
   });
 });
+
+describe('CalendarApp selected event', () => {
+  it('rings the event whose card is open', async () => {
+    renderApp();
+    const card = screen.getAllByRole('button', { name: /Standup/ })[0];
+    expect(card.style.boxShadow).not.toContain('--color-primary');
+    fireEvent.click(card);
+    await screen.findByRole('dialog', { name: 'Standup' });
+    expect(screen.getAllByRole('button', { name: /Standup/ })[0].style.boxShadow).toContain('var(--color-primary)');
+  });
+});

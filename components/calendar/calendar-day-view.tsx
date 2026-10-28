@@ -46,6 +46,8 @@ interface CalendarDayViewProps extends ScrollWindowViewProps {
   currentUserEmails?: string[];
   /** Whether the user may change an event: only those can be dragged or resized. */
   canEditEvent?: (event: CalendarEvent) => boolean;
+  /** The event whose card or editor is open: drawn with the selection ring. */
+  selectedEventId?: string | null;
   /**
    * Save a drag or resize. The page asks which occurrences a change to a
    * series covers; without it the change goes straight to the store.
@@ -85,6 +87,7 @@ export function CalendarDayView({
   onSelectTask,
   currentUserEmails,
   canEditEvent = () => true,
+  selectedEventId,
   onMoveEvent,
   revealAt,
 }: CalendarDayViewProps) {
@@ -376,6 +379,7 @@ export function CalendarDayView({
                                 <EventCard
                                   key={ev.id}
                                   event={ev}
+                            isSelected={ev.id === selectedEventId}
                                   calendar={calId ? calendarMap.get(calId) : undefined}
                                   variant="chip"
                                   onClick={(rect) => onSelectEvent(ev, rect)}
@@ -533,6 +537,7 @@ export function CalendarDayView({
                         >
                           <EventCard
                             event={ev}
+                            isSelected={ev.id === selectedEventId}
                             calendar={calId ? calendarMap.get(calId) : undefined}
                             variant="block"
                             onClick={(rect) => onSelectEvent(ev, rect)}

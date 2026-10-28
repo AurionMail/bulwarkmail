@@ -55,6 +55,8 @@ interface CalendarWeekViewProps extends ScrollWindowViewProps {
   currentUserEmails?: string[];
   /** Whether the user may change an event: only those can be dragged or resized. */
   canEditEvent?: (event: CalendarEvent) => boolean;
+  /** The event whose card or editor is open: drawn with the selection ring. */
+  selectedEventId?: string | null;
   /**
    * Save a drag or resize. The page asks which occurrences a change to a
    * series covers; without it the change goes straight to the store.
@@ -99,6 +101,7 @@ export function CalendarWeekView({
   onSelectTask,
   currentUserEmails,
   canEditEvent = () => true,
+  selectedEventId,
   onMoveEvent,
   revealAt,
 }: CalendarWeekViewProps) {
@@ -523,6 +526,7 @@ export function CalendarWeekView({
                   >
                     <EventCard
                       event={segment.event}
+                        isSelected={segment.event.id === selectedEventId}
                       calendar={calId ? calendarMap.get(calId) : undefined}
                       variant="span"
                       continuesBefore={segment.continuesBefore}
@@ -695,6 +699,7 @@ export function CalendarWeekView({
                       >
                         <EventCard
                           event={ev}
+                            isSelected={ev.id === selectedEventId}
                           calendar={calId ? calendarMap.get(calId) : undefined}
                           variant="block"
                           onClick={(rect) => onSelectEvent(ev, rect)}
