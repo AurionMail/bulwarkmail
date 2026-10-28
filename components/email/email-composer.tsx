@@ -968,9 +968,14 @@ export function EmailComposer({
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   // Asks before sending at once when the account can't hold a message back.
   const { dialogProps: noDelayDialogProps, confirm: confirmNoDelay } = useConfirmDialog();
-  const [showSendMenu, setShowSendMenu] = useState(false);
-  const sendMenuRef = useRef<HTMLDivElement>(null);
-  const mobileSendMenuRef = useRef<HTMLDivElement>(null);
+  // Send's menu (schedule, plugins): the ContextMenu, as every menu (R6).
+  const sendMenu = useContextMenu<null>();
+  const showSendMenu = sendMenu.contextMenu.isOpen;
+  const closeSendMenu = sendMenu.closeContextMenu;
+  const toggleSendMenu = (e: React.MouseEvent<HTMLElement>) => {
+    if (showSendMenu) closeSendMenu();
+    else sendMenu.openContextMenuFrom(e.currentTarget, null, 'end');
+  };
 
   // Save as template: changes made in its form are asked about before it closes (R5).
   const [saveTemplateDirty, setSaveTemplateDirty] = useState(false);
@@ -1190,20 +1195,10 @@ export function EmailComposer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signatureIdentity?.id, signatureIdentity?.htmlSignature, signatureIdentity?.textSignature, signatureSeparatorEnabled, signaturePosition, mode, plainTextMode, pluginSignatureRevision]);
 
-  useEffect(() => {
-    const handleClickOutsideSendMenu = (event: MouseEvent) => {
-      if (!sendMenuRef.current?.contains(event.target as Node) && !mobileSendMenuRef.current?.contains(event.target as Node)) {
-        setShowSendMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutsideSendMenu);
-    return () => document.removeEventListener('mousedown', handleClickOutsideSendMenu);
-  }, []);
-
   const openScheduleDialog = useCallback(() => {
     setShowScheduleDialog(true);
-    setShowSendMenu(false);
-  }, []);
+    closeSendMenu();
+  }, [closeSendMenu]);
 
   // `autoSelectReplyIdentity` fused two behaviours: matching one of the user's
   // OWN identities, which never rewrites `From:`, and the domain catch-all,
@@ -3870,7 +3865,7 @@ export function EmailComposer({
         </div>
         {/* Mobile: keep scheduled send reachable without consuming footer space. */}
         {composerClient?.hasDelayedSend() || hasSendMenuActions ? (
-          <div ref={mobileSendMenuRef} className="relative inline-flex md:hidden">
+          <div className="relative inline-flex md:hidden">
             <Button
               onClick={() => handleSend()}
               disabled={!canSend || isSending}
@@ -3884,7 +3879,8 @@ export function EmailComposer({
             </Button>
             <Button
               type="button"
-              onClick={() => setShowSendMenu((open) => !open)}
+              onMouseDown={(e) => { if (showSendMenu) e.stopPropagation(); }}
+              onClick={toggleSendMenu}
               disabled={!canSend || isSending}
               title={composerClient?.hasDelayedSend() ? t('schedule_send') : tViewer('more_actions')}
               aria-label={composerClient?.hasDelayedSend() ? t('schedule_send') : tViewer('more_actions')}
@@ -3895,27 +3891,6 @@ export function EmailComposer({
             >
               <ChevronDown className="w-4 h-4" />
             </Button>
-            {showSendMenu && (
-              <div role="menu" className="absolute end-0 top-full z-50 mt-2 min-w-44 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg">
-                {composerClient?.hasDelayedSend() && (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={openScheduleDialog}
-                    className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-start text-sm hover:bg-accent hover:text-accent-foreground"
-                  >
-                    <CalendarClock className="w-4 h-4" />
-                    {t('schedule_send')}
-                  </button>
-                )}
-                <ComposerPluginMenuItems
-                  surface="composer-send-menu"
-                  context={sendMenuContext}
-                  onSelect={() => setShowSendMenu(false)}
-                  separator={!!composerClient?.hasDelayedSend()}
-                />
-              </div>
-            )}
           </div>
         ) : (
           <Button
@@ -4608,7 +4583,7 @@ export function EmailComposer({
               {mvWindow ? <Trash2 className="w-5 h-5" /> : t('discard')}
             </button>
             {composerClient?.hasDelayedSend() || hasSendMenuActions ? (
-              <div ref={sendMenuRef} data-mv-send={mvWindow ? "" : undefined} className="relative hidden md:inline-flex">
+              <div data-mv-send={mvWindow ? "" : undefined} className="relative hidden md:inline-flex">
                 <Button
                   onClick={() => handleSend()}
                   disabled={!canSend || isSending}
@@ -4621,7 +4596,8 @@ export function EmailComposer({
                 </Button>
                 <Button
                   type="button"
-                  onClick={() => setShowSendMenu((open) => !open)}
+                  onMouseDown={(e) => { if (showSendMenu) e.stopPropagation(); }}
+                  onClick={toggleSendMenu}
                   disabled={!canSend || isSending}
                   title={composerClient?.hasDelayedSend() ? t('schedule_send') : tViewer('more_actions')}
                   aria-label={composerClient?.hasDelayedSend() ? t('schedule_send') : tViewer('more_actions')}
@@ -4631,30 +4607,6 @@ export function EmailComposer({
                 >
                   <ChevronDown className="w-4 h-4" />
                 </Button>
-                {showSendMenu && (
-                  <div
-                    role="menu"
-                    className="absolute end-0 bottom-full z-50 mb-2 min-w-44 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg"
-                  >
-                    {composerClient?.hasDelayedSend() && (
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={openScheduleDialog}
-                        className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-start text-sm hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <CalendarClock className="w-4 h-4" />
-                        {t('schedule_send')}
-                      </button>
-                    )}
-                    <ComposerPluginMenuItems
-                      surface="composer-send-menu"
-                      context={sendMenuContext}
-                      onSelect={() => setShowSendMenu(false)}
-                      separator={!!composerClient?.hasDelayedSend()}
-                    />
-                  </div>
-                )}
               </div>
             ) : (
               <Button
@@ -4726,6 +4678,18 @@ export function EmailComposer({
         </Dialog>
       )}
       {discardTemplateDialog}
+
+      <ContextMenu ref={sendMenu.menuRef} isOpen={showSendMenu} position={sendMenu.contextMenu.position} onClose={closeSendMenu}>
+        {composerClient?.hasDelayedSend() && (
+          <ContextMenuItem icon={CalendarClock} label={t('schedule_send')} onClick={openScheduleDialog} testId="composer-schedule-send" />
+        )}
+        <ComposerPluginMenuItems
+          surface="composer-send-menu"
+          context={sendMenuContext}
+          onSelect={closeSendMenu}
+          separator={!!composerClient?.hasDelayedSend()}
+        />
+      </ContextMenu>
 
       <ScheduleSendDialog
         isOpen={showScheduleDialog}

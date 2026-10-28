@@ -43,6 +43,8 @@ interface ContextMenuProps {
   position: ContextMenuPosition;
   onClose: () => void;
   children: React.ReactNode;
+  /** The menu's accessible name, e.g. the label of the ⋮ button that opens it. */
+  label?: string;
 }
 
 const VIEWPORT_MARGIN = 10;
@@ -214,7 +216,7 @@ function useMenuLevel(recentTouch: () => boolean): MenuLevel {
  * reach the app's shortcut handlers.
  */
 export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
-  ({ isOpen, position, onClose, children }, ref) => {
+  ({ isOpen, position, onClose, children, label }, ref) => {
     const [mounted, setMounted] = useState(false);
     const [adjustedPosition, setAdjustedPosition] = useState<Position | null>(null);
     const localRef = useRef<HTMLDivElement | null>(null);
@@ -448,7 +450,8 @@ export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         <div
           ref={setRefs}
           className={cn(
-            "fixed z-50 min-w-[200px] bg-background rounded-md shadow-lg border border-border outline-none"
+            "fixed z-50 min-w-[200px] outline-none",
+            CONTEXT_MENU_PANEL_CLASS
           )}
           style={{
             left: renderPosition.x,
@@ -456,6 +459,7 @@ export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
             visibility: isPositioned ? "visible" : "hidden",
           }}
           role="menu"
+          aria-label={label}
           aria-orientation="vertical"
           tabIndex={-1}
           onPointerDownCapture={(e) => {
@@ -476,6 +480,19 @@ export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
 ContextMenu.displayName = "ContextMenu";
 
 // ─── Items ─────────────────────────────────────────────────────
+
+/**
+ * The look of a menu row, for a host's own entries inside a ContextMenu
+ * (a check or radio item, a plugin's entry). 44px rows on a touch screen
+ * (R7); the desktop keeps its density.
+ */
+export const CONTEXT_MENU_ITEM_CLASS =
+  "w-full px-3 py-1.5 text-sm text-start flex items-center gap-2 pointer-coarse:min-h-11 " +
+  "transition-colors duration-150 focus:outline-none focus-visible:bg-muted hover:bg-muted cursor-pointer " +
+  "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent";
+
+/** The menu's panel look, for a host that draws its own panel (a sheet on the phone). */
+export const CONTEXT_MENU_PANEL_CLASS = "bg-background rounded-md shadow-lg border border-border";
 
 interface ContextMenuItemProps {
   icon?: React.ComponentType<{ className?: string }>;
@@ -674,6 +691,7 @@ export function ContextMenuSubMenu({
           <SubMenuPanel
             ref={panelRef}
             data-submenu-panel=""
+            aria-label={label}
             onPlaced={onPanelPlaced}
             className="min-w-[180px] bg-background rounded-md shadow-lg border border-border"
             role="menu"

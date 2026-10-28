@@ -2,7 +2,7 @@
 
 import { Fragment, useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback, useId } from "react";
 import { Email, ContactCard, Mailbox } from "@/lib/jmap/types";
-import { emailExportFilename, attachmentDownloadFilename, attachmentsBundleFilename, DEFAULT_EMAIL_TEMPLATE, DEFAULT_ATTACHMENT_TEMPLATE } from "@/lib/download-filename";
+import { attachmentDownloadFilename, attachmentsBundleFilename, DEFAULT_ATTACHMENT_TEMPLATE } from "@/lib/download-filename";
 import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
 import { TRANSPARENT_BLOCKED_PIXEL, applyNewTabToAnchor, emailIframeCsp, escapeHtml, isExternalResourceUrl, isOpenableLinkHref, plainTextToSafeHtml, sanitizeEmailBodyForIframe, sanitizeEmailHtml, sanitizePlainTextRenderedHtml } from "@/lib/email-sanitization";
 import { getRenderableHtmlBody } from "@/lib/email-body-selection";
@@ -13,16 +13,19 @@ import { fitEmailBodyWidth } from "@/lib/email-fit-width";
 import { hasFullBleedCanvas } from "@/lib/email-full-bleed";
 import { stripBidiControls } from "@/lib/bidi";
 import { withBasePath } from "@/lib/browser-navigation";
-import { buildContactsPath, buildMailPath } from "@/lib/deep-links";
-import { useCopyLink } from "@/hooks/use-copy-link";
+import { buildContactsPath } from "@/lib/deep-links";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Avatar } from "@/components/ui/avatar";
-import { SubMenuPanel } from "@/components/ui/context-menu";
+import { ContextMenu } from "@/components/ui/context-menu";
+import { useContextMenu, type UseContextMenuReturn } from "@/hooks/use-context-menu";
+import { EmailContextMenu } from "./email-context-menu";
+import { useMessageActionList, type MessageActionEntry, type MessageActionKey, type MessageActionOptions, type MessageSubmenuKey } from "./message-actions";
+import { useCopyToAccount, useEmailExport, usePrintRequestStore } from "@/hooks/use-message-file-actions";
 import { useBottomControls } from "@/hooks/use-bottom-controls";
 import { ReaderSelectionMenu, useReaderSelectionMenu, watchBodySelection, watchElementSelection } from "./reader-selection-menu";
 import { onPanelRequest } from "@/lib/plugin-sandbox/panel-requests";
-import { formatFileSize, cn, formatDate, formatDateTime, formatRelativeAgo, generateUUID, cleanPreview } from "@/lib/utils";
+import { formatFileSize, cn, formatDate, formatDateTime, formatRelativeAgo, generateUUID, cleanPreview, type MailboxNode } from "@/lib/utils";
 import { getEffectiveTimeZone, getWallClock } from "@/lib/timezone";
 import { itemsToHide } from "@/lib/toolbar-overflow";
 import { formatScheduledSendAt } from "@/lib/scheduled-send-label";
@@ -32,7 +35,7 @@ import { TagBadge } from "./tag-badge";
 import { TagPicker } from "./tag-picker";
 import { useMeasuredTagDisplay } from "@/hooks/use-tag-display";
 import { useKeywordFormat } from "@/hooks/use-keyword-format";
-import { getEmailTagIds } from "@/lib/thread-utils";
+import { getEmailTagIds, emailKeyFor } from "@/lib/thread-utils";
 import { getSecurityStatus, extractListHeaders, getSenderVerification } from "@/lib/email-headers";
 import { emailToReadView } from "@/lib/plugin-projection";
 import type { EmailReadView, ExternalLinkContext } from "@/lib/plugin-types";
@@ -45,7 +48,6 @@ import {
   Reply,
   ReplyAll,
   Forward,
-  Paperclip,
   Trash2,
   Archive,
   Star,
@@ -87,7 +89,6 @@ import {
   PanelRightOpen,
   Send,
   FolderInput,
-  FolderX,
   Sun,
   Upload,
   Moon,
@@ -95,11 +96,8 @@ import {
   PenSquare,
   CalendarClock,
   CalendarX,
-  MessagesSquare,
-  Link as LinkIcon,
   Maximize2,
   Minimize2,
-  Filter,
   ArrowLeft,
   Pencil,
 } from "@/components/icons";
@@ -118,7 +116,7 @@ import { useDeviceDetection } from "@/hooks/use-media-query";
 import { useIsPaneScoped } from "@/hooks/use-pane-context";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAccountStore } from "@/stores/account-store";
-import { useEmailStore, resolveEmailBlobContext, emailWriteSource, emailLinkSource, type EmailBlobContext } from "@/stores/email-store";
+import { useEmailStore, resolveEmailBlobContext, emailWriteSource, type EmailBlobContext } from "@/stores/email-store";
 import { useThemeStore } from "@/stores/theme-store";
 import { EmailIdentityBadge } from "./email-identity-badge";
 import { UnsubscribeBanner } from "./unsubscribe-banner";
@@ -146,6 +144,7 @@ import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { PluginActions } from "@/components/plugins/plugin-actions";
 import { AttachmentPluginFrames, AttachmentPluginMenu, PluginPanelEntries, ReaderAboveQuoteSlot } from "./reader-plugin-surfaces";
 import { RulesPanel, useRulesAvailability } from "./rules-menu";
+import type { QuickRuleTarget } from "@/lib/filters/quick-rule-target";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { ResizeHandle } from "@/components/layout/resize-handle";
 import { emailHooks, renderHooks } from "@/lib/plugin-hooks";
@@ -157,7 +156,23 @@ import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import { useArchiveActionEnabled } from "@/lib/archive-gate";
 
 /** The More menu's two drill-downs: a folder list and a tag list. */
-type MoreMenuSub = 'move' | 'tag' | 'rules';
+type MoreMenuSub = MessageSubmenuKey;
+
+/** The reader toolbar's overflow items, by priority, as entries of the message's action list. */
+const TOOLBAR_PRIORITY_ACTIONS: Record<string, MessageActionKey> = {
+  '1': 'reply',
+  '2': 'reply_all',
+  '3': 'forward',
+  '4': 'archive',
+  '5': 'move',
+  '6': 'tag',
+  '7': 'spam',
+  '8': 'read',
+  '9': 'print',
+  '10': 'view_source',
+  '11': 'extra:view_mode',
+};
+const NO_ACTION_KEYS: ReadonlySet<MessageActionKey> = new Set();
 
 /** Whatever a sub-view offers to act on, in the order it is read out. */
 const SUB_MENU_ITEM_SELECTOR = '[role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"]';
@@ -190,6 +205,8 @@ interface EmailViewerProps {
    * the message is also in another folder.
    */
   onRemoveFromFolder?: () => void;
+  /** Pin or unpin the message; pinned mail floats to the top of the list. */
+  onTogglePinned?: () => void;
   onBack?: () => void;
   onNavigateNext?: () => void;
   onNavigatePrev?: () => void;
@@ -1038,6 +1055,195 @@ const NO_POSTAL_ATTACHMENTS: PostalMimeAttachment[] = [];
 const MAX_INLINE_PARSE_BYTES = 5 * 1024 * 1024;
 const NO_TNEF_ATTACHMENTS: TnefAttachment[] = [];
 
+interface ReaderMoreMenuProps {
+  menu: UseContextMenuReturn<null>;
+  options: MessageActionOptions;
+  label: string;
+  mailboxes: Mailbox[];
+  selectedMailbox: string;
+  onMoveToMailbox?: (mailboxId: string) => void;
+  onSetTag?: (tagId: string | null) => void;
+}
+
+/** The reader's ⋮ on a desktop: the row's context menu, anchored to the button (R6). */
+function ReaderMoreMenu({ menu, options, label, mailboxes, selectedMailbox, onMoveToMailbox, onSetTag }: ReaderMoreMenuProps) {
+  const { email } = options;
+  const { copyTargets, copyToAccount } = useCopyToAccount(email, true);
+  return (
+    <EmailContextMenu
+      email={email}
+      position={menu.contextMenu.position}
+      isOpen
+      onClose={menu.closeContextMenu}
+      menuRef={menu.menuRef}
+      label={label}
+      mailboxes={mailboxes}
+      selectedMailbox={selectedMailbox}
+      currentMailboxRole={options.currentMailboxRole}
+      onReply={options.onReply}
+      onReplyAll={options.onReplyAll}
+      onForward={options.onForward}
+      onForwardAsAttachment={options.onForwardAsAttachment}
+      onEditDraft={options.onEditDraft}
+      onArchive={options.onArchive}
+      onDelete={options.onDelete}
+      onMarkAsRead={options.onMarkAsRead}
+      onToggleStar={options.onToggleStar}
+      onTogglePinned={options.onTogglePinned}
+      onRemoveFromFolder={options.onRemoveFromFolder}
+      onMarkAsSpam={options.onMarkAsSpam}
+      onUndoSpam={options.onUndoSpam}
+      onMoveToMailbox={options.canMove ? onMoveToMailbox : undefined}
+      onSetTag={onSetTag}
+      copyTargets={copyTargets}
+      onCopyToAccount={(accountId, mailboxId) => void copyToAccount([email], accountId, mailboxId)}
+      onExport={options.onExport}
+      onPrint={options.onPrint}
+      onViewSource={options.onViewSource}
+      omit={options.omit}
+      extras={options.extras}
+      rowPlugins={false}
+    />
+  );
+}
+
+const PANEL_ROW_CLASS = "w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3 disabled:opacity-50";
+
+interface ReaderMorePanelBodyProps {
+  options: MessageActionOptions;
+  sub: MoreMenuSub | null;
+  openSub: (sub: MoreMenuSub) => void;
+  close: () => void;
+  entryRefs: React.MutableRefObject<Record<MoreMenuSub, HTMLButtonElement | null>>;
+  moveTree: MailboxNode[];
+  moveTargetIds: Set<string>;
+  onMoveToMailbox?: (mailboxId: string) => void;
+  currentTagIds: string[];
+  sortedTagIds: string[];
+  onToggleTag: (tagId: string) => void;
+  /** Where filter rules go; null hides Rules (shared account, no Sieve). */
+  rulesTarget: QuickRuleTarget | null;
+  pluginContext: Record<string, unknown>;
+}
+
+/**
+ * The phone's More panel: the message's action list (R6) as 44px rows, its
+ * submenus as sub-views of the panel (#779).
+ */
+function ReaderMorePanelBody({
+  options,
+  sub,
+  openSub,
+  close,
+  entryRefs,
+  moveTree,
+  moveTargetIds,
+  onMoveToMailbox,
+  currentTagIds,
+  sortedTagIds,
+  onToggleTag,
+  rulesTarget,
+  pluginContext,
+}: ReaderMorePanelBodyProps) {
+  const { email } = options;
+  const { tagColor } = useKeywordFormat();
+  const { copyTargets, copyToAccount } = useCopyToAccount(email, true);
+  const entries = useMessageActionList({
+    ...options,
+    canCopyToAccount: copyTargets.length > 0,
+    rules: !!rulesTarget,
+  });
+
+  if (sub === 'move') {
+    return moveTree.length > 0 && onMoveToMailbox ? (
+      <MoveTargetList
+        variant="panel"
+        tree={moveTree}
+        targetIds={moveTargetIds}
+        onPick={(mailboxId) => { onMoveToMailbox(mailboxId); close(); }}
+      />
+    ) : null;
+  }
+  if (sub === 'copy_to_account') {
+    return (
+      <>
+        {copyTargets.map((target) => {
+          const { tree, targetIds } = buildMoveTargets(target.mailboxes.filter((m) => !m.isShared && m.role !== 'drafts'), {});
+          return (
+            <div key={target.accountId}>
+              <div className="px-4 pt-3 pb-1 text-xs font-medium text-muted-foreground truncate" title={target.label}>{target.label}</div>
+              <MoveTargetList
+                variant="panel"
+                tree={tree}
+                targetIds={targetIds}
+                onPick={(mailboxId) => { void copyToAccount([email], target.accountId, mailboxId); close(); }}
+              />
+            </div>
+          );
+        })}
+      </>
+    );
+  }
+  if (sub === 'tag') {
+    return <TagPicker touch selectedIds={currentTagIds} onToggle={onToggleTag} />;
+  }
+  if (sub === 'rules') {
+    return rulesTarget ? <RulesPanel email={email} target={rulesTarget} variant="mobile" onDone={close} /> : null;
+  }
+
+  return (
+    <>
+      {entries.map((entry, index) => {
+        if (entry.kind === 'separator') return <div key={`sep-${index}`} className="h-px bg-border my-1" role="separator" />;
+        const Icon = entry.icon;
+        if (entry.kind === 'submenu') {
+          return (
+            <button
+              key={entry.key}
+              ref={(el) => { entryRefs.current[entry.key] = el; }}
+              role="menuitem"
+              aria-haspopup="menu"
+              data-testid={entry.key === 'rules' ? 'viewer-rules' : `panel-${entry.key}`}
+              onClick={() => openSub(entry.key)}
+              className={PANEL_ROW_CLASS}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="flex-1">{entry.label}</span>
+              {entry.key === 'tag' && currentTagIds.length > 0 && (
+                <span className="flex -space-x-1 me-1" aria-hidden>
+                  {sortedTagIds.slice(0, 3).map((tagId) => (
+                    <span key={tagId} className={cn("w-3 h-3 rounded-full border border-background", tagColor(tagId).dot)} />
+                  ))}
+                </span>
+              )}
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </button>
+          );
+        }
+        return (
+          <button
+            key={entry.key}
+            role="menuitem"
+            disabled={entry.disabled}
+            data-testid={`panel-${entry.key}`}
+            onClick={() => { entry.run(); close(); }}
+            className={cn(PANEL_ROW_CLASS, entry.destructive && "text-destructive")}
+          >
+            <Icon className="w-5 h-5" />
+            {entry.label}
+          </button>
+        );
+      })}
+      <PluginPanelEntries
+        surface="reader-actions"
+        context={pluginContext}
+        mailboxRole={options.currentMailboxRole ?? null}
+        onRan={close}
+      />
+    </>
+  );
+}
+
 export function EmailViewer({
   email,
   blobSource,
@@ -1057,6 +1263,7 @@ export function EmailViewer({
   onUndoSpam,
   onMoveToMailbox,
   onRemoveFromFolder,
+  onTogglePinned,
   onBack,
   onNavigateNext,
   onNavigatePrev,
@@ -1090,9 +1297,7 @@ export function EmailViewer({
   const tCommon = useTranslations('common');
   const tFiles = useTranslations('files');
   const tDemoWelcome = useTranslations('demo_welcome');
-  const tDeepLink = useTranslations('deep_link');
   const tContextMenu = useTranslations('context_menu');
-  const copyLink = useCopyLink();
   const tWelcome = useTranslations('welcome');
   const quickReplyEnabled = useSettingsStore((state) => state.quickReplyEnabled);
   const externalContentPolicy = useSettingsStore((state) => state.externalContentPolicy);
@@ -1118,7 +1323,7 @@ export function EmailViewer({
   const isTrustedAddressBookSender = useContactStore((state) => state.isTrustedAddressBookSender);
   const addToTrustedSendersBook = useContactStore((state) => state.addToTrustedSendersBook);
   const emailKeywords = useSettingsStore((state) => state.emailKeywords);
-  const { sortTagIds, tagColor } = useKeywordFormat();
+  const { sortTagIds } = useKeywordFormat();
   const toolbarPosition = useSettingsStore((state) => state.toolbarPosition);
   const showToolbarLabelsSetting = useSettingsStore((state) => state.showToolbarLabels);
   const interfaceLayout = useSettingsStore((state) => state.interfaceLayout);
@@ -1137,19 +1342,11 @@ export function EmailViewer({
     [showVerificationCodes, email?.id, email?.subject, email?.bodyValues],
   );
   const dragOutActive = useMemo(() => isDragOutSupported(), []);
-  const emailDownloadTemplate = useSettingsStore((state) => state.emailDownloadTemplate) || DEFAULT_EMAIL_TEMPLATE;
   const attachmentDownloadTemplate = useSettingsStore((state) => state.attachmentDownloadTemplate) || DEFAULT_ATTACHMENT_TEMPLATE;
   const filenameSpaceReplacement = useSettingsStore((state) => state.filenameSpaceReplacement);
   const filenameLowercase = useSettingsStore((state) => state.filenameLowercase);
   const filenameStripDiacritics = useSettingsStore((state) => state.filenameStripDiacritics);
   const filenameCollapseSeparators = useSettingsStore((state) => state.filenameCollapseSeparators);
-  const emailFilenameOptions = useMemo(() => ({
-    template: emailDownloadTemplate,
-    spaceReplacement: filenameSpaceReplacement,
-    lowercase: filenameLowercase,
-    stripDiacritics: filenameStripDiacritics,
-    collapseSeparators: filenameCollapseSeparators,
-  }), [emailDownloadTemplate, filenameSpaceReplacement, filenameLowercase, filenameStripDiacritics, filenameCollapseSeparators]);
   const attachmentFilenameOptions = useMemo(() => ({
     template: attachmentDownloadTemplate,
     spaceReplacement: filenameSpaceReplacement,
@@ -1390,17 +1587,21 @@ export function EmailViewer({
   // and slid out every time a message was opened on a phone.
   const [moreMenuSlideEnabled, setMoreMenuSlideEnabled] = useState(false);
   const [moreMenuSub, setMoreMenuSub] = useState<MoreMenuSub | null>(null);
-  const [tagMenuOpen, setTagMenuOpen] = useState(false);
-  const [moveMenuOpen, setMoveMenuOpen] = useState(false);
+  // The toolbar's Move and Tag menus and, on a desktop, the ⋮ menu: the
+  // ContextMenu, as every menu (R6). The phone keeps its More panel.
+  const moveMenu = useContextMenu<null>();
+  const tagMenu = useContextMenu<null>();
+  const readerMenu = useContextMenu<null>();
+  const moveMenuOpen = moveMenu.contextMenu.isOpen;
+  const tagMenuOpen = tagMenu.contextMenu.isOpen;
+  // What the toolbar shows when the ⋮ opens; the menu leaves those out.
+  const [readerMenuOmit, setReaderMenuOmit] = useState<ReadonlySet<MessageActionKey>>(NO_ACTION_KEYS);
   const moreMenuRef = useRef<HTMLDivElement>(null);
-  const tagMenuRef = useRef<HTMLDivElement>(null);
-  const moveMenuRef = useRef<HTMLDivElement>(null);
   const moreButtonRef = useRef<HTMLButtonElement>(null);
-  const moveButtonRef = useRef<HTMLButtonElement>(null);
   // The rows that open a sub-view, and the pieces of the mobile panel a
   // sub-view replaces. Desktop and mobile never render their More menu at the
   // same time, so one map serves both.
-  const moreEntryRefs = useRef<Record<MoreMenuSub, HTMLButtonElement | null>>({ move: null, tag: null, rules: null });
+  const moreEntryRefs = useRef<Record<MoreMenuSub, HTMLButtonElement | null>>({ move: null, copy_to_account: null, tag: null, rules: null });
   // Filter rules made from the open message; none for a shared account or
   // one without Sieve.
   const rulesEmails = useMemo(() => (email ? [email] : []), [email]);
@@ -1412,23 +1613,12 @@ export function EmailViewer({
   const moreMenuId = useId();
   const toolbarRef = useRef<HTMLDivElement>(null);
   const closeMoreMenu = useCallback(() => { setMoreMenuOpen(false); setMoreMenuSub(null); }, []);
-  const closeMoveMenu = useCallback(() => setMoveMenuOpen(false), []);
-  // Both menus render away from their trigger (a dropdown on desktop, an
-  // off-canvas panel on mobile), so focus has to be driven explicitly (#720).
-  const { menuRef: moreMenuListRef, onKeyDown: onMoreMenuKeyDown } = useMenuNavigation<HTMLDivElement>({
-    open: moreMenuOpen && !isMobile,
-    onClose: closeMoreMenu,
-    triggerRef: moreButtonRef,
-  });
+  // The phone panel renders away from its trigger (an off-canvas panel), so
+  // focus has to be driven explicitly (#720).
   const { menuRef: mobileMoreRef, onKeyDown: onMobileMoreKeyDown } = useMenuNavigation<HTMLDivElement>({
     open: moreMenuOpen && isMobile,
     onClose: closeMoreMenu,
     triggerRef: moreButtonRef,
-  });
-  const { menuRef: moveMenuListRef, onKeyDown: onMoveMenuKeyDown } = useMenuNavigation<HTMLDivElement>({
-    open: moveMenuOpen,
-    onClose: closeMoveMenu,
-    triggerRef: moveButtonRef,
   });
   // Leaving a sub-view unmounts the row that opened it, so focus has to be put
   // back by hand or it falls to <body> and a screen reader is left with nothing
@@ -1454,10 +1644,6 @@ export function EmailViewer({
       next(e);
     },
     [moreMenuSub, leaveMoreMenuSub],
-  );
-  const handleMoreMenuKeyDown = useMemo(
-    () => withSubMenuEscape(onMoreMenuKeyDown),
-    [withSubMenuEscape, onMoreMenuKeyDown],
   );
   const handleMobileMoreKeyDown = useMemo(
     () => withSubMenuEscape(onMobileMoreKeyDown),
@@ -1657,7 +1843,7 @@ export function EmailViewer({
 
   // Close dropdown menus on click outside
   useEffect(() => {
-    if (!moreMenuOpen && !tagMenuOpen && !moveMenuOpen) return;
+    if (!moreMenuOpen) return;
     function handleClickOutside(e: MouseEvent) {
       // On mobile the More menu is an off-canvas panel rendered as a sibling of
       // the toolbar, so it is not inside `moreMenuRef`. Without counting it as
@@ -1669,20 +1855,12 @@ export function EmailViewer({
         setMoreMenuOpen(false);
         setMoreMenuSub(null);
       }
-      if (tagMenuOpen && tagMenuRef.current && !tagMenuRef.current.contains(e.target as Node)) {
-        setTagMenuOpen(false);
-      }
-      if (moveMenuOpen && moveMenuRef.current && !moveMenuRef.current.contains(e.target as Node)) {
-        setMoveMenuOpen(false);
-      }
     }
     // A click into a frame (the message body, a plugin's side panel) never
     // reaches this document; the window losing focus to it is the click away.
     function handleWindowBlur() {
       setMoreMenuOpen(false);
       setMoreMenuSub(null);
-      setTagMenuOpen(false);
-      setMoveMenuOpen(false);
     }
     document.addEventListener('mousedown', handleClickOutside);
     window.addEventListener('blur', handleWindowBlur);
@@ -1690,14 +1868,18 @@ export function EmailViewer({
       document.removeEventListener('mousedown', handleClickOutside);
       window.removeEventListener('blur', handleWindowBlur);
     };
-  }, [moreMenuOpen, tagMenuOpen, moveMenuOpen, mobileMoreRef]);
+  }, [moreMenuOpen, mobileMoreRef]);
 
   // Close dropdowns when email changes
+  const closeMoveMenu = moveMenu.closeContextMenu;
+  const closeTagMenu = tagMenu.closeContextMenu;
+  const closeReaderMenu = readerMenu.closeContextMenu;
   useEffect(() => {
     setMoreMenuOpen(false);
-    setTagMenuOpen(false);
-    setMoveMenuOpen(false);
-  }, [email?.id]);
+    closeTagMenu();
+    closeMoveMenu();
+    closeReaderMenu();
+  }, [email?.id, closeTagMenu, closeMoveMenu, closeReaderMenu]);
 
   // Dynamically detect which toolbar items overflow and should move to the More menu
   useEffect(() => {
@@ -3302,21 +3484,12 @@ export function EmailViewer({
     return () => { window.clearInterval(readyPoll); window.clearTimeout(stop); };
   }, [emailIframeSrcDoc, handleIframeLoad]);
 
-  // Export email as .eml file
+  // Export email as .eml file; the row's menu exports the same way.
+  const exportEmail = useEmailExport();
   const handleExportEmail = async () => {
-    const exportClient = blobSource ? blobSource.client : client;
-    const exportAccountId = blobSource?.accountId;
-    if (!email?.blobId || !exportClient) return;
-    try {
-      await exportClient.downloadBlob(email.blobId, emailExportFilename(email, emailFilenameOptions), 'message/rfc822', exportAccountId);
-    } catch {
-      toast.error(tNotifications('export_email_error'));
-      return;
-    }
-    const action = useSettingsStore.getState().postExportAction;
+    if (!email) return;
     // With the Archive action off a stored 'archive' keeps the message.
-    if (action === 'archive' && archiveActionEnabled) onArchive?.();
-    else if (action === 'trash') onDelete?.();
+    await exportEmail(email, { onArchive, onDelete, archiveEnabled: archiveActionEnabled }, blobSource ?? { client, accountId: undefined });
   };
 
   // Import email from .eml file or .zip archive containing .eml files
@@ -3367,8 +3540,9 @@ export function EmailViewer({
     input.click();
   };
 
-  // Print only the email content in a new window
-  const handlePrint = () => {
+  // Print only the email content in a new window. A print asked for from
+  // the list's row menu brings its own window, opened in that click.
+  const handlePrint = (openedWindow?: Window) => {
     if (!email) return;
     const printSender = email.from?.[0];
     const date = formatDateTime(emailDisplayDate(email), timeFormat, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
@@ -3387,7 +3561,7 @@ export function EmailViewer({
       ? sanitizeEmailHtml(effectiveEmailContent.html)
       : effectiveEmailContent.html;
 
-    const printWindow = window.open('', '_blank');
+    const printWindow = openedWindow ?? window.open('', '_blank');
     if (!printWindow) return;
     // A link in the message that navigates the popup itself (no target, a
     // non-web scheme) would hand the sender's page an opener to redirect
@@ -3436,6 +3610,17 @@ export function EmailViewer({
     printWindow.focus();
     printWindow.print();
   };
+
+  // Print from the list's row menu: the window waits for this message's body.
+  const printRequest = usePrintRequestStore((state) => state.request);
+  const printReady = !!email && !isLoading && !!email.bodyValues && printRequest?.key === emailKeyFor(email);
+  const handlePrintRef = useRef(handlePrint);
+  handlePrintRef.current = handlePrint;
+  useEffect(() => {
+    if (!printReady || !printRequest) return;
+    usePrintRequestStore.getState().setRequest(null);
+    if (!printRequest.win.closed) handlePrintRef.current(printRequest.win);
+  }, [printReady, printRequest]);
 
   // Detect List-Unsubscribe header for newsletter banners
   const listHeaders = useMemo(() => {
@@ -3796,6 +3981,59 @@ export function EmailViewer({
   const isUnread = !email.keywords?.$seen;
   const isImportant = email.keywords?.["$important"];
 
+  // What the toolbar shows right now: the ⋮ menu and the phone panel leave
+  // those out. Delete and Edit draft are always on the toolbar; on a phone
+  // the bottom bar has the replies.
+  const toolbarShownActions = (): ReadonlySet<MessageActionKey> => {
+    const shown = new Set<MessageActionKey>(['delete', 'edit_draft']);
+    toolbarRef.current?.querySelectorAll<HTMLElement>('[data-overflow-item]').forEach((item) => {
+      const key = TOOLBAR_PRIORITY_ACTIONS[item.dataset.overflowPriority ?? ''];
+      if (key && item.getClientRects().length > 0) shown.add(key);
+    });
+    if (isMobile && !mvMobileViewer) {
+      shown.add('reply');
+      shown.add('reply_all');
+      shown.add('forward');
+    }
+    return shown;
+  };
+  const toggleViewMode = () => setEmailViewDarkOverride(prev => prev === null ? !(resolvedTheme === 'dark') : !prev);
+  // The reader's own entries after the message's: the view toggle, Import
+  // (into the open folder) and, with a keyboard, the shortcuts.
+  const readerExtras: MessageActionEntry[] = [
+    ...(effectiveEmailContent.isHtml
+      ? [{ kind: 'item' as const, key: 'extra:view_mode' as const, icon: isDark ? Sun : Moon, label: isDark ? t('view_in_light_mode') : t('view_in_dark_mode'), run: toggleViewMode }]
+      : []),
+    { kind: 'item', key: 'extra:import', icon: Upload, label: t('import_email'), run: handleImportEmail },
+    ...(onShowShortcuts && !isMobile
+      ? [{ kind: 'item' as const, key: 'extra:shortcuts' as const, icon: Keyboard, label: t('keyboard_shortcuts'), run: onShowShortcuts }]
+      : []),
+  ];
+  const readerActionOptions: MessageActionOptions = {
+    email,
+    currentMailboxRole,
+    canMove: moveTree.length > 0 && !!onMoveToMailbox,
+    canRemoveFromFolder: !!onRemoveFromFolder,
+    onReply: onReply ? () => onReply() : undefined,
+    onReplyAll,
+    onForward,
+    onForwardAsAttachment,
+    onEditDraft,
+    onArchive,
+    onDelete,
+    onMarkAsRead: (read) => onMarkAsRead?.(email.id, read),
+    onToggleStar,
+    onTogglePinned,
+    onRemoveFromFolder,
+    onMarkAsSpam,
+    onUndoSpam,
+    onExport: () => void handleExportEmail(),
+    onPrint: () => handlePrint(),
+    onViewSource: () => setShowSourceModal(true),
+    omit: readerMenuOmit,
+    extras: readerExtras.filter((entry) => entry.kind !== 'item' || !readerMenuOmit.has(entry.key)),
+  };
+
   // Shared toolbar items used by both 'top' and 'below-subject' positions
   const renderToolbarItems = (showBackButton: boolean) => (
     <>
@@ -3968,12 +4206,15 @@ export function EmailViewer({
         </Button>
         {/* Move to folder */}
         {moveTree.length > 0 && onMoveToMailbox && (
-          <div ref={moveMenuRef} data-overflow-item data-overflow-priority="5" className={cn("relative", mvViewer && "order-6")}>
+          <div data-overflow-item data-overflow-priority="5" className={cn("relative", mvViewer && "order-6")}>
             <Button
-              ref={moveButtonRef}
               variant="ghost"
               size="sm"
-              onClick={() => { setMoveMenuOpen(!moveMenuOpen); setMoreMenuOpen(false); setTagMenuOpen(false); }}
+              onMouseDown={(e) => { if (moveMenuOpen) e.stopPropagation(); }}
+              onClick={(e) => {
+                if (moveMenuOpen) closeMoveMenu();
+                else { setMoreMenuOpen(false); moveMenu.openContextMenuFrom(e.currentTarget, null, 'end'); }
+              }}
               className="flex-col items-center gap-0.5 h-auto py-1.5 px-2 sm:flex-row sm:h-8 sm:gap-1.5 sm:py-0"
               title={t('move_to')}
               aria-label={t('move_to')}
@@ -3983,46 +4224,46 @@ export function EmailViewer({
               <FolderInput className="w-4 h-4" />
               {showToolbarLabels && <span className="text-[10px] leading-tight sm:text-sm">{t('move')}</span>}
             </Button>
-            {moveMenuOpen && (
-              <div
-                ref={moveMenuListRef}
-                onKeyDown={onMoveMenuKeyDown}
-                role="menu"
-                aria-label={t('move_to')}
-                className="absolute end-0 top-full mt-1 py-1 w-48 max-h-72 overflow-y-auto bg-background rounded-lg shadow-lg border border-border z-10"
-              >
+            <ContextMenu ref={moveMenu.menuRef} isOpen={moveMenuOpen} position={moveMenu.contextMenu.position} onClose={closeMoveMenu} label={t('move_to')}>
+              <div className="w-56 max-h-72 overflow-y-auto">
                 <MoveTargetList
                   tree={moveTree}
                   targetIds={moveTargetIds}
-                  onPick={(mailboxId) => { onMoveToMailbox(mailboxId); setMoveMenuOpen(false); }}
+                  onPick={(mailboxId) => { onMoveToMailbox(mailboxId); closeMoveMenu(); }}
                 />
               </div>
-            )}
+            </ContextMenu>
           </div>
         )}
         {/* Tag Picker - hidden on mobile, overflows to More menu */}
         <div data-overflow-item data-overflow-priority="6" className={cn("hidden sm:flex items-center", mvViewer && "order-7")}>
         {!mvViewer && <div className="w-px h-5 bg-border mx-0.5" />}
-        <div ref={tagMenuRef} className="relative">
-          <button
-            onClick={() => { setTagMenuOpen(!tagMenuOpen); setMoreMenuOpen(false); setMoveMenuOpen(false); }}
-            className="h-8 rounded hover:bg-muted flex items-center gap-1.5 px-2"
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            onMouseDown={(e) => { if (tagMenuOpen) e.stopPropagation(); }}
+            onClick={(e) => {
+              if (tagMenuOpen) closeTagMenu();
+              else { setMoreMenuOpen(false); tagMenu.openContextMenuFrom(e.currentTarget, null, 'end'); }
+            }}
+            className="h-8 gap-1.5 px-2"
             title={t('set_tag')}
             aria-label={t('set_tag')}
-            aria-haspopup="true"
+            aria-haspopup="menu"
             aria-expanded={tagMenuOpen}
           >
             <Tag className="w-4 h-4" />
             {showToolbarLabels && <span className="text-[10px] leading-tight sm:text-sm">{t('tag')}</span>}
-          </button>
-          {tagMenuOpen && (
-            <div className="absolute end-0 top-full mt-1 py-1 w-56 bg-background rounded-md shadow-lg border border-border z-10">
+          </Button>
+          <ContextMenu ref={tagMenu.menuRef} isOpen={tagMenuOpen} position={tagMenu.contextMenu.position} onClose={closeTagMenu} label={t('tag')}>
+            <div className="w-56">
               <TagPicker
                 selectedIds={currentTagIds}
                 onToggle={(tagId) => { if (email) onSetTag?.(email.id, tagId); }}
               />
             </div>
-          )}
+          </ContextMenu>
         </div>
         </div>
 
@@ -4082,7 +4323,7 @@ export function EmailViewer({
         <Button
           variant="ghost"
           size="sm"
-          onClick={handlePrint}
+          onClick={() => handlePrint()}
           data-overflow-item
           data-overflow-priority="9"
           className="hidden sm:inline-flex h-8 gap-1.5"
@@ -4140,7 +4381,8 @@ export function EmailViewer({
         </Button>
         )}
 
-        {/* More menu - click-based */}
+        {/* More: the message's action list (R6). On a desktop the ContextMenu,
+            on a phone the More panel. */}
         <div ref={moreMenuRef} className={cn("relative", mvViewer && "order-9")}>
           <Button
             ref={moreButtonRef}
@@ -4150,303 +4392,40 @@ export function EmailViewer({
             title={t('more_actions')}
             aria-label={t('more_actions')}
             aria-haspopup="menu"
-            aria-expanded={moreMenuOpen}
-            aria-controls={moreMenuOpen ? moreMenuId : undefined}
-            onClick={() => { setMoreMenuOpen(!moreMenuOpen); setMoreMenuSlideEnabled(true); setMoreMenuSub(null); setTagMenuOpen(false); setMoveMenuOpen(false); }}
+            aria-expanded={isMobile ? moreMenuOpen : readerMenu.contextMenu.isOpen}
+            aria-controls={isMobile && moreMenuOpen ? moreMenuId : undefined}
+            onMouseDown={(e) => { if (!isMobile && readerMenu.contextMenu.isOpen) e.stopPropagation(); }}
+            onClick={(e) => {
+              closeTagMenu();
+              closeMoveMenu();
+              if (isMobile) {
+                if (!moreMenuOpen) setReaderMenuOmit(toolbarShownActions());
+                setMoreMenuOpen(!moreMenuOpen);
+                setMoreMenuSlideEnabled(true);
+                setMoreMenuSub(null);
+                return;
+              }
+              if (readerMenu.contextMenu.isOpen) {
+                closeReaderMenu();
+                return;
+              }
+              setReaderMenuOmit(toolbarShownActions());
+              readerMenu.openContextMenuFrom(e.currentTarget, null, 'end');
+            }}
           >
             <MoreVertical className="w-4 h-4 text-muted-foreground" />
             {interfaceLayout !== 'mountain-view' && <span className="text-[10px] leading-tight sm:hidden">{t('more_actions')}</span>}
           </Button>
-          {moreMenuOpen && !isMobile && (
-            <div
-              ref={moreMenuListRef}
-              onKeyDown={handleMoreMenuKeyDown}
-              id={moreMenuId}
-              role="menu"
-              aria-label={t('more_actions')}
-              className="absolute end-0 top-full mt-1 w-48 bg-background rounded-md shadow-lg border border-border z-10 py-1"
-            >
-              {/* Star toggle */}
-              <button
-                role="menuitem"
-                onClick={() => { onToggleStar?.(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-              >
-                <Star className={cn("w-4 h-4", isStarred && "fill-amber-400 text-amber-400")} />
-                {isStarred ? t('tooltips.unstar') : t('tooltips.star')}
-              </button>
-              {/* Overflow: reply */}
-              <button
-                role="menuitem"
-                onClick={() => { onReply?.(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                className={cn("w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2", hiddenPriorities.has(1) ? "" : "sm:hidden")}
-              >
-                <Reply className="w-4 h-4" />
-                {t('reply')}
-              </button>
-              {/* Overflow: reply all */}
-              <button
-                role="menuitem"
-                onClick={() => { onReplyAll?.(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                className={cn("w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2", hiddenPriorities.has(2) ? "" : "sm:hidden")}
-              >
-                <ReplyAll className="w-4 h-4" />
-                {t('reply_all')}
-              </button>
-              {/* Overflow: forward */}
-              <button
-                role="menuitem"
-                onClick={() => { onForward?.(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                className={cn("w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2", hiddenPriorities.has(3) ? "" : "sm:hidden")}
-              >
-                <Forward className="w-4 h-4" />
-                {t('forward')}
-              </button>
-              {/* Overflow: archive */}
-              {archiveActionEnabled && (
-                <button
-                  role="menuitem"
-                  onClick={() => { onArchive?.(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                  className={cn("w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2", hiddenPriorities.has(4) ? "" : "sm:hidden")}
-                >
-                  <Archive className="w-4 h-4" />
-                  {t('archive')}
-                </button>
-              )}
-              {/* Overflow: move to folder - submenu */}
-              {moveTree.length > 0 && onMoveToMailbox && (
-                <div className={cn("relative", hiddenPriorities.has(5) ? "" : "sm:hidden")}
-                  onMouseEnter={() => setMoreMenuSub('move')}
-                  onMouseLeave={() => setMoreMenuSub(null)}
-                >
-                  <button
-                    ref={(el) => { moreEntryRefs.current.move = el; }}
-                    role="menuitem"
-                    aria-haspopup="menu"
-                    aria-expanded={moreMenuSub === 'move'}
-                    onClick={() => { if (moreMenuSub === 'move') leaveMoreMenuSub(); else setMoreMenuSub('move'); }}
-                    className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-                  >
-                    <FolderInput className="w-4 h-4" />
-                    <span className="flex-1">{t('move_to')}</span>
-                    <ChevronRight className="w-3 h-3 text-muted-foreground" />
-                  </button>
-                  {moreMenuSub === 'move' && (
-                    <SubMenuPanel
-                      side="start"
-                      role="menu"
-                      aria-label={t('move_to')}
-                      className="py-1 w-48 max-h-72 overflow-y-auto bg-background rounded-md shadow-lg border border-border"
-                    >
-                      <MoveTargetList
-                        tree={moveTree}
-                        targetIds={moveTargetIds}
-                        onPick={(mailboxId) => { onMoveToMailbox(mailboxId); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                      />
-                    </SubMenuPanel>
-                  )}
-                </div>
-              )}
-              {onRemoveFromFolder && (
-                <button
-                  role="menuitem"
-                  data-testid="viewer-remove-from-folder"
-                  onClick={() => { onRemoveFromFolder(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                  className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-                >
-                  <FolderX className="w-4 h-4" />
-                  {tContextMenu('remove_from_folder')}
-                </button>
-              )}
-              {/* Overflow: tag - submenu */}
-              {(emailKeywords.length > 0 || currentTagIds.length > 0) && (
-                <div className={cn("relative", hiddenPriorities.has(6) ? "" : "sm:hidden")}
-                  onMouseEnter={() => setMoreMenuSub('tag')}
-                  onMouseLeave={() => setMoreMenuSub(null)}
-                >
-                  <button
-                    ref={(el) => { moreEntryRefs.current.tag = el; }}
-                    role="menuitem"
-                    aria-haspopup="menu"
-                    aria-expanded={moreMenuSub === 'tag'}
-                    onClick={() => { if (moreMenuSub === 'tag') leaveMoreMenuSub(); else setMoreMenuSub('tag'); }}
-                    className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-                  >
-                    <Tag className="w-4 h-4" />
-                    <span className="flex-1">{t('tag')}</span>
-                    <ChevronRight className="w-3 h-3 text-muted-foreground" />
-                  </button>
-                  {moreMenuSub === 'tag' && (
-                    <SubMenuPanel
-                      side="start"
-                      role="menu"
-                      aria-label={t('tag')}
-                      className="py-1 w-56 bg-background rounded-md shadow-lg border border-border"
-                    >
-                      <TagPicker
-                        selectedIds={currentTagIds}
-                        onToggle={(tagId) => { if (email) onSetTag?.(email.id, tagId); }}
-                      />
-                    </SubMenuPanel>
-                  )}
-                </div>
-              )}
-              {/* Rules - sub-view of one-click filter rules */}
-              {rulesAvailability === 'available' && rulesTarget && email && (
-                <div className="relative"
-                  onMouseEnter={() => setMoreMenuSub('rules')}
-                  onMouseLeave={() => setMoreMenuSub(null)}
-                >
-                  <button
-                    ref={(el) => { moreEntryRefs.current.rules = el; }}
-                    role="menuitem"
-                    aria-haspopup="menu"
-                    aria-expanded={moreMenuSub === 'rules'}
-                    data-testid="viewer-rules"
-                    onClick={() => { if (moreMenuSub === 'rules') leaveMoreMenuSub(); else setMoreMenuSub('rules'); }}
-                    className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-                  >
-                    <Filter className="w-4 h-4" />
-                    <span className="flex-1">{tContextMenu('rules.title')}</span>
-                    <ChevronRight className="w-3 h-3 text-muted-foreground" />
-                  </button>
-                  {moreMenuSub === 'rules' && (
-                    <SubMenuPanel
-                      side="start"
-                      role="menu"
-                      aria-label={tContextMenu('rules.title')}
-                      className="py-1 w-72 max-h-80 overflow-y-auto bg-background rounded-md shadow-lg border border-border"
-                    >
-                      <RulesPanel email={email} target={rulesTarget} variant="desktop" onDone={closeMoreMenu} />
-                    </SubMenuPanel>
-                  )}
-                </div>
-              )}
-              {/* Overflow: spam */}
-              {spamApplicable && (onMarkAsSpam || onUndoSpam) && (
-                <button
-                  role="menuitem"
-                  onClick={() => { (isInJunkFolder ? onUndoSpam : onMarkAsSpam)?.(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                  className={cn("w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2", hiddenPriorities.has(7) ? "" : "sm:hidden")}
-                >
-                  {isInJunkFolder ? (
-                    <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  ) : (
-                    <ShieldAlert className="h-4 w-4 text-red-600 dark:text-red-400" />
-                  )}
-                  {isInJunkFolder ? t('spam.not_spam_title') : t('spam.button_title')}
-                </button>
-              )}
-              {/* Overflow: toggle read */}
-              <button
-                role="menuitem"
-                onClick={() => { onMarkAsRead?.(email.id, isUnread); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                className={cn("w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2", hiddenPriorities.has(8) ? "" : "sm:hidden")}
-              >
-                {isUnread ? <MailOpen className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
-                {isUnread ? t('mark_read') : t('mark_unread')}
-              </button>
-              {/* Overflow: print */}
-              <button
-                role="menuitem"
-                onClick={() => { handlePrint(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                className={cn("w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2", hiddenPriorities.has(9) ? "" : "sm:hidden")}
-              >
-                <Printer className="w-4 h-4" />
-                {t('print')}
-              </button>
-              {/* Overflow: view source */}
-              <button
-                role="menuitem"
-                onClick={() => { setShowSourceModal(true); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                className={cn("w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2", hiddenPriorities.has(10) ? "" : "sm:hidden")}
-              >
-                <Code className="w-4 h-4" />
-                {t('view_source')}
-              </button>
-              {/* Overflow: dark/light mode toggle */}
-              {effectiveEmailContent.isHtml && (
-                <button
-                  role="menuitem"
-                  onClick={() => { setEmailViewDarkOverride(prev => prev === null ? !(resolvedTheme === 'dark') : !prev); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                  className={cn("w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2", hiddenPriorities.has(11) ? "" : "sm:hidden")}
-                >
-                  {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                  {isDark ? t('view_in_light_mode') : t('view_in_dark_mode')}
-                </button>
-              )}
-              <div className="h-px bg-border my-1" />
-              {/* Permalink to this message (#733) */}
-              {email && (
-                <button
-                  role="menuitem"
-                  onClick={() => {
-                    void copyLink(buildMailPath({ mailboxId: null, emailId: email.id, threadId: null, ...emailLinkSource(email) }));
-                    setMoreMenuOpen(false);
-                    setMoreMenuSub(null);
-                  }}
-                  className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-                >
-                  <LinkIcon className="w-4 h-4" />
-                  {tDeepLink('copy_message')}
-                </button>
-              )}
-              {/* The conversation's link, as the row's menu has it (R6). */}
-              {email?.threadId && (
-                <button
-                  role="menuitem"
-                  data-testid="more-copy-conversation-link"
-                  onClick={() => {
-                    void copyLink(buildMailPath({ mailboxId: null, emailId: null, threadId: email.threadId!, ...emailLinkSource(email) }));
-                    setMoreMenuOpen(false);
-                    setMoreMenuSub(null);
-                  }}
-                  className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-                >
-                  <MessagesSquare className="w-4 h-4" />
-                  {tDeepLink('copy_conversation')}
-                </button>
-              )}
-              {/* Forward as attachment */}
-              {onForwardAsAttachment && email?.blobId && (
-                <button
-                  role="menuitem"
-                  onClick={() => { onForwardAsAttachment(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                  className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-                >
-                  <Paperclip className="w-4 h-4" />
-                  {t('forward_as_attachment')}
-                </button>
-              )}
-              {/* Export email */}
-              <button
-                role="menuitem"
-                onClick={() => { handleExportEmail(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                {t('export_email')}
-              </button>
-              {/* Import email */}
-              <button
-                role="menuitem"
-                onClick={() => { handleImportEmail(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-              >
-                <Upload className="w-4 h-4" />
-                {t('import_email')}
-              </button>
-              {onShowShortcuts && (
-                <button
-                  role="menuitem"
-                  onClick={() => { onShowShortcuts(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                  className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-                >
-                  <Keyboard className="w-4 h-4" />
-                  {t('keyboard_shortcuts')}
-                </button>
-              )}
-            </div>
+          {readerMenu.contextMenu.isOpen && !isMobile && (
+            <ReaderMoreMenu
+              menu={readerMenu}
+              options={readerActionOptions}
+              label={t('more_actions')}
+              mailboxes={mailboxes}
+              selectedMailbox={selectedMailbox}
+              onMoveToMailbox={onMoveToMailbox}
+              onSetTag={onSetTag ? (tagId) => onSetTag(email.id, tagId) : undefined}
+            />
           )}
         </div>
         {/* The plugin side panel: shown or hidden for every message alike. */}
@@ -4574,191 +4553,24 @@ export function EmailViewer({
           </IconButton>
         </div>
         <div ref={mobileSubListRef} className="flex-1 overflow-y-auto py-2">
-          {moreMenuSub === null && (
-            <>
-              {/* Star toggle */}
-              <button
-                role="menuitem"
-                onClick={() => { onToggleStar?.(); setMoreMenuOpen(false); }}
-                className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-              >
-                <Star className={cn("w-5 h-5", isStarred && "fill-amber-400 text-amber-400")} />
-                {isStarred ? t('tooltips.unstar') : t('tooltips.star')}
-              </button>
-              {/* Move to folder (opens sub-view). The toolbar's own Move button
-                  is the first thing dropped when the toolbar runs out of room,
-                  and on mobile the overflow has nowhere else to go - without
-                  this row a narrow screen loses the action entirely (#779). */}
-              {moveTree.length > 0 && onMoveToMailbox && (
-                <button
-                  ref={(el) => { moreEntryRefs.current.move = el; }}
-                  role="menuitem"
-                  aria-haspopup="menu"
-                  onClick={() => setMoreMenuSub('move')}
-                  className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-                >
-                  <FolderInput className="w-5 h-5" />
-                  <span className="flex-1">{t('move_to')}</span>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </button>
-              )}
-              {onRemoveFromFolder && (
-                <button
-                  role="menuitem"
-                  onClick={() => { onRemoveFromFolder(); setMoreMenuOpen(false); }}
-                  className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-                >
-                  <FolderX className="w-5 h-5" />
-                  {tContextMenu('remove_from_folder')}
-                </button>
-              )}
-              {/* Tag (opens sub-view) */}
-              {(emailKeywords.length > 0 || currentTagIds.length > 0) && (
-                <button
-                  ref={(el) => { moreEntryRefs.current.tag = el; }}
-                  role="menuitem"
-                  aria-haspopup="menu"
-                  onClick={() => setMoreMenuSub('tag')}
-                  className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-                >
-                  <Tag className="w-5 h-5" />
-                  <span className="flex-1">{t('tag')}</span>
-                  {currentTagIds.length > 0 && (
-                    <div className="flex -space-x-1 me-1">
-                      {sortedTagIds.slice(0, 3).map((tagId) => (
-                        <span
-                          key={tagId}
-                          className={cn("w-3 h-3 rounded-full border border-background", tagColor(tagId).dot)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </button>
-              )}
-              {/* Rules (opens sub-view) */}
-              {rulesAvailability === 'available' && rulesTarget && email && (
-                <button
-                  ref={(el) => { moreEntryRefs.current.rules = el; }}
-                  role="menuitem"
-                  aria-haspopup="menu"
-                  data-testid="viewer-rules"
-                  onClick={() => setMoreMenuSub('rules')}
-                  className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-                >
-                  <Filter className="w-5 h-5" />
-                  <span className="flex-1">{tContextMenu('rules.title')}</span>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </button>
-              )}
-              <button
-                role="menuitem"
-                onClick={() => { handlePrint(); setMoreMenuOpen(false); }}
-                className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-              >
-                <Printer className="w-5 h-5" />
-                {t('print')}
-              </button>
-              <button
-                role="menuitem"
-                onClick={() => { setShowSourceModal(true); setMoreMenuOpen(false); }}
-                className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-              >
-                <Code className="w-5 h-5" />
-                {t('view_source')}
-              </button>
-              {/* The links the row's menu and the desktop ⋮ offer (R6). */}
-              {email && (
-                <button
-                  role="menuitem"
-                  data-testid="panel-copy-message-link"
-                  onClick={() => {
-                    void copyLink(buildMailPath({ mailboxId: null, emailId: email.id, threadId: null, ...emailLinkSource(email) }));
-                    setMoreMenuOpen(false);
-                  }}
-                  className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-                >
-                  <LinkIcon className="w-5 h-5" />
-                  {tDeepLink('copy_message')}
-                </button>
-              )}
-              {email?.threadId && (
-                <button
-                  role="menuitem"
-                  onClick={() => {
-                    void copyLink(buildMailPath({ mailboxId: null, emailId: null, threadId: email.threadId!, ...emailLinkSource(email) }));
-                    setMoreMenuOpen(false);
-                  }}
-                  className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-                >
-                  <MessagesSquare className="w-5 h-5" />
-                  {tDeepLink('copy_conversation')}
-                </button>
-              )}
-              {effectiveEmailContent.isHtml && (
-                <button
-                  role="menuitem"
-                  onClick={() => { setEmailViewDarkOverride(prev => prev === null ? !(resolvedTheme === 'dark') : !prev); setMoreMenuOpen(false); }}
-                  className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-                >
-                  {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                  {isDark ? t('view_in_light_mode') : t('view_in_dark_mode')}
-                </button>
-              )}
-              <div className="h-px bg-border my-1" />
-              {onForwardAsAttachment && email?.blobId && (
-                <button
-                  role="menuitem"
-                  onClick={() => { onForwardAsAttachment(); setMoreMenuOpen(false); }}
-                  className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-                >
-                  <Paperclip className="w-5 h-5" />
-                  {t('forward_as_attachment')}
-                </button>
-              )}
-              <button
-                role="menuitem"
-                onClick={() => { handleExportEmail(); setMoreMenuOpen(false); }}
-                className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-              >
-                <Download className="w-5 h-5" />
-                {t('export_email')}
-              </button>
-              <button
-                role="menuitem"
-                onClick={() => { handleImportEmail(); setMoreMenuOpen(false); }}
-                className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-              >
-                <Upload className="w-5 h-5" />
-                {t('import_email')}
-              </button>
-              {email && (
-                <PluginPanelEntries
-                  surface="reader-actions"
-                  context={readerActionContext}
-                  mailboxRole={currentMailboxRole ?? null}
-                  onRan={() => setMoreMenuOpen(false)}
-                />
-              )}
-            </>
-          )}
-          {moreMenuSub === 'move' && moveTree.length > 0 && onMoveToMailbox && (
-            <MoveTargetList
-              variant="panel"
-              tree={moveTree}
-              targetIds={moveTargetIds}
-              onPick={(mailboxId) => { onMoveToMailbox(mailboxId); setMoreMenuOpen(false); setMoreMenuSub(null); }}
+          {/* Mounted from the first open on, so it doesn't cost a message
+              open and the panel isn't empty while it slides out. */}
+          {moreMenuSlideEnabled && (
+            <ReaderMorePanelBody
+              options={readerActionOptions}
+              sub={moreMenuSub}
+              openSub={setMoreMenuSub}
+              close={closeMoreMenu}
+              entryRefs={moreEntryRefs}
+              moveTree={moveTree}
+              moveTargetIds={moveTargetIds}
+              onMoveToMailbox={onMoveToMailbox}
+              currentTagIds={currentTagIds}
+              sortedTagIds={sortedTagIds}
+              onToggleTag={(tagId) => onSetTag?.(email.id, tagId)}
+              rulesTarget={rulesAvailability === 'available' ? rulesTarget ?? null : null}
+              pluginContext={readerActionContext}
             />
-          )}
-          {moreMenuSub === 'tag' && (
-            <TagPicker
-              touch
-              selectedIds={currentTagIds}
-              onToggle={(tagId) => { if (email) onSetTag?.(email.id, tagId); }}
-            />
-          )}
-          {moreMenuSub === 'rules' && rulesAvailability === 'available' && rulesTarget && email && (
-            <RulesPanel email={email} target={rulesTarget} variant="mobile" onDone={closeMoreMenu} />
           )}
         </div>
       </div>
@@ -4850,7 +4662,7 @@ export function EmailViewer({
               <div className="hidden lg:flex items-center flex-shrink-0 -me-2" data-mv-subject-actions="">
                 <button
                   type="button"
-                  onClick={handlePrint}
+                  onClick={() => handlePrint()}
                   className="grid place-items-center w-10 h-10 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                   title={t('print')}
                   aria-label={t('print')}

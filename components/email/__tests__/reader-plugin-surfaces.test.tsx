@@ -448,6 +448,8 @@ describe('reader-actions', () => {
     viewer(textMail('Hola'));
 
     expect(screen.queryByRole('button', { name: 'Translate' })).toBeNull();
+    // The panel's entries are there from its first open on.
+    fireEvent.click(screen.getByRole('button', { name: 'more_actions' }));
     const item = screen.getByRole('menuitem', { name: 'Translate', hidden: true });
     await act(async () => { fireEvent.click(item); });
     expect(dispatch).toHaveBeenCalledWith('p', 'reader-actions', 'translate', { emailId: 'e1' });

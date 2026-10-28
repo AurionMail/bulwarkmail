@@ -149,6 +149,10 @@ describe('MvListToolbar overflow menu', () => {
     open();
 
     expect(screen.getByText('mark_all_folders_read')).toBeInTheDocument();
+    // The app's one menu (R6): the ContextMenu, in a portal, with its rows.
+    const menu = screen.getByRole('menu');
+    expect(menu.parentElement).toBe(document.body);
+    expect(screen.getByRole('menuitem', { name: 'mark_all_folders_read' }).className).toContain('pointer-coarse:min-h-11');
   });
 
   it('withholds emptying the folder outside spam and the bin', () => {

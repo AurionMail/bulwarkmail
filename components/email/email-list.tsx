@@ -8,7 +8,9 @@ import type { Attachment } from "@/lib/jmap/types";
 import type { LoadListAttachments } from "@/lib/list-attachments";
 import { listRowShowsChips } from "./attachment-chips";
 import { listVerificationCode } from "@/lib/verification-code";
-import { EmailContextMenu, type CopyTargetAccount } from "./email-context-menu";
+import { EmailContextMenu } from "./email-context-menu";
+import { ViewSourceDialog } from "./view-source-dialog";
+import { useCopyToAccount, useEmailExport, requestPrint } from "@/hooks/use-message-file-actions";
 import { BatchTagButton } from "./batch-tag-button";
 import { cn, cleanPreview } from "@/lib/utils";
 import { Trash2, Mail, MailX, MailOpen, Loader2, SearchX, AlertTriangle, CalendarClock, ShieldCheck, ShieldAlert, Archive, MoreVertical, X, FolderX } from "@/components/icons";
@@ -19,11 +21,10 @@ import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useArchiveActionEnabled } from "@/lib/archive-gate";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder, restoreBatchesForSelection, isAggregateListView, type ListRow } from "@/stores/email-store";
+import { useEmailStore, resolveEmailBlobContext, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder, restoreBatchesForSelection, isAggregateListView, type ListRow } from "@/stores/email-store";
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { useShallow } from "zustand/react/shallow";
 import { useAuthStore } from "@/stores/auth-store";
-import { useAccountStore } from "@/stores/account-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useListRowShape } from "@/hooks/use-list-row-shape";
 import { useUIStore } from "@/stores/ui-store";
@@ -369,32 +370,10 @@ export function EmailList({
 
   // "Copy to" lists the folders of the other connected accounts. Only with
   // more than one account connected; the menu's own account is left out.
-  const accounts = useAccountStore((state) => state.accounts);
-  const accountMailboxes = useEmailStore((state) => state.accountMailboxes);
-  const fetchAccountMailboxes = useEmailStore((state) => state.fetchAccountMailboxes);
-  const copyEmailsToAccount = useEmailStore((state) => state.copyEmailsToAccount);
-  const copySourceLogin = contextMenuEmail
-    ? contextMenuEmail.sourceClientAccountId ?? viewingAccountId ?? activeAccountId
-    : null;
-  const copyAccounts = useMemo(() => {
-    if (!contextMenu.isOpen) return [];
-    const connected = useAuthStore.getState().getAllConnectedClients();
-    if (connected.size < 2) return [];
-    return accounts.filter((account) => account.id !== copySourceLogin && connected.has(account.id));
-  }, [contextMenu.isOpen, accounts, copySourceLogin]);
-  useEffect(() => {
-    for (const account of copyAccounts) {
-      if (accountMailboxes[account.id]) continue;
-      const accountClient = useAuthStore.getState().getClientForAccount(account.id);
-      if (accountClient) void fetchAccountMailboxes(accountClient, account.id);
-    }
-  }, [copyAccounts, accountMailboxes, fetchAccountMailboxes]);
-  const copyTargets = useMemo<CopyTargetAccount[]>(
-    () => copyAccounts
-      .filter((account) => accountMailboxes[account.id])
-      .map((account) => ({ accountId: account.id, label: account.label || account.email || account.id, mailboxes: accountMailboxes[account.id] })),
-    [copyAccounts, accountMailboxes],
-  );
+  const { copyTargets, copyToAccount } = useCopyToAccount(contextMenuEmail, contextMenu.isOpen);
+  // Export, Print and View source from the row (R6), as the reader has them.
+  const exportEmail = useEmailExport();
+  const [sourceEmail, setSourceEmail] = useState<Email | null>(null);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const parentRef = useRef<HTMLDivElement>(null);
@@ -1228,17 +1207,26 @@ export function EmailList({
           onRescheduleScheduled={onRescheduleScheduled ? () => onRescheduleScheduled(contextMenuEmail!) : undefined}
           copyTargets={copyTargets}
           onCopyToAccount={async (accountId, mailboxId) => {
-            // Pass the emails, not their ids: an id alone cannot say which
-            // account's namesake to copy.
-            const ids = selectedEmailKeys.has(emailKeyFor(contextMenuEmail!)) && selectedEmailKeys.size > 1
+            const emails = selectedEmailKeys.has(emailKeyFor(contextMenuEmail!)) && selectedEmailKeys.size > 1
               ? resolveSelectedEmails(useEmailStore.getState())
               : [contextMenuEmail!];
-            const target = accountMailboxes[accountId]?.find((mb) => mb.id === mailboxId);
-            await runBatchEmailAction(() => copyEmailsToAccount(ids, accountId, target?.originalId ?? mailboxId), {
-              success: tNotifications('emails_copied', { count: ids.length }),
-              error: tNotifications('copy_failed'),
+            await copyToAccount(emails, accountId, mailboxId);
+          }}
+          onExport={() => {
+            const target = contextMenuEmail!;
+            void exportEmail(target, {
+              onArchive: onArchive ? () => onArchive(target) : undefined,
+              onDelete: onDelete ? () => onDelete(target) : undefined,
+              archiveEnabled: archiveActionEnabled,
             });
           }}
+          onPrint={onEmailSelect ? () => {
+            // The print window opens in the click; the reader fills it once
+            // the message is open.
+            const target = contextMenuEmail!;
+            if (requestPrint(emailKeyFor(target))) onEmailSelect(target);
+          } : undefined}
+          onViewSource={() => setSourceEmail(contextMenuEmail)}
           onBatchMarkAsRead={(read) => markSelectionRead(read)}
           batchTagIds={selectionTags.all}
           batchPartialTagIds={selectionTags.some}
@@ -1258,6 +1246,23 @@ export function EmailList({
       )}
 
       <ConfirmDialog {...confirmDialogProps} />
+      {sourceEmail && (() => {
+        const source = resolveEmailBlobContext(sourceEmail, client);
+        return (
+          <ViewSourceDialog
+            isOpen
+            onClose={() => setSourceEmail(null)}
+            blobId={sourceEmail.blobId}
+            client={source.client}
+            accountId={source.accountId}
+            onDownload={() => void exportEmail(sourceEmail, {
+              onArchive: onArchive ? () => onArchive(sourceEmail) : undefined,
+              onDelete: onDelete ? () => onDelete(sourceEmail) : undefined,
+              archiveEnabled: archiveActionEnabled,
+            }, source)}
+          />
+        );
+      })()}
     </div>
     </TagDisplayContext.Provider>
   );

@@ -9,7 +9,7 @@ interface ContextMenuState<T> {
   data: T | null;
 }
 
-interface UseContextMenuReturn<T> {
+export interface UseContextMenuReturn<T> {
   contextMenu: ContextMenuState<T>;
   /**
    * Open from a contextmenu or click event. Opened by keyboard (a click

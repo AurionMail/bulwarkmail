@@ -5579,6 +5579,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     }}
                     onArchive={archiveActionEnabled ? () => handleArchive() : undefined}
                     onToggleStar={handleToggleStar}
+                    onTogglePinned={() => { if (selectedEmail) void handleTogglePinned(selectedEmail); }}
                     onSetTag={handleSetTag}
                     onMarkAsSpam={() => handleMarkAsSpam()}
                     onUndoSpam={() => handleUndoSpam()}
