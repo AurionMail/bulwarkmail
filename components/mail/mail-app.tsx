@@ -81,7 +81,8 @@ import {
 } from "@/components/error";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ScheduleSendDialog } from "@/components/email/schedule-send-dialog";
-import { MailSortMenu } from "@/components/email/mail-list-menus";
+import { MailSortMenu, MailFolderMenu, MailFolderMenuItems } from "@/components/email/mail-list-menus";
+import { ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { TotpReauthDialog } from "@/components/totp-reauth-dialog";
 import { DragDropProvider } from "@/contexts/drag-drop-context";
@@ -120,7 +121,7 @@ import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
 import { findDraftIdentityId, findReplyIdentityId, resolveComposeAccountEmail } from "@/lib/reply-identity";
 import { buildReplyRecipients, isSelfSent } from "@/lib/reply-recipients";
 import { useProMultiAccountIdentities } from "@/hooks/use-pro-multi-account-identities";
-import { Filter, ChevronDown, X, Paperclip, Star, Mail, MailOpen, RotateCcw, PenSquare, PenLine, CheckSquare, Square, AlertTriangle, ArrowLeft } from "@/components/icons";
+import { Filter, ChevronDown, X, Paperclip, Star, Mail, MailOpen, RotateCcw, PenSquare, PenLine, CheckSquare, Square, AlertTriangle, ArrowLeft, RefreshCw } from "@/components/icons";
 import { ResizeHandle } from "@/components/layout/resize-handle";
 import { Button } from "@/components/ui/button";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -1911,6 +1912,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const conversationRole = mailboxes.find(m => m.id === selectedMailbox)?.role ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined);
   const conversationInJunk = conversationRole === 'junk';
   const conversationSpamApplicable = !['sent', 'drafts', 'scheduled'].includes(conversationRole || '');
+  // Emptying is offered where it is the usual thing to do: Spam and Trash.
+  const folderIsEmptyable = conversationRole === 'junk' || conversationRole === 'trash';
   useEffect(() => {
     if (readingPaneEmpty && !tabletListVisible) setTabletListVisible(true);
   }, [readingPaneEmpty, tabletListVisible, setTabletListVisible]);
@@ -4824,13 +4827,39 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
               title={currentMailboxName}
               sidebarId={sidebarId}
               onOpenSearch={isMobile ? () => setMobileSearchOpen(true) : undefined}
-              searchPlaceholder={searchQuery || t('sidebar.search_placeholder_hint')}
+              // No "(press /)" on a phone: there is no key to press (R8).
+              searchPlaceholder={searchQuery || t('sidebar.search_placeholder')}
               searchActive={!!searchQuery}
               onClearSearch={handleClearSearch}
               onSelectAllInboxes={
                 allInboxesReachable ? () => handleMailboxSelect(UNIFIED_MAILBOX_IDS.inbox) : undefined
               }
               allInboxesSelected={allInboxesSelected}
+              // The list's own actions, which have no room in the phone bar:
+              // the list header's select-all, refresh and folder ⋮.
+              menuItems={isScheduledView ? undefined : (close) => (
+                <>
+                  <ContextMenuItem
+                    icon={CheckSquare}
+                    label={t('email_list.batch_actions.select_all')}
+                    disabled={activeEmails.length === 0}
+                    onClick={() => { close(); selectAllEmails(); }}
+                  />
+                  <ContextMenuItem
+                    icon={RefreshCw}
+                    label={tCommon('refresh')}
+                    disabled={!client || isManualRefreshing}
+                    onClick={() => { close(); void handleManualRefresh(); }}
+                  />
+                  <MailFolderMenuItems
+                    onMarkFolderRead={selectedMailbox ? () => handleMarkFolderRead(selectedMailbox) : undefined}
+                    onMarkAllFoldersRead={handleMarkAllFoldersRead}
+                    onEmptyFolder={folderIsEmptyable && selectedMailbox ? () => void handleEmptyFolderFromContextMenu(selectedMailbox) : undefined}
+                    onPicked={close}
+                  />
+                  <ContextMenuSeparator />
+                </>
+              )}
             />
 
             {/* Search Bar + Inline Advanced Filters. On phones this is not a
@@ -4854,7 +4883,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   >
                     <ArrowLeft className="h-5 w-5 rtl:-scale-x-100" />
                   </Button>
-                  <span className="font-medium truncate">{t('sidebar.search_placeholder_hint')}</span>
+                  <span className="font-medium truncate">{t('sidebar.search_placeholder')}</span>
                 </div>
               )}
               {mvShell ? (
@@ -4955,6 +4984,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   >
                     <RotateCcw className={cn("w-4 h-4", isManualRefreshing && "animate-spin")} />
                   </button>
+                  {/* The folder's actions, as the Mountain View list ⋮ has them. */}
+                  <MailFolderMenu
+                    disabled={isScheduledView}
+                    className="flex-shrink-0 text-muted-foreground"
+                    onMarkFolderRead={selectedMailbox ? () => handleMarkFolderRead(selectedMailbox) : undefined}
+                    onMarkAllFoldersRead={handleMarkAllFoldersRead}
+                    onEmptyFolder={folderIsEmptyable && selectedMailbox ? () => void handleEmptyFolderFromContextMenu(selectedMailbox) : undefined}
+                  />
                   {/* Plugin buttons (top-bar-actions). On phones they sit in
                       the header's overflow menu instead (MobileHeader). */}
                   {!isMobile && (

@@ -261,6 +261,7 @@
       "selected_messages": "{count, plural, one {דוא״ל 1} other {# דוא״ל}} שנבחרו"
     },
     "skip_to_list": "דילוג לרשימת ההודעות",
+    "folder_actions": "פעולות תיקייה",
     "sort": {
       "title": "מיון",
       "newest": "החדשות ביותר קודם",

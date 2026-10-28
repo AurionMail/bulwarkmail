@@ -1,9 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { ArrowUpDown, Check } from "@/components/icons";
+import { ArrowUpDown, Check, CheckCheck, FolderX, MailOpen, MoreVertical } from "@/components/icons";
 import { IconButton } from "@/components/ui/icon-button";
-import { ContextMenu, ContextMenuSeparator } from "@/components/ui/context-menu";
+import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { useSettingsStore, getMessageListOrderFor } from "@/stores/settings-store";
 import { usePolicyStore } from "@/stores/policy-store";
@@ -134,5 +134,97 @@ function SortItem({ label, checked, onClick, testId }: { label: string; checked:
       </span>
       <span className="flex-1">{label}</span>
     </button>
+  );
+}
+
+/**
+ * The list header's ⋮: what the Mountain View list ⋮ offers for the folder
+ * (MAIL-29). On the phone the same entries sit in the header's ⋮.
+ */
+export function MailFolderMenu({
+  onMarkFolderRead,
+  onMarkAllFoldersRead,
+  onEmptyFolder,
+  disabled,
+  className,
+}: {
+  onMarkFolderRead?: () => void;
+  onMarkAllFoldersRead?: () => void;
+  /** Only where emptying is the usual thing to do: Spam and Trash. */
+  onEmptyFolder?: () => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  const t = useTranslations("email_list");
+  const menu = useContextMenu<null>();
+  return (
+    <>
+      <IconButton
+        label={t("folder_actions")}
+        aria-haspopup="menu"
+        aria-expanded={menu.contextMenu.isOpen}
+        disabled={disabled}
+        className={cn(menu.contextMenu.isOpen && "bg-accent", className)}
+        data-testid="mail-folder-menu"
+        onMouseDown={(e) => { if (menu.contextMenu.isOpen) e.stopPropagation(); }}
+        onClick={(e) => {
+          if (menu.contextMenu.isOpen) menu.closeContextMenu();
+          else menu.openContextMenuFrom(e.currentTarget, null, "end");
+        }}
+      >
+        <MoreVertical />
+      </IconButton>
+      <ContextMenu ref={menu.menuRef} isOpen={menu.contextMenu.isOpen} position={menu.contextMenu.position} onClose={menu.closeContextMenu}>
+        <MailFolderMenuItems
+          onMarkFolderRead={onMarkFolderRead}
+          onMarkAllFoldersRead={onMarkAllFoldersRead}
+          onEmptyFolder={onEmptyFolder}
+          onPicked={menu.closeContextMenu}
+        />
+      </ContextMenu>
+    </>
+  );
+}
+
+/** The folder entries, for the list ⋮ and the phone header's ⋮. */
+export function MailFolderMenuItems({
+  onMarkFolderRead,
+  onMarkAllFoldersRead,
+  onEmptyFolder,
+  onPicked,
+}: {
+  onMarkFolderRead?: () => void;
+  onMarkAllFoldersRead?: () => void;
+  onEmptyFolder?: () => void;
+  onPicked: () => void;
+}) {
+  const tFolder = useTranslations("mailbox_context_menu");
+  return (
+    <>
+      <ContextMenuItem
+        icon={MailOpen}
+        label={tFolder("mark_folder_read")}
+        disabled={!onMarkFolderRead}
+        onClick={() => { onPicked(); onMarkFolderRead?.(); }}
+      />
+      {onMarkAllFoldersRead && (
+        <ContextMenuItem
+          icon={CheckCheck}
+          label={tFolder("mark_all_folders_read")}
+          onClick={() => { onPicked(); onMarkAllFoldersRead(); }}
+        />
+      )}
+      {onEmptyFolder && (
+        <>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            icon={FolderX}
+            label={tFolder("empty_folder")}
+            destructive
+            onClick={() => { onPicked(); onEmptyFolder(); }}
+          />
+        </>
+      )}
+    </>
   );
 }

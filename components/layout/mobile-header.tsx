@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Menu, ArrowLeft, Plus, Search, X, MoreVertical, Terminal, Bell } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useUIStore } from "@/stores/ui-store";
@@ -24,7 +24,7 @@ const TOP_BAR_CONTEXT: Record<string, unknown> = {};
  * command palette (no Ctrl+K on a phone) and what the desktop top bar shows
  * as buttons (plugin top-bar-actions) and has no room for here.
  */
-function MobileHeaderMenu() {
+function MobileHeaderMenu({ appItems }: { appItems?: (close: () => void) => ReactNode }) {
   const t = useTranslations('top_bar');
   const tPalette = useTranslations('command_palette');
   const tNotifications = useTranslations('notification_center');
@@ -70,6 +70,8 @@ function MobileHeaderMenu() {
           aria-label={t('more')}
           className="absolute end-0 top-full mt-1 z-50 min-w-[200px] max-w-[calc(100vw-2rem)] rounded-md border border-border bg-background py-1 shadow-lg"
         >
+          {/* The app's own entries first, e.g. Mail's Select all and Refresh. */}
+          {appItems?.(close)}
           <ContextMenuItem
             icon={Bell}
             label={tNotifications('title')}
@@ -113,6 +115,8 @@ interface MobileHeaderProps {
   /** Mountain View: opens the merged across-accounts inbox from the avatar's popover. */
   onSelectAllInboxes?: () => void;
   allInboxesSelected?: boolean;
+  /** The app's entries at the top of the ⋮ menu; `close` shuts the menu. */
+  menuItems?: (close: () => void) => ReactNode;
 }
 
 export function MobileHeader({
@@ -129,6 +133,7 @@ export function MobileHeader({
   searchActive = false,
   onSelectAllInboxes,
   allInboxesSelected = false,
+  menuItems,
 }: MobileHeaderProps) {
   const t = useTranslations('sidebar');
   const { toggleSidebar, goBack, sidebarOpen } = useUIStore(useShallow((state) => ({ toggleSidebar: state.toggleSidebar, goBack: state.goBack, sidebarOpen: state.sidebarOpen })));
@@ -246,7 +251,7 @@ export function MobileHeader({
           </Button>
         )}
 
-        <MobileHeaderMenu />
+        <MobileHeaderMenu appItems={menuItems} />
 
         {/* Which account you are reading is otherwise only visible after
             opening the drawer. Last in this group so it sits on the far
