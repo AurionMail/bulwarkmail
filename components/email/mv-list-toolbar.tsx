@@ -11,13 +11,13 @@ import {
   Mail,
   MailOpen,
   MoreVertical,
-  RotateCcw,
   Search,
   ShieldAlert,
   ShieldCheck,
   Square,
   Tag,
   Trash2,
+  RefreshCw,
 } from "@/components/icons";
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/stores/auth-store";
@@ -425,7 +425,7 @@ export function MvListToolbar({
       </button>
 
       <ToolbarButton
-        icon={RotateCcw}
+        icon={RefreshCw}
         label={tCommon("refresh")}
         onClick={onRefresh}
         disabled={!client || isRefreshing}

@@ -7,7 +7,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
-import { iconForName, MoreHorizontal, Puzzle } from "@/components/icons";
+import { iconForName, MoreVertical, Puzzle } from "@/components/icons";
 import { ContextMenu } from "@/components/ui/context-menu";
 import { PluginActions, usePluginActions } from "@/components/plugins/plugin-actions";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
@@ -68,7 +68,7 @@ export function AttachmentPluginMenu({
         data-attachment-plugin-menu=""
         onClick={(e) => openContextMenu(e, true)}
       >
-        <MoreHorizontal className={cn(iconClassName, "text-foreground")} />
+        <MoreVertical className={cn(iconClassName, "text-foreground")} />
       </button>
       <ContextMenu ref={menuRef} isOpen={contextMenu.isOpen} position={contextMenu.position} onClose={closeContextMenu}>
         <PluginActions

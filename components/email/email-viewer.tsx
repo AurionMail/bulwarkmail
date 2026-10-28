@@ -91,7 +91,6 @@ import {
   Sun,
   Upload,
   Moon,
-  EditIcon,
   PlayCircle,
   PenSquare,
   CalendarClock,
@@ -100,6 +99,8 @@ import {
   Maximize2,
   Minimize2,
   Filter,
+  ArrowLeft,
+  Pencil,
 } from "@/components/icons";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
@@ -547,7 +548,7 @@ export function ContactSidebarPanel({
                 className="flex-1 min-w-0 gap-2"
                 title={t('contact_sidebar.action_edit_title')}
               >
-                <EditIcon className="w-4 h-4 shrink-0" />
+                <Pencil className="w-4 h-4 shrink-0" />
                 <span className="truncate">{tCommon('edit')}</span>
               </Button>
             )}
@@ -3807,7 +3808,7 @@ export function EmailViewer({
             className="h-9 w-9 flex-shrink-0 -ms-1"
             aria-label={t('back_to_list')}
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5" />
           </Button>
         )}
         {showBackButton && mvMobileViewer && (
@@ -3861,7 +3862,7 @@ export function EmailViewer({
               {showToolbarLabels && <span className="hidden sm:inline text-sm">{t('reschedule_send')}</span>}
             </Button>
             <Button variant="ghost" size="sm" onClick={onCancelScheduledForEdit} className="hidden sm:flex sm:h-8 sm:gap-1.5 sm:py-0" title={email.isSmimeScheduled ? t('cancel_and_compose_again') : t('cancel_and_edit')}>
-              <EditIcon className="w-4 h-4" />
+              <Pencil className="w-4 h-4" />
               {showToolbarLabels && <span className="hidden sm:inline text-sm">{email.isSmimeScheduled ? t('cancel_and_compose_again') : t('cancel_and_edit')}</span>}
             </Button>
             {onCancelScheduledSend && !email.isSmimeScheduled && (
@@ -3881,7 +3882,7 @@ export function EmailViewer({
             className="sm:flex sm:flex-row sm:h-8 sm:gap-1.5 sm:py-0"
             title={t('tooltips.edit_draft')}
           >
-            <EditIcon className="w-4 h-4" />
+            <Pencil className="w-4 h-4" />
             <span className="text-sm">{t('edit_draft')}</span>
           </Button>
         )}
@@ -4036,12 +4037,12 @@ export function EmailViewer({
               "flex-col items-center gap-0.5 h-auto py-1.5 px-2 sm:flex-row sm:h-8 sm:gap-1.5 sm:py-0",
               mvViewer
                 ? "order-2"
-                : isInJunkFolder ? "hover:bg-green-50 dark:hover:bg-green-950/30" : "hover:bg-red-50 dark:hover:bg-red-950/30"
+                : isInJunkFolder ? "hover:bg-emerald-50 dark:hover:bg-emerald-950/30" : "hover:bg-red-50 dark:hover:bg-red-950/30"
             )}
             title={isInJunkFolder ? t('spam.not_spam_title') : t('spam.button_title')}
           >
             {isInJunkFolder ? (
-              <ShieldCheck className={cn("h-4 w-4", !mvViewer && "text-green-600 dark:text-green-400")} />
+              <ShieldCheck className={cn("h-4 w-4", !mvViewer && "text-emerald-600 dark:text-emerald-400")} />
             ) : (
               <ShieldAlert className={cn("h-4 w-4", !mvViewer && "text-red-600 dark:text-red-400")} />
             )}
@@ -4170,7 +4171,7 @@ export function EmailViewer({
                 onClick={() => { onToggleStar?.(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
                 className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
               >
-                <Star className={cn("w-4 h-4", isStarred && "fill-yellow-400 text-yellow-400")} />
+                <Star className={cn("w-4 h-4", isStarred && "fill-amber-400 text-amber-400")} />
                 {isStarred ? t('tooltips.unstar') : t('tooltips.star')}
               </button>
               {/* Overflow: reply */}
@@ -4328,7 +4329,7 @@ export function EmailViewer({
                   className={cn("w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2", hiddenPriorities.has(7) ? "" : "sm:hidden")}
                 >
                   {isInJunkFolder ? (
-                    <ShieldCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                   ) : (
                     <ShieldAlert className="h-4 w-4 text-red-600 dark:text-red-400" />
                   )}
@@ -4538,7 +4539,7 @@ export function EmailViewer({
               onClick={leaveMoreMenuSub}
               className="flex items-center gap-1 -ms-2 px-2 py-1 rounded hover:bg-muted text-sm font-semibold text-foreground"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ArrowLeft className="w-5 h-5" />
               {moreMenuSub === 'move' ? t('move_to') : moreMenuSub === 'rules' ? tContextMenu('rules.title') : t('tag')}
             </button>
           ) : (
@@ -4564,7 +4565,7 @@ export function EmailViewer({
                 onClick={() => { onToggleStar?.(); setMoreMenuOpen(false); }}
                 className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
               >
-                <Star className={cn("w-5 h-5", isStarred && "fill-yellow-400 text-yellow-400")} />
+                <Star className={cn("w-5 h-5", isStarred && "fill-amber-400 text-amber-400")} />
                 {isStarred ? t('tooltips.unstar') : t('tooltips.star')}
               </button>
               {/* Move to folder (opens sub-view). The toolbar's own Move button
@@ -4752,7 +4753,7 @@ export function EmailViewer({
                 className="h-11 w-11 lg:h-10 lg:w-10 flex-shrink-0 -ms-2"
                 aria-label={t('back_to_list')}
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ArrowLeft className="w-5 h-5" />
               </Button>
             )}
             <div className="flex-1 min-w-0">
@@ -4779,7 +4780,7 @@ export function EmailViewer({
                   >
                     <Star className={cn(
                       "w-4 h-4 lg:w-5 lg:h-5 transition-colors",
-                      isStarred ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/40"
+                      isStarred ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"
                     )} />
                   </button>
                 )}
@@ -5697,7 +5698,7 @@ export function EmailViewer({
                       {t('reschedule_send')}
                     </Button>
                     <Button size="sm" variant="outline" onClick={onCancelScheduledForEdit} className="gap-1.5">
-                      <EditIcon className="w-3.5 h-3.5" />
+                      <Pencil className="w-3.5 h-3.5" />
                       {email.isSmimeScheduled ? t('cancel_and_compose_again') : t('cancel_and_edit')}
                     </Button>
                     {onCancelScheduledSend && !email.isSmimeScheduled && (
@@ -6438,7 +6439,7 @@ export function EmailViewer({
               className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-h-[44px] grow shrink-0 basis-[64px] text-primary active:text-primary/80 transition-colors duration-150"
               aria-label={t('tooltips.edit_draft')}
             >
-              <EditIcon className="w-5 h-5" />
+              <Pencil className="w-5 h-5" />
               <span className="text-[10px] font-medium leading-tight truncate max-w-full">{t('edit_draft')}</span>
             </button>
           ) : (

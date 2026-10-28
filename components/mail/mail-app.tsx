@@ -120,7 +120,7 @@ import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
 import { findDraftIdentityId, findReplyIdentityId, resolveComposeAccountEmail } from "@/lib/reply-identity";
 import { buildReplyRecipients, isSelfSent } from "@/lib/reply-recipients";
 import { useProMultiAccountIdentities } from "@/hooks/use-pro-multi-account-identities";
-import { Filter, ChevronDown, X, Paperclip, Star, Mail, MailOpen, RotateCcw, PenSquare, PenLine, CheckSquare, Square, AlertTriangle, ArrowLeft, RefreshCw, Reply, ReplyAll, Forward, Archive, Trash2, FolderInput, ShieldAlert, ShieldCheck, Folder } from "@/components/icons";
+import { Filter, ChevronDown, X, Paperclip, Star, Mail, MailOpen, RotateCcw, PenSquare, CheckSquare, Square, AlertTriangle, ArrowLeft, RefreshCw, Reply, ReplyAll, Forward, Archive, Trash2, FolderInput, ShieldAlert, ShieldCheck, Folder } from "@/components/icons";
 import { useRegisterCommands } from "@/lib/command-registry";
 import { MoveToDialog } from "@/components/email/move-to-dialog";
 import { ResizeHandle } from "@/components/layout/resize-handle";
@@ -4692,7 +4692,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         )}
         {connectionLost && (
           <div className="flex items-center justify-center gap-2 bg-destructive/10 border-b border-destructive/30 text-destructive text-sm py-1.5 px-4 flex-shrink-0">
-            <RotateCcw className="h-3.5 w-3.5 animate-spin" />
+            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
             <span>{tCommon('reconnecting')}</span>
           </div>
         )}
@@ -5036,7 +5036,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     title={tCommon("refresh")}
                     aria-label={tCommon("refresh")}
                   >
-                    <RotateCcw className={cn("w-4 h-4", isManualRefreshing && "animate-spin")} />
+                    <RefreshCw className={cn("w-4 h-4", isManualRefreshing && "animate-spin")} />
                   </button>
                   {/* The folder's actions, as the Mountain View list ⋮ has them. */}
                   <MailFolderMenu
@@ -5460,7 +5460,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 }}
                 className="flex items-center gap-3 px-4 py-2.5 bg-primary/10 border-b border-primary/20 hover:bg-primary/15 transition-colors cursor-pointer w-full text-start"
               >
-                <PenLine className="w-4 h-4 text-primary shrink-0" />
+                <PenSquare className="w-4 h-4 text-primary shrink-0" />
                 <div className="flex-1 min-w-0">
                   <span className="text-sm font-medium text-primary">{t('email_composer.continue_draft')}</span>
                   {pendingDraft.subject && (

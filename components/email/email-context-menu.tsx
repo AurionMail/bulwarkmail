@@ -30,7 +30,6 @@ import {
   Tag,
   ShieldAlert,
   ShieldCheck,
-  EditIcon,
   CalendarClock,
   CalendarX,
   Paperclip,
@@ -38,6 +37,7 @@ import {
   MessagesSquare,
   Copy,
   Search,
+  Pencil,
 } from "@/components/icons";
 import { buildMailPath } from "@/lib/deep-links";
 import { useCopyLink } from "@/hooks/use-copy-link";
@@ -552,7 +552,7 @@ export function EmailContextMenu({
             disabled={!onRescheduleScheduled}
           />
           <ContextMenuItem
-            icon={EditIcon}
+            icon={Pencil}
             label={email.isSmimeScheduled ? t("cancel_and_compose_again") : t("cancel_and_edit")}
             onClick={() => handleAction(onCancelScheduledForEdit!)}
             disabled={!onCancelScheduledForEdit}
@@ -595,7 +595,7 @@ export function EmailContextMenu({
       {!isScheduled && !showBatchActions && isDraft && onEditDraft && (
         <>
           <ContextMenuItem
-            icon={EditIcon}
+            icon={Pencil}
             label={t("edit_draft")}
             onClick={() => handleAction(onEditDraft)}
           />

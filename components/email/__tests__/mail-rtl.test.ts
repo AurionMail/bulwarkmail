@@ -36,3 +36,20 @@ describe('Mail in right-to-left languages', () => {
     expect(source.match(/<bdi>\{subjectSnippet/g)).toHaveLength(4);
   });
 });
+
+// R2: one icon per action. Edit is Pencil, Compose PenSquare, Refresh
+// RefreshCw (RotateCcw means reset or undo), the star amber.
+describe('Mail icons', () => {
+  const iconFiles = [
+    'components/mail/mail-app.tsx',
+    'components/email/email-viewer.tsx',
+    'components/email/email-context-menu.tsx',
+    'components/email/mv-list-toolbar.tsx',
+    'components/email/reader-plugin-surfaces.tsx',
+  ];
+  it.each(iconFiles)('%s uses the agreed icons', (file) => {
+    const code = read(file);
+    expect(code).not.toMatch(/\bEditIcon\b|\bPenLine\b|yellow-400|icon=\{RotateCcw\}|<MoreHorizontal/);
+    expect(code).not.toMatch(/<RotateCcw className=\{cn\("w-4 h-4", isManualRefreshing/);
+  });
+});
