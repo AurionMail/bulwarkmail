@@ -3,6 +3,7 @@ import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
 import { MessageListSettings } from '../message-list-settings';
 import { NotificationSettings } from '../notification-settings';
 import { PluginsSettings } from '../plugins-settings';
+import { ReadingSettings } from '../reading-settings';
 import { useAuthStore } from '@/stores/auth-store';
 import { usePolicyStore } from '@/stores/policy-store';
 import { usePluginStore } from '@/stores/plugin-store';
@@ -87,5 +88,28 @@ describe('Settings > Plugins', () => {
     render(<PluginsSettings />);
     fireEvent.click(screen.getByText('Fetcher'));
     expect(screen.getByText('plugin_refused')).toBeInTheDocument();
+  });
+});
+
+describe('Settings > Reading', () => {
+  function externalContentRow() {
+    return screen.getByText('external_content.label').closest('[data-search-label]') as HTMLElement;
+  }
+
+  it('lets the user pick the external content policy without the mode', () => {
+    useSettingsStore.setState({ externalContentPolicy: 'ask' });
+    render(<ReadingSettings />);
+    expect(externalContentRow().textContent).not.toContain('org_locked');
+    expect(externalContentRow().querySelector('select')?.value).toBe('ask');
+  });
+
+  it('shows the policy as blocked and set by the organisation in the mode', () => {
+    setNoThirdPartyTraffic(true);
+    useSettingsStore.setState({ externalContentPolicy: 'allow' });
+    render(<ReadingSettings />);
+    const row = externalContentRow();
+    expect(row.textContent).toContain('org_locked');
+    expect(row.querySelector('select')?.value).toBe('block');
+    expect(row.querySelector('[inert]')).not.toBeNull();
   });
 });

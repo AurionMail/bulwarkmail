@@ -999,7 +999,8 @@
     "push_needs_relay": "Push notifications need a push relay run by your organisation, and none is set up. New mail still shows while the app is open.",
     "relay_desc": "Only your organisation's own relays are offered, because this server doesn't contact outside services.",
     "relay_none": "None set up",
-    "plugin_refused": "Not started: this plugin connects to outside services, which your organisation has turned off."
+    "plugin_refused": "Not started: this plugin connects to outside services, which your organisation has turned off.",
+    "remote_content_blocked": "Your organisation blocks content from other servers, so remote pictures in this message aren't shown."
   },
   "date": {
     "today": "Today",

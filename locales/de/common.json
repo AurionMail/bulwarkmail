@@ -999,7 +999,8 @@
     "push_needs_relay": "Push-Benachrichtigungen brauchen ein Push-Relay Ihrer Organisation, und es ist keines eingerichtet. Neue E-Mails werden weiterhin angezeigt, solange die App geöffnet ist.",
     "relay_desc": "Es werden nur die eigenen Relays Ihrer Organisation angeboten, weil dieser Server keine externen Dienste kontaktiert.",
     "relay_none": "Keines eingerichtet",
-    "plugin_refused": "Nicht gestartet: Dieses Plugin verbindet sich mit externen Diensten, die Ihre Organisation abgeschaltet hat."
+    "plugin_refused": "Nicht gestartet: Dieses Plugin verbindet sich mit externen Diensten, die Ihre Organisation abgeschaltet hat.",
+    "remote_content_blocked": "Ihre Organisation blockiert Inhalte von anderen Servern, daher werden externe Bilder in dieser Nachricht nicht angezeigt."
   },
   "date": {
     "today": "Heute",
