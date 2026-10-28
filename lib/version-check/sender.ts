@@ -70,7 +70,10 @@ async function scheduleNext(delayMs: number): Promise<void> {
 
 async function tick(): Promise<void> {
   const result = await checkOnce({ reason: 'scheduled' });
-  const delay = result.ok ? jitteredDelay(HOUR_MS) : FAILURE_BACKOFF_MS;
+  // The scheduler keeps running while third-party traffic is off, so turning
+  // the switch off at runtime resumes the checks; checkOnce skips meanwhile.
+  const skipped = result.error === NO_THIRD_PARTY_ERROR;
+  const delay = result.ok || skipped ? jitteredDelay(HOUR_MS) : FAILURE_BACKOFF_MS;
   await scheduleNext(delay);
 }
 
@@ -78,10 +81,6 @@ async function tick(): Promise<void> {
 export async function startScheduler(): Promise<void> {
   if (disabledByEnv()) {
     logger.info('version-check: scheduler not started (disabled by env)');
-    return;
-  }
-  if (await isNoThirdPartyTrafficOn()) {
-    logger.info('version-check: scheduler not started (no third-party traffic)');
     return;
   }
   const state = await loadState();
