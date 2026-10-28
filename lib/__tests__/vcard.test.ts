@@ -373,8 +373,8 @@ describe("generateVCard", () => {
 
     expect(vcf).toContain("BEGIN:VCARD");
     expect(vcf).toContain("END:VCARD");
-    expect(vcf).toContain("VERSION:3.0");
-    expect(vcf).toContain("UID:uid-1");
+    expect(vcf).toContain("VERSION:4.0");
+    expect(vcf).toContain("UID;VALUE=text:uid-1");
     expect(vcf).toContain("KIND:individual");
     expect(vcf).toContain("FN:Dr. Jane Marie Smith PhD");
     expect(vcf).toContain("N:Smith;Jane;Marie;Dr.;PhD");
@@ -401,10 +401,11 @@ describe("generateVCard", () => {
     const lines = vcf.split("\r\n");
 
     expect(lines[0]).toBe("BEGIN:VCARD");
-    expect(lines[1]).toBe("VERSION:3.0");
+    expect(lines[1]).toBe("VERSION:4.0");
     expect(lines).toContain("FN:Solo");
     expect(lines).toContain("N:;Solo;;;");
-    expect(lines[lines.length - 1]).toBe("END:VCARD");
+    // Every line ends with CRLF, END:VCARD included.
+    expect(vcf.endsWith("END:VCARD\r\n")).toBe(true);
   });
 
   it("exports GENDER, LOGO, SOUND, GEO, TZ, CALURI, CALADRURI, FBURL, SOURCE", () => {
@@ -460,14 +461,14 @@ describe("generateVCard", () => {
     };
 
     const lines = generateVCard([contact]).split("\r\n");
-    expect(lines).toContain("PHOTO;ENCODING=b;TYPE=image/jpeg:/9j/");
-    expect(lines).toContain("PHOTO;ENCODING=b:iVBO");
-    expect(lines).toContain("LOGO;ENCODING=b;TYPE=image/png:iVBO");
+    expect(lines).toContain("PHOTO:data:image/jpeg;base64,/9j/");
+    expect(lines).toContain("PHOTO:data:;base64,iVBO");
+    expect(lines).toContain("LOGO:data:image/png;base64,iVBO");
 
     const [reparsed] = parseVCard(generateVCard([contact]));
     expect(Object.values(reparsed.media ?? {}).map(m => m.uri)).toEqual([
       "data:image/jpeg;base64,/9j/",
-      "data:image/jpeg;base64,iVBO",
+      "data:;base64,iVBO",
       "data:image/png;base64,iVBO",
     ]);
   });
@@ -521,6 +522,117 @@ describe("generateVCard", () => {
     };
 
     expect(generateVCard([contact])).toContain("FN:Acme Corp");
+  });
+});
+
+describe("vCard 4.0 export (issue #1407)", () => {
+  const card = (fields: Partial<ContactCard>): ContactCard => ({
+    id: "c1",
+    addressBookIds: {},
+    name: { full: "Jane Doe", components: [{ kind: "given", value: "Jane" }, { kind: "surname", value: "Doe" }] },
+    ...fields,
+  });
+  const linesOf = (contact: ContactCard) => generateVCard([contact]).split("\r\n");
+
+  it("writes the card from the issue as valid vCard 4.0", () => {
+    const vcf = generateVCard([card({
+      uid: "sabre-vobject-5e64d0ac-69da-4393-bfe4-87844b9a7db6",
+      prodId: "-//MStilkerich//RCMCardDAV v4.4.6//EN",
+      updated: "2025-07-28T12:17:00Z",
+      emails: { e0: { address: "jane.doe@example.com", pref: 1 } },
+      phones: { p0: { number: "+33 6 00 00 00 00", features: { mobile: true, voice: true } } },
+      organizations: { o0: { name: "Example" } },
+    })]);
+
+    expect(vcf).toBe([
+      "BEGIN:VCARD",
+      "VERSION:4.0",
+      "PRODID:-//JMAP-Webmail//EN",
+      "UID;VALUE=text:sabre-vobject-5e64d0ac-69da-4393-bfe4-87844b9a7db6",
+      "REV:20250728T121700Z",
+      "N:Doe;Jane;;;",
+      "FN:Jane Doe",
+      "EMAIL;PREF=1:jane.doe@example.com",
+      "TEL;TYPE=CELL,VOICE:+33 6 00 00 00 00",
+      "ORG:Example",
+      "END:VCARD",
+      "",
+    ].join("\r\n"));
+  });
+
+  it("writes N before FN, which some importers need to read the name", () => {
+    const lines = linesOf(card({}));
+    expect(lines.indexOf("N:Doe;Jane;;;")).toBeLessThan(lines.indexOf("FN:Jane Doe"));
+  });
+
+  it("keeps a URI UID without VALUE=text", () => {
+    expect(linesOf(card({ uid: "urn:uuid:0f3c9d2e" }))).toContain("UID:urn:uuid:0f3c9d2e");
+  });
+
+  it.each([
+    [{ mobile: true }, "TEL;TYPE=CELL:+1"],
+    [{ cell: true }, "TEL;TYPE=CELL:+1"],
+    [{ mobile: true, cell: true }, "TEL;TYPE=CELL:+1"],
+    [{ "main-number": true }, "TEL;TYPE=MAIN-NUMBER:+1"],
+    [{ "x-sat": true, fax: true }, "TEL;TYPE=X-SAT,FAX:+1"],
+    [{ satellite: true }, "TEL:+1"],
+  ])("writes phone features %o as %s", (features, expected) => {
+    expect(linesOf(card({ phones: { p0: { number: "+1", features } } }))).toContain(expected);
+  });
+
+  it.each(["CELL", "cell", "MOBILE"])("imports TEL;TYPE=%s as the RFC 9553 mobile feature", (type) => {
+    const [parsed] = parseVCard(`BEGIN:VCARD\r\nVERSION:4.0\r\nFN:Jane\r\nTEL;TYPE=${type}:+1\r\nEND:VCARD\r\n`);
+    expect(parsed.phones?.p0?.features).toEqual({ mobile: true });
+  });
+
+  it("round-trips a mobile phone", () => {
+    const [reparsed] = parseVCard(generateVCard([card({ phones: { p0: { number: "+1", features: { mobile: true } } } })]));
+    expect(reparsed.phones?.p0?.features).toEqual({ mobile: true });
+  });
+
+  it("writes CREATED in the basic timestamp format", () => {
+    expect(linesOf(card({ created: "2024-01-01T08:30:15.250+02:00" }))).toContain("CREATED:20240101T083015+0200");
+  });
+
+  it("writes a bare RELATED name as text", () => {
+    const lines = linesOf(card({ relatedTo: {
+      "Sam Smith, Jr.": { relation: { sibling: true } },
+      "urn:uuid:42": { relation: { friend: true } },
+    } }));
+    expect(lines).toContain("RELATED;VALUE=text;TYPE=sibling:Sam Smith\\, Jr.");
+    expect(lines).toContain("RELATED;TYPE=friend:urn:uuid:42");
+    const [reparsed] = parseVCard(lines.join("\r\n"));
+    expect(Object.keys(reparsed.relatedTo ?? {})).toEqual(["Sam Smith, Jr.", "urn:uuid:42"]);
+  });
+
+  it("writes vCard 3.0 GEO coordinates as a geo: URI", () => {
+    expect(linesOf(card({ addresses: { a0: { coordinates: "37.386013;-122.082932" } } })))
+      .toContain("GEO:geo:37.386013,-122.082932");
+  });
+
+  it("folds long lines at 75 octets without splitting a UTF-8 character", () => {
+    const note = "Rendez-vous à l'hôtel de ville, salle des fêtes, près de l'église ".repeat(4).trim();
+    const vcf = generateVCard([card({ notes: { n0: { note } } })]);
+    const encoder = new TextEncoder();
+    for (const line of vcf.split("\r\n")) {
+      expect(encoder.encode(line).length).toBeLessThanOrEqual(75);
+    }
+    expect(vcf).toContain("\r\n ");
+    expect(parseVCard(vcf)[0].notes?.n0?.note).toBe(note);
+  });
+
+  it("folds an inline photo and reads it back", () => {
+    const data = "iVBORw0KGgo".repeat(40);
+    const vcf = generateVCard([card({ media: { m0: { kind: "photo", uri: `data:image/png;base64,${data}` } } })]);
+    expect(vcf.split("\r\n").every(line => line.length <= 75)).toBe(true);
+    expect(parseVCard(vcf)[0].media?.m0?.uri).toBe(`data:image/png;base64,${data}`);
+  });
+
+  it("ends every card with CRLF so cards concatenate cleanly", () => {
+    const vcf = generateVCard([card({ uid: "urn:uuid:a" }), card({ uid: "urn:uuid:b" })]);
+    expect(vcf).toContain("END:VCARD\r\nBEGIN:VCARD\r\n");
+    expect(vcf.endsWith("END:VCARD\r\n")).toBe(true);
+    expect(parseVCard(vcf).map(c => c.uid)).toEqual(["urn:uuid:a", "urn:uuid:b"]);
   });
 });
 
@@ -911,7 +1023,7 @@ describe("anniversary dates (issue #224)", () => {
 
   it("round-trips a birthday through generateVCard", () => {
     const exported = generateVCard([parseOne("BDAY:19850412")]);
-    expect(exported).toContain("BDAY:1985-04-12");
+    expect(exported).toContain("BDAY:19850412");
     const reparsed = parseVCard(exported)[0];
     expect(Object.values(reparsed.anniversaries || {})[0]?.date).toEqual({
       year: 1985, month: 4, day: 12,
@@ -920,7 +1032,7 @@ describe("anniversary dates (issue #224)", () => {
 
   it("round-trips a day/month-only birthday", () => {
     const exported = generateVCard([parseOne("BDAY:--0412")]);
-    expect(exported).toContain("BDAY:--04-12");
+    expect(exported).toContain("BDAY:--0412");
     expect(Object.values(parseVCard(exported)[0].anniversaries || {})[0]?.date)
       .toEqual({ month: 4, day: 12 });
   });
