@@ -3679,6 +3679,10 @@ export function EmailComposer({
 
   const handleComposerKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.defaultPrevented) return;
+    // Keys from a dialog the composer opened (Insert link, ...) reach here
+    // through React's tree although the dialog portals to the body: they
+    // belong to that dialog, and Escape must close only it.
+    if (!(e.target instanceof Node) || !e.currentTarget.contains(e.target)) return;
 
     const isPlainEscape = e.key === 'Escape' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey;
     const hasPrimaryModifier = e.ctrlKey || e.metaKey;
