@@ -101,8 +101,12 @@ export function CalendarToolbar({
   const menuViews: CalendarViewMode[] = enableCalendarTasks
     ? ["day", "week", "month", "agenda", "tasks"]
     : ["day", "week", "month", "agenda"];
-  const [showViewMenu, setShowViewMenu] = useState(false);
-  const viewMenuRef = useRef<HTMLDivElement>(null);
+  const {
+    contextMenu: viewMenu,
+    openContextMenuFrom: openViewMenuFrom,
+    closeContextMenu: closeViewMenu,
+    menuRef: viewMenuRef,
+  } = useContextMenu<true>();
   const [showCalendarDropdown, setShowCalendarDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -182,25 +186,6 @@ export function CalendarToolbar({
     </>
   ) : null;
 
-  useEffect(() => {
-    if (!showViewMenu) return;
-    function handleClickOutside(e: MouseEvent) {
-      if (viewMenuRef.current && !viewMenuRef.current.contains(e.target as Node)) {
-        setShowViewMenu(false);
-      }
-    }
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setShowViewMenu(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [showViewMenu]);
 
 
 
@@ -429,42 +414,39 @@ export function CalendarToolbar({
 
       {moreButton}
 
-      <div className="relative ms-1" ref={viewMenuRef}>
+      <div className="relative ms-1">
         <Button
           variant="outline"
-          size="sm"
-          className="h-8 gap-1"
-          onClick={() => setShowViewMenu((v) => !v)}
+          size="xs"
+          className="gap-1"
+          onClick={(e) => openViewMenuFrom(e.currentTarget, true, "end")}
           aria-haspopup="menu"
-          aria-expanded={showViewMenu}
+          aria-expanded={viewMenu.isOpen}
           aria-label={t("toolbar.select_view", { view: currentViewLabel })}
           data-testid="calendar-view-menu"
         >
           {currentViewLabel}
           <ChevronDown className="w-3 h-3" />
         </Button>
-        {showViewMenu && (
-          <div
-            role="menu"
-            className="absolute top-full end-0 mt-1 z-50 bg-background border border-border rounded-lg shadow-lg p-1 min-w-[180px]"
-          >
-            {menuViews.map((v) => (
-              <button
-                key={v}
-                role="menuitemradio"
-                aria-checked={v === viewMode}
-                onClick={() => { onViewModeChange(v); setShowViewMenu(false); }}
-                className={cn(
-                  "flex items-center justify-between gap-6 w-full px-3 py-2 rounded-md text-sm transition-colors",
-                  v === viewMode ? "bg-accent text-accent-foreground font-medium" : "hover:bg-muted text-foreground",
-                )}
-              >
-                <span>{t(`views.${v}`)}</span>
-                <kbd className="font-sans text-xs text-muted-foreground">{VIEW_SHORTCUTS[v]}</kbd>
-              </button>
-            ))}
-          </div>
-        )}
+        <ContextMenu ref={viewMenuRef} isOpen={viewMenu.isOpen} position={viewMenu.position} onClose={closeViewMenu}>
+          {menuViews.map((v) => (
+            <button
+              key={v}
+              type="button"
+              role="menuitemradio"
+              aria-checked={v === viewMode}
+              onClick={() => { closeViewMenu(); onViewModeChange(v); }}
+              className={cn(
+                "flex items-center justify-between gap-6 w-full px-3 py-2 rounded-md text-sm transition-colors outline-none focus-visible:bg-accent",
+                v === viewMode ? "bg-accent text-accent-foreground font-medium" : "hover:bg-muted text-foreground",
+              )}
+            >
+              <span>{t(`views.${v}`)}</span>
+              {/* The key, on devices with a keyboard (R8). */}
+              <kbd className="font-sans text-xs text-muted-foreground pointer-coarse:hidden">{VIEW_SHORTCUTS[v]}</kbd>
+            </button>
+          ))}
+        </ContextMenu>
       </div>
     </div>
   );

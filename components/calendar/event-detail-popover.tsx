@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { LinkifiedText } from "@/components/ui/linkified-text";
 import {
   X, Clock, MapPin, Video, Users, Repeat, Bell, AlignLeft,
-  Pencil, Trash2, Copy, Send, Check, MoreVertical, Calendar as CalendarIcon,
+  Pencil, Trash2, Copy, CopyPlus, Send, Check, MoreVertical, Calendar as CalendarIcon,
 } from "@/components/icons";
 import { format, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -383,7 +383,7 @@ export function EventDetailPopover({
           aria-label={onMore ? t("toolbar.more") : t("events.duplicate")}
           title={onMore ? t("toolbar.more") : t("events.duplicate")}
         >
-          {onMore ? <MoreVertical className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+          {onMore ? <MoreVertical className="w-4 h-4" /> : <CopyPlus className="w-4 h-4" />}
         </button>
         <button
           type="button"

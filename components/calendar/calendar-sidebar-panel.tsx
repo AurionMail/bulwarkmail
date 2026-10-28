@@ -416,7 +416,7 @@ export function CalendarSidebarPanel({
         )}
         {canShare && (
           <ContextMenuItem
-            icon={Users}
+            icon={Share2}
             label={tMgmt('share')}
             onClick={() => { closeContextMenu(); onShareCalendar(cal); }}
           />

@@ -6,7 +6,7 @@ import { toast } from "@/stores/toast-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LinkifiedText } from "@/components/ui/linkified-text";
-import { X, Trash2, Users, CalendarDays, Copy, Pencil, Clock, MapPin, Video, Repeat, Bell, AlignLeft, AlertTriangle, MoreVertical } from "@/components/icons";
+import { X, Trash2, Users, CalendarDays, CopyPlus, Pencil, Clock, MapPin, Video, Repeat, Bell, AlignLeft, AlertTriangle, MoreVertical } from "@/components/icons";
 import { IconButton } from "@/components/ui/icon-button";
 import { ParticipantStatusBadge, RsvpButtons } from "./rsvp-buttons";
 import { format, parseISO, addHours, isSameDay } from "date-fns";
@@ -1270,7 +1270,7 @@ export function EventModal({
             )}
             {onDuplicate && (
               <Button variant="ghost" size="sm" onClick={handleDuplicate} aria-label={t("events.duplicate")}>
-                <Copy className="w-4 h-4 me-1" />
+                <CopyPlus className="w-4 h-4 me-1" />
                 {t("events.duplicate")}
               </Button>
             )}
@@ -1621,7 +1621,7 @@ export function EventModal({
               aria-label={t("events.duplicate")}
               className="w-full"
             >
-              <Copy className="w-4 h-4 me-1" />
+              <CopyPlus className="w-4 h-4 me-1" />
               {t("events.duplicate")}
             </Button>
           )}

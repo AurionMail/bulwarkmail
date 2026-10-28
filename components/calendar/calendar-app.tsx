@@ -20,6 +20,7 @@ import { toast } from "@/stores/toast-store";
 import { useIsDesktop, useIsMobile } from "@/hooks/use-media-query";
 import { useAccountPrincipalEmails } from "@/hooks/use-account-principal-emails";
 import { Button } from "@/components/ui/button";
+import { PaneSpinner, Spinner } from "@/components/ui/spinner";
 import { CalendarToolbar } from "@/components/calendar/calendar-toolbar";
 import { CalendarMonthView } from "@/components/calendar/calendar-month-view";
 import { CalendarWeekView } from "@/components/calendar/calendar-week-view";
@@ -1719,11 +1720,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
 
   const renderView = () => {
     if (isLoading && calendars.length === 0) {
-      return (
-        <div className="flex items-center justify-center flex-1 text-muted-foreground">
-          <p className="text-sm">{t("status.loading_calendars")}</p>
-        </div>
-      );
+      return <PaneSpinner label={t("status.loading_calendars")} className="flex-1" />;
     }
 
     const viewContent = (() => {
@@ -1867,7 +1864,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
         {viewContent}
         {isLoadingEvents && calendars.length > 0 && events.length === 0 && (
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center pointer-events-none">
-            <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <Spinner label={t("status.loading_events")} />
           </div>
         )}
       </div>

@@ -580,3 +580,14 @@ describe('CalendarApp in the demo', () => {
     }
   });
 });
+
+describe('CalendarApp view menu', () => {
+  it('opens as a menu the keyboard can use and switches the view', async () => {
+    renderApp();
+    fireEvent.click(screen.getByTestId('calendar-view-menu'), { detail: 0 });
+    const day = await screen.findByRole('menuitemradio', { name: /views\.day/ });
+    await waitFor(() => expect(document.activeElement?.getAttribute('role')).toBe('menuitemradio'));
+    fireEvent.click(day);
+    expect(useCalendarStore.getState().viewMode).toBe('day');
+  });
+});

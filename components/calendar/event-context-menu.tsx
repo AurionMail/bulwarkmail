@@ -8,11 +8,11 @@ import {
 } from "@/components/ui/context-menu";
 import {
   Pencil,
+  CopyPlus,
   Copy,
   Download,
-  ClipboardCopy,
+  Video,
   Link as LinkIcon,
-  CalendarArrowUp as CalendarLinkIcon,
   Trash2,
 } from "@/components/icons";
 import type { CalendarEvent } from "@/lib/jmap/types";
@@ -69,7 +69,7 @@ export function EventContextMenu({
   return (
     <ContextMenu ref={menuRef} isOpen={isOpen} position={position} onClose={onClose}>
       {editable && <ContextMenuItem icon={Pencil} label={t("events.edit")} onClick={handle(onEdit)} />}
-      <ContextMenuItem icon={Copy} label={t("events.duplicate")} onClick={handle(onDuplicate)} />
+      <ContextMenuItem icon={CopyPlus} label={t("events.duplicate")} onClick={handle(onDuplicate)} />
       <ContextMenuSeparator />
       <ContextMenuItem
         icon={Download}
@@ -77,13 +77,13 @@ export function EventContextMenu({
         onClick={handle(onExportICS)}
       />
       <ContextMenuItem
-        icon={ClipboardCopy}
+        icon={Copy}
         label={t("events.copy_title")}
         onClick={handle(onCopyTitle)}
       />
       {hasMeetingLink && onCopyMeetingLink && (
         <ContextMenuItem
-          icon={LinkIcon}
+          icon={Video}
           label={t("events.copy_link")}
           onClick={handle(onCopyMeetingLink)}
         />
@@ -91,7 +91,7 @@ export function EventContextMenu({
       {/* Permalink into Bulwark (#733) - distinct from the meeting URL above,
           which points at whatever conferencing tool the organiser used. */}
       <ContextMenuItem
-        icon={CalendarLinkIcon}
+        icon={LinkIcon}
         label={tDeepLink("copy_event")}
         onClick={handle(() => {
           void copyLink(buildCalendarPath({
