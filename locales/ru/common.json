@@ -50,6 +50,18 @@
     "sign_in_sso": "Войти через SSO",
     "add_account_title": "Добавить аккаунт",
     "add_account_subtitle": "Войдите с другим аккаунтом",
+    "subtitle": "Войдите в свою учётную запись",
+    "version": {
+      "details": "Сведения о версии",
+      "version_line": "Версия: {value}",
+      "build_line": "Сборка: {value}",
+      "latest_line": "Последняя: {value}",
+      "copy": "Скопировать сведения о версии",
+      "security_update": "Доступно обновление безопасности",
+      "unsupported": "Эта версия больше не поддерживается",
+      "new_version": "Доступна новая версия",
+      "release_notes": "Примечания к выпуску"
+    },
     "cancel": "Отмена",
     "website": "Веб-сайт",
     "imprint": "Выходные данные",
@@ -75,6 +87,13 @@
       "access_denied": "Доступ запрещён. Обратитесь к администратору.",
       "back_to_login": "Вернуться ко входу"
     }
+  },
+  "totp_reauth": {
+    "title": "Сеанс истёк",
+    "description": "Код двухфакторной аутентификации сменился. Чтобы продолжить, введите новый код из приложения-аутентификатора.",
+    "oauth_hint": "Чтобы этот запрос больше не появлялся, попросите администратора включить вход через OAuth (встроенный OAuth Stalwart или внешний поставщик удостоверений).",
+    "code_label": "Код аутентификации",
+    "verify": "Подтвердить"
   },
   "sidebar": {
     "close": "Закрыть",
@@ -163,6 +182,7 @@
     "unified_all_starred": "Все помеченные",
     "unified_all_mail": "Вся почта",
     "remove_account": "Remove account",
+    "remove_account_title": "Удалить учётную запись?",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Ярлыки",
     "create_label": "Создать ярлык",
@@ -2642,6 +2662,10 @@
     "retry": "Повторить",
     "go_home": "В папку «Входящие»"
   },
+  "not_found": {
+    "title": "Страница не найдена",
+    "description": "Этой страницы нет или она перемещена. Проверьте адрес или вернитесь во «Входящие»."
+  },
   "context_menu": {
     "reply": "Ответить",
     "reply_all": "Ответить всем",
@@ -4202,6 +4226,14 @@
     "copied": "Ссылка скопирована",
     "copy_failed": "Не удалось скопировать ссылку"
   },
+  "connector_link": {
+    "opening": "Открываем…",
+    "unknown_title": "Эта ссылка новее, чем этот {name}",
+    "unknown_body": "Она открывает то, чего не знает версия {version}. Обновление {name} должно это исправить.",
+    "malformed_title": "С этой ссылкой что-то не так",
+    "malformed_body": "Она запрашивает {label}, но параметр {param} отсутствует или неверен. Ничего не открыто.",
+    "open_app": "Открыть {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Завершение авторизации…",
@@ -4592,6 +4624,13 @@
   },
   "top_bar": {
     "more": "Другие действия"
+  },
+  "shell": {
+    "resize": "Изменить размер",
+    "update_available": "Доступно обновление",
+    "update_important": "Доступно важное обновление",
+    "folder_unread": "Непрочитанных: {count}",
+    "folder_counts": "Непрочитанных: {unread}, всего: {total}"
   },
   "plugin_pages": {
     "loading": "Загрузка страницы",

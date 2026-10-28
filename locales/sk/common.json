@@ -50,6 +50,18 @@
     "sign_in_sso": "Prihlásiť sa cez SSO",
     "add_account_title": "Pridať účet",
     "add_account_subtitle": "Prihlásiť sa iným účtom",
+    "subtitle": "Prihláste sa do svojho účtu",
+    "version": {
+      "details": "Podrobnosti o verzii",
+      "version_line": "Verzia: {value}",
+      "build_line": "Zostavenie: {value}",
+      "latest_line": "Najnovšia: {value}",
+      "copy": "Kopírovať informácie o verzii",
+      "security_update": "K dispozícii je bezpečnostná aktualizácia",
+      "unsupported": "Táto verzia už nie je podporovaná",
+      "new_version": "K dispozícii je nová verzia",
+      "release_notes": "Poznámky k vydaniu"
+    },
     "cancel": "Zrušiť",
     "website": "Webová stránka",
     "imprint": "Impressum",
@@ -75,6 +87,13 @@
       "access_denied": "Prístup bol zamietnutý. Kontaktujte správcu.",
       "back_to_login": "Späť na prihlásenie"
     }
+  },
+  "totp_reauth": {
+    "title": "Relácia vypršala",
+    "description": "Váš dvojfaktorový kód sa zmenil. Ak chcete pokračovať, zadajte nový kód z overovacej aplikácie.",
+    "oauth_hint": "Aby sa táto výzva neopakovala, požiadajte správcu o zapnutie prihlasovania cez OAuth (vstavané OAuth v Stalwarte alebo externého poskytovateľa identity).",
+    "code_label": "Overovací kód",
+    "verify": "Overiť"
   },
   "sidebar": {
     "unified_mailbox": "Zjednotená schránka",
@@ -163,6 +182,7 @@
     "unified_all_starred": "Všetky s hviezdičkou",
     "unified_all_mail": "Všetka pošta",
     "remove_account": "Odstrániť účet",
+    "remove_account_title": "Odstrániť účet?",
     "remove_account_confirm": "Odstrániť {account} z tohto zariadenia? Neskôr ho môžete znova pridať.",
     "labels": "Štítky",
     "create_label": "Vytvoriť nový štítok",
@@ -2642,6 +2662,10 @@
     "retry": "Opakovať",
     "go_home": "Prejsť do doručenej pošty"
   },
+  "not_found": {
+    "title": "Stránka sa nenašla",
+    "description": "Táto stránka neexistuje alebo bola presunutá. Skontrolujte adresu alebo sa vráťte do doručenej pošty."
+  },
   "context_menu": {
     "reply": "Odpovedať",
     "reply_all": "Odpovedať všetkým",
@@ -4202,6 +4226,14 @@
     "copied": "Odkaz skopírovaný",
     "copy_failed": "Odkaz sa nepodarilo skopírovať"
   },
+  "connector_link": {
+    "opening": "Otvára sa…",
+    "unknown_title": "Tento odkaz je novší ako tento {name}",
+    "unknown_body": "Otvára niečo, čo verzia {version} nepozná. Aktualizácia {name} by to mala vyriešiť.",
+    "malformed_title": "Tento odkaz nie je celkom v poriadku",
+    "malformed_body": "Žiada o {label}, ale jeho parameter {param} chýba alebo je neplatný. Nič sa neotvorilo.",
+    "open_app": "Otvoriť {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Dokončovanie autorizácie…",
@@ -4592,6 +4624,13 @@
   },
   "top_bar": {
     "more": "Ďalšie možnosti"
+  },
+  "shell": {
+    "resize": "Zmeniť veľkosť",
+    "update_available": "K dispozícii je aktualizácia",
+    "update_important": "K dispozícii je dôležitá aktualizácia",
+    "folder_unread": "Neprečítané: {count}",
+    "folder_counts": "Neprečítané: {unread}, spolu: {total}"
   },
   "plugin_pages": {
     "loading": "Načítava sa stránka",

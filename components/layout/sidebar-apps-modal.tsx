@@ -2,15 +2,16 @@
 
 import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { X, Plus, Pencil, Trash2, ExternalLink, PanelRight, Lock } from '@/components/icons';
+import { Plus, Pencil, Trash2, ExternalLink, PanelRight, Lock } from '@/components/icons';
 import { iconForName } from '@/components/icons';
 import { cn, generateUUID } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
 import { Input } from '@/components/ui/input';
 import { IconPicker } from './icon-picker';
 import { useSettingsStore, type SidebarApp } from '@/stores/settings-store';
 import { useManagedSidebarApps } from '@/hooks/use-resolved-sidebar-apps';
-import { useFocusTrap } from '@/hooks/use-focus-trap';
+import { Dialog } from '@/components/ui/dialog';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
@@ -240,18 +241,17 @@ export function SidebarAppsModal({ isOpen, onClose }: SidebarAppsModalProps) {
   const [isCreating, setIsCreating] = useState(false);
   const { dialogProps: confirmDialogProps, confirm: confirmDialog } = useConfirmDialog();
 
-  const modalRef = useFocusTrap({
-    isActive: isOpen,
-    onEscape: () => {
-      if (isCreating || editingId) {
-        setIsCreating(false);
-        setEditingId(null);
-      } else {
-        onClose();
-      }
-    },
-    restoreFocus: true,
-  });
+  // Escape, the X and an outside click leave an open app form first, then
+  // the dialog; a click outside is ignored while a form is open.
+  const editing = isCreating || !!editingId;
+  const handleClose = useCallback(() => {
+    if (editing) {
+      setIsCreating(false);
+      setEditingId(null);
+    } else {
+      onClose();
+    }
+  }, [editing, onClose]);
 
   const handleCreate = useCallback((data: SidebarAppFormData) => {
     const id = `app-${generateUUID()}`;
@@ -275,36 +275,17 @@ export function SidebarAppsModal({ isOpen, onClose }: SidebarAppsModalProps) {
     removeSidebarApp(app.id);
   }, [removeSidebarApp, confirmDialog, t]);
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="sidebar-apps-modal-title"
-        className={cn(
-          'bg-background border border-border rounded-lg shadow-xl',
-          'w-full max-w-2xl max-h-[90vh] overflow-hidden',
-          'animate-in zoom-in-95 duration-200'
-        )}
+    <>
+      <Dialog
+        isOpen={isOpen}
+        onClose={handleClose}
+        title={t('modal_title')}
+        size="full-on-phone"
+        dirty={editing}
+        className="max-h-[90vh]"
+        bodyClassName="pt-4"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 id="sidebar-apps-modal-title" className="text-lg font-semibold text-foreground">
-            {t('modal_title')}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
           <ManagedAppsList />
 
           {/* Create form */}
@@ -368,22 +349,21 @@ export function SidebarAppsModal({ isOpen, onClose }: SidebarAppsModalProps) {
                     {app.openMode === 'inline' ? t('inline_badge') : t('tab_badge')}
                   </span>
                   <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <IconButton
+                      label={t('edit_app')}
                       onClick={() => setEditingId(app.id)}
                       disabled={!!editingId || isCreating}
                     >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                      <Pencil />
+                    </IconButton>
+                    <IconButton
+                      label={t('delete')}
                       onClick={() => handleDelete(app)}
                       disabled={!!editingId || isCreating}
+                      className="text-destructive"
                     >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
+                      <Trash2 />
+                    </IconButton>
                   </div>
                 </div>
               );
@@ -397,10 +377,9 @@ export function SidebarAppsModal({ isOpen, onClose }: SidebarAppsModalProps) {
               </div>
             )}
           </div>
-        </div>
-      </div>
+      </Dialog>
 
       <ConfirmDialog {...confirmDialogProps} />
-    </div>
+    </>
   );
 }

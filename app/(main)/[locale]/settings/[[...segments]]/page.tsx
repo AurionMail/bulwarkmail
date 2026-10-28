@@ -1,5 +1,6 @@
 import { SettingsApp } from "@/components/settings/settings-app";
 import { generateLiteSegmentParams } from "@/lib/lite-static-params";
+import { AppErrorBoundary } from "@/components/error/app-error-boundary";
 
 // Settings permalinks (#733): /settings/<tabId>. Without a tab the page falls
 // back to the last tab the user had open, as before.
@@ -14,5 +15,9 @@ export default async function SettingsRoute({
   params: Promise<{ segments?: string[] }>;
 }) {
   const { segments } = await params;
-  return <SettingsApp linkSegments={segments ?? []} />;
+  return (
+    <AppErrorBoundary kind="settings">
+      <SettingsApp linkSegments={segments ?? []} />
+    </AppErrorBoundary>
+  );
 }

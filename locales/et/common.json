@@ -50,6 +50,18 @@
     "sign_in_sso": "Logi sisse SSO-ga",
     "add_account_title": "Lisa konto",
     "add_account_subtitle": "Logi sisse teise kontoga",
+    "subtitle": "Logige oma kontole sisse",
+    "version": {
+      "details": "Versiooni üksikasjad",
+      "version_line": "Versioon: {value}",
+      "build_line": "Järk: {value}",
+      "latest_line": "Uusim: {value}",
+      "copy": "Kopeeri versiooniteave",
+      "security_update": "Saadaval on turvavärskendus",
+      "unsupported": "Seda versiooni enam ei toetata",
+      "new_version": "Saadaval on uus versioon",
+      "release_notes": "Väljalaskemärkmed"
+    },
     "cancel": "Tühista",
     "website": "Veebileht",
     "imprint": "Väljaandja andmed",
@@ -75,6 +87,13 @@
       "access_denied": "Juurdepääs keelati. Palun võta ühendust administraatoriga.",
       "back_to_login": "Tagasi"
     }
+  },
+  "totp_reauth": {
+    "title": "Seanss on aegunud",
+    "description": "Teie kaheastmelise tuvastuse kood on muutunud. Jätkamiseks sisestage autentimisrakendusest uus kood.",
+    "oauth_hint": "Et see küsimus ei korduks, paluge administraatoril lülitada sisse OAuth-sisselogimine (Stalwarti sisseehitatud OAuth või väline identiteedipakkuja).",
+    "code_label": "Autentimiskood",
+    "verify": "Kinnita"
   },
   "sidebar": {
     "close": "Sulge",
@@ -163,6 +182,7 @@
     "unified_all_starred": "Kõik tähega tähistatud",
     "unified_all_mail": "Kõik kirjad",
     "remove_account": "Eemalda konto",
+    "remove_account_title": "Kas eemaldada konto?",
     "remove_account_confirm": "Eemalda {account} sellest seadmest? Saad selle hiljem uuesti lisada.",
     "labels": "Sildid",
     "create_label": "Loo uus silt",
@@ -2642,6 +2662,10 @@
     "retry": "Proovi uuesti",
     "go_home": "Mine postkasti"
   },
+  "not_found": {
+    "title": "Lehte ei leitud",
+    "description": "Seda lehte pole olemas või see on teisaldatud. Kontrollige aadressi või minge tagasi postkasti."
+  },
   "context_menu": {
     "reply": "Vasta",
     "reply_all": "Vasta kõigile",
@@ -4202,6 +4226,14 @@
     "copied": "Link kopeeritud",
     "copy_failed": "Linki ei õnnestunud kopeerida"
   },
+  "connector_link": {
+    "opening": "Avamine…",
+    "unknown_title": "See link on uuem kui see {name}",
+    "unknown_body": "See avab midagi, mida versioon {version} ei tunne. {name} värskendamine peaks selle lahendama.",
+    "malformed_title": "See link pole päris õige",
+    "malformed_body": "See küsib {label}, kuid selle parameeter {param} puudub või on vigane. Midagi ei avatud.",
+    "open_app": "Ava {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Autoriseerimise lõpetamine…",
@@ -4592,6 +4624,13 @@
   },
   "top_bar": {
     "more": "Rohkem valikuid"
+  },
+  "shell": {
+    "resize": "Muuda suurust",
+    "update_available": "Saadaval on värskendus",
+    "update_important": "Saadaval on oluline värskendus",
+    "folder_unread": "Lugemata: {count}",
+    "folder_counts": "Lugemata: {unread}, kokku: {total}"
   },
   "plugin_pages": {
     "loading": "Lehe laadimine",

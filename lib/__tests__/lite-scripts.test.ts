@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -206,6 +206,28 @@ describe('lite build helpers', () => {
     expect(html).toContain('href="/webmail/"');
     // The key the shim writes is the one the app reads.
     expect(LITE_PENDING_PATH_KEY).toBe(APP_LITE_PENDING_PATH_KEY);
+  });
+
+  it('sends a path without a locale to the same path in the reader locale', () => {
+    const html = buildNotFoundShim({ basePath: '/webmail', locales: ['de', 'en', 'zh-TW'], defaultLocale: 'en' });
+    const script = html.match(/<script>([\s\S]*?)<\/script>/)![1];
+    const run = (pathname: string, languages: string[], stored: string | null = null) => {
+      const replace = vi.fn();
+      const location = { pathname, search: '?a=1', hash: '', replace };
+      const storage = { getItem: () => stored, setItem: () => {} };
+      new Function('location', 'navigator', 'localStorage', 'sessionStorage', script)(
+        location, { languages, language: languages[0] }, storage, storage,
+      );
+      return replace.mock.calls[0]?.[0];
+    };
+    expect(run('/webmail/login', ['de-DE'])).toBe('/webmail/de/login?a=1');
+    expect(run('/webmail/mail/thread/x', ['fr-FR'])).toBe('/webmail/en/mail/thread/x?a=1');
+    expect(run('/webmail/login', ['en'], JSON.stringify({ state: { locale: 'zh-TW' } }))).toBe('/webmail/zh-TW/login?a=1');
+    // With a locale the surface logic applies as before; unknown pages stay a 404.
+    expect(run('/webmail/en/nope', ['de'])).toBeUndefined();
+    expect(run('/webmail/de/mail/thread/x', ['en'])).toBe('/webmail/de/mail/');
+    // Outside the mount nothing happens.
+    expect(run('/other/login', ['de'])).toBeUndefined();
   });
 
   it('renders host snippets and the README for the built variant', () => {

@@ -8,7 +8,7 @@
 
 import { useEffect, useRef } from 'react';
 
-export type AppCommand = 'compose' | 'search';
+export type AppCommand = 'compose' | 'search' | 'all-inboxes';
 
 export const COMMAND_PALETTE_OPEN_EVENT = 'bulwark:command-palette';
 

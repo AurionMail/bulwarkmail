@@ -1,5 +1,6 @@
 import { FilesApp } from "@/components/files/files-app";
 import { generateLiteSegmentParams } from "@/lib/lite-static-params";
+import { AppErrorBoundary } from "@/components/error/app-error-boundary";
 
 // Files permalinks (#733): /files/<folder>/<subfolder>, one path segment per
 // level, with ?preview=<name> to open a file straight into the preview modal.
@@ -14,5 +15,9 @@ export default async function FilesRoute({
   params: Promise<{ segments?: string[] }>;
 }) {
   const { segments } = await params;
-  return <FilesApp linkSegments={segments ?? []} />;
+  return (
+    <AppErrorBoundary>
+      <FilesApp linkSegments={segments ?? []} />
+    </AppErrorBoundary>
+  );
 }

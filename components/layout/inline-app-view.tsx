@@ -1,6 +1,8 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { X } from '@/components/icons';
+import { IconButton } from '@/components/ui/icon-button';
 import { cn } from '@/lib/utils';
 import type { InlineAppState } from '@/hooks/use-sidebar-apps';
 
@@ -12,6 +14,7 @@ interface InlineAppViewProps {
 }
 
 export function InlineAppView({ apps, activeAppId, onClose, className }: InlineAppViewProps) {
+  const tCommon = useTranslations('common');
   const activeApp = apps.find((a) => a.id === activeAppId);
 
   return (
@@ -19,13 +22,9 @@ export function InlineAppView({ apps, activeAppId, onClose, className }: InlineA
       {/* Header bar */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-secondary/50 flex-shrink-0">
         <h3 className="text-sm font-medium truncate">{activeApp?.name}</h3>
-        <button
-          onClick={onClose}
-          className="p-1 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-          aria-label="Close"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <IconButton label={tCommon("close")} onClick={onClose} className="text-muted-foreground">
+          <X />
+        </IconButton>
       </div>
       {/* Iframes - active one visible, rest hidden but alive */}
       <div className="flex-1 relative">

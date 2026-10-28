@@ -50,6 +50,18 @@
     "sign_in_sso": "SSO로 로그인",
     "add_account_title": "계정 추가",
     "add_account_subtitle": "다른 계정으로 로그인하기",
+    "subtitle": "계정에 로그인하세요",
+    "version": {
+      "details": "버전 정보",
+      "version_line": "버전: {value}",
+      "build_line": "빌드: {value}",
+      "latest_line": "최신: {value}",
+      "copy": "버전 정보 복사",
+      "security_update": "보안 업데이트가 있습니다",
+      "unsupported": "더 이상 지원되지 않는 버전입니다",
+      "new_version": "새 버전이 있습니다",
+      "release_notes": "릴리스 노트"
+    },
     "cancel": "취소",
     "website": "웹사이트",
     "imprint": "회사 소개",
@@ -75,6 +87,13 @@
       "access_denied": "접근이 거부되었어요. 관리자에게 문의해 주세요.",
       "back_to_login": "로그인 화면으로 돌아가기"
     }
+  },
+  "totp_reauth": {
+    "title": "세션이 만료되었습니다",
+    "description": "2단계 인증 코드가 바뀌었습니다. 계속하려면 인증 앱의 새 코드를 입력하세요.",
+    "oauth_hint": "이 요청이 다시 나타나지 않게 하려면 관리자에게 OAuth 로그인(Stalwart 내장 OAuth 또는 외부 ID 공급자)을 켜 달라고 요청하세요.",
+    "code_label": "인증 코드",
+    "verify": "확인"
   },
   "sidebar": {
     "close": "닫기",
@@ -163,6 +182,7 @@
     "unified_all_starred": "모든 별표",
     "unified_all_mail": "모든 메일",
     "remove_account": "Remove account",
+    "remove_account_title": "계정을 제거할까요?",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "라벨",
     "create_label": "새 라벨 만들기",
@@ -2642,6 +2662,10 @@
     "retry": "재시도",
     "go_home": "받은편지함으로 이동"
   },
+  "not_found": {
+    "title": "페이지를 찾을 수 없습니다",
+    "description": "이 페이지가 없거나 이동되었습니다. 주소를 확인하거나 받은편지함으로 돌아가세요."
+  },
   "context_menu": {
     "reply": "답장",
     "reply_all": "전체 답장",
@@ -4202,6 +4226,14 @@
     "copied": "링크가 복사되었습니다",
     "copy_failed": "링크를 복사하지 못했습니다"
   },
+  "connector_link": {
+    "opening": "여는 중…",
+    "unknown_title": "이 링크는 이 {name}보다 최신입니다",
+    "unknown_body": "버전 {version}이 알지 못하는 항목을 엽니다. {name}을 업데이트하면 열 수 있습니다.",
+    "malformed_title": "이 링크가 올바르지 않습니다",
+    "malformed_body": "{label}을 요청하지만 {param} 값이 없거나 잘못되었습니다. 아무것도 열지 않았습니다.",
+    "open_app": "{name} 열기"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "인증 완료 중…",
@@ -4592,6 +4624,13 @@
   },
   "top_bar": {
     "more": "추가 옵션"
+  },
+  "shell": {
+    "resize": "크기 조정",
+    "update_available": "업데이트가 있습니다",
+    "update_important": "중요한 업데이트가 있습니다",
+    "folder_unread": "읽지 않음 {count}개",
+    "folder_counts": "읽지 않음 {unread}개, 전체 {total}개"
   },
   "plugin_pages": {
     "loading": "페이지를 불러오는 중",

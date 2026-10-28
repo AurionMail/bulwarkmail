@@ -50,6 +50,18 @@
     "sign_in_sso": "Přihlásit se přes SSO",
     "add_account_title": "Přidat účet",
     "add_account_subtitle": "Přihlásit se k jinému účtu",
+    "subtitle": "Přihlaste se ke svému účtu",
+    "version": {
+      "details": "Podrobnosti o verzi",
+      "version_line": "Verze: {value}",
+      "build_line": "Sestavení: {value}",
+      "latest_line": "Nejnovější: {value}",
+      "copy": "Kopírovat informace o verzi",
+      "security_update": "Je k dispozici bezpečnostní aktualizace",
+      "unsupported": "Tato verze už není podporována",
+      "new_version": "Je k dispozici nová verze",
+      "release_notes": "Poznámky k vydání"
+    },
     "cancel": "Zrušit",
     "website": "Webové stránky",
     "imprint": "Tiráž",
@@ -75,6 +87,13 @@
       "access_denied": "Přístup odepřen. Kontaktujte správce.",
       "back_to_login": "Zpět na přihlášení"
     }
+  },
+  "totp_reauth": {
+    "title": "Relace vypršela",
+    "description": "Váš dvoufázový kód se změnil. Pro pokračování zadejte nový kód z ověřovací aplikace.",
+    "oauth_hint": "Aby se tato výzva neopakovala, požádejte správce o zapnutí přihlašování přes OAuth (vestavěné OAuth ve Stalwartu nebo externího poskytovatele identity).",
+    "code_label": "Ověřovací kód",
+    "verify": "Ověřit"
   },
   "sidebar": {
     "close": "Zavřít",
@@ -163,6 +182,7 @@
     "unified_all_starred": "Vše s hvězdičkou",
     "unified_all_mail": "Veškerá pošta",
     "remove_account": "Odebrat účet",
+    "remove_account_title": "Odebrat účet?",
     "remove_account_confirm": "Odebrat účet {account} z tohoto zařízení? Později ho můžete znovu přidat.",
     "labels": "Štítky",
     "create_label": "Vytvořit nový štítek",
@@ -2642,6 +2662,10 @@
     "retry": "Opakovat",
     "go_home": "Přejít do doručené pošty"
   },
+  "not_found": {
+    "title": "Stránka nenalezena",
+    "description": "Tato stránka neexistuje nebo byla přesunuta. Zkontrolujte adresu nebo se vraťte do doručené pošty."
+  },
   "context_menu": {
     "reply": "Odpovědět",
     "reply_all": "Odpovědět všem",
@@ -4202,6 +4226,14 @@
     "copied": "Odkaz zkopírován",
     "copy_failed": "Odkaz se nepodařilo zkopírovat"
   },
+  "connector_link": {
+    "opening": "Otevírání…",
+    "unknown_title": "Tento odkaz je novější než tento {name}",
+    "unknown_body": "Otevírá něco, co verze {version} nezná. Aktualizace {name} by to měla vyřešit.",
+    "malformed_title": "Tento odkaz není úplně v pořádku",
+    "malformed_body": "Žádá o {label}, ale jeho parametr {param} chybí nebo je neplatný. Nic nebylo otevřeno.",
+    "open_app": "Otevřít {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Dokončování autorizace…",
@@ -4592,6 +4624,13 @@
   },
   "top_bar": {
     "more": "Další možnosti"
+  },
+  "shell": {
+    "resize": "Změnit velikost",
+    "update_available": "Je k dispozici aktualizace",
+    "update_important": "Je k dispozici důležitá aktualizace",
+    "folder_unread": "Nepřečteno: {count}",
+    "folder_counts": "Nepřečteno: {unread}, celkem: {total}"
   },
   "plugin_pages": {
     "loading": "Načítání stránky",

@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle, Loader2 } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { TOUCH_HIT_AREA } from "@/components/ui/button";
 
 export type ToastType = "success" | "error" | "info" | "warning";
 
@@ -180,6 +181,7 @@ export function ToastItem({ toast, onClose }: ToastProps) {
       }}
       className={cn(
         "text-[13px] font-semibold text-foreground px-1.5 py-0.5 rounded-md transition-colors",
+        TOUCH_HIT_AREA,
         "underline underline-offset-[3px] hover:bg-foreground/5"
       )}
     >
@@ -262,6 +264,7 @@ export function ToastItem({ toast, onClose }: ToastProps) {
         }}
         className={cn(
           "flex-shrink-0 p-1 rounded-md transition-all max-sm:hidden",
+          TOUCH_HIT_AREA,
           "text-muted-foreground hover:text-foreground hover:bg-foreground/5",
           "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100"
         )}
