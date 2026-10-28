@@ -1787,6 +1787,7 @@
         "delete": "Supprimer la liste enregistrée",
         "cancel": "Annuler",
         "delete_confirm": "Supprimer du serveur la liste de comptes enregistrée ?",
+        "delete_message": "Les autres appareils ne pourront plus en restaurer les comptes.",
         "password": "Mot de passe de la sauvegarde",
         "password_hint": "Au moins 10 caractères. Il ne peut pas être récupéré : si vous l'oubliez, enregistrez à nouveau la liste avec un nouveau mot de passe.",
         "restore_hint": "Le mot de passe choisi lors de l'enregistrement de la liste.",
@@ -1882,6 +1883,8 @@
         "removed": "Mot de passe d'application supprimé",
         "add_error": "Impossible de créer le mot de passe d'application",
         "remove_error": "Impossible de supprimer le mot de passe d'application",
+        "delete_title": "Supprimer le mot de passe d'application ?",
+        "delete_message": "Les applications qui se connectent avec {name} ne pourront plus se connecter.",
         "none": "Aucun mot de passe d'application configuré",
         "done": "Terminé",
         "expires_label": "Expire (facultatif)",
@@ -1900,6 +1903,8 @@
         "removed": "Clé API supprimée",
         "add_error": "Échec de la création de la clé API",
         "remove_error": "Échec de la suppression de la clé API",
+        "delete_title": "Supprimer la clé d'API ?",
+        "delete_message": "Les scripts et intégrations qui utilisent {name} perdent l'accès.",
         "none": "Aucune clé API configurée"
       },
       "encryption": {
@@ -1919,6 +1924,9 @@
         "configure_title": "Activer le chiffrement avec cette clé",
         "enable_button": "Activer",
         "disable_tooltip": "Désactiver le chiffrement",
+        "disable_title": "Désactiver le chiffrement au repos ?",
+        "disable_message": "Les nouveaux e-mails seront désormais stockés sans chiffrement.",
+        "disable_button": "Désactiver",
         "enabled_success": "Chiffrement au repos activé"
       },
       "email_client": {
@@ -1967,7 +1975,14 @@
         "name_placeholder": "ex. Ma clé",
         "key_label": "Clé publique (S/MIME ou PGP au format ASCII)",
         "key_placeholder": "Collez votre clé publique ici",
-        "none": "Aucune clé publique configurée"
+        "none": "Aucune clé publique configurée",
+        "title": "Clés publiques",
+        "added": "Clé publique ajoutée",
+        "removed": "Clé publique supprimée",
+        "add_error": "Impossible d'ajouter la clé publique",
+        "remove_error": "Impossible de supprimer la clé publique",
+        "delete_title": "Supprimer la clé publique ?",
+        "delete_message": "{name} est retirée du serveur."
       },
       "sections": {
         "devices": "Autres applications et appareils",
@@ -2104,6 +2119,7 @@
       "count_mode_all": "Non lus et total",
       "count_mode_none": "Aucun compteur",
       "delete": "Supprimer",
+      "delete_title": "Supprimer le dossier ?",
       "confirm_delete": "Êtes-vous sûr de vouloir supprimer \"{name}\" ? Les e-mails de ce dossier seront déplacés dans la Corbeille.",
       "create": "Créer",
       "cancel": "Annuler",
@@ -2249,6 +2265,11 @@
       "group_by_letter_label": "Grouper par première lettre",
       "sort_by_last_name_label": "Trier par nom de famille",
       "sort_by_last_name_description": "Classer la liste des contacts par nom de famille pour regrouper les membres d'une même famille"
+    },
+    "calendar_management": {
+      "delete_title": "Supprimer le calendrier ?",
+      "clear_title": "Effacer tous les événements ?",
+      "unsubscribe_title": "Se désabonner de ce calendrier ?"
     },
     "downloads": {
       "title": "Téléchargements",
@@ -2404,6 +2425,7 @@
       "match_type": "Type de correspondance",
       "reset_to_visual": "Revenir au constructeur visuel",
       "reset_warning": "Cela supprimera le script actuel et recommencera à zéro.",
+      "reset_title": "Revenir à l'éditeur visuel ?",
       "confirm_reset": "Réinitialiser",
       "validation_empty_name": "Le nom de la règle est requis",
       "validation_empty_conditions": "Au moins une condition avec une valeur est requise",

@@ -1787,6 +1787,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "다른 기기에서 더 이상 이 목록으로 계정을 복원할 수 없어요.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1882,6 +1883,8 @@
         "removed": "앱 비밀번호가 삭제되었어요",
         "add_error": "앱 비밀번호를 만들지 못했어요",
         "remove_error": "앱 비밀번호를 삭제하지 못했어요",
+        "delete_title": "앱 비밀번호를 삭제할까요?",
+        "delete_message": "{name}(으)로 로그인하는 앱은 더 이상 로그인할 수 없어요.",
         "none": "설정된 앱 비밀번호가 없어요",
         "done": "완료",
         "expires_label": "만료 (선택 사항)",
@@ -1900,6 +1903,8 @@
         "removed": "API 키가 삭제되었습니다",
         "add_error": "API 키 생성에 실패했습니다",
         "remove_error": "API 키 삭제에 실패했습니다",
+        "delete_title": "API 키를 삭제할까요?",
+        "delete_message": "{name}을(를) 사용하는 스크립트와 통합은 접근 권한을 잃어요.",
         "none": "구성된 API 키가 없습니다"
       },
       "encryption": {
@@ -1919,6 +1924,9 @@
         "configure_title": "이 키로 암호화 사용",
         "enable_button": "사용",
         "disable_tooltip": "암호화 사용 안 함",
+        "disable_title": "저장 데이터 암호화를 끌까요?",
+        "disable_message": "이제부터 새 메일은 암호화 없이 저장돼요.",
+        "disable_button": "끄기",
         "enabled_success": "저장 데이터 암호화가 켜졌어요"
       },
       "email_client": {
@@ -1967,7 +1975,14 @@
         "name_placeholder": "예: 내 키",
         "key_label": "공개 키(S/MIME 또는 PGP ASCII 형식)",
         "key_placeholder": "여기에 공개 키를 붙여넣으세요",
-        "none": "설정된 공개 키가 없어요"
+        "none": "설정된 공개 키가 없어요",
+        "title": "공개 키",
+        "added": "공개 키를 추가했어요",
+        "removed": "공개 키를 삭제했어요",
+        "add_error": "공개 키를 추가하지 못했어요",
+        "remove_error": "공개 키를 삭제하지 못했어요",
+        "delete_title": "공개 키를 삭제할까요?",
+        "delete_message": "{name}이(가) 서버에서 삭제돼요."
       },
       "sections": {
         "devices": "다른 앱 및 기기",
@@ -2104,6 +2119,7 @@
       "count_mode_all": "읽지 않음 및 전체",
       "count_mode_none": "카운터 없음",
       "delete": "삭제",
+      "delete_title": "폴더를 삭제할까요?",
       "confirm_delete": "정말 \"{name}\" 폴더를 삭제할까요? 폴더 안의 메일은 휴지통으로 이동돼요.",
       "create": "만들기",
       "cancel": "취소",
@@ -2249,6 +2265,11 @@
       "group_by_letter_label": "첫 글자로 그룹화",
       "sort_by_last_name_label": "성으로 정렬",
       "sort_by_last_name_description": "가족 구성원이 함께 표시되도록 연락처 목록을 성 기준으로 정렬합니다"
+    },
+    "calendar_management": {
+      "delete_title": "캘린더를 삭제할까요?",
+      "clear_title": "모든 일정을 지울까요?",
+      "unsubscribe_title": "이 캘린더 구독을 해지할까요?"
     },
     "downloads": {
       "title": "다운로드",
@@ -2404,6 +2425,7 @@
       "match_type": "일치 유형",
       "reset_to_visual": "시각적 에디터로 초기화",
       "reset_warning": "현재 스크립트가 지워지고 처음부터 다시 시작하게 돼요.",
+      "reset_title": "시각적 편집기로 재설정할까요?",
       "confirm_reset": "초기화",
       "validation_empty_name": "규칙 이름을 입력해 주세요",
       "validation_empty_conditions": "값을 포함한 조건이 하나 이상 필요해요",

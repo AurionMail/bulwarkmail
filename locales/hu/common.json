@@ -1790,6 +1790,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Más eszközök többé nem tudják visszaállítani belőle a fiókokat.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1891,6 +1892,8 @@
         "removed": "Alkalmazás jelszó eltávolítva",
         "add_error": "Nem sikerült létrehozni az alkalmazás jelszót",
         "remove_error": "Nem sikerült eltávolítani az alkalmazás jelszót",
+        "delete_title": "Törli az alkalmazásjelszót?",
+        "delete_message": "A(z) {name} jelszóval bejelentkező alkalmazások többé nem tudnak bejelentkezni.",
         "none": "Nincs alkalmazás jelszó beállítva"
       },
       "api_keys": {
@@ -1903,6 +1906,8 @@
         "removed": "API kulcs eltávolítva",
         "add_error": "Nem sikerült létrehozni az API kulcsot",
         "remove_error": "Nem sikerült eltávolítani az API kulcsot",
+        "delete_title": "Törli az API-kulcsot?",
+        "delete_message": "A(z) {name} kulcsot használó szkriptek és integrációk elveszítik a hozzáférést.",
         "none": "Nincs API kulcs beállítva"
       },
       "encryption": {
@@ -1922,6 +1927,9 @@
         "configure_title": "Titkosítás engedélyezése ezzel a kulccsal",
         "enable_button": "Engedélyezés",
         "disable_tooltip": "Titkosítás letiltása",
+        "disable_title": "Kikapcsolja a tárolt adatok titkosítását?",
+        "disable_message": "Az új leveleket mostantól titkosítás nélkül tárolja a szerver.",
+        "disable_button": "Kikapcsolás",
         "enabled_success": "Titkosítás nyugalmi állapotban engedélyezve"
       },
       "email_client": {
@@ -1970,7 +1978,14 @@
         "name_placeholder": "pl. A kulcsom",
         "key_label": "Nyilvános kulcs (S/MIME vagy PGP ASCII formátumban)",
         "key_placeholder": "Illessze be ide a nyilvános kulcsát",
-        "none": "Nincs beállítva nyilvános kulcs"
+        "none": "Nincs beállítva nyilvános kulcs",
+        "title": "Nyilvános kulcsok",
+        "added": "Nyilvános kulcs hozzáadva",
+        "removed": "Nyilvános kulcs törölve",
+        "add_error": "Nem sikerült hozzáadni a nyilvános kulcsot",
+        "remove_error": "Nem sikerült törölni a nyilvános kulcsot",
+        "delete_title": "Törli a nyilvános kulcsot?",
+        "delete_message": "A(z) {name} törlődik a szerverről."
       },
       "sections": {
         "devices": "Más alkalmazások és eszközök",
@@ -2107,6 +2122,7 @@
       "count_mode_all": "Olvasatlan és összes",
       "count_mode_none": "Nincs számláló",
       "delete": "Törlés",
+      "delete_title": "Törli a mappát?",
       "confirm_delete": "Biztosan törölni szeretnéd a \"{name}\" mappát? A mappában lévő e-mailek a Kukába kerülnek.",
       "create": "Létrehozás",
       "cancel": "Mégse",
@@ -2252,6 +2268,11 @@
       "categories_title": "Kategóriák",
       "categories_description": "Névjegy kategóriák átnevezése",
       "no_categories": "Nincs kategória"
+    },
+    "calendar_management": {
+      "delete_title": "Törli a naptárt?",
+      "clear_title": "Törli az összes eseményt?",
+      "unsubscribe_title": "Leiratkozik erről a naptárról?"
     },
     "downloads": {
       "title": "Letöltések",
@@ -2407,6 +2428,7 @@
       "match_type": "Egyezés típusa",
       "reset_to_visual": "Visszaállítás vizuális szerkesztőre",
       "reset_warning": "Ez elveti az aktuális szkriptet és újat kezd.",
+      "reset_title": "Visszaáll a vizuális szerkesztőre?",
       "confirm_reset": "Visszaállítás",
       "validation_empty_name": "A szabály neve kötelező",
       "validation_empty_conditions": "Legalább egy feltétel szükséges értékkel",

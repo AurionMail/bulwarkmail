@@ -1790,6 +1790,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "دستگاه‌های دیگر دیگر نمی‌توانند حساب‌ها را از آن بازیابی کنند.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1895,6 +1896,8 @@
         "removed": "حذف شد",
         "add_error": "خطای ایجاد",
         "remove_error": "خطای حذف",
+        "delete_title": "گذرواژه برنامه حذف شود؟",
+        "delete_message": "برنامه‌هایی که با {name} وارد می‌شوند دیگر نمی‌توانند وارد شوند.",
         "none": "پیکربندی نشده"
       },
       "api_keys": {
@@ -1907,6 +1910,8 @@
         "removed": "حذف شد",
         "add_error": "خطای ایجاد",
         "remove_error": "خطای حذف",
+        "delete_title": "کلید API حذف شود؟",
+        "delete_message": "اسکریپت‌ها و یکپارچه‌سازی‌هایی که از {name} استفاده می‌کنند دسترسی را از دست می‌دهند.",
         "none": "پیکربندی نشده"
       },
       "encryption": {
@@ -1926,6 +1931,9 @@
         "configure_title": "فعال‌سازی رمزنگاری با این کلید",
         "enable_button": "فعال‌سازی",
         "disable_tooltip": "غیرفعال‌سازی رمزنگاری",
+        "disable_title": "رمزگذاری داده‌های ذخیره‌شده خاموش شود؟",
+        "disable_message": "از این پس نامه‌های جدید بدون رمزگذاری ذخیره می‌شوند.",
+        "disable_button": "خاموش کردن",
         "enabled_success": "فعال شد"
       },
       "email_client": {
@@ -1974,7 +1982,14 @@
         "name_placeholder": "مثال: کلید من",
         "key_label": "کلید عمومی (S/MIME یا PGP با قالب ASCII)",
         "key_placeholder": "کلید عمومی خود را اینجا بچسبانید",
-        "none": "هیچ کلید عمومی‌ای تنظیم نشده است"
+        "none": "هیچ کلید عمومی‌ای تنظیم نشده است",
+        "title": "کلیدهای عمومی",
+        "added": "کلید عمومی افزوده شد",
+        "removed": "کلید عمومی حذف شد",
+        "add_error": "افزودن کلید عمومی ممکن نشد",
+        "remove_error": "حذف کلید عمومی ممکن نشد",
+        "delete_title": "کلید عمومی حذف شود؟",
+        "delete_message": "{name} از سرور حذف می‌شود."
       },
       "sections": {
         "devices": "برنامه‌ها و دستگاه‌های دیگر",
@@ -2111,6 +2126,7 @@
       "count_mode_all": "خوانده‌نشده و کل",
       "count_mode_none": "بدون شمارنده",
       "delete": "حذف",
+      "delete_title": "پوشه حذف شود؟",
       "confirm_delete": "آیا از حذف \"{name}\" اطمینان دارید؟ ایمیل‌های این پوشه به زباله‌دان منتقل می‌شوند.",
       "create": "ایجاد",
       "cancel": "انصراف",
@@ -2256,6 +2272,11 @@
       "categories_title": "دسته‌بندی‌ها",
       "categories_description": "تغییر نام دسته‌بندی‌های مخاطبین",
       "no_categories": "دسته‌بندی یافت نشد"
+    },
+    "calendar_management": {
+      "delete_title": "تقویم حذف شود؟",
+      "clear_title": "همه رویدادها پاک شوند؟",
+      "unsubscribe_title": "اشتراک این تقویم لغو شود؟"
     },
     "downloads": {
       "title": "دانلودها",
@@ -2411,6 +2432,7 @@
       "match_type": "نوع مطابقت",
       "reset_to_visual": "بازنشانی به ویرایشگر بصری",
       "reset_warning": "این اسکریپت فعلی را دور می‌اندازد و از نو شروع می‌کند.",
+      "reset_title": "به سازنده تصویری بازنشانی شود؟",
       "confirm_reset": "بازنشانی",
       "validation_empty_name": "نام قانون الزامی است",
       "validation_empty_conditions": "حداقل یک شرط با مقدار الزامی است",

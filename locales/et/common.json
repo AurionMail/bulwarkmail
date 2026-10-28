@@ -1790,6 +1790,7 @@
         "delete": "Kustuta salvestatud nimekiri",
         "cancel": "Tühista",
         "delete_confirm": "Kas kustutada salvestatud kontode nimekiri serverist?",
+        "delete_message": "Teised seadmed ei saa enam kontosid sellest taastada.",
         "password": "Varukoopia parool",
         "password_hint": "Vähemalt 10 märki. Seda ei saa taastada: kui unustad, salvesta nimekiri uuesti uue parooliga.",
         "restore_hint": "Parool, mille valisid nimekirja salvestamisel.",
@@ -1895,6 +1896,8 @@
         "removed": "Rakenduse parool eemaldatud",
         "add_error": "Rakenduse parooli loomine ebaõnnestus",
         "remove_error": "Rakenduse parooli eemaldamine ebaõnnestus",
+        "delete_title": "Kustutada rakenduse parool?",
+        "delete_message": "Rakendused, mis logivad sisse parooliga {name}, ei saa enam sisse logida.",
         "none": "Ühtegi rakenduse parooli pole seadistatud"
       },
       "api_keys": {
@@ -1907,6 +1910,8 @@
         "removed": "API võti eemaldatud",
         "add_error": "API võtme loomine ebaõnnestus",
         "remove_error": "API võtme eemaldamine ebaõnnestus",
+        "delete_title": "Kustutada API-võti?",
+        "delete_message": "Skriptid ja liidestused, mis kasutavad võtit {name}, kaotavad ligipääsu.",
         "none": "Ühtegi API võtit pole seadistatud"
       },
       "encryption": {
@@ -1926,6 +1931,9 @@
         "configure_title": "Luba krüpteerimine selle võtmega",
         "enable_button": "Luba",
         "disable_tooltip": "Keela krüpteerimine",
+        "disable_title": "Lülitada salvestatud andmete krüpteerimine välja?",
+        "disable_message": "Uued kirjad salvestatakse nüüdsest krüpteerimata.",
+        "disable_button": "Lülita välja",
         "enabled_success": "Salvestatud andmete krüpteerimine lubatud"
       },
       "public_keys": {
@@ -1933,7 +1941,14 @@
         "name_placeholder": "nt Minu võti",
         "key_label": "Avalik võti (S/MIME või PGP ASCII-armored)",
         "key_placeholder": "Kleebi oma avalik võti siia",
-        "none": "Ühtegi avalikku võtit pole seadistatud"
+        "none": "Ühtegi avalikku võtit pole seadistatud",
+        "title": "Avalikud võtmed",
+        "added": "Avalik võti lisatud",
+        "removed": "Avalik võti kustutatud",
+        "add_error": "Avalikku võtit ei õnnestunud lisada",
+        "remove_error": "Avalikku võtit ei õnnestunud kustutada",
+        "delete_title": "Kustutada avalik võti?",
+        "delete_message": "{name} eemaldatakse serverist."
       },
       "email_client": {
         "title": "E-posti kliendi seadistus",
@@ -2111,6 +2126,7 @@
       "count_mode_all": "Lugemata ja kokku",
       "count_mode_none": "Loendurit pole",
       "delete": "Kustuta",
+      "delete_title": "Kustutada kaust?",
       "confirm_delete": "Kas oled kindel, et soovid kustutada kausta \"{name}\"? Selles kaustas olevad kirjad liigutatakse prügikasti.",
       "create": "Loo",
       "cancel": "Tühista",
@@ -2256,6 +2272,11 @@
       "categories_title": "Kategooriad",
       "categories_description": "Nimeta kontaktikategooriad ümber",
       "no_categories": "Kategooriaid ei leitud"
+    },
+    "calendar_management": {
+      "delete_title": "Kustutada kalender?",
+      "clear_title": "Tühjendada kõik sündmused?",
+      "unsubscribe_title": "Loobuda selle kalendri tellimusest?"
     },
     "downloads": {
       "title": "Allalaadimised",
@@ -2411,6 +2432,7 @@
       "match_type": "Vastavuse tüüp",
       "reset_to_visual": "Lähtesta visuaalsele koostajale",
       "reset_warning": "See hülgab praeguse skripti ja alustab uuesti.",
+      "reset_title": "Lähtestada visuaalsele redaktorile?",
       "confirm_reset": "Lähtesta",
       "validation_empty_name": "Reegli nimi on kohustuslik",
       "validation_empty_conditions": "Vajalik on vähemalt üks väärtusega tingimus",

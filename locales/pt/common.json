@@ -1787,6 +1787,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Os outros dispositivos deixam de poder restaurar as contas a partir dela.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1882,6 +1883,8 @@
         "removed": "Senha de aplicativo removida",
         "add_error": "Não foi possível criar a senha de aplicativo",
         "remove_error": "Não foi possível remover a senha de aplicativo",
+        "delete_title": "Eliminar a palavra-passe de aplicação?",
+        "delete_message": "As aplicações que iniciam sessão com {name} deixam de conseguir fazê-lo.",
         "none": "Nenhuma senha de aplicativo configurada",
         "done": "Concluído",
         "expires_label": "Expira (opcional)",
@@ -1900,6 +1903,8 @@
         "removed": "Chave de API removida",
         "add_error": "Falha ao criar chave de API",
         "remove_error": "Falha ao remover chave de API",
+        "delete_title": "Eliminar a chave de API?",
+        "delete_message": "Os scripts e integrações que usam {name} perdem o acesso.",
         "none": "Nenhuma chave de API configurada"
       },
       "encryption": {
@@ -1919,6 +1924,9 @@
         "configure_title": "Ativar criptografia com esta chave",
         "enable_button": "Ativar",
         "disable_tooltip": "Desativar criptografia",
+        "disable_title": "Desativar a encriptação em repouso?",
+        "disable_message": "A partir de agora, o correio novo é guardado sem encriptação.",
+        "disable_button": "Desativar",
         "enabled_success": "Criptografia em repouso habilitada"
       },
       "email_client": {
@@ -1967,7 +1975,14 @@
         "name_placeholder": "ex. A minha chave",
         "key_label": "Chave pública (S/MIME ou PGP em formato ASCII)",
         "key_placeholder": "Cole aqui a sua chave pública",
-        "none": "Nenhuma chave pública configurada"
+        "none": "Nenhuma chave pública configurada",
+        "title": "Chaves públicas",
+        "added": "Chave pública adicionada",
+        "removed": "Chave pública eliminada",
+        "add_error": "Não foi possível adicionar a chave pública",
+        "remove_error": "Não foi possível eliminar a chave pública",
+        "delete_title": "Eliminar a chave pública?",
+        "delete_message": "{name} é removida do servidor."
       },
       "sections": {
         "devices": "Outras aplicações e dispositivos",
@@ -2104,6 +2119,7 @@
       "count_mode_all": "Não lidas e total",
       "count_mode_none": "Sem contador",
       "delete": "Excluir",
+      "delete_title": "Eliminar a pasta?",
       "confirm_delete": "Tem certeza de que deseja excluir \"{name}\"? Os e-mails nesta pasta serão movidos para a Lixeira.",
       "create": "Criar",
       "cancel": "Cancelar",
@@ -2249,6 +2265,11 @@
       "group_by_letter_label": "Agrupar pela primeira letra",
       "sort_by_last_name_label": "Ordenar por sobrenome",
       "sort_by_last_name_description": "Ordenar a lista de contatos por sobrenome para que os membros da família apareçam juntos"
+    },
+    "calendar_management": {
+      "delete_title": "Eliminar o calendário?",
+      "clear_title": "Limpar todos os eventos?",
+      "unsubscribe_title": "Cancelar a subscrição deste calendário?"
     },
     "downloads": {
       "title": "Downloads",
@@ -2404,6 +2425,7 @@
       "match_type": "Tipo de correspondência",
       "reset_to_visual": "Redefinir para o construtor visual",
       "reset_warning": "Isto irá descartar o script atual e começar do zero.",
+      "reset_title": "Repor o editor visual?",
       "confirm_reset": "Redefinir",
       "validation_empty_name": "O nome da regra é obrigatório",
       "validation_empty_conditions": "É necessária pelo menos uma condição com um valor",

@@ -1790,6 +1790,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Andre enheder kan ikke længere gendanne kontiene fra den.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1891,6 +1892,8 @@
         "removed": "App-adgangskode fjernet",
         "add_error": "Kunne ikke oprette app-adgangskode",
         "remove_error": "Kunne ikke fjerne app-adgangskode",
+        "delete_title": "Slet app-adgangskoden?",
+        "delete_message": "Apps, der logger ind med {name}, kan ikke længere logge ind.",
         "none": "Ingen app-adgangskoder konfigureret"
       },
       "api_keys": {
@@ -1903,6 +1906,8 @@
         "removed": "API-nøgle fjernet",
         "add_error": "Kunne ikke oprette API-nøgle",
         "remove_error": "Kunne ikke fjerne API-nøgle",
+        "delete_title": "Slet API-nøglen?",
+        "delete_message": "Scripts og integrationer, der bruger {name}, mister adgangen.",
         "none": "Ingen API-nøgler konfigureret"
       },
       "encryption": {
@@ -1922,6 +1927,9 @@
         "configure_title": "Aktivér kryptering med denne nøgle",
         "enable_button": "Aktivér",
         "disable_tooltip": "Deaktivér kryptering",
+        "disable_title": "Slå kryptering af lagrede data fra?",
+        "disable_message": "Ny post gemmes fra nu af uden kryptering.",
+        "disable_button": "Slå fra",
         "enabled_success": "Kryptering af lagrede data aktiveret"
       },
       "email_client": {
@@ -1970,7 +1978,14 @@
         "name_placeholder": "f.eks. Min nøgle",
         "key_label": "Offentlig nøgle (S/MIME eller PGP i ASCII-format)",
         "key_placeholder": "Indsæt din offentlige nøgle her",
-        "none": "Ingen offentlige nøgler konfigureret"
+        "none": "Ingen offentlige nøgler konfigureret",
+        "title": "Offentlige nøgler",
+        "added": "Offentlig nøgle tilføjet",
+        "removed": "Offentlig nøgle slettet",
+        "add_error": "Den offentlige nøgle kunne ikke tilføjes",
+        "remove_error": "Den offentlige nøgle kunne ikke slettes",
+        "delete_title": "Slet den offentlige nøgle?",
+        "delete_message": "{name} fjernes fra serveren."
       },
       "sections": {
         "devices": "Andre apps og enheder",
@@ -2107,6 +2122,7 @@
       "count_mode_all": "Ulæste og i alt",
       "count_mode_none": "Ingen tæller",
       "delete": "Slet",
+      "delete_title": "Slet mappen?",
       "confirm_delete": "Er du sikker på, at du vil slette \"{name}\"? E-mails i denne mappe flyttes til papirkurven.",
       "create": "Opret",
       "cancel": "Annuller",
@@ -2252,6 +2268,11 @@
       "categories_title": "Kategorier",
       "categories_description": "Omdøb kontaktkategorier",
       "no_categories": "Ingen kategorier fundet"
+    },
+    "calendar_management": {
+      "delete_title": "Slet kalenderen?",
+      "clear_title": "Ryd alle begivenheder?",
+      "unsubscribe_title": "Afmeld denne kalender?"
     },
     "downloads": {
       "title": "Downloads",
@@ -2407,6 +2428,7 @@
       "match_type": "Match-type",
       "reset_to_visual": "Nulstil til visuel builder",
       "reset_warning": "Dette vil kassere det nuværende script og starte forfra.",
+      "reset_title": "Nulstil til den visuelle editor?",
       "confirm_reset": "Nulstil",
       "validation_empty_name": "Regelnavn er påkrævet",
       "validation_empty_conditions": "Mindst én betingelse med en værdi er påkrævet",

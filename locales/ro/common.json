@@ -1790,6 +1790,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Alte dispozitive nu vor mai putea restaura conturile din ea.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1895,6 +1896,8 @@
         "removed": "Parola aplicației a fost eliminată",
         "add_error": "Nu s-a putut crea parola aplicației",
         "remove_error": "Nu s-a reușit eliminarea parolei aplicației",
+        "delete_title": "Ștergeți parola de aplicație?",
+        "delete_message": "Aplicațiile care se conectează cu {name} nu se vor mai putea conecta.",
         "none": "Nu sunt configurate parole pentru aplicații"
       },
       "api_keys": {
@@ -1907,6 +1910,8 @@
         "removed": "API cheie eliminată",
         "add_error": "Nu s-a putut crea cheia dAPI",
         "remove_error": "Nu s-a putut elimina cheia „API”",
+        "delete_title": "Ștergeți cheia API?",
+        "delete_message": "Scripturile și integrările care folosesc {name} pierd accesul.",
         "none": "Nu sunt configurate tastele „API”"
       },
       "encryption": {
@@ -1926,6 +1931,9 @@
         "configure_title": "Activați criptarea cu această cheie",
         "enable_button": "Activați",
         "disable_tooltip": "Dezactivați criptarea",
+        "disable_title": "Dezactivați criptarea datelor stocate?",
+        "disable_message": "E-mailurile noi vor fi stocate de acum fără criptare.",
+        "disable_button": "Dezactivează",
         "enabled_success": "Criptarea datelor stocate este activată"
       },
       "email_client": {
@@ -1974,7 +1982,14 @@
         "name_placeholder": "de ex. Cheia mea",
         "key_label": "Cheie publică (S/MIME sau PGP în format ASCII)",
         "key_placeholder": "Lipiți aici cheia dvs. publică",
-        "none": "Nicio cheie publică configurată"
+        "none": "Nicio cheie publică configurată",
+        "title": "Chei publice",
+        "added": "Cheie publică adăugată",
+        "removed": "Cheie publică ștearsă",
+        "add_error": "Cheia publică nu a putut fi adăugată",
+        "remove_error": "Cheia publică nu a putut fi ștearsă",
+        "delete_title": "Ștergeți cheia publică?",
+        "delete_message": "{name} este eliminată de pe server."
       },
       "sections": {
         "devices": "Alte aplicații și dispozitive",
@@ -2111,6 +2126,7 @@
       "count_mode_all": "Necitite și total",
       "count_mode_none": "Fără contor",
       "delete": "Șterge",
+      "delete_title": "Ștergeți dosarul?",
       "confirm_delete": "Sunteți sigur că doriți să ștergeți „{name}”? E-mailurile din acest folder vor fi mutate în Coșul de gunoi.",
       "create": "Creați",
       "cancel": "Anulează",
@@ -2256,6 +2272,11 @@
       "categories_title": "Categorii",
       "categories_description": "Redenumiți categoriile de contacte",
       "no_categories": "Nu s-au găsit categorii"
+    },
+    "calendar_management": {
+      "delete_title": "Ștergeți calendarul?",
+      "clear_title": "Ștergeți toate evenimentele?",
+      "unsubscribe_title": "Vă dezabonați de la acest calendar?"
     },
     "downloads": {
       "title": "Descărcări",
@@ -2411,6 +2432,7 @@
       "match_type": "Potriviți tipul",
       "reset_to_visual": "Reveniți la editorul vizual",
       "reset_warning": "Aceasta va anula scriptul curent și va începe de la zero.",
+      "reset_title": "Reveniți la editorul vizual?",
       "confirm_reset": "Resetare",
       "validation_empty_name": "Numele regulii este obligatoriu",
       "validation_empty_conditions": "Este necesară cel puțin o condiție cu o valoare",

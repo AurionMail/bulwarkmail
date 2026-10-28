@@ -5,6 +5,8 @@ import { useTranslations } from "next-intl";
 import { SettingsSection, ToggleSwitch } from "./settings-section";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { FilterRuleModal } from "@/components/filters/filter-rule-modal";
 import { SieveEditorModal } from "@/components/filters/sieve-editor-modal";
 import { useFilterStore } from "@/stores/filter-store";
@@ -289,7 +291,6 @@ export function FilterSettings() {
   const [editingRule, setEditingRule] = useState<FilterRule | undefined>();
   const [showRuleModal, setShowRuleModal] = useState(false);
   const [showSieveEditor, setShowSieveEditor] = useState(false);
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const draggedIndexRef = useRef<number | null>(null);
 
@@ -410,13 +411,17 @@ export function FilterSettings() {
     [client, setRawScript, saveFilters, tNotifications]
   );
 
+  const { dialogProps: confirmProps, confirm } = useConfirmDialog();
+  // The script typed in the raw editor is thrown away, so it asks first (R3).
   const handleResetToVisual = useCallback(async () => {
-    if (!showResetConfirm) {
-      setShowResetConfirm(true);
-      return;
-    }
+    const ok = await confirm({
+      title: t("reset_title"),
+      message: t("reset_warning"),
+      confirmText: t("confirm_reset"),
+      variant: "destructive",
+    });
+    if (!ok) return;
     resetToVisualBuilder();
-    setShowResetConfirm(false);
     if (client) {
       try {
         await saveFilters(client);
@@ -425,7 +430,7 @@ export function FilterSettings() {
         toast.error(tNotifications("filters_save_failed"));
       }
     }
-  }, [showResetConfirm, resetToVisualBuilder, client, saveFilters, tNotifications]);
+  }, [confirm, t, resetToVisualBuilder, client, saveFilters, tNotifications]);
 
   const handleValidate = useCallback(
     async (content: string) => {
@@ -535,34 +540,14 @@ export function FilterSettings() {
                 >
                   {t("open_sieve_editor")}
                 </button>
-                {showResetConfirm ? (
-                  <span className="flex items-center gap-2">
-                    <span className="text-red-600 dark:text-red-400">{t("reset_warning")}</span>
-                    <button
-                      type="button"
-                      onClick={handleResetToVisual}
-                      className="text-red-600 dark:text-red-400 hover:underline font-medium"
-                    >
-                      {t("confirm_reset")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowResetConfirm(false)}
-                      className="text-muted-foreground hover:underline"
-                    >
-                      {t("cancel")}
-                    </button>
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleResetToVisual}
-                    className="text-red-600 dark:text-red-400 hover:underline font-medium flex items-center gap-1"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    {t("reset_to_visual")}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => void handleResetToVisual()}
+                  className="text-red-600 dark:text-red-400 hover:underline font-medium flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  {t("reset_to_visual")}
+                </button>
               </div>
             </div>
           </div>
@@ -798,6 +783,7 @@ export function FilterSettings() {
           onValidate={handleValidate}
         />
       )}
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 }

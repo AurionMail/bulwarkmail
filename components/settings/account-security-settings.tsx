@@ -19,6 +19,8 @@ import { sanitizeI18nHtml } from '@/lib/email-sanitization';
 import { IS_LITE } from '@/lib/lite';
 import { useConfig } from '@/hooks/use-config';
 import { totpIssuer } from '@/lib/totp-issuer';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 
 function PasswordChangeSection() {
   const t = useTranslations('settings.security');
@@ -437,6 +439,7 @@ interface CredentialSectionProps {
 
 function CredentialSection({ icon: Icon, i18nNamespace, entries, onCreate, onRemove }: CredentialSectionProps) {
   const t = useTranslations('settings.security');
+  const tCommon = useTranslations('common');
   const tk = (key: string) => t(`${i18nNamespace}.${key}`);
   const { isSaving, isLoadingAuth } = useAccountSecurityStore();
   const [showAdd, setShowAdd] = useState(false);
@@ -467,7 +470,18 @@ function CredentialSection({ icon: Icon, i18nNamespace, entries, onCreate, onRem
     }
   };
 
+  const { dialogProps: confirmProps, confirm } = useConfirmDialog();
+
+  // A credential can't be brought back, so it asks first (R3).
   const handleRemove = async (id: string) => {
+    const entry = entries.find((e) => e.id === id);
+    const ok = await confirm({
+      title: tk('delete_title'),
+      message: t(`${i18nNamespace}.delete_message`, { name: entry?.description || id }),
+      confirmText: tCommon('delete'),
+      variant: 'destructive',
+    });
+    if (!ok) return;
     try {
       await onRemove(id);
       toast.success(tk('removed'));
@@ -574,6 +588,7 @@ function CredentialSection({ icon: Icon, i18nNamespace, entries, onCreate, onRem
       ) : (
         <p className="text-xs text-muted-foreground italic">{tk('none')}</p>
       )}
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 }
@@ -606,6 +621,7 @@ function ApiKeysSection() {
 
 function PublicKeysSection() {
   const t = useTranslations('settings.security');
+  const tCommon = useTranslations('common');
   const tk = (key: string) => t(`public_keys.${key}`);
   const {
     publicKeys,
@@ -645,7 +661,17 @@ function PublicKeysSection() {
     }
   };
 
+  const { dialogProps: confirmProps, confirm } = useConfirmDialog();
+
   const handleRemove = async (id: string) => {
+    const key = publicKeys.find((k) => k.id === id);
+    const ok = await confirm({
+      title: tk('delete_title'),
+      message: t('public_keys.delete_message', { name: key?.description || id }),
+      confirmText: tCommon('delete'),
+      variant: 'destructive',
+    });
+    if (!ok) return;
     try {
       await removePublicKey(id);
       toast.success(tk('removed'));
@@ -659,7 +685,14 @@ function PublicKeysSection() {
       encryptionConfig.type !== 'Disabled' && encryptionConfig.publicKeyId === keyId;
 
     if (isCurrentlyActiveKey) {
-      // Disable encryption
+      // Turning it off changes how new mail is stored, so it asks first.
+      const ok = await confirm({
+        title: t('encryption.disable_title'),
+        message: t('encryption.disable_message'),
+        confirmText: t('encryption.disable_button'),
+        variant: 'destructive',
+      });
+      if (!ok) return;
       try {
         await updateEncryptionAtRest({ type: 'Disabled' });
         toast.success(t('encryption.disabled_success'));
@@ -868,6 +901,7 @@ function PublicKeysSection() {
       ) : (
         <p className="text-xs text-muted-foreground italic">{tk('none')}</p>
       )}
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 }

@@ -1787,6 +1787,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Inne urządzenia nie będą już mogły przywrócić z niej kont.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1882,6 +1883,8 @@
         "removed": "Hasło aplikacji zostało usunięte",
         "add_error": "Nie udało się utworzyć hasła aplikacji",
         "remove_error": "Nie udało się usunąć hasła aplikacji",
+        "delete_title": "Usunąć hasło aplikacji?",
+        "delete_message": "Aplikacje logujące się za pomocą {name} nie będą mogły się już zalogować.",
         "none": "Brak skonfigurowanych haseł aplikacji",
         "done": "Gotowe",
         "expires_label": "Wygasa (opcjonalnie)",
@@ -1900,6 +1903,8 @@
         "removed": "Klucz API usunięty",
         "add_error": "Nie udało się utworzyć klucza API",
         "remove_error": "Nie udało się usunąć klucza API",
+        "delete_title": "Usunąć klucz API?",
+        "delete_message": "Skrypty i integracje używające {name} stracą dostęp.",
         "none": "Brak skonfigurowanych kluczy API"
       },
       "encryption": {
@@ -1919,6 +1924,9 @@
         "configure_title": "Włącz szyfrowanie tym kluczem",
         "enable_button": "Włącz",
         "disable_tooltip": "Wyłącz szyfrowanie",
+        "disable_title": "Wyłączyć szyfrowanie danych w spoczynku?",
+        "disable_message": "Nowa poczta będzie od teraz zapisywana bez szyfrowania.",
+        "disable_button": "Wyłącz",
         "enabled_success": "Szyfrowanie danych w spoczynku włączone"
       },
       "email_client": {
@@ -1967,7 +1975,14 @@
         "name_placeholder": "np. Mój klucz",
         "key_label": "Klucz publiczny (S/MIME lub PGP w formacie ASCII)",
         "key_placeholder": "Wklej tutaj swój klucz publiczny",
-        "none": "Nie skonfigurowano żadnych kluczy publicznych"
+        "none": "Nie skonfigurowano żadnych kluczy publicznych",
+        "title": "Klucze publiczne",
+        "added": "Dodano klucz publiczny",
+        "removed": "Usunięto klucz publiczny",
+        "add_error": "Nie udało się dodać klucza publicznego",
+        "remove_error": "Nie udało się usunąć klucza publicznego",
+        "delete_title": "Usunąć klucz publiczny?",
+        "delete_message": "{name} zostanie usunięty z serwera."
       },
       "sections": {
         "devices": "Inne aplikacje i urządzenia",
@@ -2104,6 +2119,7 @@
       "count_mode_all": "Nieprzeczytane i łącznie",
       "count_mode_none": "Bez licznika",
       "delete": "Usuń",
+      "delete_title": "Usunąć folder?",
       "confirm_delete": "Czy na pewno chcesz usunąć „{name}”? Wiadomości w tym folderze zostaną przeniesione do Kosza.",
       "create": "Utwórz",
       "cancel": "Anuluj",
@@ -2249,6 +2265,11 @@
       "group_by_letter_label": "Grupuj według pierwszej litery",
       "sort_by_last_name_label": "Sortuj według nazwiska",
       "sort_by_last_name_description": "Uporządkuj listę kontaktów według nazwiska, aby członkowie rodziny byli obok siebie"
+    },
+    "calendar_management": {
+      "delete_title": "Usunąć kalendarz?",
+      "clear_title": "Wyczyścić wszystkie wydarzenia?",
+      "unsubscribe_title": "Anulować subskrypcję tego kalendarza?"
     },
     "downloads": {
       "title": "Pobrane",
@@ -2404,6 +2425,7 @@
       "match_type": "Typ dopasowania",
       "reset_to_visual": "Resetuj do kreatora wizualnego",
       "reset_warning": "To odrzuci bieżący skrypt i pozwoli zacząć od nowa.",
+      "reset_title": "Przywrócić edytor wizualny?",
       "confirm_reset": "Resetuj",
       "validation_empty_name": "Nazwa reguły jest wymagana",
       "validation_empty_conditions": "Wymagany jest co najmniej jeden warunek z wartością",

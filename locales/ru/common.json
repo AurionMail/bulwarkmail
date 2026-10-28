@@ -1787,6 +1787,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Другие устройства больше не смогут восстановить из него учётные записи.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1882,6 +1883,8 @@
         "removed": "Пароль приложения удалён",
         "add_error": "Не удалось создать пароль приложения",
         "remove_error": "Не удалось удалить пароль приложения",
+        "delete_title": "Удалить пароль приложения?",
+        "delete_message": "Приложения, которые входят с паролем {name}, больше не смогут войти.",
         "none": "Пароли приложений не настроены",
         "done": "Готово",
         "expires_label": "Срок действия (необязательно)",
@@ -1900,6 +1903,8 @@
         "removed": "API-ключ удалён",
         "add_error": "Не удалось создать API-ключ",
         "remove_error": "Не удалось удалить API-ключ",
+        "delete_title": "Удалить ключ API?",
+        "delete_message": "Скрипты и интеграции, использующие {name}, потеряют доступ.",
         "none": "API-ключи не настроены"
       },
       "encryption": {
@@ -1919,6 +1924,9 @@
         "configure_title": "Включить шифрование с этим ключом",
         "enable_button": "Включить",
         "disable_tooltip": "Отключить шифрование",
+        "disable_title": "Отключить шифрование хранимых данных?",
+        "disable_message": "Новые письма теперь будут храниться без шифрования.",
+        "disable_button": "Отключить",
         "enabled_success": "Шифрование хранилища включено"
       },
       "email_client": {
@@ -1967,7 +1975,14 @@
         "name_placeholder": "напр., Мой ключ",
         "key_label": "Открытый ключ (S/MIME или PGP в формате ASCII)",
         "key_placeholder": "Вставьте сюда свой открытый ключ",
-        "none": "Открытые ключи не настроены"
+        "none": "Открытые ключи не настроены",
+        "title": "Открытые ключи",
+        "added": "Открытый ключ добавлен",
+        "removed": "Открытый ключ удалён",
+        "add_error": "Не удалось добавить открытый ключ",
+        "remove_error": "Не удалось удалить открытый ключ",
+        "delete_title": "Удалить открытый ключ?",
+        "delete_message": "Ключ {name} будет удалён с сервера."
       },
       "sections": {
         "devices": "Другие приложения и устройства",
@@ -2104,6 +2119,7 @@
       "count_mode_all": "Непрочитанные и всего",
       "count_mode_none": "Без счётчика",
       "delete": "Удалить",
+      "delete_title": "Удалить папку?",
       "confirm_delete": "Вы уверены, что хотите удалить \"{name}\"? Письма в этой папке будут перемещены в корзину.",
       "create": "Создать",
       "cancel": "Отмена",
@@ -2249,6 +2265,11 @@
       "group_by_letter_label": "Группировать по первой букве",
       "sort_by_last_name_label": "Сортировать по фамилии",
       "sort_by_last_name_description": "Упорядочить список контактов по фамилии, чтобы члены семьи шли подряд"
+    },
+    "calendar_management": {
+      "delete_title": "Удалить календарь?",
+      "clear_title": "Очистить все события?",
+      "unsubscribe_title": "Отписаться от этого календаря?"
     },
     "downloads": {
       "title": "Загрузки",
@@ -2404,6 +2425,7 @@
       "match_type": "Тип совпадения",
       "reset_to_visual": "Сбросить до визуального конструктора",
       "reset_warning": "Это удалит текущий скрипт и начнёт заново.",
+      "reset_title": "Вернуться к визуальному редактору?",
       "confirm_reset": "Сбросить",
       "validation_empty_name": "Требуется название правила",
       "validation_empty_conditions": "Требуется хотя бы одно условие со значением",

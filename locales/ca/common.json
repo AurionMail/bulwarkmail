@@ -1790,6 +1790,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Els altres dispositius ja no en podran restaurar els comptes.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1895,6 +1896,8 @@
         "removed": "Contrasenya d'aplicació eliminada",
         "add_error": "No s'ha pogut crear la contrasenya d'aplicació",
         "remove_error": "No s'ha pogut eliminar la contrasenya d'aplicació",
+        "delete_title": "Voleu suprimir la contrasenya d'aplicació?",
+        "delete_message": "Les aplicacions que inicien la sessió amb {name} ja no ho podran fer.",
         "none": "No hi ha cap contrasenya d'aplicació configurada"
       },
       "api_keys": {
@@ -1907,6 +1910,8 @@
         "removed": "Clau API eliminada",
         "add_error": "No s'ha pogut crear la clau API",
         "remove_error": "No s'ha pogut eliminar la clau API",
+        "delete_title": "Voleu suprimir la clau d'API?",
+        "delete_message": "Els scripts i les integracions que fan servir {name} perden l'accés.",
         "none": "No hi ha cap clau API configurada"
       },
       "encryption": {
@@ -1926,6 +1931,9 @@
         "configure_title": "Activa el xifratge amb aquesta clau",
         "enable_button": "Activa",
         "disable_tooltip": "Desactiva el xifratge",
+        "disable_title": "Voleu desactivar el xifratge en repòs?",
+        "disable_message": "A partir d'ara, el correu nou es desa sense xifrar.",
+        "disable_button": "Desactiva",
         "enabled_success": "Xifratge en repòs activat"
       },
       "email_client": {
@@ -1974,7 +1982,14 @@
         "name_placeholder": "p. ex. La meva clau",
         "key_label": "Clau pública (S/MIME o PGP en ASCII armor)",
         "key_placeholder": "Enganxeu aquí la vostra clau pública",
-        "none": "No hi ha cap clau pública configurada"
+        "none": "No hi ha cap clau pública configurada",
+        "title": "Claus públiques",
+        "added": "Clau pública afegida",
+        "removed": "Clau pública suprimida",
+        "add_error": "No s'ha pogut afegir la clau pública",
+        "remove_error": "No s'ha pogut suprimir la clau pública",
+        "delete_title": "Voleu suprimir la clau pública?",
+        "delete_message": "{name} es treu del servidor."
       },
       "sections": {
         "devices": "Altres aplicacions i dispositius",
@@ -2111,6 +2126,7 @@
       "count_mode_all": "No llegits i total",
       "count_mode_none": "Sense comptador",
       "delete": "Suprimeix",
+      "delete_title": "Voleu suprimir la carpeta?",
       "confirm_delete": "Segur que voleu suprimir «{name}»? Els correus d'aquesta carpeta es mouran a la paperera.",
       "create": "Crea",
       "cancel": "Cancel·la",
@@ -2256,6 +2272,11 @@
       "categories_title": "Categories",
       "categories_description": "Canvieu el nom de les categories de contactes",
       "no_categories": "No s'ha trobat cap categoria"
+    },
+    "calendar_management": {
+      "delete_title": "Voleu suprimir el calendari?",
+      "clear_title": "Voleu esborrar tots els esdeveniments?",
+      "unsubscribe_title": "Voleu cancel·lar la subscripció a aquest calendari?"
     },
     "downloads": {
       "title": "Baixades",
@@ -2411,6 +2432,7 @@
       "match_type": "Tipus de coincidència",
       "reset_to_visual": "Torna al constructor visual",
       "reset_warning": "Això descartarà l'script actual i començarà de nou.",
+      "reset_title": "Voleu tornar a l'editor visual?",
       "confirm_reset": "Reinicia",
       "validation_empty_name": "El nom de la regla és obligatori",
       "validation_empty_conditions": "Cal com a mínim una condició amb un valor",

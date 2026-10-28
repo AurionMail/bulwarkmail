@@ -1790,6 +1790,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Andre enheter kan ikke lenger gjenopprette kontoene fra den.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1895,6 +1896,8 @@
         "removed": "App-passordet er fjernet",
         "add_error": "Kunne ikke opprette app-passord",
         "remove_error": "Kunne ikke fjerne app-passordet",
+        "delete_title": "Slette app-passordet?",
+        "delete_message": "Apper som logger på med {name}, kan ikke logge på lenger.",
         "none": "Ingen app-passord er opprettet"
       },
       "api_keys": {
@@ -1907,6 +1910,8 @@
         "removed": "API-nøkkelen er fjernet",
         "add_error": "Kunne ikke opprette API-nøkkel",
         "remove_error": "Kunne ikke fjerne API-nøkkelen",
+        "delete_title": "Slette API-nøkkelen?",
+        "delete_message": "Skript og integrasjoner som bruker {name}, mister tilgangen.",
         "none": "Ingen API-nøkler er opprettet"
       },
       "encryption": {
@@ -1926,6 +1931,9 @@
         "configure_title": "Aktiver kryptering med denne nøkkelen",
         "enable_button": "Aktiver",
         "disable_tooltip": "Deaktiver kryptering",
+        "disable_title": "Slå av kryptering av lagrede data?",
+        "disable_message": "Ny e-post lagres heretter uten kryptering.",
+        "disable_button": "Slå av",
         "enabled_success": "Kryptering av lagrede data er aktivert"
       },
       "public_keys": {
@@ -1933,7 +1941,14 @@
         "name_placeholder": "f.eks. Min nøkkel",
         "key_label": "Offentlig nøkkel (S/MIME eller ASCII-armert PGP)",
         "key_placeholder": "Lim inn den offentlige nøkkelen din her",
-        "none": "Ingen offentlige nøkler er lagt til"
+        "none": "Ingen offentlige nøkler er lagt til",
+        "title": "Offentlige nøkler",
+        "added": "Offentlig nøkkel lagt til",
+        "removed": "Offentlig nøkkel slettet",
+        "add_error": "Kunne ikke legge til den offentlige nøkkelen",
+        "remove_error": "Kunne ikke slette den offentlige nøkkelen",
+        "delete_title": "Slette den offentlige nøkkelen?",
+        "delete_message": "{name} fjernes fra serveren."
       },
       "email_client": {
         "title": "Oppsett av e-postklient",
@@ -2111,6 +2126,7 @@
       "count_mode_all": "Uleste og totalt",
       "count_mode_none": "Ingen teller",
       "delete": "Slett",
+      "delete_title": "Slette mappen?",
       "confirm_delete": "Er du sikker på at du vil slette «{name}»? E-postene i denne mappen flyttes til papirkurven.",
       "create": "Opprett",
       "cancel": "Avbryt",
@@ -2256,6 +2272,11 @@
       "categories_title": "Kategorier",
       "categories_description": "Gi nytt navn til kontaktkategorier",
       "no_categories": "Ingen kategorier funnet"
+    },
+    "calendar_management": {
+      "delete_title": "Slette kalenderen?",
+      "clear_title": "Fjerne alle hendelser?",
+      "unsubscribe_title": "Avslutte abonnementet på denne kalenderen?"
     },
     "downloads": {
       "title": "Nedlastinger",
@@ -2411,6 +2432,7 @@
       "match_type": "Samsvar",
       "reset_to_visual": "Gå tilbake til visuell redigering",
       "reset_warning": "Dette forkaster det gjeldende skriptet og lar deg begynne på nytt.",
+      "reset_title": "Tilbakestille til den visuelle redigereren?",
       "confirm_reset": "Tilbakestill",
       "validation_empty_name": "Regelnavn må fylles ut",
       "validation_empty_conditions": "Minst ett vilkår må ha en verdi",

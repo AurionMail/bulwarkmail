@@ -1787,6 +1787,7 @@
         "delete": "Gespeicherte Liste löschen",
         "cancel": "Abbrechen",
         "delete_confirm": "Die gespeicherte Kontoliste vom Server löschen?",
+        "delete_message": "Andere Geräte können die Konten danach nicht mehr daraus wiederherstellen.",
         "password": "Sicherungspasswort",
         "password_hint": "Mindestens 10 Zeichen. Es kann nicht wiederhergestellt werden: Wenn Sie es vergessen, speichern Sie die Liste erneut mit einem neuen.",
         "restore_hint": "Das Passwort, das beim Speichern der Liste gewählt wurde.",
@@ -1882,6 +1883,8 @@
         "removed": "App-Passwort entfernt",
         "add_error": "App-Passwort konnte nicht erstellt werden",
         "remove_error": "App-Passwort konnte nicht entfernt werden",
+        "delete_title": "App-Passwort löschen?",
+        "delete_message": "Apps, die sich mit {name} anmelden, können sich danach nicht mehr anmelden.",
         "none": "Keine App-Passwörter konfiguriert",
         "done": "Fertig",
         "expires_label": "Läuft ab (optional)",
@@ -1900,6 +1903,8 @@
         "removed": "API-Schlüssel entfernt",
         "add_error": "API-Schlüssel konnte nicht erstellt werden",
         "remove_error": "API-Schlüssel konnte nicht entfernt werden",
+        "delete_title": "API-Schlüssel löschen?",
+        "delete_message": "Skripte und Integrationen, die {name} verwenden, verlieren den Zugriff.",
         "none": "Keine API-Schlüssel konfiguriert"
       },
       "encryption": {
@@ -1919,6 +1924,9 @@
         "configure_title": "Verschlüsselung mit diesem Schlüssel aktivieren",
         "enable_button": "Aktivieren",
         "disable_tooltip": "Verschlüsselung deaktivieren",
+        "disable_title": "Verschlüsselung ruhender Daten ausschalten?",
+        "disable_message": "Neue E-Mails werden ab jetzt unverschlüsselt gespeichert.",
+        "disable_button": "Ausschalten",
         "enabled_success": "Verschlüsselung im Ruhezustand aktiviert"
       },
       "email_client": {
@@ -1967,7 +1975,14 @@
         "name_placeholder": "z.B. Mein Schlüssel",
         "key_label": "Öffentlicher Schlüssel (S/MIME oder PGP im ASCII-Format)",
         "key_placeholder": "Fügen Sie hier Ihren öffentlichen Schlüssel ein",
-        "none": "Keine öffentlichen Schlüssel konfiguriert"
+        "none": "Keine öffentlichen Schlüssel konfiguriert",
+        "title": "Öffentliche Schlüssel",
+        "added": "Öffentlicher Schlüssel hinzugefügt",
+        "removed": "Öffentlicher Schlüssel gelöscht",
+        "add_error": "Öffentlicher Schlüssel konnte nicht hinzugefügt werden",
+        "remove_error": "Öffentlicher Schlüssel konnte nicht gelöscht werden",
+        "delete_title": "Öffentlichen Schlüssel löschen?",
+        "delete_message": "{name} wird vom Server entfernt."
       },
       "sections": {
         "devices": "Andere Apps und Geräte",
@@ -2104,6 +2119,7 @@
       "count_mode_all": "Ungelesene und gesamt",
       "count_mode_none": "Kein Zähler",
       "delete": "Löschen",
+      "delete_title": "Ordner löschen?",
       "confirm_delete": "Möchten Sie \"{name}\" wirklich löschen? E-Mails in diesem Ordner werden in den Papierkorb verschoben.",
       "create": "Erstellen",
       "cancel": "Abbrechen",
@@ -2249,6 +2265,11 @@
       "group_by_letter_label": "Nach Anfangsbuchstaben gruppieren",
       "sort_by_last_name_label": "Nach Nachname sortieren",
       "sort_by_last_name_description": "Kontaktliste nach Nachnamen ordnen, damit Familienmitglieder zusammenstehen"
+    },
+    "calendar_management": {
+      "delete_title": "Kalender löschen?",
+      "clear_title": "Alle Termine entfernen?",
+      "unsubscribe_title": "Dieses Kalenderabo beenden?"
     },
     "downloads": {
       "title": "Downloads",
@@ -2404,6 +2425,7 @@
       "match_type": "Übereinstimmungstyp",
       "reset_to_visual": "Zum visuellen Builder zurücksetzen",
       "reset_warning": "Dies verwirft das aktuelle Skript und beginnt von vorne.",
+      "reset_title": "Auf den visuellen Editor zurücksetzen?",
       "confirm_reset": "Zurücksetzen",
       "validation_empty_name": "Regelname ist erforderlich",
       "validation_empty_conditions": "Mindestens eine Bedingung mit einem Wert ist erforderlich",

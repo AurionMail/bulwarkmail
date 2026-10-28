@@ -1787,6 +1787,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Інші пристрої більше не зможуть відновити з нього облікові записи.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1882,6 +1883,8 @@
         "removed": "Пароль програми видалено",
         "add_error": "Не вдалося створити пароль програми",
         "remove_error": "Не вдалося видалити пароль програми",
+        "delete_title": "Видалити пароль застосунку?",
+        "delete_message": "Застосунки, що входять із паролем {name}, більше не зможуть увійти.",
         "none": "Паролі програм не налаштовано",
         "done": "Готово",
         "expires_label": "Термін дії (необов’язково)",
@@ -1900,6 +1903,8 @@
         "removed": "API-ключ видалено",
         "add_error": "Не вдалося створити API-ключ",
         "remove_error": "Не вдалося видалити API-ключ",
+        "delete_title": "Видалити ключ API?",
+        "delete_message": "Скрипти й інтеграції, що використовують {name}, втратять доступ.",
         "none": "API-ключі не налаштовано"
       },
       "encryption": {
@@ -1919,6 +1924,9 @@
         "configure_title": "Увімкнути шифрування цим ключем",
         "enable_button": "Увімкнути",
         "disable_tooltip": "Вимкнути шифрування",
+        "disable_title": "Вимкнути шифрування збережених даних?",
+        "disable_message": "Нові листи відтепер зберігатимуться без шифрування.",
+        "disable_button": "Вимкнути",
         "enabled_success": "Шифрування в стані спокою ввімкнено"
       },
       "email_client": {
@@ -1967,7 +1975,14 @@
         "name_placeholder": "напр. Мій ключ",
         "key_label": "Відкритий ключ (S/MIME або PGP у форматі ASCII)",
         "key_placeholder": "Вставте сюди свій відкритий ключ",
-        "none": "Відкриті ключі не налаштовано"
+        "none": "Відкриті ключі не налаштовано",
+        "title": "Відкриті ключі",
+        "added": "Відкритий ключ додано",
+        "removed": "Відкритий ключ видалено",
+        "add_error": "Не вдалося додати відкритий ключ",
+        "remove_error": "Не вдалося видалити відкритий ключ",
+        "delete_title": "Видалити відкритий ключ?",
+        "delete_message": "Ключ {name} буде видалено із сервера."
       },
       "sections": {
         "devices": "Інші застосунки та пристрої",
@@ -2104,6 +2119,7 @@
       "count_mode_all": "Непрочитані й усього",
       "count_mode_none": "Без лічильника",
       "delete": "Видалити",
+      "delete_title": "Видалити папку?",
       "confirm_delete": "Ви впевнені, що хочете видалити \"{name}\"? Електронні листи в цій папці буде переміщено в кошик.",
       "create": "Створити",
       "cancel": "Скасувати",
@@ -2249,6 +2265,11 @@
       "group_by_letter_label": "Групувати за першою літерою",
       "sort_by_last_name_label": "Сортувати за прізвищем",
       "sort_by_last_name_description": "Упорядкувати список контактів за прізвищем, щоб члени родини були поруч"
+    },
+    "calendar_management": {
+      "delete_title": "Видалити календар?",
+      "clear_title": "Очистити всі події?",
+      "unsubscribe_title": "Відписатися від цього календаря?"
     },
     "downloads": {
       "title": "Завантаження",
@@ -2404,6 +2425,7 @@
       "match_type": "Тип відповідності",
       "reset_to_visual": "Скинути до Visual Builder",
       "reset_warning": "Це призведе до скасування поточного сценарію та запуску заново.",
+      "reset_title": "Повернутися до візуального редактора?",
       "confirm_reset": "Скинути",
       "validation_empty_name": "Потрібно вказати назву правила",
       "validation_empty_conditions": "Потрібна принаймні одна умова зі значенням",

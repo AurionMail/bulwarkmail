@@ -1787,6 +1787,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Jiná zařízení z něj už účty neobnoví.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1888,6 +1889,8 @@
         "removed": "Heslo aplikace smazáno",
         "add_error": "Chyba při vytváření hesla aplikace",
         "remove_error": "Chyba při mazání hesla aplikace",
+        "delete_title": "Odstranit heslo aplikace?",
+        "delete_message": "Aplikace, které se přihlašují pomocí {name}, se už nepřihlásí.",
         "none": "Žádná hesla aplikací"
       },
       "api_keys": {
@@ -1900,6 +1903,8 @@
         "removed": "API klíč smazán",
         "add_error": "Chyba při vytváření API klíče",
         "remove_error": "Chyba při mazání API klíče",
+        "delete_title": "Odstranit klíč API?",
+        "delete_message": "Skripty a integrace, které používají {name}, ztratí přístup.",
         "none": "Žádné API klíče"
       },
       "encryption": {
@@ -1919,6 +1924,9 @@
         "configure_title": "Zapnout šifrování tímto klíčem",
         "enable_button": "Zapnout",
         "disable_tooltip": "Vypnout šifrování",
+        "disable_title": "Vypnout šifrování uložených dat?",
+        "disable_message": "Nová pošta se od teď ukládá bez šifrování.",
+        "disable_button": "Vypnout",
         "enabled_success": "Šifrování dat v klidu zapnuto"
       },
       "email_client": {
@@ -1967,7 +1975,14 @@
         "name_placeholder": "např. Můj klíč",
         "key_label": "Veřejný klíč (S/MIME nebo PGP ve formátu ASCII)",
         "key_placeholder": "Sem vložte svůj veřejný klíč",
-        "none": "Nejsou nastaveny žádné veřejné klíče"
+        "none": "Nejsou nastaveny žádné veřejné klíče",
+        "title": "Veřejné klíče",
+        "added": "Veřejný klíč byl přidán",
+        "removed": "Veřejný klíč byl odstraněn",
+        "add_error": "Veřejný klíč se nepodařilo přidat",
+        "remove_error": "Veřejný klíč se nepodařilo odstranit",
+        "delete_title": "Odstranit veřejný klíč?",
+        "delete_message": "{name} bude odebrán ze serveru."
       },
       "sections": {
         "devices": "Další aplikace a zařízení",
@@ -2104,6 +2119,7 @@
       "count_mode_all": "Nepřečtené a celkem",
       "count_mode_none": "Bez počítadla",
       "delete": "Odstranit",
+      "delete_title": "Odstranit složku?",
       "confirm_delete": "Opravdu chcete odstranit složku „{name}“? Zprávy v této složce budou přesunuty do Koše.",
       "create": "Vytvořit",
       "cancel": "Zrušit",
@@ -2249,6 +2265,11 @@
       "categories_title": "Kategorie",
       "categories_description": "Přejmenovat kategorie kontaktů",
       "no_categories": "Nenalezeny žádné kategorie"
+    },
+    "calendar_management": {
+      "delete_title": "Odstranit kalendář?",
+      "clear_title": "Vymazat všechny události?",
+      "unsubscribe_title": "Zrušit odběr tohoto kalendáře?"
     },
     "downloads": {
       "title": "Stažené",
@@ -2404,6 +2425,7 @@
       "match_type": "Typ shody",
       "reset_to_visual": "Resetovat na vizuálního průvodce",
       "reset_warning": "Tímto zahodíte aktuální skript a začnete znovu.",
+      "reset_title": "Obnovit vizuální editor?",
       "confirm_reset": "Resetovat",
       "validation_empty_name": "Název pravidla je vyžadován",
       "validation_empty_conditions": "Je vyžadována alespoň jedna podmínka s hodnotou",

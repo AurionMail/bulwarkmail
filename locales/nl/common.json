@@ -1787,6 +1787,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Andere apparaten kunnen de accounts er daarna niet meer uit herstellen.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1882,6 +1883,8 @@
         "removed": "App-wachtwoord verwijderd",
         "add_error": "Kan app-wachtwoord niet aanmaken",
         "remove_error": "Kan app-wachtwoord niet verwijderen",
+        "delete_title": "App-wachtwoord verwijderen?",
+        "delete_message": "Apps die zich aanmelden met {name} kunnen zich daarna niet meer aanmelden.",
         "none": "Geen app-wachtwoorden geconfigureerd",
         "done": "Klaar",
         "expires_label": "Verloopt (optioneel)",
@@ -1900,6 +1903,8 @@
         "removed": "API-sleutel verwijderd",
         "add_error": "API-sleutel aanmaken mislukt",
         "remove_error": "API-sleutel verwijderen mislukt",
+        "delete_title": "API-sleutel verwijderen?",
+        "delete_message": "Scripts en integraties die {name} gebruiken, verliezen hun toegang.",
         "none": "Geen API-sleutels geconfigureerd"
       },
       "encryption": {
@@ -1919,6 +1924,9 @@
         "configure_title": "Versleuteling met deze sleutel inschakelen",
         "enable_button": "Inschakelen",
         "disable_tooltip": "Versleuteling uitschakelen",
+        "disable_title": "Versleuteling in rust uitschakelen?",
+        "disable_message": "Nieuwe e-mail wordt vanaf nu onversleuteld opgeslagen.",
+        "disable_button": "Uitschakelen",
         "enabled_success": "Versleuteling in rust ingeschakeld"
       },
       "email_client": {
@@ -1967,7 +1975,14 @@
         "name_placeholder": "bijv. Mijn sleutel",
         "key_label": "Openbare sleutel (S/MIME of PGP in ASCII-formaat)",
         "key_placeholder": "Plak hier uw openbare sleutel",
-        "none": "Geen openbare sleutels geconfigureerd"
+        "none": "Geen openbare sleutels geconfigureerd",
+        "title": "Openbare sleutels",
+        "added": "Openbare sleutel toegevoegd",
+        "removed": "Openbare sleutel verwijderd",
+        "add_error": "Kan openbare sleutel niet toevoegen",
+        "remove_error": "Kan openbare sleutel niet verwijderen",
+        "delete_title": "Openbare sleutel verwijderen?",
+        "delete_message": "{name} wordt van de server verwijderd."
       },
       "sections": {
         "devices": "Andere apps en apparaten",
@@ -2104,6 +2119,7 @@
       "count_mode_all": "Ongelezen en totaal",
       "count_mode_none": "Geen teller",
       "delete": "Verwijderen",
+      "delete_title": "Map verwijderen?",
       "confirm_delete": "Weet u zeker dat u \"{name}\" wilt verwijderen? E-mails in deze map worden naar de Prullenbak verplaatst.",
       "create": "Maken",
       "cancel": "Annuleren",
@@ -2249,6 +2265,11 @@
       "group_by_letter_label": "Groeperen op eerste letter",
       "sort_by_last_name_label": "Sorteren op achternaam",
       "sort_by_last_name_description": "Sorteer de contactenlijst op achternaam zodat gezinsleden bij elkaar staan"
+    },
+    "calendar_management": {
+      "delete_title": "Agenda verwijderen?",
+      "clear_title": "Alle afspraken wissen?",
+      "unsubscribe_title": "Abonnement op deze agenda opzeggen?"
     },
     "downloads": {
       "title": "Downloads",
@@ -2404,6 +2425,7 @@
       "match_type": "Overeenkomsttype",
       "reset_to_visual": "Terugzetten naar visuele builder",
       "reset_warning": "Dit verwijdert het huidige script en begint opnieuw.",
+      "reset_title": "Terugzetten naar de visuele editor?",
       "confirm_reset": "Terugzetten",
       "validation_empty_name": "Regelnaam is verplicht",
       "validation_empty_conditions": "Minstens één voorwaarde met een waarde is vereist",

@@ -1787,6 +1787,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Diğer cihazlar artık hesapları buradan geri yükleyemez.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1888,6 +1889,8 @@
         "removed": "Uygulama parolası kaldırıldı",
         "add_error": "Uygulama parolası oluşturulamadı",
         "remove_error": "Uygulama parolası kaldırılamadı",
+        "delete_title": "Uygulama parolası silinsin mi?",
+        "delete_message": "{name} ile oturum açan uygulamalar artık oturum açamaz.",
         "none": "Yapılandırılmış uygulama parolası yok"
       },
       "api_keys": {
@@ -1900,6 +1903,8 @@
         "removed": "API anahtarı kaldırıldı",
         "add_error": "API anahtarı oluşturulamadı",
         "remove_error": "API anahtarı kaldırılamadı",
+        "delete_title": "API anahtarı silinsin mi?",
+        "delete_message": "{name} kullanan betikler ve entegrasyonlar erişimi kaybeder.",
         "none": "Yapılandırılmış API anahtarı yok"
       },
       "encryption": {
@@ -1919,6 +1924,9 @@
         "configure_title": "Bu anahtarla şifrelemeyi etkinleştir",
         "enable_button": "Etkinleştir",
         "disable_tooltip": "Şifrelemeyi devre dışı bırak",
+        "disable_title": "Bekleyen veri şifrelemesi kapatılsın mı?",
+        "disable_message": "Yeni postalar bundan sonra şifrelenmeden saklanır.",
+        "disable_button": "Kapat",
         "enabled_success": "Bekleme süresi şifrelemesi etkinleştirildi"
       },
       "email_client": {
@@ -1967,7 +1975,14 @@
         "name_placeholder": "ör. Anahtarım",
         "key_label": "Ortak anahtar (S/MIME veya PGP ASCII biçiminde)",
         "key_placeholder": "Ortak anahtarınızı buraya yapıştırın",
-        "none": "Yapılandırılmış ortak anahtar yok"
+        "none": "Yapılandırılmış ortak anahtar yok",
+        "title": "Açık anahtarlar",
+        "added": "Açık anahtar eklendi",
+        "removed": "Açık anahtar silindi",
+        "add_error": "Açık anahtar eklenemedi",
+        "remove_error": "Açık anahtar silinemedi",
+        "delete_title": "Açık anahtar silinsin mi?",
+        "delete_message": "{name} sunucudan kaldırılır."
       },
       "sections": {
         "devices": "Diğer uygulamalar ve cihazlar",
@@ -2104,6 +2119,7 @@
       "count_mode_all": "Okunmamış ve toplam",
       "count_mode_none": "Sayaç yok",
       "delete": "Sil",
+      "delete_title": "Klasör silinsin mi?",
       "confirm_delete": "\"{name}\" klasörünü silmek istediğinizden emin misiniz? Bu klasördeki e-postalar Çöp Kutusu'na taşınacak.",
       "create": "Oluştur",
       "cancel": "İptal",
@@ -2249,6 +2265,11 @@
       "categories_title": "Kategoriler",
       "categories_description": "Kişi kategorilerini yeniden adlandırın",
       "no_categories": "Kategori bulunamadı"
+    },
+    "calendar_management": {
+      "delete_title": "Takvim silinsin mi?",
+      "clear_title": "Tüm etkinlikler temizlensin mi?",
+      "unsubscribe_title": "Bu takvim aboneliği iptal edilsin mi?"
     },
     "downloads": {
       "title": "İndirilenler",
@@ -2404,6 +2425,7 @@
       "match_type": "Eşleşme türü",
       "reset_to_visual": "Görsel oluşturucuya sıfırla",
       "reset_warning": "Bu işlem mevcut betiği atacak ve yeniden başlatacak.",
+      "reset_title": "Görsel düzenleyiciye sıfırlansın mı?",
       "confirm_reset": "Sıfırla",
       "validation_empty_name": "Kural adı gerekli",
       "validation_empty_conditions": "En az bir değeri olan koşul gerekli",

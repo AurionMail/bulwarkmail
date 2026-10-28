@@ -1790,6 +1790,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Other devices can't restore the accounts from it any more.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1895,6 +1896,8 @@
         "removed": "App password removed",
         "add_error": "Failed to create app password",
         "remove_error": "Failed to remove app password",
+        "delete_title": "Delete app password?",
+        "delete_message": "Apps that sign in with {name} can't sign in any more.",
         "none": "No app passwords configured"
       },
       "api_keys": {
@@ -1907,6 +1910,8 @@
         "removed": "API key removed",
         "add_error": "Failed to create API key",
         "remove_error": "Failed to remove API key",
+        "delete_title": "Delete API key?",
+        "delete_message": "Scripts and integrations that use {name} lose access.",
         "none": "No API keys configured"
       },
       "encryption": {
@@ -1926,6 +1931,9 @@
         "configure_title": "Enable encryption with this key",
         "enable_button": "Enable",
         "disable_tooltip": "Disable encryption",
+        "disable_title": "Turn off encryption at rest?",
+        "disable_message": "New mail is stored without encryption from now on.",
+        "disable_button": "Turn off",
         "enabled_success": "Encryption at rest enabled"
       },
       "public_keys": {
@@ -1933,7 +1941,14 @@
         "name_placeholder": "e.g. My Key",
         "key_label": "Public Key (S/MIME or PGP ASCII-armored)",
         "key_placeholder": "Paste your public key here",
-        "none": "No public keys configured"
+        "none": "No public keys configured",
+        "title": "Public keys",
+        "added": "Public key added",
+        "removed": "Public key deleted",
+        "add_error": "Couldn't add the public key",
+        "remove_error": "Couldn't delete the public key",
+        "delete_title": "Delete public key?",
+        "delete_message": "{name} is removed from the server."
       },
       "email_client": {
         "title": "Email Client Setup",
@@ -2111,6 +2126,7 @@
       "count_mode_all": "Unread and total",
       "count_mode_none": "No counter",
       "delete": "Delete",
+      "delete_title": "Delete folder?",
       "confirm_delete": "Are you sure you want to delete \"{name}\"? Emails in this folder will be moved to Trash.",
       "create": "Create",
       "cancel": "Cancel",
@@ -2256,6 +2272,11 @@
       "categories_title": "Categories",
       "categories_description": "Rename contact categories",
       "no_categories": "No categories found"
+    },
+    "calendar_management": {
+      "delete_title": "Delete calendar?",
+      "clear_title": "Clear all events?",
+      "unsubscribe_title": "Unsubscribe from this calendar?"
     },
     "downloads": {
       "title": "Downloads",
@@ -2411,6 +2432,7 @@
       "match_type": "Match type",
       "reset_to_visual": "Reset to visual builder",
       "reset_warning": "This will discard the current script and start fresh.",
+      "reset_title": "Reset to the visual builder?",
       "confirm_reset": "Reset",
       "validation_empty_name": "Rule name is required",
       "validation_empty_conditions": "At least one condition with a value is required",

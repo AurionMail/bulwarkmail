@@ -18,6 +18,8 @@ import {
   type AppIcon,
 } from '@/components/icons';
 import { IconButton } from '@/components/ui/icon-button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator, ContextMenuSubMenu } from '@/components/ui/context-menu';
 import { useContextMenu } from '@/hooks/use-context-menu';
 import { cn, buildMailboxTree, flattenMailboxTree, type MailboxNode } from '@/lib/utils';
@@ -185,7 +187,6 @@ export function FolderSettings() {
   const [newFolderName, setNewFolderName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [iconPickerId, setIconPickerId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
@@ -450,12 +451,21 @@ export function FolderSettings() {
     }
   };
 
-  const handleDelete = async (mailboxId: string) => {
+  const { dialogProps: confirmProps, confirm } = useConfirmDialog();
+
+  // Not reversible, so it asks first (R3).
+  const handleDelete = async (mailbox: { id: string; name: string }) => {
     if (!client) return;
+    const ok = await confirm({
+      title: t('delete_title'),
+      message: t('confirm_delete', { name: mailbox.name }),
+      confirmText: t('delete'),
+      variant: 'destructive',
+    });
+    if (!ok) return;
     setIsLoading(true);
     try {
-      if (!(await deleteMailbox(client, mailboxId))) return;
-      setDeletingId(null);
+      if (!(await deleteMailbox(client, mailbox.id))) return;
       toast.success(t('folder_deleted'));
     } catch (err: unknown) {
       switch (jmapErrorType(err)) {
@@ -604,31 +614,6 @@ export function FolderSettings() {
       );
     }
 
-    if (deletingId === mb.id) {
-      return (
-        <div key={mb.id}>
-        <div className="flex items-center gap-3 py-2.5 px-3 bg-destructive/5 rounded-md border border-destructive/20" style={{ marginInlineStart: depth * 16 }}>
-          <Trash2 className="w-4 h-4 text-destructive flex-shrink-0" />
-          <p className="text-sm text-foreground flex-1">
-            {t('confirm_delete', { name: mb.name })}
-          </p>
-          <button
-            onClick={() => handleDelete(mb.id)}
-            disabled={isLoading}
-            className="px-3 py-1 text-xs font-medium bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 disabled:opacity-50"
-          >
-            {t('delete')}
-          </button>
-          <button
-            onClick={() => setDeletingId(null)}
-            className="px-3 py-1 text-xs bg-muted text-foreground rounded-md hover:bg-accent"
-          >
-            {t('cancel')}
-          </button>
-        </div>
-        </div>
-      );
-    }
 
     return (
       <div key={mb.id}>
@@ -770,7 +755,7 @@ export function FolderSettings() {
             {mb.myRights?.mayDelete && !mb.role && (
               <IconButton
                 label={t('delete')}
-                onClick={() => setDeletingId(mb.id)}
+                onClick={() => void handleDelete(mb)}
                 className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
               >
                 <Trash2 />
@@ -827,7 +812,7 @@ export function FolderSettings() {
         {canDelete && (
           <>
             <ContextMenuSeparator />
-            <ContextMenuItem icon={Trash2} label={t('delete')} destructive onClick={run(() => setDeletingId(mb.id))} />
+            <ContextMenuItem icon={Trash2} label={t('delete')} destructive onClick={run(() => void handleDelete(mb))} />
           </>
         )}
       </ContextMenu>
@@ -837,6 +822,7 @@ export function FolderSettings() {
   return (
     <div className="space-y-8">
       {renderRowMenu()}
+      <ConfirmDialog {...confirmProps} />
       {/* Folder List - primary section */}
       <SettingsSection id="folders" title={t('folder_list')} description={t('folder_list_description')}>
         {selectedCount > 0 && (

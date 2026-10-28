@@ -1790,6 +1790,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Бусад төхөөрөмж үүнээс бүртгэлүүдийг сэргээх боломжгүй болно.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1895,6 +1896,8 @@
         "removed": "Аппын нууц үгийг устгасан",
         "add_error": "Аппын нууц үгийг үүсгэж чадсангүй",
         "remove_error": "Аппын нууц үгийг устгаж чадсангүй",
+        "delete_title": "Аппын нууц үгийг устгах уу?",
+        "delete_message": "{name}-ээр нэвтэрдэг аппууд цаашид нэвтэрч чадахгүй.",
         "none": "Аппын нууц үгийг тохируулаагүй"
       },
       "api_keys": {
@@ -1907,6 +1910,8 @@
         "removed": "API түлхүүрийг устгасан",
         "add_error": "API түлхүүр үүсгэж чадсангүй",
         "remove_error": "API түлхүүрийг устгаж чадсангүй",
+        "delete_title": "API түлхүүрийг устгах уу?",
+        "delete_message": "{name}-ийг ашигладаг скрипт, холболтууд хандах эрхээ алдана.",
         "none": " API түлхүүр тохируулаагүй"
       },
       "encryption": {
@@ -1926,6 +1931,9 @@
         "configure_title": "Энэ түлхүүрээр шифрлэлтийг идэвхжүүлнэ",
         "enable_button": "Идэвхжүүлэх",
         "disable_tooltip": "Шифрлэлтийг идэвхгүй болгох",
+        "disable_title": "Хадгалсан өгөгдлийн шифрлэлтийг унтраах уу?",
+        "disable_message": "Одооноос шинэ захидлыг шифрлэлтгүй хадгална.",
+        "disable_button": "Унтраах",
         "enabled_success": "Амарсан үед шифрлэлт идэвхжсэн"
       },
       "public_keys": {
@@ -1933,7 +1941,14 @@
         "name_placeholder": "жишээ нь. Миний түлхүүр",
         "key_label": "Нийтийн түлхүүр (S/MIME эсвэл PGP ASCII хуягт)",
         "key_placeholder": "Нийтийн түлхүүрээ энд буулгана уу",
-        "none": "Нийтийн түлхүүр тохируулаагүй"
+        "none": "Нийтийн түлхүүр тохируулаагүй",
+        "title": "Нийтийн түлхүүрүүд",
+        "added": "Нийтийн түлхүүр нэмсэн",
+        "removed": "Нийтийн түлхүүр устгасан",
+        "add_error": "Нийтийн түлхүүр нэмж чадсангүй",
+        "remove_error": "Нийтийн түлхүүр устгаж чадсангүй",
+        "delete_title": "Нийтийн түлхүүрийг устгах уу?",
+        "delete_message": "{name}-ийг серверээс устгана."
       },
       "email_client": {
         "title": "И-мэйл үйлчлүүлэгчийн тохиргоо",
@@ -2111,6 +2126,7 @@
       "count_mode_all": "Уншаагүй ба нийт",
       "count_mode_none": "Тоолуургүй",
       "delete": "Устгах",
+      "delete_title": "Хавтсыг устгах уу?",
       "confirm_delete": "Та \"{name}\"-г устгахдаа итгэлтэй байна уу? Энэ хавтсанд байгаа имэйлийг Хогийн сав руу зөөх болно.",
       "create": "Үүсгэх",
       "cancel": "Цуцлах",
@@ -2256,6 +2272,11 @@
       "categories_title": "Ангилал",
       "categories_description": "Харилцах ангиллын нэрийг өөрчлөх",
       "no_categories": "Ангилал олдсонгүй"
+    },
+    "calendar_management": {
+      "delete_title": "Хуанлийг устгах уу?",
+      "clear_title": "Бүх үйл явдлыг цэвэрлэх үү?",
+      "unsubscribe_title": "Энэ хуанлийн захиалгыг цуцлах уу?"
     },
     "downloads": {
       "title": "Татаж авах",
@@ -2411,6 +2432,7 @@
       "match_type": "Тохирох төрөл",
       "reset_to_visual": "Visual builder руу дахин тохируулах",
       "reset_warning": "Энэ нь одоогийн скриптийг устгаж, шинээр эхэлнэ.",
+      "reset_title": "Харагдах засварлагч руу буцаах уу?",
       "confirm_reset": "Дахин тохируулах",
       "validation_empty_name": "Дүрмийн нэр шаардлагатай",
       "validation_empty_conditions": "Дор хаяж нэг утга бүхий нөхцөл шаардлагатай",

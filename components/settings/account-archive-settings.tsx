@@ -11,6 +11,8 @@ import { decryptArchive, encryptArchive, ARCHIVE_MIN_PASSWORD, type ArchiveOwner
 import { collectAccounts, fetchArchive, putArchive, removeArchive, restoreArchive } from '@/lib/account-archive-client';
 import { toUnicodeEmail } from '@/lib/idn';
 import { SettingsSection } from './settings-section';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 
 const KNOWN_ERRORS = ['mismatch', 'password_length', 'unlock_failed', 'owner_signin_required', 'https_required'];
 
@@ -35,6 +37,7 @@ export function restoreSummary(t: BackupT, result: Awaited<ReturnType<typeof res
 /** Save this browser's account list, encrypted, under the active account; restore it on another device. */
 export function AccountArchiveSettings() {
   const t = useTranslations('settings.account.backup');
+  const tCommon = useTranslations('common');
   const id = useId();
   const username = useAuthStore(s => s.username);
   const serverUrl = useAuthStore(s => s.serverUrl);
@@ -48,6 +51,7 @@ export function AccountArchiveSettings() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ error: boolean; text: string } | null>(null);
   const owner: ArchiveOwner | null = username && serverUrl ? { username, serverUrl } : null;
+  const { dialogProps: confirmProps, confirm } = useConfirmDialog();
 
   useEffect(() => {
     setSaved(null);
@@ -87,8 +91,14 @@ export function AccountArchiveSettings() {
     if (!envelope) { setSaved(false); throw new Error('storage_failed'); }
     return restoreSummary(t, await restoreArchive(await decryptArchive(owner, envelope, password), rememberMeEnabled));
   });
-  const remove = () => {
-    if (!window.confirm(t('delete_confirm'))) return;
+  const remove = async () => {
+    const ok = await confirm({
+      title: t('delete_confirm'),
+      message: t('delete_message'),
+      confirmText: tCommon('delete'),
+      variant: 'destructive',
+    });
+    if (!ok) return;
     void run(async () => { await removeArchive(owner); setSaved(false); return t('deleted'); });
   };
 
@@ -150,6 +160,7 @@ export function AccountArchiveSettings() {
           {message.text}
         </p>
       )}
+      <ConfirmDialog {...confirmProps} />
     </SettingsSection>
   );
 }

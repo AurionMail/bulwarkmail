@@ -1787,6 +1787,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "其他设备将无法再从中恢复账户。",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1882,6 +1883,8 @@
         "removed": "应用密码已删除",
         "add_error": "创建应用密码失败",
         "remove_error": "无法删除应用密码",
+        "delete_title": "删除应用密码?",
+        "delete_message": "使用 {name} 登录的应用将无法再登录。",
         "none": "未配置应用密码",
         "done": "完成",
         "expires_label": "过期时间（可选）",
@@ -1900,6 +1903,8 @@
         "removed": "API 密钥已删除",
         "add_error": "创建 API 密钥失败",
         "remove_error": "删除 API 密钥失败",
+        "delete_title": "删除 API 密钥?",
+        "delete_message": "使用 {name} 的脚本和集成将失去访问权限。",
         "none": "未配置 API 密钥"
       },
       "encryption": {
@@ -1919,6 +1924,9 @@
         "configure_title": "使用此密钥启用加密",
         "enable_button": "启用",
         "disable_tooltip": "禁用加密",
+        "disable_title": "关闭静态加密?",
+        "disable_message": "从现在起,新邮件将不加密存储。",
+        "disable_button": "关闭",
         "enabled_success": "静态加密已启用"
       },
       "email_client": {
@@ -1967,7 +1975,14 @@
         "name_placeholder": "例如：我的密钥",
         "key_label": "公钥（S/MIME 或 PGP ASCII 格式）",
         "key_placeholder": "在此粘贴您的公钥",
-        "none": "未配置公钥"
+        "none": "未配置公钥",
+        "title": "公钥",
+        "added": "已添加公钥",
+        "removed": "已删除公钥",
+        "add_error": "无法添加公钥",
+        "remove_error": "无法删除公钥",
+        "delete_title": "删除公钥?",
+        "delete_message": "{name} 将从服务器中删除。"
       },
       "sections": {
         "devices": "其他应用和设备",
@@ -2104,6 +2119,7 @@
       "count_mode_all": "未读和总数",
       "count_mode_none": "不显示计数",
       "delete": "删除",
+      "delete_title": "删除文件夹?",
       "confirm_delete": "您确定要删除\"{name}\"吗？此文件夹中的邮件将被移至\"已删除\"。",
       "create": "创建",
       "cancel": "取消",
@@ -2249,6 +2265,11 @@
       "group_by_letter_label": "按首字母分组",
       "sort_by_last_name_label": "按姓氏排序",
       "sort_by_last_name_description": "按姓氏排列联系人列表，使家庭成员显示在一起"
+    },
+    "calendar_management": {
+      "delete_title": "删除日历?",
+      "clear_title": "清除所有日程?",
+      "unsubscribe_title": "取消订阅此日历?"
     },
     "downloads": {
       "title": "下载",
@@ -2404,6 +2425,7 @@
       "match_type": "匹配类型",
       "reset_to_visual": "重置为可视化编辑器",
       "reset_warning": "这将丢弃当前脚本并重新开始。",
+      "reset_title": "重置为可视化编辑器?",
       "confirm_reset": "重置",
       "validation_empty_name": "规则名称为必填项",
       "validation_empty_conditions": "至少需要一个具有值的条件",

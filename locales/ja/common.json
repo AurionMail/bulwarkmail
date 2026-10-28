@@ -1787,6 +1787,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "ほかのデバイスからこのリストでアカウントを復元できなくなります。",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1882,6 +1883,8 @@
         "removed": "アプリパスワードが削除されました",
         "add_error": "アプリパスワードを作成できませんでした",
         "remove_error": "アプリパスワードを削除できませんでした",
+        "delete_title": "アプリパスワードを削除しますか?",
+        "delete_message": "{name} でサインインしているアプリは、今後サインインできなくなります。",
         "none": "アプリパスワードは設定されていません",
         "done": "完了",
         "expires_label": "有効期限（任意）",
@@ -1900,6 +1903,8 @@
         "removed": "APIキーを削除しました",
         "add_error": "APIキーの作成に失敗しました",
         "remove_error": "APIキーの削除に失敗しました",
+        "delete_title": "API キーを削除しますか?",
+        "delete_message": "{name} を使うスクリプトや連携はアクセスできなくなります。",
         "none": "APIキーは設定されていません"
       },
       "encryption": {
@@ -1919,6 +1924,9 @@
         "configure_title": "この鍵で暗号化を有効にする",
         "enable_button": "有効にする",
         "disable_tooltip": "暗号化を無効にする",
+        "disable_title": "保存時の暗号化をオフにしますか?",
+        "disable_message": "今後、新しいメールは暗号化されずに保存されます。",
+        "disable_button": "オフにする",
         "enabled_success": "保存時の暗号化が有効になりました"
       },
       "email_client": {
@@ -1967,7 +1975,14 @@
         "name_placeholder": "例：マイキー",
         "key_label": "公開鍵（S/MIME または PGP の ASCII 形式）",
         "key_placeholder": "ここに公開鍵を貼り付けてください",
-        "none": "公開鍵が設定されていません"
+        "none": "公開鍵が設定されていません",
+        "title": "公開鍵",
+        "added": "公開鍵を追加しました",
+        "removed": "公開鍵を削除しました",
+        "add_error": "公開鍵を追加できませんでした",
+        "remove_error": "公開鍵を削除できませんでした",
+        "delete_title": "公開鍵を削除しますか?",
+        "delete_message": "{name} はサーバーから削除されます。"
       },
       "sections": {
         "devices": "他のアプリとデバイス",
@@ -2104,6 +2119,7 @@
       "count_mode_all": "未読と合計",
       "count_mode_none": "カウンターなし",
       "delete": "削除",
+      "delete_title": "フォルダーを削除しますか?",
       "confirm_delete": "「{name}」を削除してもよろしいですか？このフォルダー内のメールはゴミ箱に移動されます。",
       "create": "作成",
       "cancel": "キャンセル",
@@ -2249,6 +2265,11 @@
       "group_by_letter_label": "頭文字でグループ化",
       "sort_by_last_name_label": "姓で並べ替え",
       "sort_by_last_name_description": "家族が並んで表示されるように、連絡先一覧を姓の順に並べ替えます"
+    },
+    "calendar_management": {
+      "delete_title": "カレンダーを削除しますか?",
+      "clear_title": "すべての予定を消去しますか?",
+      "unsubscribe_title": "このカレンダーの購読を解除しますか?"
     },
     "downloads": {
       "title": "ダウンロード",
@@ -2404,6 +2425,7 @@
       "match_type": "一致タイプ",
       "reset_to_visual": "ビジュアルビルダーにリセット",
       "reset_warning": "現在のスクリプトを破棄して最初からやり直します。",
+      "reset_title": "ビジュアルエディターに戻しますか?",
       "confirm_reset": "リセット",
       "validation_empty_name": "ルール名は必須です",
       "validation_empty_conditions": "値を持つ条件が少なくとも1つ必要です",

@@ -1787,6 +1787,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Citas ierīces vairs nevarēs no tā atjaunot kontus.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1882,6 +1883,8 @@
         "removed": "Lietotnes parole izdzēsta",
         "add_error": "Neizdevās izveidot lietotnes paroli",
         "remove_error": "Neizdevās izdzēst lietotnes paroli",
+        "delete_title": "Dzēst lietotnes paroli?",
+        "delete_message": "Lietotnes, kas pierakstās ar {name}, vairs nevarēs pierakstīties.",
         "none": "Lietotņu paroles nav iestatītas",
         "done": "Gatavs",
         "expires_label": "Derīguma termiņš (pēc izvēles)",
@@ -1900,6 +1903,8 @@
         "removed": "API atslēga noņemta",
         "add_error": "Neizdevās izveidot API atslēgu",
         "remove_error": "Neizdevās noņemt API atslēgu",
+        "delete_title": "Dzēst API atslēgu?",
+        "delete_message": "Skripti un integrācijas, kas izmanto {name}, zaudēs piekļuvi.",
         "none": "API atslēgas nav konfigurētas"
       },
       "encryption": {
@@ -1919,6 +1924,9 @@
         "configure_title": "Ieslēgt šifrēšanu ar šo atslēgu",
         "enable_button": "Ieslēgt",
         "disable_tooltip": "Izslēgt šifrēšanu",
+        "disable_title": "Izslēgt glabāto datu šifrēšanu?",
+        "disable_message": "Jaunais pasts turpmāk tiks glabāts bez šifrēšanas.",
+        "disable_button": "Izslēgt",
         "enabled_success": "Krātuves šifrēšana ir iespējota"
       },
       "email_client": {
@@ -1967,7 +1975,14 @@
         "name_placeholder": "piem., Mana atslēga",
         "key_label": "Publiskā atslēga (S/MIME vai PGP ASCII formātā)",
         "key_placeholder": "Ielīmējiet šeit savu publisko atslēgu",
-        "none": "Nav konfigurēta neviena publiskā atslēga"
+        "none": "Nav konfigurēta neviena publiskā atslēga",
+        "title": "Publiskās atslēgas",
+        "added": "Publiskā atslēga pievienota",
+        "removed": "Publiskā atslēga izdzēsta",
+        "add_error": "Neizdevās pievienot publisko atslēgu",
+        "remove_error": "Neizdevās izdzēst publisko atslēgu",
+        "delete_title": "Dzēst publisko atslēgu?",
+        "delete_message": "{name} tiks noņemta no servera."
       },
       "sections": {
         "devices": "Citas lietotnes un ierīces",
@@ -2104,6 +2119,7 @@
       "count_mode_all": "Nelasītie un kopā",
       "count_mode_none": "Bez skaitītāja",
       "delete": "Dzēst",
+      "delete_title": "Dzēst mapi?",
       "confirm_delete": "Vai tiešām vēlaties dzēst \"{name}\"? Vēstules tiks pārvietotas uz atkritni.",
       "create": "Izveidot",
       "cancel": "Atcelt",
@@ -2249,6 +2265,11 @@
       "group_by_letter_label": "Grupēt pēc pirmā burta",
       "sort_by_last_name_label": "Kārtot pēc uzvārda",
       "sort_by_last_name_description": "Kārtot kontaktu sarakstu pēc uzvārda, lai ģimenes locekļi būtu kopā"
+    },
+    "calendar_management": {
+      "delete_title": "Dzēst kalendāru?",
+      "clear_title": "Notīrīt visus notikumus?",
+      "unsubscribe_title": "Atteikties no šī kalendāra abonementa?"
     },
     "downloads": {
       "title": "Lejupielādes",
@@ -2404,6 +2425,7 @@
       "match_type": "Atbilstības veids",
       "reset_to_visual": "Atiestatīt uz vizuālo konstruktoru",
       "reset_warning": "Tas dzēsīs pašreizējo skriptu un sāks no jauna.",
+      "reset_title": "Atiestatīt uz vizuālo redaktoru?",
       "confirm_reset": "Atiestatīt",
       "validation_empty_name": "Nepieciešams noteikuma nosaukums",
       "validation_empty_conditions": "Nepieciešams vismaz viens nosacījums ar vērtību",

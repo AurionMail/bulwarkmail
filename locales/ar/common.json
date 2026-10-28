@@ -1790,6 +1790,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "لن تتمكن الأجهزة الأخرى من استعادة الحسابات منها بعد الآن.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1895,6 +1896,8 @@
         "removed": "تمت إزالة كلمة مرور التطبيق",
         "add_error": "فشل إنشاء كلمة مرور التطبيق",
         "remove_error": "فشلت إزالة كلمة مرور التطبيق",
+        "delete_title": "حذف كلمة مرور التطبيق؟",
+        "delete_message": "لن تتمكن التطبيقات التي تسجّل الدخول باستخدام {name} من تسجيل الدخول بعد الآن.",
         "none": "لا توجد كلمات مرور تطبيقات مُعدَّة"
       },
       "api_keys": {
@@ -1907,6 +1910,8 @@
         "removed": "تمت إزالة مفتاح API",
         "add_error": "فشل إنشاء مفتاح API",
         "remove_error": "فشلت إزالة مفتاح API",
+        "delete_title": "حذف مفتاح API؟",
+        "delete_message": "ستفقد البرامج النصية والتكاملات التي تستخدم {name} الوصول.",
         "none": "لا توجد مفاتيح API مُعدَّة"
       },
       "encryption": {
@@ -1926,6 +1931,9 @@
         "configure_title": "تفعيل التشفير باستخدام هذا المفتاح",
         "enable_button": "تفعيل",
         "disable_tooltip": "تعطيل التشفير",
+        "disable_title": "إيقاف تشفير البيانات المخزنة؟",
+        "disable_message": "سيُخزَّن البريد الجديد بدون تشفير من الآن فصاعدًا.",
+        "disable_button": "إيقاف",
         "enabled_success": "تم تفعيل التشفير أثناء التخزين"
       },
       "email_client": {
@@ -1974,7 +1982,14 @@
         "name_placeholder": "مثال: مفتاحي",
         "key_label": "المفتاح العام (S/MIME أو PGP بترميز ASCII)",
         "key_placeholder": "الصق مفتاحك العام هنا",
-        "none": "لا توجد مفاتيح عامة مُعدّة"
+        "none": "لا توجد مفاتيح عامة مُعدّة",
+        "title": "المفاتيح العامة",
+        "added": "تمت إضافة المفتاح العام",
+        "removed": "تم حذف المفتاح العام",
+        "add_error": "تعذّرت إضافة المفتاح العام",
+        "remove_error": "تعذّر حذف المفتاح العام",
+        "delete_title": "حذف المفتاح العام؟",
+        "delete_message": "ستتم إزالة {name} من الخادم."
       },
       "sections": {
         "devices": "تطبيقات وأجهزة أخرى",
@@ -2111,6 +2126,7 @@
       "count_mode_all": "غير المقروءة والإجمالي",
       "count_mode_none": "بدون عداد",
       "delete": "حذف",
+      "delete_title": "حذف المجلد؟",
       "confirm_delete": "هل أنت متأكد أنك تريد حذف \"{name}\"؟ ستُنقل الرسائل في هذا المجلد إلى المهملات.",
       "create": "إنشاء",
       "cancel": "إلغاء",
@@ -2256,6 +2272,11 @@
       "categories_title": "الفئات",
       "categories_description": "إعادة تسمية فئات جهات الاتصال",
       "no_categories": "لم يتم العثور على فئات"
+    },
+    "calendar_management": {
+      "delete_title": "حذف التقويم؟",
+      "clear_title": "مسح كل الأحداث؟",
+      "unsubscribe_title": "إلغاء الاشتراك في هذا التقويم؟"
     },
     "downloads": {
       "title": "التنزيلات",
@@ -2411,6 +2432,7 @@
       "match_type": "نوع المطابقة",
       "reset_to_visual": "إعادة التعيين إلى أداة الإنشاء المرئي",
       "reset_warning": "سيؤدي هذا إلى تجاهل النص الحالي والبدء من جديد.",
+      "reset_title": "إعادة التعيين إلى المحرر المرئي؟",
       "confirm_reset": "إعادة التعيين",
       "validation_empty_name": "اسم القاعدة مطلوب",
       "validation_empty_conditions": "مطلوب شرط واحد على الأقل بقيمة",

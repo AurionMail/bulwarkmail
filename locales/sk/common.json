@@ -1790,6 +1790,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Iné zariadenia z neho už účty neobnovia.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1895,6 +1896,8 @@
         "removed": "Heslo aplikácie odstránené",
         "add_error": "Chyba pri vytváraní hesla aplikácie",
         "remove_error": "Chyba pri odstraňovaní hesla aplikácie",
+        "delete_title": "Odstrániť heslo aplikácie?",
+        "delete_message": "Aplikácie, ktoré sa prihlasujú pomocou {name}, sa už neprihlásia.",
         "none": "Žiadne heslá aplikácií"
       },
       "api_keys": {
@@ -1907,6 +1910,8 @@
         "removed": "API kľúč odstránený",
         "add_error": "Chyba pri vytváraní API kľúča",
         "remove_error": "Chyba pri odstraňovaní API kľúča",
+        "delete_title": "Odstrániť kľúč API?",
+        "delete_message": "Skripty a integrácie, ktoré používajú {name}, stratia prístup.",
         "none": "Žiadne API kľúče"
       },
       "encryption": {
@@ -1926,6 +1931,9 @@
         "configure_title": "Zapnúť šifrovanie týmto kľúčom",
         "enable_button": "Zapnúť",
         "disable_tooltip": "Vypnúť šifrovanie",
+        "disable_title": "Vypnúť šifrovanie uložených dát?",
+        "disable_message": "Nová pošta sa odteraz ukladá bez šifrovania.",
+        "disable_button": "Vypnúť",
         "enabled_success": "Šifrovanie dát v pokoji zapnuté"
       },
       "email_client": {
@@ -1974,7 +1982,14 @@
         "name_placeholder": "napr. Môj kľúč",
         "key_label": "Verejný kľúč (S/MIME alebo PGP vo formáte ASCII)",
         "key_placeholder": "Sem vložte svoj verejný kľúč",
-        "none": "Nie sú nastavené žiadne verejné kľúče"
+        "none": "Nie sú nastavené žiadne verejné kľúče",
+        "title": "Verejné kľúče",
+        "added": "Verejný kľúč bol pridaný",
+        "removed": "Verejný kľúč bol odstránený",
+        "add_error": "Verejný kľúč sa nepodarilo pridať",
+        "remove_error": "Verejný kľúč sa nepodarilo odstrániť",
+        "delete_title": "Odstrániť verejný kľúč?",
+        "delete_message": "{name} bude odobratý zo servera."
       },
       "sections": {
         "devices": "Ďalšie aplikácie a zariadenia",
@@ -2111,6 +2126,7 @@
       "count_mode_all": "Neprečítané a celkom",
       "count_mode_none": "Bez počítadla",
       "delete": "Odstrániť",
+      "delete_title": "Odstrániť priečinok?",
       "confirm_delete": "Naozaj chcete odstrániť priečinok \"{name}\"? E-maily v tomto priečinku budú presunuté do Koša.",
       "create": "Vytvoriť",
       "cancel": "Zrušiť",
@@ -2256,6 +2272,11 @@
       "categories_title": "Kategórie",
       "categories_description": "Premenovať kategórie kontaktov",
       "no_categories": "Neboli nájdené žiadne kategórie"
+    },
+    "calendar_management": {
+      "delete_title": "Odstrániť kalendár?",
+      "clear_title": "Vymazať všetky udalosti?",
+      "unsubscribe_title": "Zrušiť odber tohto kalendára?"
     },
     "downloads": {
       "title": "Stiahnuté",
@@ -2411,6 +2432,7 @@
       "match_type": "Typ zhody",
       "reset_to_visual": "Resetovať na vizuálneho sprievodcu",
       "reset_warning": "Tým zahodíte aktuálny skript a začnete odznova.",
+      "reset_title": "Obnoviť vizuálny editor?",
       "confirm_reset": "Resetovať",
       "validation_empty_name": "Názov pravidla je povinný",
       "validation_empty_conditions": "Je potrebná aspoň jedna podmienka s hodnotou",

@@ -1787,6 +1787,7 @@
         "delete": "Eliminar lista guardada",
         "cancel": "Cancelar",
         "delete_confirm": "¿Eliminar del servidor la lista de cuentas guardada?",
+        "delete_message": "Los demás dispositivos ya no podrán restaurar las cuentas desde ella.",
         "password": "Contraseña de la copia",
         "password_hint": "Al menos 10 caracteres. No se puede recuperar: si la olvidas, vuelve a guardar la lista con una nueva.",
         "restore_hint": "La contraseña elegida al guardar la lista.",
@@ -1882,6 +1883,8 @@
         "removed": "Contraseña de aplicación eliminada",
         "add_error": "No se pudo crear la contraseña de aplicación",
         "remove_error": "No se pudo eliminar la contraseña de aplicación",
+        "delete_title": "¿Eliminar la contraseña de aplicación?",
+        "delete_message": "Las aplicaciones que inician sesión con {name} ya no podrán hacerlo.",
         "none": "No hay contraseñas de aplicación configuradas",
         "done": "Hecho",
         "expires_label": "Caduca (opcional)",
@@ -1900,6 +1903,8 @@
         "removed": "Clave API eliminada",
         "add_error": "No se pudo crear la clave API",
         "remove_error": "No se pudo eliminar la clave API",
+        "delete_title": "¿Eliminar la clave de API?",
+        "delete_message": "Los scripts e integraciones que usan {name} pierden el acceso.",
         "none": "No hay claves API configuradas"
       },
       "encryption": {
@@ -1919,6 +1924,9 @@
         "configure_title": "Habilitar el cifrado con esta clave",
         "enable_button": "Habilitar",
         "disable_tooltip": "Deshabilitar el cifrado",
+        "disable_title": "¿Desactivar el cifrado en reposo?",
+        "disable_message": "A partir de ahora, el correo nuevo se guarda sin cifrar.",
+        "disable_button": "Desactivar",
         "enabled_success": "Cifrado en reposo habilitado"
       },
       "email_client": {
@@ -1967,7 +1975,14 @@
         "name_placeholder": "ej. Mi clave",
         "key_label": "Clave pública (S/MIME o PGP en formato ASCII)",
         "key_placeholder": "Pega aquí tu clave pública",
-        "none": "No hay claves públicas configuradas"
+        "none": "No hay claves públicas configuradas",
+        "title": "Claves públicas",
+        "added": "Clave pública añadida",
+        "removed": "Clave pública eliminada",
+        "add_error": "No se pudo añadir la clave pública",
+        "remove_error": "No se pudo eliminar la clave pública",
+        "delete_title": "¿Eliminar la clave pública?",
+        "delete_message": "{name} se quita del servidor."
       },
       "sections": {
         "devices": "Otras aplicaciones y dispositivos",
@@ -2104,6 +2119,7 @@
       "count_mode_all": "No leídos y total",
       "count_mode_none": "Sin contador",
       "delete": "Eliminar",
+      "delete_title": "¿Eliminar la carpeta?",
       "confirm_delete": "¿Está seguro de que desea eliminar \"{name}\"? Los correos de esta carpeta se moverán a la Papelera.",
       "create": "Crear",
       "cancel": "Cancelar",
@@ -2249,6 +2265,11 @@
       "group_by_letter_label": "Agrupar por primera letra",
       "sort_by_last_name_label": "Ordenar por apellido",
       "sort_by_last_name_description": "Ordenar la lista de contactos por apellido para que los miembros de una familia aparezcan juntos"
+    },
+    "calendar_management": {
+      "delete_title": "¿Eliminar el calendario?",
+      "clear_title": "¿Borrar todos los eventos?",
+      "unsubscribe_title": "¿Cancelar la suscripción a este calendario?"
     },
     "downloads": {
       "title": "Descargas",
@@ -2404,6 +2425,7 @@
       "match_type": "Tipo de coincidencia",
       "reset_to_visual": "Restablecer al constructor visual",
       "reset_warning": "Esto descartará el script actual y comenzará de nuevo.",
+      "reset_title": "¿Restablecer al editor visual?",
       "confirm_reset": "Restablecer",
       "validation_empty_name": "El nombre de la regla es obligatorio",
       "validation_empty_conditions": "Se requiere al menos una condición con un valor",

@@ -1752,6 +1752,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "מכשירים אחרים לא יוכלו עוד לשחזר ממנה את החשבונות.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1847,6 +1848,8 @@
         "removed": "סיסמת האפליקציה הוסרה",
         "add_error": "יצירת סיסמת האפליקציה נכשלה",
         "remove_error": "הסרת סיסמת האפליקציה נכשלה",
+        "delete_title": "למחוק את סיסמת האפליקציה?",
+        "delete_message": "אפליקציות שמתחברות עם {name} לא יוכלו להתחבר יותר.",
         "none": "לא הוגדרו סיסמאות לאפליקציה",
         "done": "בוצע",
         "expires_label": "פג תוקף (אופציונלי)",
@@ -1872,6 +1875,9 @@
         "configure_title": "הפעל הצפנה עם מפתח זה",
         "enable_button": "הפעל",
         "disable_tooltip": "השבת הצפנה",
+        "disable_title": "לכבות את ההצפנה במנוחה?",
+        "disable_message": "דואר חדש יישמר מעכשיו ללא הצפנה.",
+        "disable_button": "כיבוי",
         "enabled_success": "הצפנה במנוחה מופעלת"
       },
       "email_client": {
@@ -1892,6 +1898,8 @@
         "removed": "מפתח API הוסר",
         "add_error": "נכשל ביצירת מפתח API",
         "remove_error": "נכשל בהסרת מפתח API",
+        "delete_title": "למחוק את מפתח ה-API?",
+        "delete_message": "סקריפטים ושילובים שמשתמשים ב-{name} יאבדו את הגישה.",
         "none": "אין מפתחות API מוגדרים"
       },
       "link_device": {
@@ -1932,7 +1940,14 @@
         "name_placeholder": "לדוגמה: המפתח שלי",
         "key_label": "מפתח ציבורי (S/MIME או PGP בפורמט ASCII)",
         "key_placeholder": "הדבק כאן את המפתח הציבורי שלך",
-        "none": "לא הוגדרו מפתחות ציבוריים"
+        "none": "לא הוגדרו מפתחות ציבוריים",
+        "title": "מפתחות ציבוריים",
+        "added": "המפתח הציבורי נוסף",
+        "removed": "המפתח הציבורי נמחק",
+        "add_error": "לא ניתן היה להוסיף את המפתח הציבורי",
+        "remove_error": "לא ניתן היה למחוק את המפתח הציבורי",
+        "delete_title": "למחוק את המפתח הציבורי?",
+        "delete_message": "{name} יוסר מהשרת."
       },
       "sections": {
         "devices": "אפליקציות ומכשירים אחרים",
@@ -2068,6 +2083,7 @@
       "count_mode_all": "שלא נקראו וסך הכול",
       "count_mode_none": "ללא מונה",
       "delete": "לִמְחוֹק",
+      "delete_title": "למחוק את התיקיה?",
       "confirm_delete": "האם אתה בטוח שברצונך למחוק את \"{name}\"? הודעות אימייל בתיקייה זו יועברו לאשפה.",
       "create": "צור",
       "cancel": "לְבַטֵל",
@@ -2216,6 +2232,11 @@
       "sort_by_last_name_description": "סידור רשימת אנשי הקשר לפי שם משפחה כך שבני אותה משפחה יופיעו יחד",
       "group_by_letter_description": "הצג כותרות חלקים אלפביתיים ברשימת אנשי הקשר"
     },
+    "calendar_management": {
+      "delete_title": "למחוק את היומן?",
+      "clear_title": "לנקות את כל האירועים?",
+      "unsubscribe_title": "לבטל את המינוי ליומן הזה?"
+    },
     "filters": {
       "title": "מסנני דואר אלקטרוני",
       "description": "צור כללים למיון, תיוג וניהול אוטומטי של הודעות דוא\"ל נכנסות",
@@ -2324,6 +2345,7 @@
       "match_type": "סוג התאמה",
       "reset_to_visual": "איפוס לבונה חזותי",
       "reset_warning": "פעולה זו תמחק את הסקריפט הנוכחי ויתחיל מחדש.",
+      "reset_title": "לאפס לעורך החזותי?",
       "confirm_reset": "אִתחוּל",
       "validation_empty_name": "נדרש שם כלל",
       "validation_empty_conditions": "נדרש לפחות תנאי אחד עם ערך",

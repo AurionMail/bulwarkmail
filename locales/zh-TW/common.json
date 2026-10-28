@@ -1790,6 +1790,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "其他裝置將無法再從中還原帳號。",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1895,6 +1896,8 @@
         "removed": "已移除應用程式密碼",
         "add_error": "無法建立應用程式密碼",
         "remove_error": "無法移除應用程式密碼",
+        "delete_title": "刪除應用程式密碼?",
+        "delete_message": "使用 {name} 登入的應用程式將無法再登入。",
         "none": "尚未設定應用程式密碼"
       },
       "api_keys": {
@@ -1907,6 +1910,8 @@
         "removed": "API 金鑰已刪除",
         "add_error": "建立 API 金鑰失敗",
         "remove_error": "刪除 API 金鑰失敗",
+        "delete_title": "刪除 API 金鑰?",
+        "delete_message": "使用 {name} 的指令碼和整合將失去存取權。",
         "none": "未設定 API 金鑰"
       },
       "encryption": {
@@ -1926,6 +1931,9 @@
         "configure_title": "使用此金鑰啟用加密",
         "enable_button": "啟用",
         "disable_tooltip": "停用加密",
+        "disable_title": "關閉靜態加密?",
+        "disable_message": "從現在起,新郵件將不加密儲存。",
+        "disable_button": "關閉",
         "enabled_success": "已啟用靜態資料加密"
       },
       "public_keys": {
@@ -1933,7 +1941,14 @@
         "name_placeholder": "例如：我的金鑰",
         "key_label": "公開金鑰（S/MIME 或 PGP ASCII 裝甲格式）",
         "key_placeholder": "在此貼上您的公鑰",
-        "none": "未設定公鑰"
+        "none": "未設定公鑰",
+        "title": "公開金鑰",
+        "added": "已新增公開金鑰",
+        "removed": "已刪除公開金鑰",
+        "add_error": "無法新增公開金鑰",
+        "remove_error": "無法刪除公開金鑰",
+        "delete_title": "刪除公開金鑰?",
+        "delete_message": "{name} 將從伺服器中移除。"
       },
       "email_client": {
         "title": "郵件用戶端設定",
@@ -2111,6 +2126,7 @@
       "count_mode_all": "未讀與總數",
       "count_mode_none": "不顯示計數",
       "delete": "刪除",
+      "delete_title": "刪除信件匣?",
       "confirm_delete": "您確定要刪除「{name}」嗎？此信件匣中的郵件將移至垃圾桶。",
       "create": "建立",
       "cancel": "取消",
@@ -2256,6 +2272,11 @@
       "categories_title": "類別",
       "categories_description": "重新命名聯絡人類別",
       "no_categories": "找不到類別"
+    },
+    "calendar_management": {
+      "delete_title": "刪除行事曆?",
+      "clear_title": "清除所有活動?",
+      "unsubscribe_title": "取消訂閱此行事曆?"
     },
     "downloads": {
       "title": "下載",
@@ -2411,6 +2432,7 @@
       "match_type": "比對方式",
       "reset_to_visual": "重設為視覺化建構工具",
       "reset_warning": "這會捨棄目前的指令碼並重新開始。",
+      "reset_title": "重設為視覺化編輯器?",
       "confirm_reset": "重設",
       "validation_empty_name": "規則名稱為必填欄位",
       "validation_empty_conditions": "至少需要一個具有值的條件",

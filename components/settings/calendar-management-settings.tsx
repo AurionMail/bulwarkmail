@@ -25,6 +25,7 @@ import { CALENDAR_COLORS, sharedCalendarColorKey } from '@/lib/shared-calendar-c
 import { IS_LITE } from '@/lib/lite';
 import { shareRecipientNames, useShareRecipientLabels } from '@/hooks/use-share-recipient-labels';
 import { calendarAccountKey, moveCalendar } from '@/lib/calendar-sort';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 function CalendarColorPicker({
   value,
@@ -280,6 +281,7 @@ export function CalendarManagementSettings() {
   const [refreshingSubId, setRefreshingSubId] = useState<string | null>(null);
   const tImport = useTranslations('calendar.import');
   const tSub = useTranslations('calendar.subscription');
+  const tConfirm = useTranslations('settings.calendar_management');
   const timeFormat = useSettingsStore((s) => s.timeFormat);
   const sharedCalendarColors = useSettingsStore((s) => s.sharedCalendarColors);
   const setSharedCalendarColor = useSettingsStore((s) => s.setSharedCalendarColor);
@@ -594,54 +596,6 @@ export function CalendarManagementSettings() {
             );
           }
 
-          if (deletingId === cal.id) {
-            return (
-              <div key={cal.id} className="flex items-center gap-3 py-2.5 px-3 bg-destructive/5 rounded-md border border-destructive/20">
-                <Trash2 className="w-4 h-4 text-destructive flex-shrink-0" />
-                <p className="text-sm text-foreground flex-1">
-                  {t('confirm_delete', { name: cal.name })}
-                </p>
-                <button
-                  onClick={() => handleDelete(cal.id)}
-                  disabled={isLoading}
-                  className="px-3 py-1 text-xs font-medium bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 disabled:opacity-50"
-                >
-                  {t('delete')}
-                </button>
-                <button
-                  onClick={() => setDeletingId(null)}
-                  className="px-3 py-1 text-xs bg-muted text-foreground rounded-md hover:bg-accent"
-                >
-                  {t('cancel')}
-                </button>
-              </div>
-            );
-          }
-
-          if (clearingId === cal.id) {
-            return (
-              <div key={cal.id} className="flex items-center gap-3 py-2.5 px-3 bg-amber-500/5 rounded-md border border-amber-500/20">
-                <Eraser className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                <p className="text-sm text-foreground flex-1">
-                  {t('confirm_clear', { name: cal.name })}
-                </p>
-                <button
-                  onClick={() => handleClear(cal.id)}
-                  disabled={isLoading}
-                  className="px-3 py-1 text-xs font-medium bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50"
-                >
-                  {t('clear_events')}
-                </button>
-                <button
-                  onClick={() => setClearingId(null)}
-                  className="px-3 py-1 text-xs bg-muted text-foreground rounded-md hover:bg-accent"
-                >
-                  {t('cancel')}
-                </button>
-              </div>
-            );
-          }
-
           return (
             <div
               key={cal.id}
@@ -873,30 +827,6 @@ export function CalendarManagementSettings() {
             {tSub('section_title')}
           </h4>
           {icalSubscriptions.map((sub) => {
-            if (deletingSubId === sub.id) {
-              return (
-                <div key={sub.id} className="flex items-center gap-3 py-2.5 px-3 bg-destructive/5 rounded-md border border-destructive/20">
-                  <Trash2 className="w-4 h-4 text-destructive flex-shrink-0" />
-                  <p className="text-sm text-foreground flex-1">
-                    {tSub('confirm_delete', { name: sub.name })}
-                  </p>
-                  <button
-                    onClick={() => handleDeleteSubscription(sub.id)}
-                    disabled={isLoading}
-                    className="px-3 py-1 text-xs font-medium bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 disabled:opacity-50"
-                  >
-                    {t('delete')}
-                  </button>
-                  <button
-                    onClick={() => setDeletingSubId(null)}
-                    className="px-3 py-1 text-xs bg-muted text-foreground rounded-md hover:bg-accent"
-                  >
-                    {t('cancel')}
-                  </button>
-                </div>
-              );
-            }
-
             return (
               <div
                 key={sub.id}
@@ -955,6 +885,35 @@ export function CalendarManagementSettings() {
           })}
         </div>
       )}
+
+      {/* Not reversible, so each asks first (R3). */}
+      <ConfirmDialog
+        isOpen={!!deletingId}
+        onClose={() => setDeletingId(null)}
+        onConfirm={() => { if (deletingId) void handleDelete(deletingId); }}
+        title={tConfirm('delete_title')}
+        message={t('confirm_delete', { name: calendars.find((cal) => cal.id === deletingId)?.name ?? '' })}
+        confirmText={t('delete')}
+        variant="destructive"
+      />
+      <ConfirmDialog
+        isOpen={!!clearingId}
+        onClose={() => setClearingId(null)}
+        onConfirm={() => { if (clearingId) void handleClear(clearingId); }}
+        title={tConfirm('clear_title')}
+        message={t('confirm_clear', { name: calendars.find((cal) => cal.id === clearingId)?.name ?? '' })}
+        confirmText={t('clear_events')}
+        variant="destructive"
+      />
+      <ConfirmDialog
+        isOpen={!!deletingSubId}
+        onClose={() => setDeletingSubId(null)}
+        onConfirm={() => { if (deletingSubId) void handleDeleteSubscription(deletingSubId); }}
+        title={tConfirm('unsubscribe_title')}
+        message={tSub('confirm_delete', { name: icalSubscriptions.find((sub) => sub.id === deletingSubId)?.name ?? '' })}
+        confirmText={tSub('unsubscribe')}
+        variant="destructive"
+      />
 
       {showImportModal && client && (
         <ICalImportModal
