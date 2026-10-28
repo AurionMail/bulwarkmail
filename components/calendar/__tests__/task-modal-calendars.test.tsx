@@ -1,0 +1,36 @@
+import { render, screen, within } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { TaskModal } from '../task-modal';
+import type { Calendar, CalendarTask } from '@/lib/jmap/types';
+
+// The task editor's Calendar select offered the read-only Birthdays
+// calendar, which the event editor leaves out.
+
+const writable = { mayReadItems: true, mayWriteAll: true, mayWriteOwn: true, mayDelete: true };
+const readOnly = { mayReadItems: true, mayWriteAll: false, mayWriteOwn: false, mayDelete: false };
+const calendars = [
+  { id: 'work', name: 'Work', isShared: false, myRights: writable },
+  { id: 'personal', name: 'Personal', isShared: false, myRights: writable },
+  { id: 'birthdays', name: 'Birthdays', isShared: false, myRights: readOnly },
+  { id: 'feed', name: 'Holidays feed', isShared: false, myRights: writable },
+] as unknown as Calendar[];
+const isSubscriptionCalendar = (id: string) => id === 'feed';
+
+describe('task editor calendar select', () => {
+  it('lists only the calendars a task can go into', () => {
+    render(<TaskModal calendars={calendars} isSubscriptionCalendar={isSubscriptionCalendar} onSave={vi.fn()} onClose={vi.fn()} />);
+    const select = screen.getByLabelText('tasks.calendar');
+    const names = within(select).getAllByRole('option').map((o) => o.textContent);
+    expect(names).toEqual(['Work', 'Personal']);
+  });
+
+  it('keeps the calendar of a task that is already in a read-only one', () => {
+    const task = {
+      id: 't1', '@type': 'Task', title: 'Card for Ann', calendarIds: { birthdays: true },
+      progress: 'needs-action', priority: 0, due: null, showWithoutTime: true, alerts: null,
+    } as unknown as CalendarTask;
+    render(<TaskModal task={task} calendars={calendars} onSave={vi.fn()} onClose={vi.fn()} />);
+    const select = screen.getByLabelText('tasks.calendar') as HTMLSelectElement;
+    expect(select.value).toBe('birthdays');
+  });
+});

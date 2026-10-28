@@ -14,6 +14,7 @@ import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { taskToView } from "@/lib/plugin-projection";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { canCreateEventsIn } from "@/lib/calendar-editability";
 
 interface TaskModalProps {
   task?: CalendarTask | null;
@@ -25,6 +26,8 @@ interface TaskModalProps {
   /** Told whether the form holds changes that aren't saved, so the page can ask before it drops them. */
   onDirtyChange?: (dirty: boolean) => void;
   isMobile?: boolean;
+  /** Subscribed feeds are read-only: no tasks go there. */
+  isSubscriptionCalendar?: (calendarId: string) => boolean;
 }
 
 type PriorityLevel = "none" | "high" | "medium" | "low";
@@ -54,6 +57,7 @@ export function TaskModal({
   onClose,
   onDirtyChange,
   isMobile: _isMobile,
+  isSubscriptionCalendar,
 }: TaskModalProps) {
   const t = useTranslations("calendar");
   const tCommon = useTranslations("common");
@@ -63,7 +67,9 @@ export function TaskModal({
   // task-detail-section: the saved task, for an existing task only.
   const pluginTaskProps = useMemo(() => (task ? { task: taskToView(task) } : null), [task]);
 
-  const writableCalendars = calendars.filter(c => !c.isShared || c.myRights?.mayWriteAll || c.myRights?.mayWriteOwn);
+  // The calendars a task can go into: not read-only ones (Birthdays,
+  // feeds), the same rule as the event editor.
+  const writableCalendars = calendars.filter((c) => canCreateEventsIn(c, isSubscriptionCalendar));
   const defaultCalendarId = writableCalendars[0]?.id ?? calendars[0]?.id ?? "";
 
   const [title, setTitle] = useState(task?.title ?? "");
@@ -80,6 +86,8 @@ export function TaskModal({
     }
     return defaultCalendarId;
   });
+  // A task already in a read-only calendar keeps it listed.
+  const calendarOptions = calendars.filter((c) => c.id === calendarId || writableCalendars.includes(c));
   const [alertOption, setAlertOption] = useState<AlertOption>(() => {
     if (!task?.alerts) return "none";
     const first = Object.values(task.alerts)[0];
@@ -313,7 +321,7 @@ export function TaskModal({
         </div>
 
         {/* Calendar */}
-        {writableCalendars.length > 1 && (
+        {calendarOptions.length > 1 && (
           <div className="space-y-2">
             <label htmlFor={`${id}-calendar`} className="text-xs font-medium text-muted-foreground">
               {t("tasks.calendar")}
@@ -324,7 +332,7 @@ export function TaskModal({
               onChange={(e) => setCalendarId(e.target.value)}
               className="rounded-md border border-input bg-background px-3 py-1.5 text-sm w-full"
             >
-              {writableCalendars.map((cal) => (
+              {calendarOptions.map((cal) => (
                 <option key={cal.id} value={cal.id}>{cal.name}</option>
               ))}
             </select>
