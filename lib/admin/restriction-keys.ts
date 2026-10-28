@@ -43,7 +43,7 @@ export const RESTRICTION_KEYS: readonly RestrictionKeyDef[] = [
   { key: 'pushNotifyInboxOnly', label: 'Inbox-only Push Notifications', category: 'Notifications', type: 'boolean', page: 'policy' },
   { key: 'debugMode', label: 'Debug Mode', category: 'Advanced', type: 'boolean', page: 'policy' },
   { key: 'delegation', label: 'Delegates', description: 'Hide removes Settings > Sharing > Delegates, so users can no longer give someone access to mail, calendars and contacts in one step.', category: 'Sharing', type: 'boolean', page: 'org-sharing', modes: ['hidden'] },
-  { key: 'delegationRights', label: 'Rights delegates can get', description: 'Untick "write" and the Delegates dialog offers read access only.', category: 'Sharing', type: 'enum', allowedValues: ['read', 'write'], page: 'org-sharing', modes: ['allowedValues'] },
+  { key: 'sharingRights', label: 'Rights users can give', description: 'Untick "write" and every share dialog in Bulwark (folders, calendars, address books, files, Delegates) offers read access only.', category: 'Sharing', type: 'enum', allowedValues: ['read', 'write'], page: 'org-sharing', modes: ['allowedValues'] },
 ];
 
 export function restrictionKeysForPage(page: AdminPageId): RestrictionKeyDef[] {

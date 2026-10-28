@@ -10,6 +10,9 @@ import type { Principal, PrincipalDirectoryStatus } from "@/lib/jmap/types";
 import { detectPreset, presetRights, type AnyRights, type RolePreset, type ShareKind } from "@/lib/jmap/share-rights";
 import { loadPrincipalDirectory } from "@/lib/jmap/principal-directory";
 import { toast } from "@/stores/toast-store";
+import { useRestriction } from "@/hooks/use-restriction";
+import { allowedLevels } from "@/lib/delegation/delegation";
+import { OrgLockedNote } from "./org-locked-note";
 
 interface ShareCollectionDialogProps {
   client: IJMAPClient;
@@ -40,6 +43,9 @@ export function ShareCollectionDialog({
   const [search, setSearch] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  // The admin's `sharingRights`: without write, only the read presets.
+  const sharingRights = useRestriction("sharingRights");
+  const writeAllowed = allowedLevels(sharingRights.allowedValues).includes("write");
 
   // Load principals on mount
   useEffect(() => {
@@ -79,8 +85,15 @@ export function ShareCollectionDialog({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  const presetOptions: RolePreset[] = [
+    ...(kind === "calendar" ? ["freeBusy" as const] : []),
+    "read",
+    ...(writeAllowed ? ["readWrite" as const, "manager" as const] : []),
+  ];
+
   const handleSetRights = async (principalId: string, preset: RolePreset) => {
     if (preset === "custom") return; // custom is read-only here
+    if (!(presetOptions as readonly RolePreset[]).includes(preset)) return;
     const rights = presetRights(kind, preset);
     if (!rights) return;
     setSavingId(principalId);
@@ -136,9 +149,7 @@ export function ShareCollectionDialog({
     return Object.entries(shareWith || {}) as [string, AnyRights][];
   }, [shareWith]);
 
-  const presetOptions = kind === "calendar"
-    ? ["freeBusy", "read", "readWrite", "manager"] as const
-    : ["read", "readWrite", "manager"] as const;
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -166,6 +177,7 @@ export function ShareCollectionDialog({
 
         <div className="px-6 py-4 space-y-4 overflow-y-auto">
           <p className="text-sm text-muted-foreground">{t("description")}</p>
+          {!writeAllowed && <OrgLockedNote />}
 
           {sharedEntries.length === 0 && !showAdd && (
             <div className="text-sm text-muted-foreground italic py-4 text-center">
@@ -212,8 +224,9 @@ export function ShareCollectionDialog({
                         {presetOptions.map((p) => (
                           <option key={p} value={p}>{t(`preset.${p}`)}</option>
                         ))}
-                        {preset === "custom" && (
-                          <option value="custom">{t("preset.custom")}</option>
+                        {/* A grant the admin no longer lets users give stays named, but can't be picked. */}
+                        {!presetOptions.includes(preset) && (
+                          <option value={preset} disabled>{t(`preset.${preset}`)}</option>
                         )}
                       </select>
                       <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" />
