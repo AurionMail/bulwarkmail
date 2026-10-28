@@ -2246,7 +2246,7 @@
         "description": "Mostrar imágenes de perfil y favicons de remitentes en la carpeta de spam. Desactivado por defecto para no dar apariencia legítima a los intentos de phishing."
       },
       "keyboard_shortcuts": {
-        "label": "Atajos de Teclado",
+        "label": "Atajos de teclado",
         "description": "Ver atajos de teclado disponibles",
         "button": "Ver Atajos"
       },
@@ -3020,7 +3020,7 @@
     "rename_confirm": "Renombrar"
   },
   "shortcuts": {
-    "title": "Atajos de Teclado",
+    "title": "Atajos de teclado",
     "tip": "Presione ? en cualquier momento para mostrar esta ayuda",
     "or": "o",
     "sections": {

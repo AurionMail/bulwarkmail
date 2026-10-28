@@ -119,7 +119,7 @@
     "loading_mailboxes": "Posta kutuları yükleniyor...",
     "push_connected": "Anlık güncellemeler aktif",
     "push_disconnected": "Anlık güncellemeler devre dışı",
-    "keyboard_shortcuts": "Klavye Kısayolları",
+    "keyboard_shortcuts": "Klavye kısayolları",
     "theme": {
       "light": "Açık tema",
       "dark": "Koyu tema",
@@ -2246,7 +2246,7 @@
         "description": "İstem dışı klasöründeki göndericiler için profil resimleri ve favorikonları göster. Kimlik avı girişimlerine görsel meşruiyet kazandırmamak için varsayılan olarak kapalıdır."
       },
       "keyboard_shortcuts": {
-        "label": "Klavye Kısayolları",
+        "label": "Klavye kısayolları",
         "description": "Mevcut klavye kısayollarını görüntüleyin",
         "button": "Kısayolları Görüntüle"
       },
@@ -3020,7 +3020,7 @@
     "delete_with_contents_confirm": "Klasörü ve iletileri sil"
   },
   "shortcuts": {
-    "title": "Klavye Kısayolları",
+    "title": "Klavye kısayolları",
     "tip": "Bu yardımı görmek için istediğiniz zaman ? tuşuna basın",
     "or": "veya",
     "sections": {

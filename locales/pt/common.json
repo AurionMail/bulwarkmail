@@ -2246,7 +2246,7 @@
         "description": "Exibir imagens de perfil e favicons dos remetentes na pasta de spam. Desativado por padrão para não dar aparência legítima a tentativas de phishing."
       },
       "keyboard_shortcuts": {
-        "label": "Atalhos de Teclado",
+        "label": "Atalhos de teclado",
         "description": "Visualizar atalhos de teclado disponíveis",
         "button": "Ver Atalhos"
       },
@@ -3020,7 +3020,7 @@
     "rename_confirm": "Renomear"
   },
   "shortcuts": {
-    "title": "Atalhos de Teclado",
+    "title": "Atalhos de teclado",
     "tip": "Pressione ? a qualquer momento para mostrar esta ajuda",
     "or": "ou",
     "sections": {

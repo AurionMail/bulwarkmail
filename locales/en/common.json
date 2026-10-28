@@ -119,7 +119,7 @@
     "loading_mailboxes": "Loading mailboxes...",
     "push_connected": "Real-time updates active",
     "push_disconnected": "Real-time updates inactive",
-    "keyboard_shortcuts": "Keyboard Shortcuts",
+    "keyboard_shortcuts": "Keyboard shortcuts",
     "theme": {
       "light": "Light mode",
       "dark": "Dark mode",
@@ -3020,7 +3020,7 @@
     "delete_with_contents_confirm": "Delete folder and messages"
   },
   "shortcuts": {
-    "title": "Keyboard Shortcuts",
+    "title": "Keyboard shortcuts",
     "tip": "Press ? anytime to show this help",
     "or": "or",
     "sections": {
