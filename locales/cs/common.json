@@ -4568,7 +4568,9 @@
     "demo_banner_desc": "Nacházíte se v demo režimu - vše zůstává ve vašem prohlížeči. Kdykoli klikněte na „Resetovat“, abyste začali znovu s čistými ukázkovými daty.",
     "quota_title": "Využití úložiště",
     "quota_desc": "Zde můžete sledovat velikost své poštovní schránky. Kruh se plní podle využití kapacity.",
-    "settings_section": "Začínáme"
+    "settings_section": "Začínáme",
+    "email_list_desc_phone": "Zde se zobrazují e-maily. Klepnutím e-mail otevřete, podržením zobrazíte další akce.",
+    "contacts_list_desc_phone": "Zde jsou vaše kontakty. Klepnutím na kontakt zobrazíte všechny jeho údaje. Můžete také vytvářet nové kontakty, importovat vCard nebo kontakty třídit do skupin."
   },
   "unified_mailbox": {
     "search_unavailable": "Vyhledávání není ve sjednoceném zobrazení k dispozici"

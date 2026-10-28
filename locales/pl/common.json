@@ -4568,7 +4568,9 @@
     "demo_banner_desc": "Jesteś w trybie demo - wszystko pozostaje w Twojej przeglądarce. W każdej chwili kliknij „Reset Demo”, aby zacząć od nowa z czystymi danymi przykładowymi.",
     "quota_title": "Wykorzystanie miejsca",
     "quota_desc": "Tutaj możesz śledzić rozmiar swojej skrzynki pocztowej. Okrąg wypełnia się wraz ze wzrostem użycia przestrzeni.",
-    "settings_section": "Pierwsze kroki"
+    "settings_section": "Pierwsze kroki",
+    "email_list_desc_phone": "Tutaj pojawiają się Twoje e-maile. Stuknij wiadomość, aby ją przeczytać, lub przytrzymaj ją, aby zobaczyć więcej działań.",
+    "contacts_list_desc_phone": "Oto Twoje kontakty. Stuknij kontakt, aby zobaczyć wszystkie jego szczegóły. Możesz też tworzyć nowe kontakty, importować pliki vCard lub porządkować kontakty w grupy."
   },
   "unified_mailbox": {
     "search_unavailable": "Wyszukiwanie jest niedostępne w widoku ujednoliconym"

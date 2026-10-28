@@ -4614,7 +4614,9 @@
     "demo_banner_desc": "Nachádzate sa v demo režime – všetko zostáva vo vašom prehliadači.",
     "quota_title": "Využitie úložiska",
     "quota_desc": "Tu môžete sledovať veľkosť svojej poštovej schránky.",
-    "settings_section": "Začíname"
+    "settings_section": "Začíname",
+    "email_list_desc_phone": "Tu sa zobrazujú vaše e-maily. Ťuknutím e-mail otvoríte, podržaním zobrazíte ďalšie akcie.",
+    "contacts_list_desc_phone": "Tu sú vaše kontakty. Ťuknutím na kontakt zobrazíte všetky jeho údaje. Môžete tiež vytvárať nové kontakty, importovať vCard alebo triediť kontakty do skupín."
   },
   "unified_mailbox": {
     "search_unavailable": "Vyhľadávanie nie je v zjednotenom zobrazení k dispozícii"

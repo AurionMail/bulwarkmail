@@ -4568,7 +4568,9 @@
     "demo_banner_desc": "Sei in modalità demo - tutto rimane nel tuo browser. Premi 'Reimposta Demo' in qualsiasi momento per ricominciare con dati puliti.",
     "quota_title": "Utilizzo dello spazio",
     "quota_desc": "Monitora le dimensioni della tua casella qui. Il cerchio si riempie man mano che utilizzi più spazio.",
-    "settings_section": "Per iniziare"
+    "settings_section": "Per iniziare",
+    "email_list_desc_phone": "Qui compaiono le tue email. Tocca un messaggio per leggerlo o tienilo premuto per altre azioni.",
+    "contacts_list_desc_phone": "Ecco i tuoi contatti. Tocca un contatto per vederne tutti i dettagli. Puoi anche creare nuovi contatti, importare vCard o organizzare i contatti in gruppi."
   },
   "unified_mailbox": {
     "search_unavailable": "La ricerca non è disponibile nella vista unificata"

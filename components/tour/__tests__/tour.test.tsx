@@ -208,3 +208,38 @@ describe('tour keyboard', () => {
     expect(tour.prevStep).toHaveBeenCalledTimes(1);
   });
 });
+
+// The phone tour said "Click one to read it on the right": a phone has one
+// pane at a time. Phone steps have their own text where the layout differs.
+describe('tour text on a phone', () => {
+  it('uses the phone text of a step on a phone', () => {
+    anchors('<a data-tour="one" data-size></a>');
+    const step = tour.steps[0] as { phoneDescriptionKey?: string };
+    step.phoneDescriptionKey = 'one_desc_phone';
+    const spy = vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
+      matches: query === '(max-width: 767px)', media: query, onchange: null,
+      addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {},
+      dispatchEvent: () => false,
+    }) as MediaQueryList);
+    try {
+      render(<TourOverlay />);
+      act(() => { vi.advanceTimersByTime(1100); });
+      expect(screen.getByText('one_desc_phone')).toBeInTheDocument();
+    } finally {
+      delete step.phoneDescriptionKey;
+      spy.mockRestore();
+    }
+  });
+
+  it('never points left or right in the English phone tour', async () => {
+    const { readFileSync } = await import('fs');
+    const { resolve } = await import('path');
+    const en = JSON.parse(readFileSync(resolve(__dirname, '../../../locales/en/common.json'), 'utf-8'));
+    const text = (key: string) => key.split('.').reduce((o: Record<string, unknown>, k) => o[k] as Record<string, unknown>, en) as unknown as string;
+    const steps = getTourSteps({ isDemoMode: true, supportsCalendar: true, supportsWebDAV: true, touch: true, phone: true });
+    const sided = steps
+      .map((s) => text(s.phoneDescriptionKey ?? s.descriptionKey))
+      .filter((d) => /\b(left|right)\b/i.test(d));
+    expect(sided).toEqual([]);
+  });
+});

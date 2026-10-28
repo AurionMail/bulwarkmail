@@ -4568,7 +4568,9 @@
     "demo_banner_desc": "현재 데모 모드예요. 모든 작업은 브라우저 안에서만 이뤄집니다. 언제든 '초기화'를 누르면 처음의 깨끗한 샘플 데이터로 돌아가요.",
     "quota_title": "저장 공간 사용량",
     "quota_desc": "편지함 용량을 여기서 확인하세요. 공간을 많이 쓸수록 원이 점점 채워질 거예요.",
-    "settings_section": "시작하기"
+    "settings_section": "시작하기",
+    "email_list_desc_phone": "여기에 이메일이 표시돼요. 탭하면 읽을 수 있고, 길게 누르면 더 많은 작업이 표시돼요.",
+    "contacts_list_desc_phone": "여기에 연락처가 있어요. 연락처를 탭하면 모든 세부 정보를 볼 수 있어요. 새 연락처를 만들거나 vCard를 가져오거나 연락처를 그룹으로 정리할 수도 있어요."
   },
   "unified_mailbox": {
     "search_unavailable": "통합 보기에서는 검색을 사용할 수 없습니다"

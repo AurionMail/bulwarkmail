@@ -4568,7 +4568,9 @@
     "demo_banner_desc": "Jūs esat demo režīmā - visi dati paliek jūsu pārlūkā. Nospiediet «Atiestatīt demo», lai sāktu no jauna.",
     "quota_title": "Krātuves izmantošana",
     "quota_desc": "Sekojiet līdzi savas pastkastes aizpildījumam šeit.",
-    "settings_section": "Darba sākšana"
+    "settings_section": "Darba sākšana",
+    "email_list_desc_phone": "Šeit parādās jūsu e-pasti. Pieskarieties vēstulei, lai to lasītu, vai turiet to nospiestu, lai redzētu citas darbības.",
+    "contacts_list_desc_phone": "Šeit ir jūsu kontakti. Pieskarieties kontaktam, lai redzētu visu tā informāciju. Varat arī izveidot jaunus kontaktus, importēt vCard vai sakārtot kontaktus grupās."
   },
   "unified_mailbox": {
     "search_unavailable": "Meklēšana nav pieejama apvienotajā skatā"

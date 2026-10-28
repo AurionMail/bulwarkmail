@@ -4568,7 +4568,9 @@
     "demo_banner_desc": "U bent in demomodus - alles blijft in uw browser. Klik op 'Demo resetten' om opnieuw te beginnen met schone voorbeeldgegevens.",
     "quota_title": "Opslaggebruik",
     "quota_desc": "Volg de grootte van uw mailbox hier. De cirkel vult zich naarmate u meer ruimte gebruikt.",
-    "settings_section": "Aan de slag"
+    "settings_section": "Aan de slag",
+    "email_list_desc_phone": "Hier verschijnen je e-mails. Tik op een e-mail om hem te lezen, of houd hem vast voor meer acties.",
+    "contacts_list_desc_phone": "Hier staan je contacten. Tik op een contact om alle gegevens te zien. Je kunt ook nieuwe contacten maken, vCards importeren of contacten in groepen ordenen."
   },
   "unified_mailbox": {
     "search_unavailable": "Zoeken is niet beschikbaar in de gecombineerde weergave"

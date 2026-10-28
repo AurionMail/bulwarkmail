@@ -4614,7 +4614,9 @@
     "demo_banner_desc": "Demo modundasınız - her şey tarayıcınızda kalır. Temiz örnek verilerle yeniden başlamak için istediğiniz zaman 'Demoyu Sıfırla'ya basın.",
     "quota_title": "Depolama kullanımı",
     "quota_desc": "Posta kutusu boyutunuzu buradan takip edin. Daha fazla alan kullandıkça daire dolmaya başlar.",
-    "settings_section": "Başlarken"
+    "settings_section": "Başlarken",
+    "email_list_desc_phone": "E-postalarınız burada görünür. Okumak için birine dokunun ya da daha fazla işlem için basılı tutun.",
+    "contacts_list_desc_phone": "Kişileriniz burada. Tüm ayrıntılarını görmek için bir kişiye dokunun. Ayrıca yeni kişiler oluşturabilir, vCard içe aktarabilir veya kişileri gruplara ayırabilirsiniz."
   },
   "unified_mailbox": {
     "search_unavailable": "Birleşik görünümde arama kullanılamaz"

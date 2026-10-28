@@ -4568,7 +4568,9 @@
     "demo_banner_desc": "Estás en modo demo - todo permanece en tu navegador. Haz clic en 'Restablecer demo' en cualquier momento.",
     "quota_title": "Uso de almacenamiento",
     "quota_desc": "Controla el tamaño de tu buzón aquí. El círculo se llena a medida que usas más espacio.",
-    "settings_section": "Primeros pasos"
+    "settings_section": "Primeros pasos",
+    "email_list_desc_phone": "Aquí aparecen tus correos. Toca uno para leerlo o mantenlo pulsado para ver más acciones.",
+    "contacts_list_desc_phone": "Aquí están tus contactos. Toca cualquier contacto para ver todos sus detalles. También puedes crear contactos nuevos, importar vCards u organizar los contactos en grupos."
   },
   "unified_mailbox": {
     "search_unavailable": "La búsqueda no está disponible en la vista unificada"

@@ -4614,7 +4614,9 @@
     "demo_banner_desc": "Du er i demomodus – alt forblir i nettleseren. Trykk på «Tilbakestill demo» når som helst for å begynne på nytt med nye eksempeldata.",
     "quota_title": "Lagringsbruk",
     "quota_desc": "Følg med på størrelsen på postkassen her. Sirkelen fylles opp etter hvert som du bruker mer plass.",
-    "settings_section": "Kom i gang"
+    "settings_section": "Kom i gang",
+    "email_list_desc_phone": "E-postene dine vises her. Trykk på en for å lese den, eller hold fingeren på den for flere handlinger.",
+    "contacts_list_desc_phone": "Her er kontaktene dine. Trykk på en kontakt for å se alle detaljene. Du kan også opprette nye kontakter, importere vCard-filer eller ordne kontakter i grupper."
   },
   "unified_mailbox": {
     "search_unavailable": "Søk er ikke tilgjengelig i den samlede visningen"

@@ -4614,7 +4614,9 @@
     "demo_banner_desc": "You're in demo mode - everything stays in your browser. Hit 'Reset Demo' anytime to start fresh with clean sample data.",
     "quota_title": "Storage usage",
     "quota_desc": "Track your mailbox size here. The circle fills up as you use more space.",
-    "settings_section": "Getting started"
+    "settings_section": "Getting started",
+    "email_list_desc_phone": "Emails appear here. Tap one to read it, or touch and hold it for more actions.",
+    "contacts_list_desc_phone": "Here are your contacts. Tap any contact to see their full details. You can also create new contacts, import vCards, or organize contacts into groups."
   },
   "unified_mailbox": {
     "search_unavailable": "Search is not available in the unified view"

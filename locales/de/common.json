@@ -4568,7 +4568,9 @@
     "demo_banner_desc": "Sie sind im Demo-Modus - alles bleibt in Ihrem Browser. Klicken Sie jederzeit auf 'Demo zurücksetzen'.",
     "quota_title": "Speichernutzung",
     "quota_desc": "Verfolgen Sie Ihre Postfachgröße hier. Der Kreis füllt sich mit zunehmendem Verbrauch.",
-    "settings_section": "Erste Schritte"
+    "settings_section": "Erste Schritte",
+    "email_list_desc_phone": "Hier erscheinen Ihre E-Mails. Tippen Sie auf eine, um sie zu lesen, oder halten Sie sie gedrückt für weitere Aktionen.",
+    "contacts_list_desc_phone": "Hier sind Ihre Kontakte. Tippen Sie auf einen Kontakt, um alle Details zu sehen. Sie können auch neue Kontakte anlegen, vCards importieren oder Kontakte in Gruppen ordnen."
   },
   "unified_mailbox": {
     "search_unavailable": "Die Suche ist in der vereinheitlichten Ansicht nicht verfügbar"

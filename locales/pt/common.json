@@ -4568,7 +4568,9 @@
     "demo_banner_desc": "Está no modo de demonstração - tudo permanece no seu navegador. Clique em 'Repor Demonstração' a qualquer momento para recomeçar com dados limpos.",
     "quota_title": "Utilização do armazenamento",
     "quota_desc": "Acompanhe o tamanho da sua caixa de correio aqui. O círculo preenche-se à medida que utiliza mais espaço.",
-    "settings_section": "Primeiros passos"
+    "settings_section": "Primeiros passos",
+    "email_list_desc_phone": "Seus e-mails aparecem aqui. Toque em um para lê-lo ou mantenha-o pressionado para ver mais ações.",
+    "contacts_list_desc_phone": "Aqui estão seus contatos. Toque em um contato para ver todos os detalhes. Você também pode criar contatos, importar vCards ou organizar os contatos em grupos."
   },
   "unified_mailbox": {
     "search_unavailable": "A pesquisa não está disponível na vista unificada"

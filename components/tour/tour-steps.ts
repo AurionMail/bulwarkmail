@@ -3,6 +3,8 @@ export interface TourStep {
   target: string;
   titleKey: string;
   descriptionKey: string;
+  /** The text on a phone, where the layout it describes ("on the right") isn't there. */
+  phoneDescriptionKey?: string;
   placement: "top" | "bottom" | "left" | "right";
   interactive?: boolean;
   spotlight?: "rect" | "circle";
@@ -90,6 +92,7 @@ export const BASE_TOUR_STEPS: TourStep[] = [
     target: '[data-tour="email-list"]',
     titleKey: "tour.email_list_title",
     descriptionKey: "tour.email_list_desc",
+    phoneDescriptionKey: "tour.email_list_desc_phone",
     placement: "right",
   },
   {
@@ -202,6 +205,7 @@ export const DEMO_TOUR_STEPS: TourStep[] = [
     target: '[data-tour="contacts-list"]',
     titleKey: "tour.contacts_list_title",
     descriptionKey: "tour.contacts_list_desc",
+    phoneDescriptionKey: "tour.contacts_list_desc_phone",
     placement: "right",
     page: "/contacts",
     demoOnly: true,

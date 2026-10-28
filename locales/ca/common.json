@@ -4614,7 +4614,9 @@
     "demo_banner_desc": "Esteu en mode de demostració: tot es queda al navegador. Premeu «Reinicia la demo» en qualsevol moment per començar de nou amb dades d'exemple netes.",
     "quota_title": "Ús de l'emmagatzematge",
     "quota_desc": "Feu un seguiment de la mida de la bústia aquí. El cercle s'omple a mesura que utilitzeu més espai.",
-    "settings_section": "Primers passos"
+    "settings_section": "Primers passos",
+    "email_list_desc_phone": "Els correus apareixen aquí. Toca'n un per llegir-lo, o mantén-lo premut per veure més accions.",
+    "contacts_list_desc_phone": "Aquests són els teus contactes. Toca qualsevol contacte per veure'n tots els detalls. També pots crear contactes nous, importar vCards o organitzar els contactes en grups."
   },
   "unified_mailbox": {
     "search_unavailable": "La cerca no està disponible a la vista unificada"

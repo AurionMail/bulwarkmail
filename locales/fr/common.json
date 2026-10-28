@@ -4568,7 +4568,9 @@
     "demo_banner_desc": "Vous êtes en mode démo - tout reste dans votre navigateur. Cliquez sur 'Réinitialiser la démo' à tout moment pour repartir avec des données fraîches.",
     "quota_title": "Utilisation du stockage",
     "quota_desc": "Suivez la taille de votre boîte mail ici. Le cercle se remplit au fur et à mesure que vous utilisez plus d'espace.",
-    "settings_section": "Premiers pas"
+    "settings_section": "Premiers pas",
+    "email_list_desc_phone": "Vos e-mails s'affichent ici. Touchez-en un pour le lire, ou maintenez le doigt dessus pour plus d'actions.",
+    "contacts_list_desc_phone": "Voici vos contacts. Touchez un contact pour voir tous ses détails. Vous pouvez aussi créer des contacts, importer des vCards ou organiser vos contacts en groupes."
   },
   "unified_mailbox": {
     "search_unavailable": "La recherche n'est pas disponible dans la vue unifiée"

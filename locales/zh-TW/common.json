@@ -4614,7 +4614,9 @@
     "demo_banner_desc": "目前處於示範模式，所有資料都保留在瀏覽器中。隨時點擊「重設示範」即可用全新的範例資料重新開始。",
     "quota_title": "儲存使用情況",
     "quota_desc": "在這裡查看信箱的儲存空間使用量。使用的空間越多，圓形指示器就會填得越滿。",
-    "settings_section": "新手入門"
+    "settings_section": "新手入門",
+    "email_list_desc_phone": "你的郵件會顯示在這裡。點一下郵件即可閱讀，長按可查看更多動作。",
+    "contacts_list_desc_phone": "這裡是你的聯絡人。點一下任一聯絡人即可查看完整詳細資料。你也可以新增聯絡人、匯入 vCard，或將聯絡人整理成群組。"
   },
   "unified_mailbox": {
     "search_unavailable": "整合檢視中無法使用搜尋"

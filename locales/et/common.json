@@ -4614,7 +4614,9 @@
     "demo_banner_desc": "Oled demorežiimis - kõik jääb sinu brauserisse. Vajuta igal ajal 'Lähtesta demo', et alustada puhta näidisandmestikuga otsast peale.",
     "quota_title": "Mahu kasutus",
     "quota_desc": "Jälgi siin oma postkasti suurust. Ring täitub, mida rohkem ruumi kasutad.",
-    "settings_section": "Alustamine"
+    "settings_section": "Alustamine",
+    "email_list_desc_phone": "Siin kuvatakse sinu kirjad. Toksa kirja lugemiseks või hoia sõrme kirjal, et näha rohkem toiminguid.",
+    "contacts_list_desc_phone": "Siin on sinu kontaktid. Toksa kontakti, et näha kõiki selle andmeid. Saad ka luua uusi kontakte, importida vCard-faile või jagada kontakte gruppidesse."
   },
   "unified_mailbox": {
     "search_unavailable": "Otsing pole ühendatud vaates saadaval"

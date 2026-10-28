@@ -4614,7 +4614,9 @@
     "demo_banner_desc": "Demó módban vagy - minden a böngésződben marad. Nyomd meg a 'Demó visszaállítása' gombot bármikor a tiszta mintaadatokkal való újrakezdéshez.",
     "quota_title": "Tárhely használat",
     "quota_desc": "Kövesd nyomon a postafiókod méretét itt. A kör kitöltődik, ahogy egyre több helyet használsz.",
-    "settings_section": "Első lépések"
+    "settings_section": "Első lépések",
+    "email_list_desc_phone": "Itt jelennek meg a leveleid. Koppints egyre az elolvasásához, vagy tartsd rajta az ujjad a további műveletekhez.",
+    "contacts_list_desc_phone": "Itt vannak a névjegyeid. Koppints egy névjegyre az összes adatának megtekintéséhez. Új névjegyeket is létrehozhatsz, vCardokat importálhatsz, vagy csoportokba rendezheted a névjegyeket."
   },
   "unified_mailbox": {
     "search_unavailable": "A keresés nem érhető el az egységes nézetben"

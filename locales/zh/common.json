@@ -4568,7 +4568,9 @@
     "demo_banner_desc": "当前为演示模式，所有数据仅保存在浏览器中。随时点击\"重置演示\"即可恢复初始示例数据。",
     "quota_title": "存储使用情况",
     "quota_desc": "在这里查看邮箱的存储使用情况。随着空间使用增加，进度圆环会逐渐填满。",
-    "settings_section": "新手入门"
+    "settings_section": "新手入门",
+    "email_list_desc_phone": "你的邮件显示在这里。轻点一封邮件即可阅读，长按可查看更多操作。",
+    "contacts_list_desc_phone": "这里是你的联系人。轻点任一联系人即可查看全部详细信息。你还可以新建联系人、导入 vCard，或将联系人整理成组。"
   },
   "unified_mailbox": {
     "search_unavailable": "统一视图中无法使用搜索"

@@ -11,6 +11,7 @@ import { isEditableEventTarget } from "@/lib/keyboard";
 import { isDocumentRTL } from "@/i18n/direction";
 import { findTourTarget, isTourStepOnPage } from "./tour-steps";
 import { usePathname } from "@/i18n/navigation";
+import { useIsMobile } from "@/hooks/use-media-query";
 
 export { findTourTarget };
 
@@ -95,6 +96,7 @@ export function TourOverlay() {
   const t = useTranslations();
   const { currentStep, totalSteps, steps, nextStep, prevStep, skipStep, stopTour } = useTour();
   const step = steps[currentStep];
+  const phone = useIsMobile();
   // The same anchor can be in the app being left (the tab bar in Settings
   // while Files loads): look for the target only once the step's app is up.
   const pathname = usePathname();
@@ -399,7 +401,7 @@ export function TourOverlay() {
           <h3 className="font-semibold text-sm text-foreground">{t(step.titleKey)}</h3>
 
           {/* Description */}
-          <p className="text-sm text-muted-foreground mt-1">{t(step.descriptionKey)}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t(phone && step.phoneDescriptionKey ? step.phoneDescriptionKey : step.descriptionKey)}</p>
 
           {/* Navigation buttons */}
           <div className="flex items-center justify-between mt-3">
