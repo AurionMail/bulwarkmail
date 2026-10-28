@@ -225,3 +225,15 @@ describe('phone reader names (MAIL-20)', () => {
     expect(hinted).toEqual([]);
   });
 });
+
+// The phone bar said "Spam" where every menu says "Report spam".
+describe('reader spam button name', () => {
+  it('says Report spam like the menus, and Not spam in the Spam folder', () => {
+    const { unmount } = renderViewer({ onMarkAsSpam: vi.fn(), onUndoSpam: vi.fn() });
+    expect(screen.getAllByRole('button', { name: 'spam.button_title' }).length).toBeGreaterThan(0);
+    expect(screen.queryAllByRole('button', { name: 'spam_short' })).toEqual([]);
+    unmount();
+    renderViewer({ onMarkAsSpam: vi.fn(), onUndoSpam: vi.fn(), currentMailboxRole: 'junk' });
+    expect(screen.getAllByRole('button', { name: 'spam.not_spam_title' }).length).toBeGreaterThan(0);
+  });
+});

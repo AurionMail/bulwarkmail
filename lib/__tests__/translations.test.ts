@@ -213,3 +213,31 @@ describe('labels in narrow places', () => {
     expect(value.length).toBeLessThanOrEqual(max);
   });
 });
+
+describe('mail menu labels', () => {
+  // An item that opens a dialog ends in one "…" character; one that opens a
+  // submenu or acts at once has none, and no "(?)" key hint. English follows
+  // the rule; translations had "...", "…" on submenus, or nothing (#67).
+  const en = loadLocale(referenceLocale);
+  const MENUS = ['context_menu', 'mailbox_context_menu', 'email_viewer'];
+  // Progress and placeholder texts ("Sending...") aren't menu items.
+  const menuKeys = getLeafKeys(en).filter((key) => {
+    if (!MENUS.includes(key.split('.')[0])) return false;
+    const value = resolveKey(en, key) as string;
+    return typeof value === 'string' && !value.endsWith('...') && !/loading|placeholder|running|sending|migrating/.test(key);
+  });
+  const ending = (value: string) => (value.endsWith('…') ? '…' : value.endsWith('...') ? '...' : '');
+
+  it.each(locales)('%s ends mail menu items in an ellipsis only where English does', (locale) => {
+    const table = loadLocale(locale);
+    const wrong = menuKeys
+      .map((key) => [key, resolveKey(table, key)] as const)
+      .filter(([key, value]) => typeof value === 'string' && ending(value.trimEnd()) !== ending(resolveKey(en, key) as string))
+      .map(([key, value]) => `${key}: ${value}`);
+    expect(wrong).toEqual([]);
+  });
+
+  it.each(locales)('%s names the reader menu shortcuts item without a key hint', (locale) => {
+    expect(resolveKey(loadLocale(locale), 'email_viewer.keyboard_shortcuts')).not.toMatch(/[(（][?？؟][)）]/);
+  });
+});
