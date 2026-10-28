@@ -3813,7 +3813,18 @@
       "move_in_grid": "Хүснэгтэд өдөр, цагийн хооронд шилжих"
     },
     "other_calendars": "Бусад хуанли",
-    "calendar_options": "{name}-ийн тохиргоо"
+    "calendar_options": "{name}-ийн тохиргоо",
+    "search": {
+      "title": "Үйл явдал хайх",
+      "clear": "Хайлтыг арилгах",
+      "close": "Хайлтыг хаах",
+      "upcoming": "Удахгүй болох",
+      "past": "Өнгөрсөн",
+      "no_results": "“{query}”-д тохирох үйл явдал алга",
+      "no_results_hint": "Гарчиг, газар, тайлбар, зочдоос хайна.",
+      "repeats": "Давтагдана",
+      "results": "{count, plural, one {# үйл явдал олдлоо} other {# үйл явдал олдлоо}}"
+    }
   },
   "calendar_event_notifications": {
     "someone": "Хэн нэгэн",

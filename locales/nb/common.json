@@ -3813,7 +3813,18 @@
       "move_in_grid": "Gå mellom dager og timer i rutenettet"
     },
     "other_calendars": "Andre kalendere",
-    "calendar_options": "Alternativer for {name}"
+    "calendar_options": "Alternativer for {name}",
+    "search": {
+      "title": "Søk i hendelser",
+      "clear": "Tøm søket",
+      "close": "Lukk søket",
+      "upcoming": "Kommende",
+      "past": "Tidligere",
+      "no_results": "Ingen hendelser samsvarer med «{query}»",
+      "no_results_hint": "Søket ser i titler, steder, beskrivelser og gjester.",
+      "repeats": "Gjentas",
+      "results": "{count, plural, one {# hendelse funnet} other {# hendelser funnet}}"
+    }
   },
   "calendar_event_notifications": {
     "someone": "Noen",

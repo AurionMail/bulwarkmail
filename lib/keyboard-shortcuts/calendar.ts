@@ -29,6 +29,7 @@ export const CALENDAR_SECTIONS: readonly ShortcutSection[] = [
     title: "calendar.shortcuts.actions",
     entries: [
       { key: "↑ ↓ ← →", description: "calendar.shortcuts.move_in_grid" },
+      { key: "/", description: "calendar.search.title" },
       { key: "n / c", description: "calendar.shortcuts.new_item" },
       { key: "e", description: "calendar.events.edit" },
       { key: "Mod + Enter", description: "calendar.form.save" },

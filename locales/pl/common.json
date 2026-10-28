@@ -3813,7 +3813,18 @@
       "move_in_grid": "Przechodzenie między dniami i godzinami w siatce"
     },
     "other_calendars": "Inne kalendarze",
-    "calendar_options": "Opcje dla {name}"
+    "calendar_options": "Opcje dla {name}",
+    "search": {
+      "title": "Szukaj wydarzeń",
+      "clear": "Wyczyść wyszukiwanie",
+      "close": "Zamknij wyszukiwanie",
+      "upcoming": "Nadchodzące",
+      "past": "Minione",
+      "no_results": "Brak wydarzeń pasujących do „{query}”",
+      "no_results_hint": "Wyszukiwanie obejmuje tytuły, miejsca, opisy i gości.",
+      "repeats": "Powtarza się",
+      "results": "{count, plural, one {Znaleziono # wydarzenie} few {Znaleziono # wydarzenia} many {Znaleziono # wydarzeń} other {Znaleziono # wydarzenia}}"
+    }
   },
   "advanced_search": {
     "title": "Wyszukiwanie zaawansowane",

@@ -3813,7 +3813,18 @@
       "move_in_grid": "Moverse entre días y horas en la cuadrícula"
     },
     "other_calendars": "Otros calendarios",
-    "calendar_options": "Opciones de {name}"
+    "calendar_options": "Opciones de {name}",
+    "search": {
+      "title": "Buscar eventos",
+      "clear": "Borrar búsqueda",
+      "close": "Cerrar búsqueda",
+      "upcoming": "Próximos",
+      "past": "Pasados",
+      "no_results": "Ningún evento coincide con «{query}»",
+      "no_results_hint": "La búsqueda mira títulos, lugares, descripciones e invitados.",
+      "repeats": "Se repite",
+      "results": "{count, plural, one {# evento encontrado} other {# eventos encontrados}}"
+    }
   },
   "advanced_search": {
     "title": "Búsqueda avanzada",

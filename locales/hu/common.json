@@ -3813,7 +3813,18 @@
       "move_in_grid": "Mozgás a napok és órák között a rácsban"
     },
     "other_calendars": "Egyéb naptárak",
-    "calendar_options": "{name} beállításai"
+    "calendar_options": "{name} beállításai",
+    "search": {
+      "title": "Események keresése",
+      "clear": "Keresés törlése",
+      "close": "Keresés bezárása",
+      "upcoming": "Közelgő",
+      "past": "Korábbi",
+      "no_results": "Egy esemény sem felel meg ennek: „{query}”",
+      "no_results_hint": "A keresés a címekben, helyszínekben, leírásokban és vendégekben keres.",
+      "repeats": "Ismétlődik",
+      "results": "{count, plural, one {# esemény található} other {# esemény található}}"
+    }
   },
   "calendar_event_notifications": {
     "someone": "Valaki",

@@ -11,7 +11,8 @@ export type CalendarShortcutAction =
   | "day"
   | "agenda"
   | "tasks"
-  | "new";
+  | "new"
+  | "search";
 
 const LETTERS: Record<string, CalendarShortcutAction> = {
   t: "today",
@@ -31,6 +32,8 @@ export function calendarShortcutAction(
   if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return null;
   if (event.key === "ArrowLeft") return "prev";
   if (event.key === "ArrowRight") return "next";
+  // `/` focuses the search, as in Mail (R8); on any layout, by its key.
+  if (event.code === "Slash" || (!event.code && event.key === "/")) return "search";
   const code = event.code;
   const letter = code && code.length === 4 && code.startsWith("Key")
     ? code.charAt(3).toLowerCase()

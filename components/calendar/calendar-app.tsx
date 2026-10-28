@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, type TouchEvent as ReactTouchEvent } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { Plus, ListTodo, CalendarDays, Upload, Globe, RefreshCw } from "@/components/icons";
+import { Plus, ListTodo, CalendarDays, Upload, Globe, RefreshCw, Search } from "@/components/icons";
 import {
   addMonths, subMonths, addWeeks, subWeeks, addDays, subDays,
   format, parseISO,
@@ -87,6 +87,8 @@ import { appPath, buildCalendarPath, parseCalendarPath, type CalendarDeepLink } 
 import { consumePendingDeepLinkEntry, subscribePendingDeepLink } from "@/lib/deep-link-handoff";
 import { useDeepLinkUrl } from "@/hooks/use-deep-link-url";
 import { useCloseOnBack } from "@/hooks/use-close-on-back";
+import { useCalendarEventSearch } from "@/hooks/use-calendar-event-search";
+import { CalendarSearchField, CalendarSearchResults } from "@/components/calendar/calendar-search";
 import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
 import { useCalendarLocale } from "@/hooks/use-calendar-locale";
 import {
@@ -192,6 +194,11 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
 
   const [showEventModal, setShowEventModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  // Event search (CAL-16): the query in the toolbar box; on phones the box
+  // opens as a row of its own.
+  const [searchQuery, setSearchQuery] = useState("");
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [pendingSubscription, setPendingSubscription] = useState<{ url: string; name: string } | null>(null);
   const [showWebcalActionChoice, setShowWebcalActionChoice] = useState(false);
@@ -1531,6 +1538,18 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     await handleRsvp(detailEvent.id, participantId, status);
   }, [detailEvent, client, currentUserEmails, closeDetail, handleRsvp]);
 
+  // `/` and the palette's "Search events" go to the search box.
+  const openSearch = useCallback(() => {
+    if (isMobile) { setMobileSearchOpen(true); return; }
+    searchInputRef.current?.focus();
+    searchInputRef.current?.select();
+  }, [isMobile]);
+  // Moving the calendar (a view, a date) goes back to the grid.
+  const leaveSearch = useCallback(() => {
+    setSearchQuery("");
+    setMobileSearchOpen(false);
+  }, []);
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
@@ -1543,6 +1562,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
 
       const action = calendarShortcutAction(e);
       if (!action) return;
+      if (action !== "new" && action !== "search") leaveSearch();
       switch (action) {
         case "prev": e.preventDefault(); navigatePrev(); break;
         case "next": e.preventDefault(); navigateNext(); break;
@@ -1554,11 +1574,12 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
         case "tasks": if (enableCalendarTasks) setViewMode("tasks"); break;
         // Kept from typing itself into the title field the editor focuses.
         case "new": e.preventDefault(); openCreateForView(); break;
+        case "search": e.preventDefault(); openSearch(); break;
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [navigatePrev, navigateNext, goToToday, setViewMode, openCreateForView, showEventModal, showTaskModal, detailPinned, enableCalendarTasks]);
+  }, [navigatePrev, navigateNext, goToToday, setViewMode, openCreateForView, openSearch, leaveSearch, showEventModal, showTaskModal, detailPinned, enableCalendarTasks]);
 
   // The command palette's Calendar group, while this calendar is the one in
   // front (in the Pro shell: its focused tab).
@@ -1573,13 +1594,14 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
   useRegisterCommands(tSidebar("calendar"), [
     { id: "new-event", label: t("events.new_event"), icon: Plus, shortcut: "n", run: () => openCreateModal() },
     { id: "new-task", label: t("events.new_task"), icon: ListTodo, run: openCreateTaskModal, when: () => enableCalendarTasks },
+    { id: "search-events", label: t("search.title"), icon: Search, shortcut: "/", run: openSearch },
     { id: "today", label: t("events.go_to_today"), icon: CalendarDays, shortcut: "t", run: goToToday, when: () => normalizedViewMode !== "tasks" },
     ...paletteViews.map(({ mode, key }) => ({
       id: `view-${mode}`,
       label: t(`commands.${mode}`),
       icon: CalendarDays,
       shortcut: key,
-      run: () => { setMobileReturnToMonth(false); setViewMode(mode); },
+      run: () => { setMobileReturnToMonth(false); leaveSearch(); setViewMode(mode); },
       when: () => mode !== normalizedViewMode && (mode !== "tasks" || enableCalendarTasks),
     })),
     { id: "import", label: t("toolbar.import"), icon: Upload, run: () => setShowImportModal(true), when: () => !demoMode },
@@ -1591,6 +1613,10 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     if (!showBirthdayCalendar || !dateRange) return [];
     return generateBirthdayEvents(contacts, dateRange.start, dateRange.end);
   }, [showBirthdayCalendar, contacts, dateRange]);
+
+  // Loaded events answer a search at once; the server adds the rest.
+  const searchableEvents = useMemo(() => [...events, ...birthdayEvents], [events, birthdayEvents]);
+  const searchResults = useCalendarEventSearch(searchQuery, client, searchableEvents);
 
   const birthdayCalendarName = (() => {
     try { return t('birthday_calendar'); } catch { return 'Birthdays'; }
@@ -1755,6 +1781,19 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     }
 
     const viewContent = (() => {
+      if (searchResults && normalizedViewMode !== "tasks") {
+        return (
+          <CalendarSearchResults
+            query={searchQuery}
+            results={searchResults}
+            calendars={allCalendars}
+            timeFormat={timeFormat}
+            currentUserEmails={currentUserEmails}
+            onSelectEvent={handleSelectEvent}
+            onContextMenuEvent={handleContextMenuEvent}
+          />
+        );
+      }
       switch (normalizedViewMode) {
         case "month":
           return (
@@ -1913,10 +1952,10 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       selectedDate={selectedDate}
       visibleDate={visibleDate}
       viewMode={normalizedViewMode}
-      onPrev={navigatePrev}
-      onNext={navigateNext}
-      onToday={goToToday}
-      onViewModeChange={(mode) => { setMobileReturnToMonth(false); setViewMode(mode); }}
+      onPrev={() => { leaveSearch(); navigatePrev(); }}
+      onNext={() => { leaveSearch(); navigateNext(); }}
+      onToday={() => { leaveSearch(); goToToday(); }}
+      onViewModeChange={(mode) => { setMobileReturnToMonth(false); leaveSearch(); setViewMode(mode); }}
       onCreateEvent={openCreateForView}
       createLabel={createLabel}
       onImport={demoMode ? undefined : () => setShowImportModal(true)}
@@ -1932,6 +1971,26 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       sidebarOpen={isNarrow ? narrowSidebarOpen : !sidebarCollapsed}
       menuTogglesSidebar={!isNarrow}
       showCreateButton={isNarrow || sidebarCollapsed}
+      // Tasks have their own list and no events to search.
+      searchField={normalizedViewMode === "tasks" ? undefined : (
+        <CalendarSearchField
+          ref={searchInputRef}
+          value={searchQuery}
+          onChange={setSearchQuery}
+          className="w-40 lg:w-56 xl:w-64 me-1"
+        />
+      )}
+      onOpenSearch={normalizedViewMode === "tasks" ? undefined : () => setMobileSearchOpen(true)}
+      mobileSearchField={mobileSearchOpen ? (
+        <CalendarSearchField
+          ref={searchInputRef}
+          value={searchQuery}
+          onChange={setSearchQuery}
+          onDismiss={leaveSearch}
+          autoFocus
+        />
+      ) : null}
+      onCloseSearch={leaveSearch}
     />
   );
 

@@ -3813,7 +3813,18 @@
       "move_in_grid": "Gå mellem dage og timer i gitteret"
     },
     "other_calendars": "Andre kalendere",
-    "calendar_options": "Indstillinger for {name}"
+    "calendar_options": "Indstillinger for {name}",
+    "search": {
+      "title": "Søg i begivenheder",
+      "clear": "Ryd søgning",
+      "close": "Luk søgning",
+      "upcoming": "Kommende",
+      "past": "Tidligere",
+      "no_results": "Ingen begivenheder matcher “{query}”",
+      "no_results_hint": "Søgningen ser på titler, steder, beskrivelser og gæster.",
+      "repeats": "Gentages",
+      "results": "{count, plural, one {# begivenhed fundet} other {# begivenheder fundet}}"
+    }
   },
   "calendar_event_notifications": {
     "someone": "Nogen",

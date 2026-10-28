@@ -3813,7 +3813,18 @@
       "move_in_grid": "그리드에서 날짜와 시간 사이 이동"
     },
     "other_calendars": "다른 캘린더",
-    "calendar_options": "{name} 옵션"
+    "calendar_options": "{name} 옵션",
+    "search": {
+      "title": "일정 검색",
+      "clear": "검색어 지우기",
+      "close": "검색 닫기",
+      "upcoming": "예정",
+      "past": "지난 일정",
+      "no_results": "‘{query}’와 일치하는 일정이 없습니다",
+      "no_results_hint": "제목, 장소, 설명, 참석자에서 검색합니다.",
+      "repeats": "반복",
+      "results": "{count, plural, other {일정 #개를 찾았습니다}}"
+    }
   },
   "advanced_search": {
     "title": "상세 검색",

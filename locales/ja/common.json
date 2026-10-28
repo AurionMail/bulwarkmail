@@ -3813,7 +3813,18 @@
       "move_in_grid": "グリッド内で日と時間を移動"
     },
     "other_calendars": "他のカレンダー",
-    "calendar_options": "{name} のオプション"
+    "calendar_options": "{name} のオプション",
+    "search": {
+      "title": "予定を検索",
+      "clear": "検索をクリア",
+      "close": "検索を閉じる",
+      "upcoming": "今後の予定",
+      "past": "過去の予定",
+      "no_results": "「{query}」に一致する予定はありません",
+      "no_results_hint": "タイトル、場所、説明、ゲストを検索します。",
+      "repeats": "繰り返し",
+      "results": "{count, plural, other {# 件の予定が見つかりました}}"
+    }
   },
   "advanced_search": {
     "title": "詳細検索",

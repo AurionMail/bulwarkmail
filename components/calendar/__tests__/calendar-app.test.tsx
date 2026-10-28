@@ -309,6 +309,44 @@ describe('CalendarApp browser Back with an editor open (R5)', () => {
   });
 });
 
+describe('CalendarApp event search (CAL-16)', () => {
+  it('focuses the search on / and shows matching events in place of the grid', async () => {
+    setUp([makeEvent(), makeEvent({ id: 'e2', uid: 'u2', title: 'Dentist', start: '2026-10-13T08:00:00' })]);
+    renderApp();
+    fireEvent.keyDown(document.body, { key: '/', code: 'Slash' });
+    const box = screen.getByRole('searchbox', { name: 'search.title' });
+    expect(document.activeElement).toBe(box);
+
+    fireEvent.change(box, { target: { value: 'dent' } });
+    const results = await screen.findByTestId('calendar-search-results');
+    expect(within(results).getByText('Dentist')).toBeInTheDocument();
+    expect(within(results).queryByText('Standup')).toBeNull();
+    expect(screen.queryByRole('grid')).toBeNull();
+
+    // A result opens like an event in the grid
+    fireEvent.click(within(results).getByText('Dentist'));
+    expect(await screen.findByRole('dialog', { name: 'Dentist' })).toBeInTheDocument();
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+
+    // Escape in the box goes back to the grid
+    fireEvent.keyDown(box, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByTestId('calendar-search-results')).toBeNull());
+    expect(screen.getByRole('grid')).toBeInTheDocument();
+  });
+
+  it('says so when nothing matches', async () => {
+    renderApp();
+    fireEvent.change(screen.getByRole('searchbox', { name: 'search.title' }), { target: { value: 'zzz' } });
+    expect(await screen.findByText('search.no_results', {}, { timeout: 3000 })).toBeInTheDocument();
+  });
+
+  it('is in the command palette', () => {
+    render(<><CalendarApp /><PaletteGroups /></>);
+    const items = screen.getByTestId('palette').textContent ?? '';
+    expect(items).toContain('calendar: search.title');
+  });
+});
+
 function toastTitles(): string[] {
   return useToastStore.getState().toasts.map((t) => t.title);
 }

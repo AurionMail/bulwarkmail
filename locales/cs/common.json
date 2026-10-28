@@ -3813,7 +3813,18 @@
       "move_in_grid": "Přesun mezi dny a hodinami v mřížce"
     },
     "other_calendars": "Další kalendáře",
-    "calendar_options": "Možnosti pro {name}"
+    "calendar_options": "Možnosti pro {name}",
+    "search": {
+      "title": "Hledat události",
+      "clear": "Vymazat hledání",
+      "close": "Zavřít hledání",
+      "upcoming": "Nadcházející",
+      "past": "Minulé",
+      "no_results": "Hledanému „{query}“ neodpovídá žádná událost",
+      "no_results_hint": "Hledá se v názvech, místech, popisech a hostech.",
+      "repeats": "Opakuje se",
+      "results": "{count, plural, one {Nalezena # událost} few {Nalezeny # události} many {Nalezeno # události} other {Nalezeno # událostí}}"
+    }
   },
   "advanced_search": {
     "title": "Pokročilé hledání",
