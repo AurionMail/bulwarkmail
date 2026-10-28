@@ -529,14 +529,31 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     setView("edit");
   };
 
-  const deleteContactById = useCallback(async (contactId: string) => {
-    const confirmed = await confirmDialog({
-      title: t("delete_confirm_title"),
-      message: t("delete_confirm"),
+  // R3: the confirm names what goes ("Delete Alice Smith?", "Delete 3
+  // contacts?") and says what is lost with it.
+  const confirmDeleteContacts = useCallback((ids: string[]) => {
+    const only = ids.length === 1 ? contacts.find((c) => c.id === ids[0]) : undefined;
+    const name = only ? getContactDisplayName(only).trim() : "";
+    return confirmDialog({
+      title: name ? t("delete_named_title", { name }) : t("bulk.delete_confirm", { count: ids.length }),
+      message: t("delete_details_message"),
       confirmText: t("form.delete"),
       variant: "destructive",
     });
-    if (!confirmed) return;
+  }, [contacts, confirmDialog, t]);
+  const confirmDeleteGroup = useCallback((groupId: string) => {
+    const group = contacts.find((c) => c.id === groupId);
+    const name = group ? getContactDisplayName(group).trim() : "";
+    return confirmDialog({
+      title: name ? t("delete_named_title", { name }) : t("groups.delete_confirm_title"),
+      message: t("groups.delete_message"),
+      confirmText: t("form.delete"),
+      variant: "destructive",
+    });
+  }, [contacts, confirmDialog, t]);
+
+  const deleteContactById = useCallback(async (contactId: string) => {
+    if (!(await confirmDeleteContacts([contactId]))) return;
 
     try {
       const deleted = supportsSync && client
@@ -550,7 +567,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
       console.error('Failed to delete contact:', error);
       toast.error(t("toast.error_delete"));
     }
-  }, [confirmDialog, t, supportsSync, client, deleteContact, deleteLocalContact, selectedContactId]);
+  }, [confirmDeleteContacts, t, supportsSync, client, deleteContact, deleteLocalContact, selectedContactId]);
 
   const handleDelete = async () => {
     if (!selectedContact) return;
@@ -773,13 +790,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   }, [openComposeInApp]);
 
   const handleDeleteGroupFromSidebar = useCallback(async (groupId: string) => {
-    const confirmed = await confirmDialog({
-      title: t("groups.delete_confirm_title"),
-      message: t("groups.delete_confirm"),
-      confirmText: t("form.delete"),
-      variant: "destructive",
-    });
-    if (!confirmed) return;
+    if (!(await confirmDeleteGroup(groupId))) return;
 
     try {
       await deleteGroup(supportsSync && client ? client : null, groupId);
@@ -793,18 +804,11 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
       console.error('Failed to delete group:', error);
       toast.error(t("toast.error_delete"));
     }
-  }, [confirmDialog, deleteGroup, supportsSync, client, selectedGroupId, t]);
+  }, [confirmDeleteGroup, deleteGroup, supportsSync, client, selectedGroupId, t]);
 
   const handleDeleteGroup = async () => {
     if (!selectedGroup) return;
-
-    const confirmed = await confirmDialog({
-      title: t("groups.delete_confirm_title"),
-      message: t("groups.delete_confirm"),
-      confirmText: t("form.delete"),
-      variant: "destructive",
-    });
-    if (!confirmed) return;
+    if (!(await confirmDeleteGroup(selectedGroup.id))) return;
 
     try {
       await deleteGroup(supportsSync && client ? client : null, selectedGroup.id);
@@ -855,13 +859,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   const handleBulkDelete = async () => {
     if (selectedContactIds.size === 0) return;
 
-    const confirmed = await confirmDialog({
-      title: t("bulk.delete_confirm_title"),
-      message: t("bulk.delete_confirm", { count: selectedContactIds.size }),
-      confirmText: t("bulk.delete"),
-      variant: "destructive",
-    });
-    if (!confirmed) return;
+    if (!(await confirmDeleteContacts(Array.from(selectedContactIds)))) return;
 
     try {
       if (!(await bulkDeleteContacts(
