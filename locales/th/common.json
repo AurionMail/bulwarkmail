@@ -283,6 +283,7 @@
     "unified_all_starred": "ติดดาวทั้งหมด",
     "unified_all_mail": "จดหมายทั้งหมด",
     "remove_account": "นำบัญชีออก",
+    "remove_account_title": "นำบัญชีออกหรือไม่",
     "remove_account_confirm": "ต้องการนำ {account} ออกจากอุปกรณ์นี้หรือไม่? คุณสามารถเพิ่มกลับเข้ามาใหม่ได้ในภายหลัง",
     "labels": "ป้ายกำกับ",
     "create_label": "สร้างป้ายกำกับใหม่",

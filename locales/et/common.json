@@ -182,6 +182,7 @@
     "unified_all_starred": "Kõik tähega tähistatud",
     "unified_all_mail": "Kõik kirjad",
     "remove_account": "Eemalda konto",
+    "remove_account_title": "Kas eemaldada konto?",
     "remove_account_confirm": "Eemalda {account} sellest seadmest? Saad selle hiljem uuesti lisada.",
     "labels": "Sildid",
     "create_label": "Loo uus silt",

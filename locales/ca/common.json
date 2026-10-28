@@ -182,6 +182,7 @@
     "unified_all_starred": "Tots els destacats",
     "unified_all_mail": "Tot el correu",
     "remove_account": "Elimina el compte",
+    "remove_account_title": "Voleu treure el compte?",
     "remove_account_confirm": "Voleu eliminar {account} d'aquest dispositiu? El podreu tornar a afegir més endavant.",
     "labels": "Etiquetes",
     "create_label": "Crea una etiqueta nova",

@@ -182,6 +182,7 @@
     "unified_all_starred": "Tüm yıldızlılar",
     "unified_all_mail": "Tüm postalar",
     "remove_account": "Remove account",
+    "remove_account_title": "Hesap kaldırılsın mı?",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Etiketler",
     "create_label": "Yeni etiket oluştur",

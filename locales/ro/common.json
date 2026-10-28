@@ -182,6 +182,7 @@
     "unified_all_starred": "Toate cu stea",
     "unified_all_mail": "Toată poșta",
     "remove_account": "Remove account",
+    "remove_account_title": "Eliminați contul?",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Etichete",
     "create_label": "Creează o etichetă nouă",

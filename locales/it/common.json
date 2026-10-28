@@ -182,6 +182,7 @@
     "unified_all_starred": "Tutti gli speciali",
     "unified_all_mail": "Tutta la posta",
     "remove_account": "Remove account",
+    "remove_account_title": "Rimuovere l'account?",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Etichette",
     "create_label": "Crea nuova etichetta",

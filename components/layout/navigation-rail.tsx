@@ -869,7 +869,7 @@ export function NavigationRail({
                 {accounts.length > 1 && (
                   <button
                     onClick={() => { setLogoutMenuOpen(false); logoutAll(); }}
-                    className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-destructive hover:bg-muted transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-start text-foreground hover:bg-muted transition-colors"
                     role="menuitem"
                   >
                     <LogOut className="w-4 h-4" />

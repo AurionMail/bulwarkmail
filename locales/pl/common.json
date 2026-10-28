@@ -182,6 +182,7 @@
     "unified_all_starred": "Wszystkie oznaczone gwiazdką",
     "unified_all_mail": "Cała poczta",
     "remove_account": "Remove account",
+    "remove_account_title": "Usunąć konto?",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Etykiety",
     "create_label": "Utwórz etykietę",

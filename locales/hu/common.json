@@ -182,6 +182,7 @@
     "unified_all_starred": "Összes csillagozott",
     "unified_all_mail": "Összes levél",
     "remove_account": "Remove account",
+    "remove_account_title": "Eltávolítja a fiókot?",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Címkék",
     "create_label": "Új címke létrehozása",
