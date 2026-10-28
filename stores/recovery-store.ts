@@ -32,6 +32,33 @@ interface RecoveryState {
 
 const inFlight = new Map<string, Promise<boolean>>();
 
+// Kept for the browser session (the tab), so a reload doesn't ask again.
+const STORAGE_KEY = 'bulwark-recovery-checks';
+
+function loadChecks(): Record<string, RecoveryCheck> {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (!parsed || typeof parsed !== 'object') return {};
+    const out: Record<string, RecoveryCheck> = {};
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      const check = value as Partial<RecoveryCheck> | null;
+      if (check?.supported === true) out[key] = { supported: true, retryAt: null };
+      else if (check?.supported === false && typeof check.retryAt === 'number') out[key] = { supported: false, retryAt: check.retryAt };
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function saveChecks(checks: Record<string, RecoveryCheck>): void {
+  try {
+    const kept = Object.fromEntries(Object.entries(checks).filter(([, c]) => c.supported || Number.isFinite(c.retryAt)));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(kept));
+  } catch { /* private mode, storage full: asked again after a reload */ }
+}
+
 function checkFor(outcome: 'supported' | 'unsupported' | 'error', now: number): RecoveryCheck {
   if (outcome === 'supported') return { supported: true, retryAt: null };
   return { supported: false, retryAt: now + (outcome === 'unsupported' ? UNSUPPORTED_RETRY_MS : ERROR_RETRY_MS) };
@@ -43,7 +70,7 @@ export function recoveryKey(localAccountId: string | null | undefined, client: I
 }
 
 export const useRecoveryStore = create<RecoveryState>()((set, get) => ({
-  checks: {},
+  checks: loadChecks(),
 
   detect: (client, key, options) => {
     const cached = get().checks[key];
@@ -74,10 +101,12 @@ export const useRecoveryStore = create<RecoveryState>()((set, get) => ({
 
   record: (key, outcome) => {
     set((state) => ({ checks: { ...state.checks, [key]: checkFor(outcome, Date.now()) } }));
+    saveChecks(get().checks);
   },
 
   reset: () => {
     inFlight.clear();
     set({ checks: {} });
+    saveChecks({});
   },
 }));

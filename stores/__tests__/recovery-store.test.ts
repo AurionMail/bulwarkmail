@@ -75,6 +75,18 @@ describe('recovery detection', () => {
     expect(checks['acc-bob|ci']?.supported).toBe(false);
   });
 
+  it('remembers the answer across a reload of the tab', async () => {
+    const client = makeClient(refused);
+    const key = recoveryKey('acc-alice', asClient(client));
+    await useRecoveryStore.getState().detect(asClient(client), key);
+    vi.resetModules();
+    const reloaded = await import('../recovery-store');
+    expect(reloaded.useRecoveryStore.getState().checks[key]).toEqual({ supported: false, retryAt: Date.now() + UNSUPPORTED_RETRY_MS });
+    await reloaded.useRecoveryStore.getState().detect(asClient(client), key);
+    expect(client.queryArchivedItemIds).toHaveBeenCalledTimes(1);
+    reloaded.useRecoveryStore.getState().reset();
+  });
+
   it("doesn't ask a server that isn't Stalwart", async () => {
     const client = makeClient(async () => [], false);
     await expect(useRecoveryStore.getState().detect(asClient(client), 'k')).resolves.toBe(false);
