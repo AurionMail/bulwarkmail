@@ -97,10 +97,10 @@ export function TemplatePicker({ isOpen, onClose, onSelect }: TemplatePickerProp
     </button>
   );
 
-  const renderSection = (title: string, items: EmailTemplate[]) => {
+  const renderSection = (key: string, title: string, items: EmailTemplate[]) => {
     if (items.length === 0) return null;
     return (
-      <div className="mb-4">
+      <div key={key} className="mb-4">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-3">
           {title}
         </h3>
@@ -171,15 +171,16 @@ export function TemplatePicker({ isOpen, onClose, onSelect }: TemplatePickerProp
               )
             ) : (
               <>
-                {renderSection(t('section_favorites'), favorites)}
-                {renderSection(t('section_recent'), recentFiltered)}
+                {renderSection('favorites', t('section_favorites'), favorites)}
+                {renderSection('recent', t('section_recent'), recentFiltered)}
                 {categorizedEntries.map(([cat, items]) =>
                   renderSection(
+                    `category:${cat}`,
                     cat,
                     items.filter((i) => !shownIds.has(i.id))
                   )
                 )}
-                {renderSection(t('section_uncategorized'), uncategorizedFiltered)}
+                {renderSection('uncategorized', t('section_uncategorized'), uncategorizedFiltered)}
               </>
             )}
           </div>
