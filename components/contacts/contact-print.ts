@@ -84,15 +84,44 @@ export function printLabels(t: (key: string) => string, locale: string): PrintLa
   };
 }
 
+const PRINT_FRAME_ATTR = "data-contact-print-frame";
+
+/**
+ * Prints the sheet from a hidden frame in this page, for when the browser
+ * blocked the print window. The frame goes away after printing, or when the
+ * next sheet is printed.
+ */
+function printInFrame(html: string): void {
+  document.querySelectorAll(`iframe[${PRINT_FRAME_ATTR}]`).forEach((f) => f.remove());
+  const frame = document.createElement("iframe");
+  frame.setAttribute(PRINT_FRAME_ATTR, "");
+  frame.setAttribute("aria-hidden", "true");
+  frame.tabIndex = -1;
+  frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
+  // Printed once the sheet and its photo have loaded. Some browsers report
+  // the frame's empty start page first; that one is skipped.
+  let printed = false;
+  frame.addEventListener("load", () => {
+    const frameWindow = frame.contentWindow;
+    if (printed || !frameWindow || !frame.contentDocument?.querySelector("h1")) return;
+    printed = true;
+    frameWindow.addEventListener("afterprint", () => setTimeout(() => frame.remove(), 0), { once: true });
+    frameWindow.focus();
+    frameWindow.print();
+  });
+  frame.srcdoc = html;
+  document.body.appendChild(frame);
+}
+
 export async function printContact(contact: ContactCard, labels: PrintLabels, displayName?: string): Promise<void> {
   // Open the window before anything is awaited: browsers allow the popup only
-  // while the click that asked for it is being handled.
+  // while the click that asked for it is being handled. When the popup is
+  // blocked, the sheet is printed from a hidden frame instead.
   const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
 
   const name = displayName || getContactDisplayName(contact);
   const photoUri = await printablePhotoUri(contact);
-  if (printWindow.closed) return;
+  if (printWindow?.closed) return;
   const emails = contact.emails ? Object.values(contact.emails) : [];
   const phones = contact.phones ? Object.values(contact.phones) : [];
   const orgs = contact.organizations ? Object.values(contact.organizations) : [];
@@ -173,6 +202,10 @@ ${rows.join("")}
 </body>
 </html>`;
 
+  if (!printWindow) {
+    printInFrame(html);
+    return;
+  }
   printWindow.document.write(html);
   printWindow.document.close();
   printWindow.focus();

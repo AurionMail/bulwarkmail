@@ -76,6 +76,32 @@ describe('printContact', () => {
     expect(printWindow.document.write).not.toHaveBeenCalled();
   });
 
+  it('prints from a hidden frame in the page when the browser blocks the print window', async () => {
+    open.mockReturnValue(null);
+    await printContact({ ...base, emails: { e: { address: 'ann@example.com' } } } as ContactCard, LABELS);
+
+    const frame = document.querySelector('iframe[data-contact-print-frame]') as HTMLIFrameElement;
+    expect(frame).not.toBeNull();
+    expect(frame.srcdoc).toContain('<h1>Ann Lee</h1>');
+    expect(frame.srcdoc).toContain('<dd>ann@example.com</dd>');
+    vi.spyOn(frame.contentWindow!, 'focus').mockImplementation(() => {});
+    const print = vi.spyOn(frame.contentWindow!, 'print').mockImplementation(() => {});
+
+    // The empty start page some browsers load first is not printed.
+    frame.dispatchEvent(new Event('load'));
+    expect(print).not.toHaveBeenCalled();
+
+    frame.contentDocument!.body.innerHTML = '<h1>Ann Lee</h1>';
+    frame.dispatchEvent(new Event('load'));
+    expect(print).toHaveBeenCalledOnce();
+
+    // Gone once the print dialog closes.
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    frame.contentWindow!.dispatchEvent(new Event('afterprint'));
+    vi.runAllTimers();
+    expect(document.querySelector('iframe[data-contact-print-frame]')).toBeNull();
+  });
+
   it('prints the headings and dates in the language of the app', async () => {
     const de = printLabels((key) => ({ 'detail.emails': 'E-Mail-Adressen', 'detail.anniversaries': 'Jahrestage', 'detail.anniversary_birth': 'Geburtstag' } as Record<string, string>)[key] ?? key, 'de');
     await printContact({
