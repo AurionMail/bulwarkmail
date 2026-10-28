@@ -3,7 +3,7 @@ import {
   allowedLevels,
   buildGrantChanges,
   buildRevokeChanges,
-  scopeOfSummary,
+  changeStartFor,
   selectTargets,
   summarizeDelegates,
 } from '../delegation';
@@ -135,23 +135,85 @@ describe('summarizeDelegates', () => {
   });
 });
 
-describe('scopeOfSummary', () => {
-  it('starts "Change" from what the person has now', () => {
-    const list = targets();
-    for (const t of list) if (t.kind === 'mailbox') t.shareWith[CAROL] = MAILBOX_PRESETS.readWrite;
-    list[3].shareWith[CAROL] = CALENDAR_PRESETS.readWrite;
-    list[4].shareWith[CAROL] = CALENDAR_PRESETS.readWrite;
-    const [carol] = summarizeDelegates(list);
-    expect(scopeOfSummary(carol, list)).toEqual({ scope: { mail: 'all', calendars: 'all', addressBooks: 'none' }, level: 'write' });
+describe('changeStartFor', () => {
+  const withCarol = (list: ShareTarget[], ids: string[], rights: object) => {
+    for (const t of list) if (ids.includes(t.id)) t.shareWith[CAROL] = rights as never;
+    return list;
+  };
+
+  it('starts from exact matches: every folder, the default calendar, read', () => {
+    const list = withCarol(targets(), ['a', 'b', 'f'], MAILBOX_READ_STORED);
+    withCarol(list, ['c2'], CALENDAR_PRESETS.read);
+    expect(changeStartFor(list, CAROL)).toEqual({ scope: { mail: 'all', calendars: 'default', addressBooks: 'none' }, level: 'read' });
   });
 
-  it('reads an Inbox-only read grant back as Inbox only and read', () => {
-    const list = targets();
-    list[0].shareWith[CAROL] = MAILBOX_READ_STORED;
-    list[4].shareWith[CAROL] = CALENDAR_PRESETS.read;
-    list[5].shareWith[CAROL] = ADDRESS_BOOK_PRESETS.read;
-    const carol = summarizeDelegates(list).find((s) => s.principalId === CAROL)!;
-    expect(scopeOfSummary(carol, list)).toEqual({ scope: { mail: 'inbox', calendars: 'default', addressBooks: 'default' }, level: 'read' });
+  it('starts from Inbox only and all calendars, read and write', () => {
+    const list = withCarol(targets(), ['a'], MAILBOX_PRESETS.readWrite);
+    withCarol(list, ['c1', 'c2'], CALENDAR_PRESETS.readWrite);
+    expect(changeStartFor(list, CAROL)).toEqual({ scope: { mail: 'inbox', calendars: 'all', addressBooks: 'none' }, level: 'write' });
+  });
+
+  it('keeps mail as it is when a folder was added after "all", and the patch leaves mail alone', () => {
+    // Inbox and Trash shared, Projects created later.
+    const list = withCarol(targets(), ['a', 'b'], MAILBOX_READ_STORED);
+    const start = changeStartFor(list, CAROL);
+    expect(start.scope.mail).toBe('keep');
+    const changes = buildGrantChanges(list, CAROL, { ...start.scope, calendars: 'default' }, 'read', { replace: true });
+    expect(changes.filter((c) => c.kind === 'mailbox')).toEqual([]);
+  });
+
+  it('keeps one shared non-Inbox folder as it is instead of turning it into the Inbox', () => {
+    const list = withCarol(targets(), ['b'], MAILBOX_READ_STORED);
+    expect(changeStartFor(list, CAROL).scope.mail).toBe('keep');
+  });
+
+  it('keeps a non-default calendar as it is', () => {
+    const list = withCarol(targets(), ['c1'], CALENDAR_PRESETS.read);
+    const start = changeStartFor(list, CAROL);
+    expect(start.scope.calendars).toBe('keep');
+    expect(buildGrantChanges(list, CAROL, start.scope, start.level, { replace: true })).toEqual([]);
+  });
+
+  it('keeps free/busy only as it is, until the user picks a scope', () => {
+    const list = withCarol(targets(), ['c2'], CALENDAR_PRESETS.freeBusy);
+    const start = changeStartFor(list, CAROL);
+    expect(start.scope.calendars).toBe('keep');
+    expect(start.level).toBe('keep');
+    expect(buildGrantChanges(list, CAROL, start.scope, start.level, { replace: true })).toEqual([]);
+    // Picking "Default calendar" with read replaces it.
+    const picked = buildGrantChanges(list, CAROL, { ...start.scope, calendars: 'default' }, 'read', { replace: true });
+    expect(picked.map((c) => [c.id, c.rights])).toEqual([['c2', CALENDAR_PRESETS.read]]);
+  });
+
+  it('keeps manager rights untouched', () => {
+    const list = withCarol(targets(), ['a', 'b', 'f'], MAILBOX_PRESETS.manager);
+    const start = changeStartFor(list, CAROL);
+    expect(start).toEqual({ scope: { mail: 'keep', calendars: 'none', addressBooks: 'none' }, level: 'keep' });
+    expect(buildGrantChanges(list, CAROL, start.scope, start.level, { replace: true })).toEqual([]);
+  });
+
+  it('keeps mixed levels per type: grants stay, anything added gets that type\'s level', () => {
+    const list = withCarol(targets(), ['a', 'b', 'f'], MAILBOX_PRESETS.readWrite);
+    withCarol(list, ['c2'], CALENDAR_PRESETS.read);
+    const start = changeStartFor(list, CAROL);
+    expect(start).toEqual({ scope: { mail: 'all', calendars: 'default', addressBooks: 'none' }, level: 'keep' });
+    expect(buildGrantChanges(list, CAROL, start.scope, start.level, { replace: true })).toEqual([]);
+    // Widening calendars to all adds Work at the calendars' level (read), not mail's (write).
+    const wider = buildGrantChanges(list, CAROL, { ...start.scope, calendars: 'all' }, 'keep', { replace: true });
+    expect(wider.map((c) => [c.id, c.rights])).toEqual([['c1', CALENDAR_PRESETS.read]]);
+  });
+
+  it('counts a shared trusted senders book as something the dialog cannot express', () => {
+    const list = withCarol(targets(), ['ab', 'ts'], ADDRESS_BOOK_PRESETS.read);
+    expect(changeStartFor(list, CAROL).scope.addressBooks).toBe('keep');
+  });
+
+  it('clamps a write delegate to read when the admin allows only read', () => {
+    const list = withCarol(targets(), ['a'], MAILBOX_PRESETS.readWrite);
+    expect(changeStartFor(list, CAROL, ['read'])).toEqual({ scope: { mail: 'inbox', calendars: 'none', addressBooks: 'none' }, level: 'read' });
+    // Mixed with write starts at read too, so nothing keeps write by default.
+    withCarol(list, ['c2'], CALENDAR_PRESETS.read);
+    expect(changeStartFor(list, CAROL, ['read']).level).toBe('read');
   });
 });
 

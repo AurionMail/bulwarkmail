@@ -19,6 +19,7 @@ import {
   scopeIsEmpty,
   type CollectionScope,
   type DelegateScope,
+  type LevelChoice,
   type MailScope,
 } from "@/lib/delegation/delegation";
 import { principalDisplay } from "./principal-display";
@@ -31,6 +32,7 @@ type Lookup =
   | { state: "busy" }
   | { state: "notFound"; address: string }
   | { state: "directoryOff" }
+  | { state: "self" }
   | { state: "failed" };
 
 export interface DelegateDialogProps {
@@ -39,13 +41,20 @@ export interface DelegateDialogProps {
   directory: PrincipalListing | null;
   /** The user's own principal ids, never offered. */
   ownIds: string[];
+  /** The user's own addresses: typing one says "That's you". */
+  ownEmails: string[];
   /** Ids that already have access to something. */
   existingIds: Set<string>;
   /** Set for "Change": the person, and what they have now. */
-  initial?: { principal: Principal; scope: DelegateScope; level: AccessLevel };
+  initial?: { principal: Principal; scope: DelegateScope; level: LevelChoice };
   levels: AccessLevel[];
-  /** The admin limited the rights (delegationRights). */
+  /** The admin limited the rights (sharingRights). */
   levelsRestricted: boolean;
+  /**
+   * The server keeps "mark as read" and flags as one right on folders
+   * (Stalwart 1.0), so read delegates can flag too; the read hint says so.
+   */
+  seenSetsKeywords?: boolean;
   onApplied: (principal: Principal, results: ShareChangeResult[]) => void;
   onClose: () => void;
 }
@@ -56,7 +65,7 @@ export interface DelegateDialogProps {
  * Full screen on a phone.
  */
 export function DelegateDialog({
-  client, targets, directory, ownIds, existingIds, initial, levels, levelsRestricted, onApplied, onClose,
+  client, targets, directory, ownIds, ownEmails, existingIds, initial, levels, levelsRestricted, seenSetsKeywords, onApplied, onClose,
 }: DelegateDialogProps) {
   const t = useTranslations("delegates");
   const tCommon = useTranslations("common");
@@ -67,10 +76,17 @@ export function DelegateDialog({
   const [query, setQuery] = useState("");
   const [lookup, setLookup] = useState<Lookup>({ state: "idle" });
   const [scope, setScope] = useState<DelegateScope>(initial?.scope ?? DEFAULT_DELEGATE_SCOPE);
-  const [level, setLevel] = useState<AccessLevel>(() => {
+  const [level, setLevel] = useState<LevelChoice>(() => {
     const wanted = initial?.level ?? "read";
-    return levels.includes(wanted) ? wanted : levels[0];
+    return wanted === "keep" || levels.includes(wanted) ? wanted : levels[0];
   });
+  // "Keep as it is" is offered where Change started with it, and stays offered.
+  const keep = {
+    mail: initial?.scope.mail === "keep",
+    calendars: initial?.scope.calendars === "keep",
+    addressBooks: initial?.scope.addressBooks === "keep",
+    level: initial?.level === "keep",
+  };
   const [saving, setSaving] = useState(false);
   const [failures, setFailures] = useState<ShareChangeResult[] | null>(null);
 
@@ -99,13 +115,19 @@ export function DelegateDialog({
 
   const lookUp = async () => {
     if (!canLookUp || lookup.state === "busy") return;
+    if (ownEmails.some((email) => email.toLowerCase() === typedAddress.toLowerCase())) {
+      setLookup({ state: "self" });
+      return;
+    }
     if (!client.findPrincipalByEmail) {
       setLookup({ state: "failed" });
       return;
     }
     setLookup({ state: "busy" });
     const found = await client.findPrincipalByEmail(typedAddress);
-    if (found.principal && !ownIds.includes(found.principal.id)) {
+    if (found.principal && ownIds.includes(found.principal.id)) {
+      setLookup({ state: "self" });
+    } else if (found.principal) {
       setPrincipal(found.principal);
       setLookup({ state: "idle" });
     } else if (found.status === "forbidden") {
@@ -131,9 +153,15 @@ export function DelegateDialog({
     }
   };
 
+  const changes = useMemo(
+    () => (principal ? buildGrantChanges(targets, principal.id, scope, level, { replace: changing }) : []),
+    [targets, principal, scope, level, changing],
+  );
+  const nothingToDo = changing ? changes.length === 0 : scopeIsEmpty(scope);
+
   const submit = () => {
-    if (!principal || scopeIsEmpty(scope)) return;
-    void apply(buildGrantChanges(targets, principal.id, scope, level, { replace: changing }));
+    if (!principal || nothingToDo) return;
+    void apply(changes);
   };
 
   const retry = () => {
@@ -212,39 +240,41 @@ export function DelegateDialog({
                   {directory === null ? (
                     <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />{t("loading")}</p>
                   ) : (
-                    <div className="max-h-48 overflow-y-auto rounded-md border border-border" role="listbox" aria-label={t("person")}>
+                    <ul className="max-h-48 overflow-y-auto rounded-md border border-border" aria-label={t("person")} data-testid="delegate-candidates">
                       {candidates.length === 0 && !canLookUp && (
-                        <p className="px-3 py-2 text-xs text-muted-foreground">{t("no_match")}</p>
+                        <li className="px-3 py-2 text-xs text-muted-foreground">{t("no_match")}</li>
                       )}
                       {candidates.map((p) => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          role="option"
-                          aria-selected={false}
-                          onClick={() => setPrincipal(p)}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-start hover:bg-muted focus:bg-muted focus:outline-none"
-                        >
-                          <Avatar name={p.name} email={p.email ?? undefined} size="sm" className="shrink-0" />
-                          <PrincipalText principal={p} />
-                          {existingIds.has(p.id) && <span className="shrink-0 text-[10px] text-muted-foreground">{t("has_access")}</span>}
-                        </button>
+                        <li key={p.id}>
+                          <button
+                            type="button"
+                            onClick={() => setPrincipal(p)}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-start hover:bg-muted focus:bg-muted focus:outline-none"
+                          >
+                            <Avatar name={p.name} email={p.email ?? undefined} size="sm" className="shrink-0" />
+                            <PrincipalText principal={p} />
+                            {existingIds.has(p.id) && <span className="shrink-0 text-[10px] text-muted-foreground">{t("has_access")}</span>}
+                          </button>
+                        </li>
                       ))}
                       {canLookUp && (
-                        <button
-                          type="button"
-                          onClick={() => void lookUp()}
-                          disabled={lookup.state === "busy"}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-start text-sm hover:bg-muted focus:bg-muted focus:outline-none disabled:opacity-50"
-                        >
-                          {lookup.state === "busy" && <Loader2 className="h-4 w-4 animate-spin" />}
-                          {lookup.state === "busy" ? t("looking_up") : t("use_address", { address: typedAddress })}
-                        </button>
+                        <li>
+                          <button
+                            type="button"
+                            onClick={() => void lookUp()}
+                            disabled={lookup.state === "busy"}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-start text-sm hover:bg-muted focus:bg-muted focus:outline-none disabled:opacity-50"
+                          >
+                            {lookup.state === "busy" && <Loader2 className="h-4 w-4 animate-spin" />}
+                            {lookup.state === "busy" ? t("looking_up") : t("use_address", { address: typedAddress })}
+                          </button>
+                        </li>
                       )}
-                    </div>
+                    </ul>
                   )}
                   {lookup.state === "notFound" && <p className="text-xs text-destructive" role="status">{t("not_found", { address: lookup.address })}</p>}
                   {lookup.state === "failed" && <p className="text-xs text-destructive" role="status">{t("lookup_failed")}</p>}
+                  {lookup.state === "self" && <p className="text-xs text-destructive" role="status">{t("is_you")}</p>}
                   {(directoryOff || lookup.state === "directoryOff") && (
                     <p className="text-xs text-muted-foreground" role="status" data-testid="delegate-directory-off">
                       {directoryOff ? `${t("known_only")} ` : ""}{t("directory_off_note")}
@@ -262,7 +292,7 @@ export function DelegateDialog({
                   label={t("mail")}
                   value={scope.mail}
                   onChange={(mail) => setScope({ ...scope, mail })}
-                  options={[["all", t("mail_all")], ["inbox", t("mail_inbox")], ["none", t("none")]]}
+                  options={[...keepOption<MailScope>(keep.mail, t("keep")), ["all", t("mail_all")], ["inbox", t("mail_inbox")], ["none", t("none")]]}
                 />
               )}
               {has("calendar") && (
@@ -270,7 +300,7 @@ export function DelegateDialog({
                   label={t("calendars")}
                   value={scope.calendars}
                   onChange={(calendars) => setScope({ ...scope, calendars })}
-                  options={[["default", t("calendars_default")], ["all", t("calendars_all")], ["none", t("none")]]}
+                  options={[...keepOption<CollectionScope>(keep.calendars, t("keep")), ["default", t("calendars_default")], ["all", t("calendars_all")], ["none", t("none")]]}
                 />
               )}
               {has("addressBook") && (
@@ -278,16 +308,16 @@ export function DelegateDialog({
                   label={t("address_books")}
                   value={scope.addressBooks}
                   onChange={(addressBooks) => setScope({ ...scope, addressBooks })}
-                  options={[["default", t("address_books_default")], ["all", t("address_books_all")], ["none", t("none")]]}
+                  options={[...keepOption<CollectionScope>(keep.addressBooks, t("keep")), ["default", t("address_books_default")], ["all", t("address_books_all")], ["none", t("none")]]}
                 />
               )}
-              {scopeIsEmpty(scope) && <p className="text-xs text-destructive">{t("empty_scope")}</p>}
+              {!changing && scopeIsEmpty(scope) && <p className="text-xs text-destructive">{t("empty_scope")}</p>}
               {changing && <p className="text-xs text-muted-foreground">{t("change_note")}</p>}
             </fieldset>
 
             <fieldset className="space-y-2" data-testid="delegate-rights">
               <legend className="mb-1 text-sm font-medium">{t("rights")}</legend>
-              {levels.map((option) => (
+              {[...(keep.level ? ["keep" as const] : []), ...levels].map((option) => (
                 <label key={option} className="flex cursor-pointer items-start gap-2 text-sm">
                   <input
                     type="radio"
@@ -299,12 +329,16 @@ export function DelegateDialog({
                   />
                   <span>
                     <span className="block">{t(`rights_${option}`)}</span>
-                    <span className="block text-xs text-muted-foreground">{t(`rights_${option}_hint`)}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {t(option === "read" && seenSetsKeywords ? "rights_read_hint_flags" : `rights_${option}_hint`)}
+                    </span>
                   </span>
                 </label>
               ))}
               {levelsRestricted && <OrgLockedNote />}
             </fieldset>
+
+            {changing && nothingToDo && <p className="text-xs text-muted-foreground" role="status">{t("nothing_to_change")}</p>}
 
             <p className="flex gap-2 rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
               <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
@@ -325,7 +359,7 @@ export function DelegateDialog({
           ) : (
             <>
               <Button variant="outline" onClick={onClose} disabled={saving}>{tCommon("cancel")}</Button>
-              <Button onClick={submit} disabled={saving || !principal || scopeIsEmpty(scope)}>
+              <Button onClick={submit} disabled={saving || !principal || nothingToDo}>
                 {saving && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
                 {changing ? t("apply_change") : t("apply_add")}
               </Button>
@@ -361,6 +395,10 @@ function PrincipalText({ principal }: { principal: Principal }) {
       {detail && <div className="truncate text-xs text-muted-foreground">{detail}</div>}
     </div>
   );
+}
+
+function keepOption<T extends string>(offered: boolean, label: string): [T, string][] {
+  return offered ? [["keep" as T, label]] : [];
 }
 
 function Choice<T extends string>({ label, value, onChange, options }: {

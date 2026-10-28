@@ -146,7 +146,7 @@ test('alice gives carol read access to her mail, calendar and contacts in one st
   const d = dialog(page);
   await expect(d.getByText("Stalwart doesn't let them send as you or on your behalf.", { exact: false })).toBeVisible();
   await d.getByRole('textbox', { name: 'Person' }).fill('org-carol');
-  await d.getByRole('option', { name: /org-carol@example\.org/ }).click();
+  await d.getByTestId('delegate-candidates').getByRole('button', { name: /org-carol@example\.org/ }).click();
   await expect(d.getByRole('radio', { name: /^Read See/ })).toBeChecked();
   await shot(page, 'delegates-dialog');
   await d.getByRole('button', { name: 'Give access' }).click();
@@ -188,6 +188,11 @@ test('Change gives carol read and write access, and only to the Inbox', async ({
   await page.getByTestId('delegate-row').getByRole('button', { name: 'Change' }).click();
   const d = dialog(page);
   await expect(d.getByRole('heading', { name: `Change access for ${ORG.carol}` })).toBeVisible();
+  // It starts from what carol has: exactly every folder, the default calendar and address book, read.
+  await expect(d.getByRole('radiogroup', { name: 'Mail' }).getByRole('radio', { name: 'All folders' })).toBeChecked();
+  await expect(d.getByRole('radiogroup', { name: 'Calendars' }).getByRole('radio', { name: 'Default calendar' })).toBeChecked();
+  await expect(d.getByRole('radiogroup', { name: 'Contacts' }).getByRole('radio', { name: 'Default address book' })).toBeChecked();
+  await expect(d.getByRole('radio', { name: /^Read See/ })).toBeChecked();
   await d.getByRole('radiogroup', { name: 'Mail' }).getByText('Inbox only').click();
   await d.getByRole('radio', { name: /^Read and write/ }).check();
   await d.getByRole('button', { name: 'Save' }).click();
@@ -244,7 +249,7 @@ test('the admin limits delegates to read for one domain and hides them for a gro
 
   const saved = await getPolicy(admin);
   const scopes = saved.scopes as Array<{ id: string; policy: { restrictions?: Record<string, unknown> } }>;
-  expect(scopes.find((s) => s.id === 'delegates-example')!.policy.restrictions).toEqual({ delegationRights: { allowedValues: ['read'] } });
+  expect(scopes.find((s) => s.id === 'delegates-example')!.policy.restrictions).toEqual({ sharingRights: { allowedValues: ['read'] } });
   expect(scopes.find((s) => s.id === 'delegates-team')!.policy.restrictions).toEqual({ delegation: { hidden: true } });
   await page.close();
   await admin.close();

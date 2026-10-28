@@ -10,10 +10,12 @@
  */
 
 import type { ShareChange, ShareChangeResult, ShareTarget } from '@/lib/jmap/share-batch';
-import { accessLevelOf, accessRights, type AccessLevel, type ShareKind } from '@/lib/jmap/share-rights';
+import { accessLevelOf, accessRights, detectPreset, type AccessLevel, type ShareKind } from '@/lib/jmap/share-rights';
 
-export type MailScope = 'all' | 'inbox' | 'none';
-export type CollectionScope = 'default' | 'all' | 'none';
+/** `keep`: "Keep as it is", offered by Change when what the person has fits no other choice. */
+export type MailScope = 'all' | 'inbox' | 'none' | 'keep';
+export type CollectionScope = 'default' | 'all' | 'none' | 'keep';
+export type LevelChoice = AccessLevel | 'keep';
 
 /** What a delegate gets: which folders, calendars and address books. */
 export interface DelegateScope {
@@ -21,6 +23,10 @@ export interface DelegateScope {
   calendars: CollectionScope;
   addressBooks: CollectionScope;
 }
+
+type DelegateKind = 'mailbox' | 'calendar' | 'addressBook';
+const SCOPE_KEY: Record<DelegateKind, keyof DelegateScope> = { mailbox: 'mail', calendar: 'calendars', addressBook: 'addressBooks' };
+const DELEGATE_KINDS: DelegateKind[] = ['mailbox', 'calendar', 'addressBook'];
 
 export const DEFAULT_DELEGATE_SCOPE: DelegateScope = { mail: 'all', calendars: 'default', addressBooks: 'default' };
 
@@ -44,42 +50,75 @@ function delegableAddressBooks(targets: ShareTarget[]): ShareTarget[] {
   return ofKind(targets, 'addressBook').filter((b) => b.name !== TRUSTED_SENDERS_BOOK_NAME || b.isDefault);
 }
 
-/** The items a scope covers. Files are never part of it. */
+/** The items of one type the dialog's choices are about. */
+function itemsOfType(targets: ShareTarget[], kind: DelegateKind): ShareTarget[] {
+  return kind === 'addressBook' ? delegableAddressBooks(targets) : ofKind(targets, kind);
+}
+
+const isInbox = (t: ShareTarget) => t.role?.toLowerCase() === 'inbox';
+
+/** The items one choice covers; null for "Keep as it is". */
+function itemsFor(targets: ShareTarget[], kind: DelegateKind, choice: MailScope | CollectionScope): ShareTarget[] | null {
+  if (choice === 'keep') return null;
+  const items = itemsOfType(targets, kind);
+  if (choice === 'none') return [];
+  if (choice === 'all') return items;
+  if (choice === 'inbox') return items.filter(isInbox);
+  return defaultOf(items);
+}
+
+/** The items a scope covers. Files are never part of it, nor types left as they are. */
 export function selectTargets(targets: ShareTarget[], scope: DelegateScope): ShareTarget[] {
-  const mailboxes = ofKind(targets, 'mailbox');
-  const mail = scope.mail === 'all'
-    ? mailboxes
-    : scope.mail === 'inbox' ? mailboxes.filter((m) => m.role?.toLowerCase() === 'inbox') : [];
-  const calendars = ofKind(targets, 'calendar');
-  const books = delegableAddressBooks(targets);
-  const pick = (list: ShareTarget[], s: CollectionScope) => (s === 'all' ? list : s === 'default' ? defaultOf(list) : []);
-  return [...mail, ...pick(calendars, scope.calendars), ...pick(books, scope.addressBooks)];
+  return DELEGATE_KINDS.flatMap((kind) => itemsFor(targets, kind, scope[SCOPE_KEY[kind]]) ?? []);
 }
 
 function change(target: ShareTarget, principalId: string, rights: ShareChange['rights']): ShareChange {
   return { kind: target.kind, accountId: target.accountId, id: target.id, name: target.name, principalId, rights };
 }
 
+/** read or write when every grant of one type has exactly that preset, otherwise null. */
+function uniformLevel(items: ShareTarget[], kind: ShareKind, principalId: string): AccessLevel | null {
+  const presets = new Set(items.filter((t) => principalId in t.shareWith).map((t) => detectPreset(kind, t.shareWith[principalId])));
+  if (presets.size !== 1) return null;
+  const [preset] = [...presets];
+  return preset === 'read' ? 'read' : preset === 'readWrite' ? 'write' : null;
+}
+
 /**
- * The changes that give `principalId` `level` access to what `scope` covers.
- * With `replace` (the "Change" of someone who already has access), the
- * folders, calendars and address books outside the scope lose their access;
- * shared files stay as they are, since the dialog doesn't offer them.
+ * The changes that give `principalId` access to what `scope` covers at
+ * `level`. A type left as it is ("keep") gets no change at all. With
+ * `replace` (the "Change" of someone who already has access), the items of a
+ * chosen type outside the scope lose their access; shared files stay as they
+ * are, since the dialog doesn't offer them. With level "keep", items the
+ * person has keep their rights and items added get the rights the rest of
+ * that type has, or read.
  */
 export function buildGrantChanges(
   targets: ShareTarget[],
   principalId: string,
   scope: DelegateScope,
-  level: AccessLevel,
+  level: LevelChoice,
   options: { replace?: boolean } = {},
 ): ShareChange[] {
-  const selected = selectTargets(targets, scope);
-  const chosen = new Set(selected.map((t) => `${t.kind}:${t.id}`));
-  const changes = selected.map((t) => change(t, principalId, accessRights(t.kind, level)));
-  if (options.replace) {
-    for (const t of targets) {
-      if (t.kind === 'file' || chosen.has(`${t.kind}:${t.id}`)) continue;
-      if (principalId in t.shareWith) changes.push(change(t, principalId, null));
+  const changes: ShareChange[] = [];
+  for (const kind of DELEGATE_KINDS) {
+    const chosen = itemsFor(targets, kind, scope[SCOPE_KEY[kind]]);
+    if (!chosen) continue;
+    const all = itemsOfType(targets, kind);
+    const typeLevel = uniformLevel(all, kind, principalId) ?? 'read';
+    const ids = new Set(chosen.map((t) => t.id));
+    for (const t of chosen) {
+      if (level === 'keep') {
+        if (principalId in t.shareWith) continue;
+        changes.push(change(t, principalId, accessRights(kind, typeLevel)));
+      } else {
+        changes.push(change(t, principalId, accessRights(kind, level)));
+      }
+    }
+    if (options.replace) {
+      for (const t of all) {
+        if (!ids.has(t.id) && principalId in t.shareWith) changes.push(change(t, principalId, null));
+      }
     }
   }
   return changes;
@@ -148,30 +187,56 @@ export function summarizeDelegates(targets: ShareTarget[], excludeIds: string[] 
   });
 }
 
-/** The dialog's starting point for "Change": what the person has now. */
-export function scopeOfSummary(summary: DelegateSummary, targets: ShareTarget[]): { scope: DelegateScope; level: AccessLevel } {
-  const sharedIds = new Set(summary.items.map((i) => `${i.kind}:${i.id}`));
-  const collection = (kind: 'calendar' | 'addressBook', shared: number, total: number): CollectionScope => {
-    if (shared === 0) return 'none';
-    if (shared === total && total > 1) return 'all';
-    const list = kind === 'addressBook' ? delegableAddressBooks(targets) : ofKind(targets, kind);
-    const def = defaultOf(list)[0];
-    return def && sharedIds.has(`${kind}:${def.id}`) ? 'default' : 'all';
-  };
-  const { mail } = summary;
-  return {
-    scope: {
-      mail: mail.shared === 0 ? 'none' : mail.shared === mail.total ? 'all' : 'inbox',
-      calendars: collection('calendar', summary.calendars.shared, summary.calendars.total),
-      addressBooks: collection('addressBook', summary.addressBooks.shared, summary.addressBooks.total),
-    },
-    // Files aren't in the dialog, so their rights don't decide its level.
-    level: summary.items.some((i) => i.kind !== 'file' && i.level === 'write') ? 'write' : 'read',
-  };
+export interface ChangeStart {
+  scope: DelegateScope;
+  level: LevelChoice;
 }
 
 /**
- * The levels the admin allows (`delegationRights.allowedValues`). Values
+ * The dialog's starting point for "Change". A type gets a choice only when
+ * the person's grants match it exactly (every folder for "all", exactly the
+ * Inbox for "Inbox only", exactly the default calendar, ...), all with the
+ * read or the read-and-write preset. Anything else (a folder added since,
+ * another single folder, free/busy only, manager or custom rights) starts
+ * as "Keep as it is", which leaves that type out of the patch. The level is
+ * read or write when every grant has that preset, else "keep". Without
+ * write among `allowed`, a level that would keep or give write starts at
+ * read: saving then lowers the types the user chose to read.
+ */
+export function changeStartFor(targets: ShareTarget[], principalId: string, allowed: AccessLevel[] = [...ACCESS_LEVELS]): ChangeStart {
+  const scopeFor = (kind: DelegateKind): MailScope | CollectionScope => {
+    // Address books Delegates doesn't offer still count: a grant there isn't one the dialog can express.
+    const relevant = kind === 'addressBook' ? ofKind(targets, kind) : itemsOfType(targets, kind);
+    const shared = relevant.filter((t) => principalId in t.shareWith);
+    if (shared.length === 0) return 'none';
+    if (shared.some((t) => !['read', 'readWrite'].includes(detectPreset(kind, t.shareWith[principalId])))) return 'keep';
+    const ids = shared.map((t) => t.id).sort().join('\n');
+    const exact = (choice: MailScope | CollectionScope) => {
+      const covered = itemsFor(targets, kind, choice) ?? [];
+      return covered.length > 0 && covered.map((t) => t.id).sort().join('\n') === ids;
+    };
+    if (kind === 'mailbox') return exact('all') ? 'all' : exact('inbox') ? 'inbox' : 'keep';
+    return exact('default') ? 'default' : exact('all') ? 'all' : 'keep';
+  };
+  const scope: DelegateScope = {
+    mail: scopeFor('mailbox') as MailScope,
+    calendars: scopeFor('calendar') as CollectionScope,
+    addressBooks: scopeFor('addressBook') as CollectionScope,
+  };
+
+  const granted = targets.filter((t) => t.kind !== 'file' && principalId in t.shareWith);
+  const presets = new Set(granted.map((t) => detectPreset(t.kind, t.shareWith[principalId])));
+  let level: LevelChoice = presets.size === 1 && presets.has('read') ? 'read'
+    : presets.size === 1 && presets.has('readWrite') ? 'write'
+      : 'keep';
+  const hasWrite = granted.some((t) => accessLevelOf(t.kind, t.shareWith[principalId]) === 'write');
+  if (!allowed.includes('write') && (level === 'write' || (level === 'keep' && hasWrite))) level = 'read';
+  else if (level !== 'keep' && !allowed.includes(level)) level = 'keep';
+  return { scope, level };
+}
+
+/**
+ * The levels the admin allows (`sharingRights.allowedValues`). Values
  * other than "read" and "write" are ignored; a list with neither leaves
  * read only, the safe end.
  */
@@ -181,9 +246,9 @@ export function allowedLevels(allowedValues: unknown[] | null): AccessLevel[] {
   return allowed.length > 0 ? allowed : ['read'];
 }
 
-/** Whether a scope gives access to anything at all. */
+/** Whether a scope gives access to nothing at all. */
 export function scopeIsEmpty(scope: DelegateScope): boolean {
-  return scope.mail === 'none' && scope.calendars === 'none' && scope.addressBooks === 'none';
+  return Object.values(scope).every((choice) => choice === 'none');
 }
 
 /** The changes that failed, for the report and for "Try again". */

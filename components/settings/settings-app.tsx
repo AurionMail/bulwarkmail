@@ -637,7 +637,9 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   const supportsFiles = client?.supportsFiles() ?? false;
   // Delegates (Settings > Sharing) needs someone to share with and something to share.
   const supportsSharing = !delegationHidden && !!client?.getShareTargets && (client?.supportsPrincipals() ?? false)
-    && ((client?.supportsMailboxSharing?.() ?? false) || supportsCalendar || (client?.supportsContacts() ?? false));
+    && ((client?.supportsMailboxSharing?.() ?? false)
+      || (supportsCalendar && isFeatureEnabled('calendarEnabled'))
+      || ((client?.supportsContacts() ?? false) && isFeatureEnabled('contactsEnabled')));
 
   const tabs: TabDef[] = [
     // You and the app

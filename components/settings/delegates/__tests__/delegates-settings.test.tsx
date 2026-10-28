@@ -27,14 +27,24 @@ function targets(withCarol = false): ShareTarget[] {
 
 const ok = (changes: ShareChange[]): ShareChangeResult[] => changes.map((change) => ({ change, ok: true }));
 
-function makeClient(options: { withCarol?: boolean; directory?: PrincipalListing; apply?: (c: ShareChange[]) => ShareChangeResult[]; sharedAccounts?: Array<{ id: string; name: string }> } = {}) {
+function makeClient(options: {
+  withCarol?: boolean;
+  directory?: PrincipalListing;
+  apply?: (c: ShareChange[]) => ShareChangeResult[];
+  sharedAccounts?: Array<{ id: string; name: string }>;
+  targets?: ShareTarget[];
+  failed?: string[];
+  seenSetsKeywords?: boolean;
+} = {}) {
   return {
     getAccountId: () => 'ci',
+    getUsername: () => 'org-alice@example.org',
     getSharedAccounts: () => options.sharedAccounts ?? [],
     supportsPrincipals: () => true,
+    sharesSeenWithKeywords: () => options.seenSetsKeywords ?? false,
     getPrincipals: vi.fn(async () => (options.directory ?? DIRECTORY_OFF).principals),
     listPrincipals: vi.fn(async () => options.directory ?? DIRECTORY_OFF),
-    getShareTargets: vi.fn(async () => ({ targets: targets(options.withCarol), failed: [] })),
+    getShareTargets: vi.fn(async (_include?: object) => ({ targets: options.targets ?? targets(options.withCarol), failed: (options.failed ?? []) as never[] })),
     applyShareChanges: vi.fn(async (changes: ShareChange[]) => (options.apply ?? ok)(changes)),
     findPrincipalByEmail: vi.fn(async () => ({ principal: null, status: 'forbidden' as const, directoryQueriesOff: true })),
   };
@@ -101,6 +111,65 @@ describe('DelegatesSettings', () => {
     expect(within(row).queryByText('unknown_person')).toBeNull();
   });
 
+  it('marks a group named only by the session as a group', async () => {
+    const list = targets();
+    list[0].shareWith.ch = MAILBOX_PRESETS.read;
+    renderWith(makeClient({
+      targets: list,
+      directory: { principals: [], status: 'error' },
+      sharedAccounts: [{ id: 'ch', name: 'org-team@example.org' }],
+    }));
+    // The auth store sets the policy subject once the session is in; it knows the user's groups.
+    act(() => usePolicyStore.setState({ subject: { email: ALICE.email!, groups: ['org-team@example.org'] } }));
+    const row = await screen.findByTestId('delegate-row');
+    expect(within(row).getByText('org-team@example.org')).toBeInTheDocument();
+    expect(await within(row).findByText('group')).toBeInTheDocument();
+  });
+
+  it('asks only for the types the admin left on', async () => {
+    usePolicyStore.setState((state) => ({ policy: { ...state.policy, features: { ...state.policy.features, calendarEnabled: false, filesEnabled: false } } }));
+    const client = makeClient();
+    renderWith(client);
+    await screen.findByText('nobody');
+    expect(client.getShareTargets).toHaveBeenLastCalledWith({ calendars: false, contacts: true, files: false });
+  });
+
+  it('holds Change and Remove while a type is unread, and reads again on Try again', async () => {
+    const client = makeClient({ withCarol: true, failed: ['calendar'] });
+    renderWith(client);
+    const row = await screen.findByTestId('delegate-row');
+    expect(within(row).getByRole('button', { name: 'change' })).toBeDisabled();
+    expect(within(row).getByRole('button', { name: 'remove' })).toBeDisabled();
+    const notice = screen.getByTestId('delegates-read-failed');
+    expect(notice).toHaveTextContent('read_failed');
+    client.getShareTargets.mockResolvedValue({ targets: targets(true), failed: [] });
+    fireEvent.click(within(notice).getByRole('button', { name: 'retry' }));
+    await waitFor(() => expect(within(screen.getByTestId('delegate-row')).getByRole('button', { name: 'remove' })).toBeEnabled());
+    expect(client.getShareTargets).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows the answer of the current account, not a slow one of the account before', async () => {
+    let releaseFirst: (v: { targets: ShareTarget[]; failed: never[] }) => void = () => {};
+    const first = makeClient({ withCarol: true });
+    first.getShareTargets.mockImplementation(() => new Promise((resolve) => { releaseFirst = resolve; }));
+    renderWith(first);
+    await act(async () => {});
+    const second = makeClient();
+    act(() => useAuthStore.setState({ client: second as never, activeAccountId: 'acc-other' }));
+    expect(await screen.findByText('nobody')).toBeInTheDocument();
+    await act(async () => { releaseFirst({ targets: targets(true), failed: [] }); });
+    expect(screen.queryByTestId('delegate-row')).toBeNull();
+    expect(screen.getByText('nobody')).toBeInTheDocument();
+  });
+
+  it('remembers the names of people with access, never the rest of the directory', async () => {
+    renderWith(makeClient({ withCarol: true }));
+    await screen.findByTestId('delegate-row');
+    await waitFor(() => expect(localStorage.getItem('bulwark-delegate-names')).toContain('ck'));
+    const stored = JSON.parse(localStorage.getItem('bulwark-delegate-names')!);
+    expect(Object.keys(stored['acc-alice'])).toEqual(['ck']);
+  });
+
   it('removes a person from every item, files included', async () => {
     const client = makeClient({ withCarol: true });
     renderWith(client);
@@ -120,6 +189,10 @@ describe('DelegatesSettings', () => {
   });
 });
 
+function candidate(dialog: HTMLElement, text: string): HTMLElement {
+  return within(within(dialog).getByTestId('delegate-candidates')).getAllByRole('button').find((b) => b.textContent?.includes(text))!;
+}
+
 describe('DelegateDialog', () => {
   async function openDialog(client: ReturnType<typeof makeClient>) {
     renderWith(client);
@@ -132,11 +205,50 @@ describe('DelegateDialog', () => {
     await waitFor(() => expect(within(dialog).getByRole('textbox')).toHaveFocus());
   });
 
+  it("says \"That's you\" for the user's own address", async () => {
+    const client = makeClient({ directory: { principals: [ALICE], status: 'ok' } });
+    const dialog = await openDialog(client);
+    fireEvent.change(within(dialog).getByRole('textbox'), { target: { value: 'ORG-alice@example.org' } });
+    fireEvent.click(within(dialog).getByText('use_address'));
+    expect(await within(dialog).findByText('is_you')).toBeInTheDocument();
+    expect(client.findPrincipalByEmail).not.toHaveBeenCalled();
+  });
+
+  it('remembers the person just picked', async () => {
+    const client = makeClient({ directory: { principals: [ALICE, CAROL, TEAM], status: 'ok' } });
+    const dialog = await openDialog(client);
+    fireEvent.click(candidate(dialog, 'org-carol'));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'apply_add' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    const stored = JSON.parse(localStorage.getItem('bulwark-delegate-names')!);
+    expect(Object.keys(stored['acc-alice'])).toEqual(['ck']);
+  });
+
+  it('says read delegates can flag mail where the server ties the two rights', async () => {
+    const dialog = await openDialog(makeClient({ seenSetsKeywords: true }));
+    expect(within(dialog).getByText('rights_read_hint_flags')).toBeInTheDocument();
+    expect(within(dialog).queryByText('rights_read_hint')).toBeNull();
+  });
+
+  it('starts Change of manager rights at "Keep as it is" and has nothing to save', async () => {
+    const list = targets();
+    for (const t of list) if (t.kind === 'mailbox') t.shareWith.ck = MAILBOX_PRESETS.manager;
+    const client = makeClient({ targets: list });
+    renderWith(client);
+    const row = await screen.findByTestId('delegate-row');
+    fireEvent.click(within(row).getByRole('button', { name: 'change' }));
+    const dialog = await screen.findByRole('dialog');
+    const checked = within(dialog).getAllByRole('radio').filter((r) => (r as HTMLInputElement).checked).map((r) => (r as HTMLInputElement).value);
+    expect(checked).toEqual(['keep', 'none', 'none', 'keep']);
+    expect(within(dialog).getByRole('button', { name: 'apply_change' })).toBeDisabled();
+    expect(within(dialog).getByText('nothing_to_change')).toBeInTheDocument();
+  });
+
   it('says why only known people are listed when directory queries are off', async () => {
     const dialog = await openDialog(makeClient());
     expect(within(dialog).getByTestId('delegate-directory-off')).toHaveTextContent('directory_off_note');
     // The user's own principal isn't offered; their group and carol are.
-    const options = within(dialog).getAllByRole('option').map((o) => o.textContent);
+    const options = within(within(dialog).getByTestId('delegate-candidates')).getAllByRole('button').map((o) => o.textContent);
     expect(options.some((o) => o?.includes('org-alice'))).toBe(false);
     expect(options.some((o) => o?.includes('org-carol'))).toBe(true);
   });
@@ -166,7 +278,7 @@ describe('DelegateDialog', () => {
   it('gives read access to all folders and the default calendar and address book in one batch', async () => {
     const client = makeClient();
     const dialog = await openDialog(client);
-    fireEvent.click(within(dialog).getAllByRole('option').find((o) => o.textContent?.includes('org-carol'))!);
+    fireEvent.click(candidate(dialog, 'org-carol'));
     fireEvent.click(within(dialog).getByRole('button', { name: 'apply_add' }));
     await waitFor(() => expect(client.applyShareChanges).toHaveBeenCalledTimes(1));
     const changes = client.applyShareChanges.mock.calls[0][0];
@@ -186,7 +298,7 @@ describe('DelegateDialog', () => {
       },
     });
     const dialog = await openDialog(client);
-    fireEvent.click(within(dialog).getAllByRole('option').find((o) => o.textContent?.includes('org-carol'))!);
+    fireEvent.click(candidate(dialog, 'org-carol'));
     fireEvent.click(within(dialog).getByRole('button', { name: 'apply_add' }));
     const report = await within(dialog).findByRole('alert');
     expect(report).toHaveTextContent('partial_title');
@@ -201,7 +313,7 @@ describe('DelegateDialog', () => {
   });
 
   it('offers only read when the admin allows only read', async () => {
-    restrict({ delegationRights: { allowedValues: ['read'] } });
+    restrict({ sharingRights: { allowedValues: ['read'] } });
     const dialog = await openDialog(makeClient());
     const rights = within(dialog).getByTestId('delegate-rights');
     expect(within(rights).getAllByRole('radio').map((r) => (r as HTMLInputElement).value)).toEqual(['read']);
