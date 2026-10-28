@@ -31,7 +31,7 @@ function useAccountContext(accountId: string | null | undefined): ExternalMailCo
   useEffect(() => {
     if (!other || !accountId) return;
     let cancelled = false;
-    void externalMailContextFor(accountId).then((context) => {
+    void externalMailContextFor(accountId, 'senderLabel').then((context) => {
       if (!cancelled) setOtherContext({ accountId, context });
     });
     return () => { cancelled = true; };
