@@ -2523,12 +2523,12 @@
         "script_content": "Sieve 指令碼",
         "valid": "指令碼有效",
         "invalid": "指令碼有錯誤",
-        "save_warning": "儲存會覆寫所有視覺化規則，且無法復原。請再次點擊「儲存」以確認。",
         "validating": "正在驗證…",
         "validate": "驗證",
         "cancel": "取消",
         "save": "儲存",
-        "confirm_save": "確認儲存",
+        "overwrite_title": "要取代視覺化規則嗎？",
+        "overwrite_message": "此指令碼已不包含您在視覺化編輯器中建立的規則。儲存後這些規則將被取代，且無法復原。",
         "validation_failed": "驗證請求失敗"
       },
       "rule_summary": {

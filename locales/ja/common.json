@@ -2516,12 +2516,12 @@
         "script_content": "Sieveスクリプト",
         "valid": "スクリプトは有効です",
         "invalid": "スクリプトにエラーがあります",
-        "save_warning": "保存するとすべてのビジュアルルールが上書きされます。この操作は元に戻せません。もう一度「保存」をクリックして確認してください。",
         "validating": "検証中...",
         "validate": "検証",
         "cancel": "キャンセル",
         "save": "保存",
-        "confirm_save": "保存を確認",
+        "overwrite_title": "ビジュアルルールを置き換えますか？",
+        "overwrite_message": "このスクリプトには、ビジュアルエディターで作成したルールが含まれていません。保存するとそれらが置き換えられ、元に戻せません。",
         "validation_failed": "検証リクエストに失敗しました"
       },
       "rule_summary": {

@@ -2516,12 +2516,12 @@
         "script_content": "Sieve betiği",
         "valid": "Betik geçerli",
         "invalid": "Betikte hatalar var",
-        "save_warning": "Kaydetme işlemi tüm görsel kuralların üzerine yazacak. Bu geri alınamaz. Onaylamak için Kaydet'e tekrar tıklayın.",
         "validating": "Doğrulanıyor...",
         "validate": "Doğrula",
         "cancel": "İptal",
         "save": "Kaydet",
-        "confirm_save": "Kaydetmeyi Onayla",
+        "overwrite_title": "Görsel kurallar değiştirilsin mi?",
+        "overwrite_message": "Bu betik artık görsel düzenleyicide oluşturduğunuz kuralları içermiyor. Kaydederseniz bu kuralların yerini alır ve bu geri alınamaz.",
         "validation_failed": "Doğrulama isteği başarısız"
       },
       "rule_summary": {

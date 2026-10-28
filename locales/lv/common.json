@@ -2516,12 +2516,12 @@
         "script_content": "Sieve skripts",
         "valid": "Skripts ir derīgs",
         "invalid": "Skriptā ir kļūdas",
-        "save_warning": "Saglabāšana pārrakstīs vizuālos noteikumus. To nevar atcelt. Nospiediet \"Saglabāt\" vēlreiz.",
         "validating": "Pārbauda...",
         "validate": "Pārbaudīt",
         "cancel": "Atcelt",
         "save": "Saglabāt",
-        "confirm_save": "Apstiprināt saglabāšanu",
+        "overwrite_title": "Aizstāt vizuālās kārtulas?",
+        "overwrite_message": "Šajā skriptā vairs nav vizuālajā redaktorā izveidoto kārtulu. Saglabājot tās tiks aizstātas, un to nevar atsaukt.",
         "validation_failed": "Pārbaudes pieprasījuma kļūda"
       },
       "rule_summary": {

@@ -2523,12 +2523,12 @@
         "script_content": "Sieve-skript",
         "valid": "Skriptet er gyldig",
         "invalid": "Skriptet har feil",
-        "save_warning": "Lagring overskriver eventuelle visuelle regler. Dette kan ikke angres. Klikk på «Lagre» igjen for å bekrefte.",
         "validating": "Validerer...",
         "validate": "Valider",
         "cancel": "Avbryt",
         "save": "Lagre",
-        "confirm_save": "Bekreft lagring",
+        "overwrite_title": "Erstatte de visuelle reglene?",
+        "overwrite_message": "Dette skriptet inneholder ikke lenger reglene du laget i den visuelle redigereren. Hvis du lagrer det, erstattes de, og det kan ikke angres.",
         "validation_failed": "Kunne ikke validere skriptet"
       },
       "rule_summary": {

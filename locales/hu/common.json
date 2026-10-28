@@ -2519,12 +2519,12 @@
         "script_content": "Sieve szkript",
         "valid": "A szkript érvényes",
         "invalid": "A szkript hibákat tartalmaz",
-        "save_warning": "A mentés felülír minden vizuális szabályt. Ez nem vonható vissza. Kattints újra a Mentés gombra a megerősítéshez.",
         "validating": "Ellenőrzés...",
         "validate": "Ellenőrzés",
         "cancel": "Mégse",
         "save": "Mentés",
-        "confirm_save": "Mentés megerősítése",
+        "overwrite_title": "Lecseréli a vizuális szabályokat?",
+        "overwrite_message": "Ez a szkript már nem tartalmazza a vizuális szerkesztőben létrehozott szabályokat. Mentéskor felülírja őket, és ez nem vonható vissza.",
         "validation_failed": "Ellenőrzési kérés sikertelen"
       },
       "rule_summary": {

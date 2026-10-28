@@ -2516,12 +2516,12 @@
         "script_content": "Script Sieve",
         "valid": "El script es válido",
         "invalid": "El script tiene errores",
-        "save_warning": "Guardar sobrescribirá todas las reglas visuales. Esta acción no se puede deshacer. Haga clic en Guardar de nuevo para confirmar.",
         "validating": "Validando...",
         "validate": "Validar",
         "cancel": "Cancelar",
         "save": "Guardar",
-        "confirm_save": "Confirmar guardado",
+        "overwrite_title": "¿Reemplazar las reglas visuales?",
+        "overwrite_message": "Este script ya no contiene las reglas que creaste en el editor visual. Al guardarlo se reemplazan y no se puede deshacer.",
         "validation_failed": "Error en la solicitud de validación"
       },
       "rule_summary": {

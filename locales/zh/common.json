@@ -2516,12 +2516,12 @@
         "script_content": "Sieve 脚本",
         "valid": "脚本有效",
         "invalid": "脚本有错误",
-        "save_warning": "保存将覆盖所有可视化规则，此操作无法撤销。再次点击\"保存\"以确认。",
         "validating": "正在验证...",
         "validate": "验证",
         "cancel": "取消",
         "save": "保存",
-        "confirm_save": "确认保存",
+        "overwrite_title": "替换可视化规则？",
+        "overwrite_message": "此脚本已不包含你在可视化编辑器中创建的规则。保存后它们将被替换，且无法撤销。",
         "validation_failed": "验证请求失败"
       },
       "rule_summary": {

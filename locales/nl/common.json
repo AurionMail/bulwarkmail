@@ -2516,12 +2516,12 @@
         "script_content": "Sieve-script",
         "valid": "Script is geldig",
         "invalid": "Script bevat fouten",
-        "save_warning": "Opslaan overschrijft alle visuele regels. Dit kan niet ongedaan worden gemaakt. Klik nogmaals op Opslaan om te bevestigen.",
         "validating": "Valideren...",
         "validate": "Valideren",
         "cancel": "Annuleren",
         "save": "Opslaan",
-        "confirm_save": "Opslaan bevestigen",
+        "overwrite_title": "Je visuele regels vervangen?",
+        "overwrite_message": "Dit script bevat de regels die je in de visuele editor hebt gemaakt niet meer. Opslaan vervangt ze, en dit kan niet ongedaan worden gemaakt.",
         "validation_failed": "Validatieverzoek mislukt"
       },
       "rule_summary": {

@@ -2523,12 +2523,12 @@
         "script_content": "Sieve skript",
         "valid": "Skript on kehtiv",
         "invalid": "Skriptis on vigu",
-        "save_warning": "Salvestamine kirjutab kõik visuaalsed reeglid üle. Seda ei saa tagasi võtta. Kinnitamiseks klõpsa uuesti nuppu Salvesta.",
         "validating": "Valideerimine...",
         "validate": "Valideeri",
         "cancel": "Tühista",
         "save": "Salvesta",
-        "confirm_save": "Kinnita salvestamine",
+        "overwrite_title": "Kas asendada visuaalsed reeglid?",
+        "overwrite_message": "See skript ei sisalda enam visuaalses redaktoris loodud reegleid. Salvestamine asendab need ja seda ei saa tagasi võtta.",
         "validation_failed": "Valideerimispäring ebaõnnestus"
       },
       "rule_summary": {

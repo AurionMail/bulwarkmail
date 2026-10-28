@@ -2516,12 +2516,12 @@
         "script_content": "Skrypt Sieve",
         "valid": "Skrypt jest poprawny",
         "invalid": "Skrypt zawiera błędy",
-        "save_warning": "Zapisanie nadpisze wszystkie reguły wizualne. Nie można tego cofnąć. Kliknij Zapisz ponownie, aby potwierdzić.",
         "validating": "Walidowanie...",
         "validate": "Waliduj",
         "cancel": "Anuluj",
         "save": "Zapisz",
-        "confirm_save": "Potwierdź zapis",
+        "overwrite_title": "Zastąpić reguły wizualne?",
+        "overwrite_message": "Ten skrypt nie zawiera już reguł utworzonych w edytorze wizualnym. Zapisanie go zastąpi je i nie można tego cofnąć.",
         "validation_failed": "Żądanie walidacji nie powiodło się"
       },
       "rule_summary": {

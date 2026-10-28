@@ -2523,12 +2523,12 @@
         "script_content": "Sieve script",
         "valid": "Scriptul este valid",
         "invalid": "Scriptul conține erori",
-        "save_warning": "Salvarea va suprascrie orice reguli vizuale. Această acțiune nu poate fi anulată. Faceți clic din nou pe Salvare pentru a confirma.",
         "validating": "Se validează...",
         "validate": "Validați",
         "cancel": "Anulează",
         "save": "Salvare",
-        "confirm_save": "Confirmare Salvare",
+        "overwrite_title": "Înlocuiți regulile vizuale?",
+        "overwrite_message": "Acest script nu mai conține regulile create în editorul vizual. Salvarea lui le înlocuiește și nu poate fi anulată.",
         "validation_failed": "Solicitarea de validare a eșuat"
       },
       "rule_summary": {

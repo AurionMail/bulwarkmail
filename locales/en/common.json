@@ -2523,12 +2523,12 @@
         "script_content": "Sieve script",
         "valid": "Script is valid",
         "invalid": "Script has errors",
-        "save_warning": "Saving will overwrite any visual rules. This cannot be undone. Click Save again to confirm.",
         "validating": "Validating...",
         "validate": "Validate",
         "cancel": "Cancel",
         "save": "Save",
-        "confirm_save": "Save anyway",
+        "overwrite_title": "Replace your visual rules?",
+        "overwrite_message": "This script no longer holds the rules you made in the visual builder. Saving it replaces them, and this can't be undone.",
         "validation_failed": "Validation request failed"
       },
       "rule_summary": {

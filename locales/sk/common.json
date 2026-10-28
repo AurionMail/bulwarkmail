@@ -2523,12 +2523,12 @@
         "script_content": "Skript Sieve",
         "valid": "Skript je platný",
         "invalid": "Skript obsahuje chyby",
-        "save_warning": "Uloženie prepíše všetky vizuálne pravidlá. Túto akciu nie je možné vrátiť. Potvrďte opätovným kliknutím na Uložiť.",
         "validating": "Overovanie...",
         "validate": "Overiť",
         "cancel": "Zrušiť",
         "save": "Uložiť",
-        "confirm_save": "Potvrdiť uloženie",
+        "overwrite_title": "Nahradiť vizuálne pravidlá?",
+        "overwrite_message": "Tento skript už neobsahuje pravidlá, ktoré ste vytvorili vo vizuálnom editore. Uložením ich nahradíte a nedá sa to vrátiť späť.",
         "validation_failed": "Požiadavka na overenie zlyhala"
       },
       "rule_summary": {

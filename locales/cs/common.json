@@ -2516,12 +2516,12 @@
         "script_content": "Skript Sieve",
         "valid": "Skript je platný",
         "invalid": "Skript obsahuje chyby",
-        "save_warning": "Uložení přepíše všechna vizuální pravidla. Tuto akci nelze vrátit zpět. Potvrďte opětovným kliknutím na Uložit.",
         "validating": "Ověřování...",
         "validate": "Ověřit",
         "cancel": "Zrušit",
         "save": "Uložit",
-        "confirm_save": "Potvrdit uložení",
+        "overwrite_title": "Nahradit vizuální pravidla?",
+        "overwrite_message": "Tento skript neobsahuje pravidla, která jste vytvořili ve vizuálním editoru. Uložením je nahradíte a nelze to vrátit zpět.",
         "validation_failed": "Požadavek na ověření selhal"
       },
       "rule_summary": {

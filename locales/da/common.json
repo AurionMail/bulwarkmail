@@ -2519,12 +2519,12 @@
         "script_content": "Sieve-script",
         "valid": "Scriptet er gyldigt",
         "invalid": "Scriptet har fejl",
-        "save_warning": "Lagring vil overskrive eventuelle visuelle regler. Dette kan ikke fortrydes. Klik Gem igen for at bekræfte.",
         "validating": "Validerer...",
         "validate": "Valider",
         "cancel": "Annuller",
         "save": "Gem",
-        "confirm_save": "Bekræft gem",
+        "overwrite_title": "Erstat dine visuelle regler?",
+        "overwrite_message": "Dette script indeholder ikke de regler, du har oprettet i den visuelle editor. Hvis du gemmer det, erstattes de, og det kan ikke fortrydes.",
         "validation_failed": "Valideringsanmodning mislykkedes"
       },
       "rule_summary": {

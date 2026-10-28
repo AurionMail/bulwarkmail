@@ -2523,12 +2523,12 @@
         "script_content": "Script Sieve",
         "valid": "L'script és vàlid",
         "invalid": "L'script té errors",
-        "save_warning": "En desar se sobreescriuran totes les regles visuals. Això no es pot desfer. Torneu a fer clic a Desa per confirmar-ho.",
         "validating": "Validant...",
         "validate": "Valida",
         "cancel": "Cancel·la",
         "save": "Desa",
-        "confirm_save": "Confirma el desament",
+        "overwrite_title": "Voleu substituir les regles visuals?",
+        "overwrite_message": "Aquest script no conté les regles que heu creat a l'editor visual. Si el deseu, les substituirà, i no es pot desfer.",
         "validation_failed": "Ha fallat la sol·licitud de validació"
       },
       "rule_summary": {

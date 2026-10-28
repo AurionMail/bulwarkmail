@@ -2516,12 +2516,12 @@
         "script_content": "Sieve-Skript",
         "valid": "Skript ist gültig",
         "invalid": "Skript enthält Fehler",
-        "save_warning": "Das Speichern überschreibt alle visuellen Regeln. Dies kann nicht rückgängig gemacht werden. Klicken Sie erneut auf Speichern zur Bestätigung.",
         "validating": "Wird validiert...",
         "validate": "Validieren",
         "cancel": "Abbrechen",
         "save": "Speichern",
-        "confirm_save": "Speichern bestätigen",
+        "overwrite_title": "Visuelle Regeln ersetzen?",
+        "overwrite_message": "Dieses Skript enthält die im visuellen Editor erstellten Regeln nicht mehr. Wenn Sie es speichern, ersetzt es diese Regeln. Das lässt sich nicht rückgängig machen.",
         "validation_failed": "Validierungsanfrage fehlgeschlagen"
       },
       "rule_summary": {

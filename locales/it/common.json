@@ -2516,12 +2516,12 @@
         "script_content": "Script Sieve",
         "valid": "Lo script è valido",
         "invalid": "Lo script contiene errori",
-        "save_warning": "Il salvataggio sovrascriverà tutte le regole visuali. Questa azione non può essere annullata. Fai clic su Salva di nuovo per confermare.",
         "validating": "Validazione...",
         "validate": "Valida",
         "cancel": "Annulla",
         "save": "Salva",
-        "confirm_save": "Conferma salvataggio",
+        "overwrite_title": "Sostituire le regole visive?",
+        "overwrite_message": "Questo script non contiene più le regole create nell'editor visivo. Salvandolo le sostituisci, e non si può annullare.",
         "validation_failed": "Richiesta di validazione non riuscita"
       },
       "rule_summary": {

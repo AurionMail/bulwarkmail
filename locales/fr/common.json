@@ -2516,12 +2516,12 @@
         "script_content": "Script Sieve",
         "valid": "Le script est valide",
         "invalid": "Le script contient des erreurs",
-        "save_warning": "L'enregistrement écrasera toutes les règles visuelles. Cette action est irréversible. Cliquez à nouveau sur Enregistrer pour confirmer.",
         "validating": "Validation...",
         "validate": "Valider",
         "cancel": "Annuler",
         "save": "Enregistrer",
-        "confirm_save": "Confirmer l'enregistrement",
+        "overwrite_title": "Remplacer vos règles visuelles ?",
+        "overwrite_message": "Ce script ne contient plus les règles créées dans l'éditeur visuel. L'enregistrer les remplace, et c'est irréversible.",
         "validation_failed": "Échec de la requête de validation"
       },
       "rule_summary": {
