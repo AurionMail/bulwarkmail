@@ -179,4 +179,14 @@ describe('ContactsApp', () => {
       window.matchMedia = matchMedia;
     }
   });
+
+  it('shows a new contact once it is saved, instead of an empty pane', async () => {
+    renderContacts();
+    fireEvent.click(screen.getAllByRole('button', { name: 'open_categories' })[0]);
+    fireEvent.click(within(drawer()).getAllByRole('button')[0]);
+    fireEvent.click(within(drawer()).getByText('create_new'));
+    fireEvent.change(screen.getByPlaceholderText('given_name'), { target: { value: 'Zed' } });
+    fireEvent.click(screen.getByRole('button', { name: 'save' }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Zed' })).toBeInTheDocument());
+  });
 });

@@ -590,6 +590,17 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     setView("bulk-add-to-group");
   }, [clearSelection, toggleContactSelection, groups.length]);
 
+  // After a save or a duplicate the new card is on screen, not "Select a contact".
+  const showNewestContact = useCallback(() => {
+    const newest = useContactStore.getState().contacts.at(-1);
+    if (!newest) {
+      setView("list");
+      return;
+    }
+    setSelectedContact(newest.id);
+    setView("detail");
+  }, [setSelectedContact]);
+
   const handleDuplicateContact = useCallback(async (source: ContactCard) => {
     const { id: _id, uid: _uid, created: _created, updated: _updated, ...rest } = source;
     void _id; void _uid; void _created; void _updated;
@@ -610,8 +621,10 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
         addressBookIds: data.addressBookIds || {},
         ...data,
       });
-    if (created) toast.success(t("toast.created"));
-  }, [supportsSync, client, createContact, addLocalContact, t]);
+    if (!created) return;
+    toast.success(t("toast.created"));
+    showNewestContact();
+  }, [supportsSync, client, createContact, addLocalContact, t, showNewestContact]);
 
   const handleSaveNew = useCallback(async (data: Partial<ContactCard>, options?: ContactSaveOptions) => {
     const created = supportsSync && client
@@ -632,8 +645,8 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
       routerBack();
       return;
     }
-    setView("list");
-  }, [supportsSync, client, createContact, addLocalContact, t, returnToEmail, routerBack, setEditorDirty]);
+    showNewestContact();
+  }, [supportsSync, client, createContact, addLocalContact, t, returnToEmail, routerBack, setEditorDirty, showNewestContact]);
 
   const handleSaveEdit = useCallback(async (data: Partial<ContactCard>, options?: ContactSaveOptions) => {
     if (!selectedContact) return;
