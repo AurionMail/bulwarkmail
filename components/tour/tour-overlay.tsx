@@ -24,12 +24,16 @@ const TOOLTIP_MAX_W = 360;
 /**
  * The first element for the selector that is on screen. The same anchor can
  * exist twice (the rail and the phone's tab bar); one with no size is not
- * rendered in this layout and has nothing to point at.
+ * rendered in this layout, and one in a closed drawer (inert, or pushed off
+ * the side of the screen) can't be seen: neither has anything to point at.
  */
 export function findTourTarget(selector: string): Element | null {
   for (const el of document.querySelectorAll(selector)) {
+    if (el.closest("[inert]")) continue;
     const r = el.getBoundingClientRect();
-    if (r.width > 0 || r.height > 0) return el;
+    if (r.width === 0 && r.height === 0) continue;
+    if (r.right <= 0 || r.left >= window.innerWidth) continue;
+    return el;
   }
   return null;
 }

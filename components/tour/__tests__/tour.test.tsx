@@ -64,6 +64,11 @@ describe('tour targets', () => {
     expect(findTourTarget('[data-tour="one"]')?.id).toBe('tabbar');
   });
 
+  it('ignores a copy in a closed drawer', () => {
+    anchors('<div inert><a data-tour="one" id="drawer" data-size></a></div>');
+    expect(findTourTarget('[data-tour="one"]')).toBeNull();
+  });
+
   it('skips a step whose target is in the page but not shown, instead of leaving the user behind the overlay', () => {
     anchors('<a data-tour="one"></a>');
     render(<TourOverlay />);
