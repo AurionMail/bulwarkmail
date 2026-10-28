@@ -1112,7 +1112,7 @@
   },
   "settings": {
     "title": "Instellingen",
-    "back_to_mail": "Terug naar Mail",
+    "back_to_mail": "Terug naar mail",
     "back_to_settings": "Terug naar instellingen",
     "save_success": "Instellingen succesvol opgeslagen",
     "import_success": "Instellingen succesvol geïmporteerd",
@@ -1939,7 +1939,7 @@
       "app_passwords": {
         "title": "App-wachtwoorden",
         "description": "Maak wachtwoorden aan voor apps die geen tweefactorauthenticatie ondersteunen",
-        "add": "Toevoegen",
+        "new": "Nieuw app-wachtwoord",
         "create": "Aanmaken",
         "cancel": "Annuleren",
         "generate": "Genereren",
@@ -1964,6 +1964,7 @@
       "api_keys": {
         "title": "API-sleutels",
         "description": "Maak API-sleutels voor scripts en integraties die rechtstreeks met de server praten",
+        "new": "Nieuwe API-sleutel",
         "name_label": "Sleutelnaam",
         "name_placeholder": "bijv. Back-upscript, CI-runner",
         "copy_now_warning": "Kopieer deze API-sleutel nu - hij wordt niet opnieuw getoond.",
@@ -2045,6 +2046,8 @@
         "key_placeholder": "Plak hier uw openbare sleutel",
         "none": "Geen openbare sleutels geconfigureerd",
         "title": "Openbare sleutels",
+        "add": "Openbare sleutel toevoegen",
+        "add_submit": "Toevoegen",
         "added": "Openbare sleutel toegevoegd",
         "removed": "Openbare sleutel verwijderd",
         "add_error": "Kan openbare sleutel niet toevoegen",
@@ -3981,7 +3984,7 @@
       "color": "Kleur",
       "change_color": "Kleur wijzigen",
       "random_color": "Nieuwe willekeurige kleur",
-      "add_calendar": "Agenda toevoegen",
+      "add_calendar": "Nieuwe agenda",
       "edit": "Bewerken",
       "delete": "Verwijderen",
       "save": "Opslaan",
@@ -5043,7 +5046,7 @@
     "loading": "Pagina laden",
     "not_available_title": "Deze pagina is niet beschikbaar",
     "not_available_description": "De plug-in die hem heeft toegevoegd, staat uit of is niet meer geïnstalleerd.",
-    "back_to_mail": "Terug naar e-mail"
+    "back_to_mail": "Terug naar mail"
   },
   "command_palette": {
     "title": "Opdrachtenpalet",

@@ -1946,7 +1946,7 @@
       "app_passwords": {
         "title": "Rakenduste paroolid",
         "description": "Loo paroolid rakendustele, mis ei toeta kaheastmelist autentimist",
-        "add": "Lisa",
+        "new": "Uus rakenduse parool",
         "create": "Loo",
         "cancel": "Tühista",
         "done": "Valmis",
@@ -1971,6 +1971,7 @@
       "api_keys": {
         "title": "API võtmed",
         "description": "Loo API võtmeid skriptidele ja integratsioonidele, mis suhtlevad serveriga otse",
+        "new": "Uus API võti",
         "name_label": "Võtme nimi",
         "name_placeholder": "nt Varunduse skript, CI runner",
         "copy_now_warning": "Kopeeri see API võti kohe - seda ei kuvata enam uuesti.",
@@ -2011,6 +2012,8 @@
         "key_placeholder": "Kleebi oma avalik võti siia",
         "none": "Ühtegi avalikku võtit pole seadistatud",
         "title": "Avalikud võtmed",
+        "add": "Lisa avalik võti",
+        "add_submit": "Lisa",
         "added": "Avalik võti lisatud",
         "removed": "Avalik võti kustutatud",
         "add_error": "Avalikku võtit ei õnnestunud lisada",
@@ -4010,7 +4013,7 @@
       "color": "Värv",
       "change_color": "Muuda värvi",
       "random_color": "Uus juhuslik värv",
-      "add_calendar": "Lisa kalender",
+      "add_calendar": "Uus kalender",
       "edit": "Muuda",
       "delete": "Kustuta",
       "save": "Salvesta",
@@ -5043,7 +5046,7 @@
     "loading": "Lehe laadimine",
     "not_available_title": "See leht pole saadaval",
     "not_available_description": "Pistikprogramm, mis selle lisas, on välja lülitatud või enam paigaldamata.",
-    "back_to_mail": "Tagasi meili juurde"
+    "back_to_mail": "Tagasi postkasti"
   },
   "command_palette": {
     "title": "Käsupalett",

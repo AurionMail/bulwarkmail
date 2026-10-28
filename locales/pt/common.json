@@ -1112,7 +1112,7 @@
   },
   "settings": {
     "title": "Configurações",
-    "back_to_mail": "Voltar para E-mails",
+    "back_to_mail": "Voltar para e-mails",
     "back_to_settings": "Voltar às definições",
     "save_success": "Configurações salvas com sucesso",
     "import_success": "Configurações importadas com sucesso",
@@ -1939,7 +1939,7 @@
       "app_passwords": {
         "title": "Senhas de aplicativo",
         "description": "Crie senhas para aplicativos que não suportam autenticação de dois fatores",
-        "add": "Adicionar",
+        "new": "Nova senha de aplicativo",
         "create": "Criar",
         "cancel": "Cancelar",
         "generate": "Gerar",
@@ -1964,6 +1964,7 @@
       "api_keys": {
         "title": "Chaves de API",
         "description": "Crie chaves de API para scripts e integrações que se comunicam diretamente com o servidor",
+        "new": "Nova chave de API",
         "name_label": "Nome da chave",
         "name_placeholder": "ex. Script de backup, CI runner",
         "copy_now_warning": "Copie esta chave de API agora - ela não será mostrada novamente.",
@@ -2045,6 +2046,8 @@
         "key_placeholder": "Cole aqui a sua chave pública",
         "none": "Nenhuma chave pública configurada",
         "title": "Chaves públicas",
+        "add": "Adicionar chave pública",
+        "add_submit": "Adicionar",
         "added": "Chave pública adicionada",
         "removed": "Chave pública eliminada",
         "add_error": "Não foi possível adicionar a chave pública",
@@ -2069,7 +2072,7 @@
       },
       "manage": "Gerenciar Identidades",
       "sub_addressing": {
-        "label": "Sub-Endereçamento",
+        "label": "Subendereçamento",
         "description": "Use tags como usuario+tag@dominio.com para organizar e-mails recebidos",
         "learn_more": "Saiba Mais"
       }
@@ -4007,7 +4010,7 @@
       "color": "Cor",
       "change_color": "Alterar cor",
       "random_color": "Nova cor aleatória",
-      "add_calendar": "Adicionar calendário",
+      "add_calendar": "Novo calendário",
       "edit": "Editar",
       "delete": "Excluir",
       "save": "Salvar",
@@ -5043,7 +5046,7 @@
     "loading": "Carregando a página",
     "not_available_title": "Esta página não está disponível",
     "not_available_description": "O plugin que a adicionou está desativado ou não está mais instalado.",
-    "back_to_mail": "Voltar ao e-mail"
+    "back_to_mail": "Voltar para e-mails"
   },
   "command_palette": {
     "title": "Paleta de comandos",

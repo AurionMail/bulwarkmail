@@ -12,8 +12,14 @@ const text = (key: string) => getByPath(en, key) as string;
 // Words that keep their capital inside a sentence-case label.
 const PROPER = /^(ASCII-armored|JMAP|Sieve|HTML|PGP|S\/MIME|TOTP|API|IPs|ASCII|BCC|Pro|Junk|Trash|Bulwark|Webmail|Siege|Spam|ID|URL|OAuth\/OIDC\)|\(OAuth\/OIDC\)|Mountain|View|Cc|To|ALL|ANY|Z|→|&)$/;
 
+// Every word after the first, and each part of a hyphenated word after its
+// first part: "Sub-Addressing" counts "Addressing".
 function titleCaseWords(value: string): string[] {
-  return value.split(/\s+/).slice(1).filter((w) => /^[A-Z]/.test(w) && !PROPER.test(w.replace(/[(),.]/g, '')));
+  const words = value.split(/\s+/).flatMap((word, i) => {
+    const parts = word.split('-');
+    return i === 0 ? parts.slice(1) : parts;
+  });
+  return words.filter((w) => /^[A-Z]/.test(w) && !PROPER.test(w.replace(/[(),.]/g, '')));
 }
 
 describe('settings wording', () => {
@@ -23,6 +29,12 @@ describe('settings wording', () => {
     expect(text('settings.folders.create_subfolder')).toBe('New subfolder');
     expect(text('settings.filters.add_rule')).toBe('New rule');
     expect(text('identities.create_new')).toBe('New identity');
+    expect(text('calendar.management.add_calendar')).toBe('New calendar');
+    expect(text('settings.security.app_passwords.new')).toBe('New app password');
+    expect(text('settings.security.api_keys.new')).toBe('New API key');
+    // A public key and an account exist already: they are added, not created.
+    expect(text('settings.security.public_keys.add')).toBe('Add public key');
+    expect(text('settings.account.accounts.add')).toBe('Add account');
     expect(text('settings.vacation.save')).toBe('Save');
     expect(text('settings.filters.save')).toBe('Save');
     expect(text('identities.form.save')).toBe('Save');
@@ -95,6 +107,16 @@ describe('settings wording', () => {
       }
     }
     expect(mismatches).toEqual([]);
+  });
+
+  it('counts every word of a hyphenated label', () => {
+    expect(titleCaseWords('Sub-Addressing')).toEqual(['Addressing']);
+    expect(titleCaseWords('Sub-addressing')).toEqual([]);
+  });
+
+  it('says "Back to mail" in Settings, the admin and plugin pages', () => {
+    expect(text('settings.back_to_mail')).toBe('Back to mail');
+    expect(text('plugin_pages.back_to_mail')).toBe('Back to mail');
   });
 
   it('does not repeat the debug section title as its only row', () => {

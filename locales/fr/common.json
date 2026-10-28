@@ -1939,7 +1939,7 @@
       "app_passwords": {
         "title": "Mots de passe d'application",
         "description": "Créez des mots de passe pour les applications qui ne prennent pas en charge l'authentification à deux facteurs",
-        "add": "Ajouter",
+        "new": "Nouveau mot de passe d'application",
         "create": "Créer",
         "cancel": "Annuler",
         "generate": "Générer",
@@ -1964,6 +1964,7 @@
       "api_keys": {
         "title": "Clés API",
         "description": "Créez des clés API pour les scripts et intégrations qui communiquent directement avec le serveur",
+        "new": "Nouvelle clé API",
         "name_label": "Nom de la clé",
         "name_placeholder": "ex. Script de sauvegarde, CI runner",
         "copy_now_warning": "Copiez cette clé API maintenant - elle ne sera plus affichée.",
@@ -2045,6 +2046,8 @@
         "key_placeholder": "Collez votre clé publique ici",
         "none": "Aucune clé publique configurée",
         "title": "Clés publiques",
+        "add": "Ajouter une clé publique",
+        "add_submit": "Ajouter",
         "added": "Clé publique ajoutée",
         "removed": "Clé publique supprimée",
         "add_error": "Impossible d'ajouter la clé publique",
@@ -4007,7 +4010,7 @@
       "color": "Couleur",
       "change_color": "Changer la couleur",
       "random_color": "Nouvelle couleur aléatoire",
-      "add_calendar": "Ajouter un calendrier",
+      "add_calendar": "Nouveau calendrier",
       "edit": "Modifier",
       "delete": "Supprimer",
       "save": "Enregistrer",
@@ -5043,7 +5046,7 @@
     "loading": "Chargement de la page",
     "not_available_title": "Cette page n'est pas disponible",
     "not_available_description": "Le plugin qui l'a ajoutée est désactivé ou n'est plus installé.",
-    "back_to_mail": "Retour à la messagerie"
+    "back_to_mail": "Retour aux emails"
   },
   "command_palette": {
     "title": "Palette de commandes",

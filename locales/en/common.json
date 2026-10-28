@@ -1946,7 +1946,7 @@
       "app_passwords": {
         "title": "App passwords",
         "description": "Create passwords for apps that don't support two-factor authentication",
-        "add": "Add",
+        "new": "New app password",
         "create": "Create",
         "cancel": "Cancel",
         "done": "Done",
@@ -1971,6 +1971,7 @@
       "api_keys": {
         "title": "API keys",
         "description": "Create API keys for scripts and integrations that talk to the server directly",
+        "new": "New API key",
         "name_label": "Key name",
         "name_placeholder": "e.g. Backup script, CI runner",
         "copy_now_warning": "Copy this API key now - it will not be shown again.",
@@ -2011,6 +2012,8 @@
         "key_placeholder": "Paste your public key here",
         "none": "No public keys configured",
         "title": "Public keys",
+        "add": "Add public key",
+        "add_submit": "Add",
         "added": "Public key added",
         "removed": "Public key deleted",
         "add_error": "Couldn't add the public key",
@@ -2076,7 +2079,7 @@
       },
       "manage": "Manage identities",
       "sub_addressing": {
-        "label": "Sub-Addressing",
+        "label": "Sub-addressing",
         "description": "Use tags like user+tag@domain.com to organize incoming mail",
         "learn_more": "Learn more"
       }
@@ -4010,7 +4013,7 @@
       "color": "Color",
       "change_color": "Change color",
       "random_color": "New random color",
-      "add_calendar": "Add calendar",
+      "add_calendar": "New calendar",
       "edit": "Edit",
       "delete": "Delete",
       "save": "Save",
@@ -5043,7 +5046,7 @@
     "loading": "Loading page",
     "not_available_title": "This page is not available",
     "not_available_description": "The plugin that added it is turned off or no longer installed.",
-    "back_to_mail": "Back to Mail"
+    "back_to_mail": "Back to mail"
   },
   "command_palette": {
     "title": "Command palette",

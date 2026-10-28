@@ -1939,7 +1939,7 @@
       "app_passwords": {
         "title": "Hasła aplikacji",
         "description": "Twórz hasła dla aplikacji, które nie obsługują uwierzytelniania dwuskładnikowego",
-        "add": "Dodaj",
+        "new": "Nowe hasło aplikacji",
         "create": "Utwórz",
         "cancel": "Anuluj",
         "generate": "Generuj",
@@ -1964,6 +1964,7 @@
       "api_keys": {
         "title": "Klucze API",
         "description": "Twórz klucze API dla skryptów i integracji komunikujących się bezpośrednio z serwerem",
+        "new": "Nowy klucz API",
         "name_label": "Nazwa klucza",
         "name_placeholder": "np. Skrypt kopii zapasowej, CI runner",
         "copy_now_warning": "Skopiuj ten klucz API teraz - nie zostanie pokazany ponownie.",
@@ -2045,6 +2046,8 @@
         "key_placeholder": "Wklej tutaj swój klucz publiczny",
         "none": "Nie skonfigurowano żadnych kluczy publicznych",
         "title": "Klucze publiczne",
+        "add": "Dodaj klucz publiczny",
+        "add_submit": "Dodaj",
         "added": "Dodano klucz publiczny",
         "removed": "Usunięto klucz publiczny",
         "add_error": "Nie udało się dodać klucza publicznego",
@@ -3981,7 +3984,7 @@
       "color": "Kolor",
       "change_color": "Zmień kolor",
       "random_color": "Nowy losowy kolor",
-      "add_calendar": "Dodaj kalendarz",
+      "add_calendar": "Nowy kalendarz",
       "edit": "Edytuj",
       "delete": "Usuń",
       "save": "Zapisz",
@@ -5043,7 +5046,7 @@
     "loading": "Wczytywanie strony",
     "not_available_title": "Ta strona jest niedostępna",
     "not_available_description": "Wtyczka, która ją dodała, jest wyłączona lub nie jest już zainstalowana.",
-    "back_to_mail": "Wróć do poczty"
+    "back_to_mail": "Powrót do poczty"
   },
   "command_palette": {
     "title": "Paleta poleceń",

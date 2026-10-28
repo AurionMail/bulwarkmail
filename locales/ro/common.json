@@ -1112,7 +1112,7 @@
   },
   "settings": {
     "title": "Setări",
-    "back_to_mail": "Înapoi la Mail",
+    "back_to_mail": "Înapoi la e-mail",
     "back_to_settings": "Înapoi la setări",
     "save_success": "Setările au fost salvate cu succes",
     "import_success": "Setările au fost importate cu succes",
@@ -1946,7 +1946,7 @@
       "app_passwords": {
         "title": "Parole pentru aplicații",
         "description": "Creați parole pentru aplicațiile care nu acceptă autentificarea în doi pași",
-        "add": "Adăugați",
+        "new": "Parolă nouă pentru aplicație",
         "create": "Creați",
         "cancel": "Anulează",
         "done": "Gata",
@@ -1971,6 +1971,7 @@
       "api_keys": {
         "title": "API Chei",
         "description": "Creați chei de tip „API” pentru scripturi și integrări care comunică direct cu serverul",
+        "new": "Cheie API nouă",
         "name_label": "Numele cheii",
         "name_placeholder": "de ex. script de backup, CI runner",
         "copy_now_warning": "Copiați acum această cheie „API” – nu va mai fi afișată din nou.",
@@ -2052,6 +2053,8 @@
         "key_placeholder": "Lipiți aici cheia dvs. publică",
         "none": "Nicio cheie publică configurată",
         "title": "Chei publice",
+        "add": "Adăugați cheie publică",
+        "add_submit": "Adăugați",
         "added": "Cheie publică adăugată",
         "removed": "Cheie publică ștearsă",
         "add_error": "Cheia publică nu a putut fi adăugată",
@@ -4010,7 +4013,7 @@
       "color": "Culoare",
       "change_color": "Schimbă culoarea",
       "random_color": "Culoare aleatorie nouă",
-      "add_calendar": "Adăugați calendar",
+      "add_calendar": "Calendar nou",
       "edit": "Editare",
       "delete": "Șterge",
       "save": "Salvare",

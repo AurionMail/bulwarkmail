@@ -1939,7 +1939,7 @@
       "app_passwords": {
         "title": "App-Passwörter",
         "description": "Erstellen Sie Passwörter für Apps, die keine Zwei-Faktor-Authentifizierung unterstützen",
-        "add": "Hinzufügen",
+        "new": "Neues App-Passwort",
         "create": "Erstellen",
         "cancel": "Abbrechen",
         "generate": "Generieren",
@@ -1964,6 +1964,7 @@
       "api_keys": {
         "title": "API-Schlüssel",
         "description": "Erstellen Sie API-Schlüssel für Skripte und Integrationen, die direkt mit dem Server kommunizieren",
+        "new": "Neuer API-Schlüssel",
         "name_label": "Schlüsselname",
         "name_placeholder": "z.B. Backup-Skript, CI-Runner",
         "copy_now_warning": "Kopieren Sie diesen API-Schlüssel jetzt - er wird nicht erneut angezeigt.",
@@ -2045,6 +2046,8 @@
         "key_placeholder": "Fügen Sie hier Ihren öffentlichen Schlüssel ein",
         "none": "Keine öffentlichen Schlüssel konfiguriert",
         "title": "Öffentliche Schlüssel",
+        "add": "Öffentlichen Schlüssel hinzufügen",
+        "add_submit": "Hinzufügen",
         "added": "Öffentlicher Schlüssel hinzugefügt",
         "removed": "Öffentlicher Schlüssel gelöscht",
         "add_error": "Öffentlicher Schlüssel konnte nicht hinzugefügt werden",
@@ -3981,7 +3984,7 @@
       "color": "Farbe",
       "change_color": "Farbe ändern",
       "random_color": "Neue zufällige Farbe",
-      "add_calendar": "Kalender hinzufügen",
+      "add_calendar": "Neuer Kalender",
       "edit": "Bearbeiten",
       "delete": "Löschen",
       "save": "Speichern",
@@ -5043,7 +5046,7 @@
     "loading": "Seite wird geladen",
     "not_available_title": "Diese Seite ist nicht verfügbar",
     "not_available_description": "Das Plugin, das sie hinzugefügt hat, ist ausgeschaltet oder nicht mehr installiert.",
-    "back_to_mail": "Zurück zu E-Mail"
+    "back_to_mail": "Zurück zu E-Mails"
   },
   "command_palette": {
     "title": "Befehlspalette",

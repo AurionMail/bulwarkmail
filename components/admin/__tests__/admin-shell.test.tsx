@@ -39,13 +39,13 @@ describe('AdminShell', () => {
 
   it('does not server-render the phone layout, which desktop would show until hydration', () => {
     const html = renderToString(shell({ authenticated: false, isStalwartAutoLogin: false }));
-    expect(html).not.toContain('Back to mail');
+    expect(html).not.toContain('back_to_mail');
     expect(html).not.toContain('Search admin');
   });
 
   it('draws the desktop sidebar once on the client', () => {
     render(shell({ authenticated: true, isStalwartAutoLogin: false }));
-    expect(screen.getByText('Back to Mail')).toBeTruthy();
+    expect(screen.getByText('back_to_mail')).toBeTruthy();
   });
 
   it('hides the session links until the check says which kind of admin this is', () => {

@@ -1946,7 +1946,7 @@
       "app_passwords": {
         "title": "應用程式密碼",
         "description": "為不支援雙因素驗證的應用程式建立密碼",
-        "add": "新增",
+        "new": "新增應用程式密碼",
         "create": "建立",
         "cancel": "取消",
         "done": "完成",
@@ -1971,6 +1971,7 @@
       "api_keys": {
         "title": "API 金鑰",
         "description": "為直接與伺服器通訊的指令碼和整合建立 API 金鑰",
+        "new": "新增 API 金鑰",
         "name_label": "金鑰名稱",
         "name_placeholder": "例如：備份指令碼、CI 執行器",
         "copy_now_warning": "請立即複製此 API 金鑰 — 之後將不再顯示。",
@@ -2011,6 +2012,8 @@
         "key_placeholder": "在此貼上您的公鑰",
         "none": "未設定公鑰",
         "title": "公開金鑰",
+        "add": "新增公開金鑰",
+        "add_submit": "新增",
         "added": "已新增公開金鑰",
         "removed": "已刪除公開金鑰",
         "add_error": "無法新增公開金鑰",
@@ -5043,7 +5046,7 @@
     "loading": "正在載入頁面",
     "not_available_title": "此頁面無法使用",
     "not_available_description": "新增此頁面的外掛程式已關閉或已不再安裝。",
-    "back_to_mail": "返回郵件"
+    "back_to_mail": "回到郵件"
   },
   "command_palette": {
     "title": "命令面板",

@@ -1112,7 +1112,7 @@
   },
   "settings": {
     "title": "Configuración",
-    "back_to_mail": "Volver al Correo",
+    "back_to_mail": "Volver al correo",
     "back_to_settings": "Volver a los ajustes",
     "save_success": "Configuración guardada exitosamente",
     "import_success": "Configuración importada exitosamente",
@@ -1939,7 +1939,7 @@
       "app_passwords": {
         "title": "Contraseñas de aplicación",
         "description": "Cree contraseñas para aplicaciones que no admiten autenticación de dos factores",
-        "add": "Agregar",
+        "new": "Nueva contraseña de aplicación",
         "create": "Crear",
         "cancel": "Cancelar",
         "generate": "Generar",
@@ -1964,6 +1964,7 @@
       "api_keys": {
         "title": "Claves API",
         "description": "Crea claves API para scripts e integraciones que se comunican directamente con el servidor",
+        "new": "Nueva clave API",
         "name_label": "Nombre de la clave",
         "name_placeholder": "p. ej. Script de copia de seguridad, CI runner",
         "copy_now_warning": "Copia esta clave API ahora - no se mostrará de nuevo.",
@@ -2045,6 +2046,8 @@
         "key_placeholder": "Pega aquí tu clave pública",
         "none": "No hay claves públicas configuradas",
         "title": "Claves públicas",
+        "add": "Agregar clave pública",
+        "add_submit": "Agregar",
         "added": "Clave pública añadida",
         "removed": "Clave pública eliminada",
         "add_error": "No se pudo añadir la clave pública",
@@ -2069,7 +2072,7 @@
       },
       "manage": "Administrar Identidades",
       "sub_addressing": {
-        "label": "Sub-Direccionamiento",
+        "label": "Subdireccionamiento",
         "description": "Use etiquetas como usuario+etiqueta@dominio.com para organizar el correo entrante",
         "learn_more": "Más Información"
       }
@@ -3981,7 +3984,7 @@
       "color": "Color",
       "change_color": "Cambiar color",
       "random_color": "Nuevo color aleatorio",
-      "add_calendar": "Añadir calendario",
+      "add_calendar": "Nuevo calendario",
       "edit": "Editar",
       "delete": "Eliminar",
       "save": "Guardar",

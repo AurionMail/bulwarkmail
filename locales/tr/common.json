@@ -1939,7 +1939,7 @@
       "app_passwords": {
         "title": "Uygulama Parolaları",
         "description": "İki faktörlü kimlik doğrulamayı desteklemeyen uygulamalar için parola oluşturun",
-        "add": "Ekle",
+        "new": "Yeni uygulama parolası",
         "create": "Oluştur",
         "cancel": "İptal",
         "done": "Tamam",
@@ -1964,6 +1964,7 @@
       "api_keys": {
         "title": "API Anahtarları",
         "description": "Sunucuyla doğrudan iletişim kuran betikler ve entegrasyonlar için API anahtarları oluşturun",
+        "new": "Yeni API anahtarı",
         "name_label": "Anahtar Adı",
         "name_placeholder": "ör. Yedek betiği, CI koşucusu",
         "copy_now_warning": "Bu API anahtarını şimdi kopyalayın - bir daha gösterilmeyecek.",
@@ -2045,6 +2046,8 @@
         "key_placeholder": "Ortak anahtarınızı buraya yapıştırın",
         "none": "Yapılandırılmış ortak anahtar yok",
         "title": "Açık anahtarlar",
+        "add": "Açık anahtar ekle",
+        "add_submit": "Ekle",
         "added": "Açık anahtar eklendi",
         "removed": "Açık anahtar silindi",
         "add_error": "Açık anahtar eklenemedi",
@@ -4007,7 +4010,7 @@
       "color": "Renk",
       "change_color": "Rengi değiştir",
       "random_color": "Yeni rastgele renk",
-      "add_calendar": "Takvim ekle",
+      "add_calendar": "Yeni takvim",
       "edit": "Düzenle",
       "delete": "Sil",
       "save": "Kaydet",
@@ -5043,7 +5046,7 @@
     "loading": "Sayfa yükleniyor",
     "not_available_title": "Bu sayfa kullanılamıyor",
     "not_available_description": "Bu sayfayı ekleyen eklenti kapalı veya artık yüklü değil.",
-    "back_to_mail": "Postaya dön"
+    "back_to_mail": "Postaya Dön"
   },
   "command_palette": {
     "title": "Komut paleti",

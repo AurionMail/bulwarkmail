@@ -1939,7 +1939,7 @@
       "app_passwords": {
         "title": "Lietotņu paroles",
         "description": "Izveidojiet paroles lietotnēm, kas neatbalsta 2FA",
-        "add": "Pievienot",
+        "new": "Jauna lietotnes parole",
         "create": "Izveidot",
         "cancel": "Atcelt",
         "generate": "Ģenerēt",
@@ -1964,6 +1964,7 @@
       "api_keys": {
         "title": "API atslēgas",
         "description": "Izveidojiet API atslēgas skriptiem un integrācijām, kas tieši sazinās ar serveri",
+        "new": "Jauna API atslēga",
         "name_label": "Atslēgas nosaukums",
         "name_placeholder": "piem. Dublēšanas skripts, CI palaidējs",
         "copy_now_warning": "Kopējiet šo API atslēgu tagad - tā vairs netiks parādīta.",
@@ -2045,6 +2046,8 @@
         "key_placeholder": "Ielīmējiet šeit savu publisko atslēgu",
         "none": "Nav konfigurēta neviena publiskā atslēga",
         "title": "Publiskās atslēgas",
+        "add": "Pievienot publisko atslēgu",
+        "add_submit": "Pievienot",
         "added": "Publiskā atslēga pievienota",
         "removed": "Publiskā atslēga izdzēsta",
         "add_error": "Neizdevās pievienot publisko atslēgu",
@@ -3980,7 +3983,7 @@
       "color": "Krāsa",
       "change_color": "Mainīt krāsu",
       "random_color": "Jauna nejauša krāsa",
-      "add_calendar": "Pievienot kalendāru",
+      "add_calendar": "Jauns kalendārs",
       "edit": "Rediģēt",
       "delete": "Dzēst",
       "save": "Saglabāt",
@@ -5043,7 +5046,7 @@
     "loading": "Ielādē lapu",
     "not_available_title": "Šī lapa nav pieejama",
     "not_available_description": "Spraudnis, kas to pievienoja, ir izslēgts vai vairs nav instalēts.",
-    "back_to_mail": "Atpakaļ uz pastu"
+    "back_to_mail": "Atgriezties pie pasta"
   },
   "command_palette": {
     "title": "Komandu palete",
