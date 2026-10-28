@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { ChevronLeft, ChevronRight, Plus, Upload, CalendarDays, Globe, ChevronDown, ArrowLeft, Menu, MoreVertical, RefreshCw } from "@/components/icons";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
@@ -162,7 +163,7 @@ export function CalendarToolbar({
     <>
       <Button
         variant="ghost"
-        size="icon-sm"
+        size={isMobile ? "icon-lg" : "icon-sm"}
         className={cn(moreMenu.isOpen && "bg-accent text-accent-foreground")}
         onClick={(e) => openMoreMenuFrom(e.currentTarget, true, "end")}
         aria-label={t("toolbar.more")}
@@ -212,37 +213,29 @@ export function CalendarToolbar({
             {/* Row 1: Back / Date nav / Today */}
             <div className="flex items-center gap-1">
               {onMenuClick && (
-                <button
-                  onClick={onMenuClick}
-                  className="p-1.5 -ms-1 rounded-md hover:bg-muted transition-colors touch-manipulation"
-                  aria-label={t("nav_open_menu")}
-                >
-                  <Menu className="w-4 h-4" />
-                </button>
+                <IconButton size="icon-lg" label={t("nav_open_menu")} onClick={onMenuClick} className="-ms-1 touch-manipulation">
+                  <Menu />
+                </IconButton>
               )}
               {onNavigateBack && (
-                <button
-                  onClick={onNavigateBack}
-                  className="p-1.5 -ms-1 rounded-md hover:bg-muted transition-colors touch-manipulation"
-                  aria-label={t("back_to_month")}
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
+                <IconButton size="icon-lg" label={t("back_to_month")} onClick={onNavigateBack} className="-ms-1 touch-manipulation">
+                  <ArrowLeft />
+                </IconButton>
               )}
               {hasDateNav && (
-                <button onClick={onPrev} className="p-1.5 rounded-md hover:bg-muted transition-colors touch-manipulation" aria-label={t("nav_prev")}>
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
+                <IconButton size="icon-lg" label={t("nav_prev")} onClick={onPrev} className="touch-manipulation">
+                  <ChevronLeft />
+                </IconButton>
               )}
               <span className="text-sm font-semibold text-center flex-1 select-none truncate">
                 {getDateLabel()}
               </span>
               {hasDateNav && (
                 <>
-                  <button onClick={onNext} className="p-1.5 rounded-md hover:bg-muted transition-colors touch-manipulation" aria-label={t("nav_next")}>
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                  <Button variant="ghost" size="sm" onClick={onToday} className="touch-manipulation text-xs h-7 px-2 ms-0.5">
+                  <IconButton size="icon-lg" label={t("nav_next")} onClick={onNext} className="touch-manipulation">
+                    <ChevronRight />
+                  </IconButton>
+                  <Button variant="ghost" size="xs" onClick={onToday} className="touch-manipulation ms-0.5">
                     {t("views.today")}
                   </Button>
                 </>
@@ -258,7 +251,7 @@ export function CalendarToolbar({
                     key={v}
                     onClick={() => onViewModeChange(v)}
                     className={cn(
-                      "flex-1 py-1.5 text-[11px] font-medium transition-colors touch-manipulation",
+                      "flex-1 min-h-11 text-[11px] font-medium transition-colors touch-manipulation",
                       v === viewMode
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground active:bg-muted"
@@ -271,16 +264,16 @@ export function CalendarToolbar({
 
               {calendars && selectedCalendarIds && onToggleVisibility && (
                 <div className="relative" ref={dropdownRef}>
-                  <button
+                  <IconButton
+                    size="icon-lg"
+                    variant="outline"
+                    label={t("my_calendars")}
+                    aria-expanded={showCalendarDropdown}
                     onClick={() => setShowCalendarDropdown((v) => !v)}
-                    className={cn(
-                      "p-1.5 rounded-md border border-border transition-colors touch-manipulation",
-                      showCalendarDropdown ? "bg-muted" : "hover:bg-muted"
-                    )}
-                    aria-label={t("my_calendars")}
+                    className={cn("touch-manipulation", showCalendarDropdown && "bg-muted")}
                   >
-                    <CalendarDays className="w-4 h-4" />
-                  </button>
+                    <CalendarDays />
+                  </IconButton>
                   {showCalendarDropdown && (
                     <div className="absolute top-full end-0 mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg p-2 min-w-[180px]">
                       <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 px-1">
@@ -295,7 +288,7 @@ export function CalendarToolbar({
                               key={cal.id}
                               onClick={() => onToggleVisibility(cal.id)}
                               className={cn(
-                                "flex items-center gap-2 w-full px-2 py-2 rounded-md text-sm transition-colors duration-150 touch-manipulation",
+                                "flex items-center gap-2 w-full px-2 min-h-11 rounded-md text-sm transition-colors duration-150 touch-manipulation",
                                 "hover:bg-muted"
                               )}
                             >
@@ -335,7 +328,7 @@ export function CalendarToolbar({
                                     key={cal.id}
                                     onClick={() => onToggleVisibility(cal.id)}
                                     className={cn(
-                                      "flex items-center gap-2 w-full px-2 py-2 rounded-md text-sm transition-colors duration-150 touch-manipulation",
+                                      "flex items-center gap-2 w-full px-2 min-h-11 rounded-md text-sm transition-colors duration-150 touch-manipulation",
                                       "hover:bg-muted"
                                     )}
                                   >

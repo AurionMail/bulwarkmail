@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useLongPress } from "@/hooks/use-long-press";
+import { IconButton } from "@/components/ui/icon-button";
 import { useTranslations } from "next-intl";
 import { Check, ChevronDown, ChevronRight, Globe, ListTodo, MoreVertical, Pencil, RefreshCw, Share2, Star, Trash2, Cake, User, Users, Plus, Eraser, Palette, Shuffle } from "@/components/icons";
 import { cn, formatDateTime } from "@/lib/utils";
@@ -297,11 +298,11 @@ export function CalendarSidebarPanel({
           data-account={cal.accountName ?? ''}
           data-visible={isVisible}
           className={cn(
-            "flex items-center gap-2 w-full ps-5 pe-3 text-sm text-foreground/80 transition-colors duration-150",
+            "flex items-center gap-2 w-full ps-5 pe-3 min-h-8 pointer-coarse:min-h-11 text-sm text-foreground/80 transition-colors duration-150",
             "hover:bg-muted",
-            hasMenu && "pe-9"
+            hasMenu && "pe-11"
           )}
-          style={{ paddingBlock: 'var(--density-sidebar-py, 4px)', minHeight: '32px' }}
+          style={{ paddingBlock: 'var(--density-sidebar-py, 4px)' }}
         >
           {/* A checkbox filled in the calendar colour, empty when hidden. */}
           <span
@@ -339,21 +340,19 @@ export function CalendarSidebarPanel({
           })()}
         </button>
         {hasMenu && (
-          <button
-            type="button"
+          <IconButton
             onClick={(e) => openContextMenuFrom(e.currentTarget, cal, "end")}
             aria-haspopup="menu"
             className={cn(
-              "absolute end-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-opacity",
+              "absolute end-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-opacity",
               // Hover shows it; keyboard focus and touch screens always do (R7).
               "opacity-0 group-hover/cal:opacity-100 group-focus-within/cal:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100",
               contextMenu.isOpen && contextMenu.data?.id === cal.id && "opacity-100"
             )}
-            aria-label={t('calendar_options', { name: cal.name })}
-            title={t('calendar_options', { name: cal.name })}
+            label={t('calendar_options', { name: cal.name })}
           >
-            <MoreVertical className="w-3.5 h-3.5" />
-          </button>
+            <MoreVertical />
+          </IconButton>
         )}
       </div>
     );
@@ -487,15 +486,13 @@ export function CalendarSidebarPanel({
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">{label}</span>
         </button>
         {onAdd && (
-          <button
-            type="button"
+          <IconButton
             onClick={onAdd}
-            className="p-0.5 rounded text-muted-foreground opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 hover:text-foreground hover:bg-muted transition-opacity"
-            title={tMgmt('add_calendar')}
-            aria-label={tMgmt('add_calendar')}
+            className="text-muted-foreground opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 hover:text-foreground transition-opacity"
+            label={tMgmt('add_calendar')}
           >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
+            <Plus />
+          </IconButton>
         )}
       </div>
     );
@@ -517,8 +514,8 @@ export function CalendarSidebarPanel({
       {enableCalendarTasks && (
         <button
           onClick={() => setViewMode('tasks')}
-          className="flex items-center gap-2 w-full px-3 mb-2 text-sm text-foreground/80 hover:bg-muted transition-colors"
-          style={{ paddingBlock: 'var(--density-sidebar-py, 4px)', minHeight: '32px' }}
+          className="flex items-center gap-2 w-full px-3 mb-2 min-h-8 pointer-coarse:min-h-11 text-sm text-foreground/80 hover:bg-muted transition-colors"
+          style={{ paddingBlock: 'var(--density-sidebar-py, 4px)' }}
         >
           <ListTodo className="w-4 h-4 text-muted-foreground" />
           <span>{t('tasks.label')}</span>
