@@ -2003,7 +2003,7 @@
         "jmap_username_label": "JMAP 사용자 이름",
         "copy": "복사",
         "copied": "복사되었어요",
-        "password_instructions": "위의 JMAP 사용자 이름과 앱 비밀번호를 사용해서 이메일 클라이언트에 로그인하세요. 아직 만들지 않았다면 위에서 앱 비밀번호를 먼저 만들어 주세요."
+        "password_instructions": "위의 JMAP 사용자 이름과 앱 비밀번호를 사용해서 이메일 클라이언트에 로그인하세요. 아직 만들지 않았다면 아래에서 앱 비밀번호를 먼저 만들어 주세요."
       },
       "link_device": {
         "title": "모바일 앱 연결",

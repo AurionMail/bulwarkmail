@@ -2003,7 +2003,7 @@
         "jmap_username_label": "Uživatelské jméno JMAP",
         "copy": "Kopírovat",
         "copied": "Zkopírováno",
-        "password_instructions": "Použijte výše uvedené uživatelské jméno JMAP společně s heslem aplikace pro přihlášení v poštovním klientovi. Pokud jste tak ještě neučinili, vytvořte si heslo aplikace v sekci výše."
+        "password_instructions": "Použijte výše uvedené uživatelské jméno JMAP společně s heslem aplikace pro přihlášení v poštovním klientovi. Pokud jste tak ještě neučinili, vytvořte si heslo aplikace v sekci níže."
       },
       "link_device": {
         "title": "Propojit mobilní aplikaci",

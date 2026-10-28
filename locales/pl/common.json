@@ -2003,7 +2003,7 @@
         "jmap_username_label": "Nazwa użytkownika JMAP",
         "copy": "Kopiuj",
         "copied": "Skopiowano",
-        "password_instructions": "Użyj powyższej nazwy użytkownika JMAP wraz z hasłem aplikacji, aby zalogować się w kliencie poczty. Utwórz hasło aplikacji w sekcji powyżej, jeśli jeszcze tego nie zrobiłeś."
+        "password_instructions": "Użyj powyższej nazwy użytkownika JMAP wraz z hasłem aplikacji, aby zalogować się w kliencie poczty. Utwórz hasło aplikacji w sekcji poniżej, jeśli jeszcze tego nie zrobiłeś."
       },
       "link_device": {
         "title": "Połącz aplikację mobilną",

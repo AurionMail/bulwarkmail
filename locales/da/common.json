@@ -2006,7 +2006,7 @@
         "jmap_username_label": "JMAP-brugernavn",
         "copy": "Kopier",
         "copied": "Kopieret",
-        "password_instructions": "Brug dit JMAP-brugernavn ovenfor sammen med en app-adgangskode for at logge ind i din e-mailklient. Opret en app-adgangskode i sektionen ovenfor, hvis du ikke allerede har gjort det."
+        "password_instructions": "Brug dit JMAP-brugernavn ovenfor sammen med en app-adgangskode for at logge ind i din e-mailklient. Opret en app-adgangskode i sektionen nedenfor, hvis du ikke allerede har gjort det."
       },
       "link_device": {
         "title": "Tilknyt mobilapp",

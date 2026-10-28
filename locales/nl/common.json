@@ -2003,7 +2003,7 @@
         "jmap_username_label": "JMAP-gebruikersnaam",
         "copy": "Kopiëren",
         "copied": "Gekopieerd",
-        "password_instructions": "Gebruik uw hierboven vermelde JMAP-gebruikersnaam samen met een app-wachtwoord om in te loggen bij uw e-mailclient. Maak een app-wachtwoord aan in het bovenstaande gedeelte als u dat nog niet heeft gedaan."
+        "password_instructions": "Gebruik uw hierboven vermelde JMAP-gebruikersnaam samen met een app-wachtwoord om in te loggen bij uw e-mailclient. Maak een app-wachtwoord aan in het gedeelte hieronder als u dat nog niet heeft gedaan."
       },
       "link_device": {
         "title": "Mobiele app koppelen",

@@ -2003,7 +2003,7 @@
         "jmap_username_label": "Nom d'utilisateur JMAP",
         "copy": "Copier",
         "copied": "Copié",
-        "password_instructions": "Utilisez votre nom d'utilisateur JMAP ci-dessus avec un mot de passe d'application pour vous connecter à votre client de messagerie. Créez un mot de passe d'application dans la section ci-dessus si vous ne l'avez pas encore fait."
+        "password_instructions": "Utilisez votre nom d'utilisateur JMAP ci-dessus avec un mot de passe d'application pour vous connecter à votre client de messagerie. Créez un mot de passe d'application dans la section ci-dessous si vous ne l'avez pas encore fait."
       },
       "link_device": {
         "title": "Associer l'application mobile",

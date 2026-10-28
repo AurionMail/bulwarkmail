@@ -2003,7 +2003,7 @@
         "jmap_username_label": "JMAP Kullanıcı Adı",
         "copy": "Kopyala",
         "copied": "Kopyalandı",
-        "password_instructions": "E-posta istemcinizde oturum açmak için yukarıdaki JMAP kullanıcı adı ile bir uygulama parolasını birlikte kullanın. Henüz oluşturmadıysanız yukarıdaki bölümden bir uygulama parolası oluşturun."
+        "password_instructions": "E-posta istemcinizde oturum açmak için yukarıdaki JMAP kullanıcı adı ile bir uygulama parolasını birlikte kullanın. Henüz oluşturmadıysanız aşağıdaki bölümden bir uygulama parolası oluşturun."
       },
       "link_device": {
         "title": "Mobil uygulamayı bağla",

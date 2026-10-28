@@ -2003,7 +2003,7 @@
         "jmap_username_label": "Nome de Usuário JMAP",
         "copy": "Copiar",
         "copied": "Copiado",
-        "password_instructions": "Use seu nome de usuário JMAP acima junto com uma senha de aplicativo para entrar no seu cliente de e-mail. Crie uma senha de aplicativo na seção acima se ainda não tiver uma."
+        "password_instructions": "Use seu nome de usuário JMAP acima junto com uma senha de aplicativo para entrar no seu cliente de e-mail. Crie uma senha de aplicativo na seção abaixo se ainda não tiver uma."
       },
       "link_device": {
         "title": "Vincular aplicativo móvel",

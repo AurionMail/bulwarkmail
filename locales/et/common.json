@@ -2024,7 +2024,7 @@
         "jmap_username_label": "JMAP kasutajanimi",
         "copy": "Kopeeri",
         "copied": "Kopeeritud",
-        "password_instructions": "Kasuta oma e-posti kliendisse sisselogimiseks ülaltoodud JMAP kasutajanime koos rakenduse parooliga. Kui sul veel pole rakenduse parooli, loo see ülaltoodud jaotises."
+        "password_instructions": "Kasuta oma e-posti kliendisse sisselogimiseks ülaltoodud JMAP kasutajanime koos rakenduse parooliga. Kui sul veel pole rakenduse parooli, loo see allolevas jaotises."
       },
       "link_device": {
         "title": "Ühenda mobiilirakendus",

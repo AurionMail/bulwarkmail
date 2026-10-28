@@ -2003,7 +2003,7 @@
         "jmap_username_label": "JMAP lietotājvārds",
         "copy": "Kopēt",
         "copied": "Nokopēts",
-        "password_instructions": "Izmantojiet norādīto JMAP lietotājvārdu kopā ar lietotnes paroli. Izveidojiet lietotnes paroli sadaļā augstāk."
+        "password_instructions": "Izmantojiet augstāk norādīto JMAP lietotājvārdu kopā ar lietotnes paroli, lai pierakstītos e-pasta klientā. Ja vēl neesat to izdarījis, izveidojiet lietotnes paroli sadaļā zemāk."
       },
       "link_device": {
         "title": "Saistīt mobilo lietotni",

@@ -2010,7 +2010,7 @@
         "jmap_username_label": "Používateľské meno JMAP",
         "copy": "Kopírovať",
         "copied": "Skopírované",
-        "password_instructions": "Použite vyššie uvedené používateľské meno JMAP spolu s heslom aplikácie na prihlásenie v poštovom klientovi."
+        "password_instructions": "Použite vyššie uvedené používateľské meno JMAP spolu s heslom aplikácie na prihlásenie v poštovom klientovi. Ak ste tak ešte neurobili, vytvorte si heslo aplikácie v sekcii nižšie."
       },
       "link_device": {
         "title": "Prepojiť mobilnú aplikáciu",

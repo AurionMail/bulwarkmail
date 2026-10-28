@@ -2003,7 +2003,7 @@
         "jmap_username_label": "JMAP-Benutzername",
         "copy": "Kopieren",
         "copied": "Kopiert",
-        "password_instructions": "Verwenden Sie Ihren oben angezeigten JMAP-Benutzernamen zusammen mit einem App-Passwort, um sich bei Ihrem E-Mail-Client anzumelden. Erstellen Sie im obigen Abschnitt ein App-Passwort, falls Sie noch keines haben."
+        "password_instructions": "Verwenden Sie Ihren oben angezeigten JMAP-Benutzernamen zusammen mit einem App-Passwort, um sich bei Ihrem E-Mail-Client anzumelden. Erstellen Sie im Abschnitt unten ein App-Passwort, falls Sie noch keines haben."
       },
       "link_device": {
         "title": "Mobile App verknüpfen",

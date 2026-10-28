@@ -61,6 +61,11 @@ describe('settings wording', () => {
     expect(text('notifications.filters_saved')).toBe('Filters saved');
   });
 
+  // Security: App passwords come after the mail client section.
+  it('sends the mail client hint to the app passwords section below it', () => {
+    expect(text('settings.security.email_client.password_instructions')).toContain('in the section below');
+  });
+
   // R5: every editor asks the same question with the same buttons, in every
   // language: Settings and Contacts say what Calendar says.
   it('asks "Discard changes?" with Keep editing / Discard everywhere', () => {

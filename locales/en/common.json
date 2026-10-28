@@ -2024,7 +2024,7 @@
         "jmap_username_label": "JMAP username",
         "copy": "Copy",
         "copied": "Copied",
-        "password_instructions": "Use your JMAP username above along with an app password to sign in to your email client. Create an app password in the section above if you haven't already."
+        "password_instructions": "Use your JMAP username above along with an app password to sign in to your email client. Create an app password in the section below if you haven't already."
       },
       "link_device": {
         "title": "Link the mobile app",

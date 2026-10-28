@@ -2010,7 +2010,7 @@
         "jmap_username_label": "Nom d'usuari JMAP",
         "copy": "Copia",
         "copied": "Copiat",
-        "password_instructions": "Utilitzeu el nom d'usuari JMAP anterior juntament amb una contrasenya d'aplicació per iniciar la sessió al client de correu. Creeu una contrasenya d'aplicació a la secció anterior si encara no ho heu fet."
+        "password_instructions": "Utilitzeu el nom d'usuari JMAP anterior juntament amb una contrasenya d'aplicació per iniciar la sessió al client de correu. Creeu una contrasenya d'aplicació a la secció següent si encara no ho heu fet."
       },
       "link_device": {
         "title": "Enllaça l'aplicació mòbil",

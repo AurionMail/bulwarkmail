@@ -2003,7 +2003,7 @@
         "jmap_username_label": "JMAP 用户名",
         "copy": "复制",
         "copied": "已复制",
-        "password_instructions": "使用上面的 JMAP 用户名和应用密码登录您的邮件客户端。如果您还没有创建应用密码，请在上面的部分中创建。"
+        "password_instructions": "使用上面的 JMAP 用户名和应用密码登录您的邮件客户端。如果您还没有创建应用密码，请在下面的部分中创建。"
       },
       "link_device": {
         "title": "关联移动应用",

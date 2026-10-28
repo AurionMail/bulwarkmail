@@ -2024,7 +2024,7 @@
         "jmap_username_label": "JMAP 使用者名稱",
         "copy": "複製",
         "copied": "已複製",
-        "password_instructions": "使用上方的 JMAP 使用者名稱與應用程式密碼登入電子郵件用戶端。如果尚未建立應用程式密碼，請在上方區段建立一組。"
+        "password_instructions": "使用上方的 JMAP 使用者名稱與應用程式密碼登入電子郵件用戶端。如果尚未建立應用程式密碼，請在下方區段建立一組。"
       },
       "link_device": {
         "title": "連結行動應用程式",

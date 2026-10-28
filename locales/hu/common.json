@@ -2006,7 +2006,7 @@
         "jmap_username_label": "JMAP felhasználónév",
         "copy": "Másolás",
         "copied": "Másolva",
-        "password_instructions": "Használd a fenti JMAP felhasználóneved egy alkalmazás jelszóval együtt az e-mail kliensbe való bejelentkezéshez. Hozz létre egy alkalmazás jelszót a fenti részben, ha még nem tetted."
+        "password_instructions": "Használd a fenti JMAP felhasználóneved egy alkalmazás jelszóval együtt az e-mail kliensbe való bejelentkezéshez. Hozz létre egy alkalmazás jelszót a lenti részben, ha még nem tetted."
       },
       "link_device": {
         "title": "Mobilalkalmazás összekapcsolása",

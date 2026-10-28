@@ -2024,7 +2024,7 @@
         "jmap_username_label": "JMAP-brukernavn",
         "copy": "Kopier",
         "copied": "Kopiert",
-        "password_instructions": "Bruk JMAP-brukernavnet ovenfor sammen med et app-passord for å logge på e-postklienten. Opprett et app-passord i delen ovenfor hvis du ikke allerede har gjort det."
+        "password_instructions": "Bruk JMAP-brukernavnet ovenfor sammen med et app-passord for å logge på e-postklienten. Opprett et app-passord i delen nedenfor hvis du ikke allerede har gjort det."
       },
       "link_device": {
         "title": "Koble til mobilappen",

@@ -2010,7 +2010,7 @@
         "jmap_username_label": "JMAP Nume de utilizator",
         "copy": "Copiere",
         "copied": "Copiat",
-        "password_instructions": "Folosiți numele de utilizator de la JMAP menționat mai sus, împreună cu o parolă de aplicație, pentru a vă autentifica în clientul de e-mail. Creați o parolă de aplicație în secțiunea de mai sus, dacă nu ați făcut-o deja."
+        "password_instructions": "Folosiți numele de utilizator de la JMAP menționat mai sus, împreună cu o parolă de aplicație, pentru a vă autentifica în clientul de e-mail. Creați o parolă de aplicație în secțiunea de mai jos, dacă nu ați făcut-o deja."
       },
       "link_device": {
         "title": "Aplicație mobilă",
