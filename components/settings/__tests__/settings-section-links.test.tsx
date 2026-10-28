@@ -22,7 +22,11 @@ vi.mock('@/hooks/use-config', () => ({ useConfig: () => ({ appName: 'Mail', stal
 vi.mock('@/components/layout/navigation-rail', () => ({ NavigationRail: () => null }));
 vi.mock('@/components/layout/sidebar-apps-modal', () => ({ SidebarAppsModal: () => null }));
 vi.mock('@/components/plugins/app-top-banner-slot', () => ({ AppTopBannerSlot: () => null }));
-vi.mock('@/components/settings/appearance-settings', () => ({ AppearanceSettings: () => <div>appearance pane</div> }));
+vi.mock('@/components/settings/about-data-settings', () => ({
+  AboutDataSettings: () => null,
+  AboutFooter: () => <div data-testid="about-footer" />,
+}));
+vi.mock('@/components/settings/appearance-settings',() => ({ AppearanceSettings: () => <div>appearance pane</div> }));
 vi.mock('@/components/settings/organize-settings', () => ({
   OrganizeSettings: () => (
     <div>
@@ -110,5 +114,12 @@ describe('settings section links', () => {
     expect(screen.getByTestId('settings-tab-reading')).toHaveAttribute('aria-current', 'page');
     await waitFor(() => expect(useSettingsStore.getState().showAdvancedSettings).toBe(true), { timeout: 3000 });
     await waitFor(() => expect(scrolled).toContain('downloads'));
+  });
+
+  it('shows the version footer in the sidebar only with Advanced on', () => {
+    render(<SettingsApp />);
+    expect(screen.queryByTestId('about-footer')).toBeNull();
+    fireEvent.click(screen.getByTestId('settings-advanced-switch'));
+    expect(screen.getByTestId('about-footer')).toBeInTheDocument();
   });
 });

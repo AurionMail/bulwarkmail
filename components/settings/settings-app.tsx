@@ -373,6 +373,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   // plugins/themes/sidebar apps).
   const touchScreen = useMediaQuery('(pointer: coarse)');
   const mountainViewLayout = useSettingsStore((s) => s.interfaceLayout === 'mountain-view');
+  const showAdvanced = useSettingsStore((s) => s.showAdvancedSettings);
   const multiAccount = useAccountStore((s) => s.accounts.length > 0);
   const { tabSearchHaystacks, tabSubResults } = useMemo(() => {
     const haystacks: Partial<Record<Tab, string>> = {};
@@ -1032,7 +1033,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
 
           <div className="border-t border-border px-2 py-2">
             <AdvancedSettingsSwitch />
-            <AboutFooter />
+            {showAdvanced && <AboutFooter />}
           </div>
           <div className="border-t border-border px-5 py-3">
             <button
@@ -1197,7 +1198,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
         </div>
         <div className="border-t border-border px-1 py-1">
           <AdvancedSettingsSwitch />
-          <AboutFooter />
+          {showAdvanced && <AboutFooter />}
         </div>
       </div>
 
