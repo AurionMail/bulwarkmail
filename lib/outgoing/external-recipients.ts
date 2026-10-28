@@ -53,7 +53,7 @@ export async function ensureContactsLoaded(waitMs = CONTACTS_WAIT_MS): Promise<v
 export async function recipientsToConfirm(context: OutgoingContext): Promise<ExternalRecipient[]> {
   // The sending account's policy and identities: an identity of another
   // signed-in account sends under that account's domain or group scopes.
-  const account = await externalMailContextFor(context.sender?.accountId);
+  const account = await externalMailContextFor(context.sender?.accountId, 'recipientWarning');
   const { policy } = account;
   if (!policy.recipientWarning) return [];
   // The chosen identity's own address is internal. A From typed over it in

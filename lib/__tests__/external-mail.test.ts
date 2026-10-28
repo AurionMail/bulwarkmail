@@ -185,6 +185,37 @@ describe('the active account', () => {
     expect((await externalMailContextFor(undefined)).policy.senderLabel).toBe(true);
   });
 
+  it("looks another account up only when the switch can be on for it", async () => {
+    const calls = { subject: 0, identities: 0 };
+    const eveClient = {
+      getUsername: () => { calls.subject++; return 'org-eve@org-three.test'; },
+      getSharedAccounts: () => [],
+      getAccountInfo: () => null,
+      getPrincipalTypes: async () => ({}),
+      getIdentities: async () => { calls.identities++; return [identity('org-eve@org-three.test')]; },
+    };
+    useAuthStore.setState({
+      identities: [identity('org-alice@example.org')],
+      getClientForAccount: (id: string) => (id === 'acc-eve' ? eveClient : undefined),
+    } as never);
+    const scope = (externalMail: Record<string, boolean>) => ({ id: 's', label: 'S', match: { domains: ['org-three.test'] }, policy: { organisation: { externalMail } } });
+
+    // Off for Everyone and in every scope: no request at all.
+    usePolicyStore.setState({ rawPolicy: { ...DEFAULT_POLICY, scopes: [scope({ recipientWarning: true })] } });
+    expect((await externalMailContextFor('acc-eve', 'senderLabel')).policy.senderLabel).toBe(false);
+    expect(calls).toEqual({ subject: 0, identities: 0 });
+
+    // On in a scope that doesn't match eve: her subject is needed, her identities aren't.
+    usePolicyStore.setState({ rawPolicy: { ...DEFAULT_POLICY, scopes: [{ ...scope({ senderLabel: true }), match: { domains: ['elsewhere.test'] } }] } });
+    expect((await externalMailContextFor('acc-eve', 'senderLabel')).identityEmails).toEqual([]);
+    expect(calls).toEqual({ subject: 1, identities: 0 });
+
+    // On for her domain: her identities count.
+    usePolicyStore.setState({ rawPolicy: { ...DEFAULT_POLICY, scopes: [scope({ senderLabel: true })] } });
+    expect((await externalMailContextFor('acc-eve', 'senderLabel')).identityEmails).toEqual(['org-eve@org-three.test']);
+    expect(calls.identities).toBe(1);
+  });
+
   it('collects the addresses of every contact', () => {
     useContactStore.setState({
       contacts: [
