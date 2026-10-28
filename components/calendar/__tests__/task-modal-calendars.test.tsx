@@ -34,3 +34,16 @@ describe('task editor calendar select', () => {
     expect(select.value).toBe('birthdays');
   });
 });
+
+// The desktop task panel had no dialog role, unlike the event editor.
+describe('task editor panel', () => {
+  it('is a dialog named by its title on wide screens', () => {
+    render(<TaskModal calendars={calendars} onSave={vi.fn()} onClose={vi.fn()} />);
+    expect(screen.getByRole('dialog', { name: 'tasks.create' })).toBeInTheDocument();
+  });
+
+  it('leaves the role to the full-screen wrapper on a phone', () => {
+    render(<TaskModal calendars={calendars} onSave={vi.fn()} onClose={vi.fn()} isMobile />);
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});

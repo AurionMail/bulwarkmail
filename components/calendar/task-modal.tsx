@@ -56,7 +56,7 @@ export function TaskModal({
   onDelete,
   onClose,
   onDirtyChange,
-  isMobile: _isMobile,
+  isMobile = false,
   isSubscriptionCalendar,
 }: TaskModalProps) {
   const t = useTranslations("calendar");
@@ -213,10 +213,17 @@ export function TaskModal({
   }, [requestClose, handleSave]);
 
   return (
-    <div className="flex flex-col h-full bg-background" onKeyDown={handleKeyDown}>
+    // The desktop side panel is a dialog named by its title, like the event
+    // editor; on a phone the full-screen wrapper around it is.
+    <div
+      role={isMobile ? undefined : "dialog"}
+      aria-labelledby={isMobile ? undefined : `${id}-heading`}
+      className="flex flex-col h-full bg-background"
+      onKeyDown={handleKeyDown}
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <h2 className="text-sm font-semibold">
+        <h2 id={`${id}-heading`} className="text-sm font-semibold">
           {isEdit ? t("tasks.edit") : t("tasks.create")}
         </h2>
         <IconButton label={tCommon("close")} onClick={requestClose}>
