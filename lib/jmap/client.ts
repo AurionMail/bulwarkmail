@@ -2585,6 +2585,10 @@ export class JMAPClient implements IJMAPClient {
     if (tagIds.length === 0) return {};
     const result: Record<string, { total: number; unread: number }> = {};
     const targetAccountId = accountId || this.accountId;
+    if (this.countsKeywords(targetAccountId)) {
+      const counted = await this.getTagCountsFromKeywords(tagIds, targetAccountId);
+      if (counted) return counted;
+    }
     const exclusion = excludeMailboxIds && excludeMailboxIds.length > 0
       ? [{ inMailboxOtherThan: excludeMailboxIds }]
       : [];
@@ -2640,6 +2644,47 @@ export class JMAPClient implements IJMAPClient {
     }
 
     return result;
+  }
+
+  /** Whether the server reports every keyword's total and unread in Keyword/get. */
+  private countsKeywords(accountId: string): boolean {
+    const capability = this.capabilities[KEYWORDS_CAPABILITY] as { supportsCounts?: unknown } | undefined;
+    return capability?.supportsCounts === true && this.hasAccountCapability(KEYWORDS_CAPABILITY, accountId);
+  }
+
+  /**
+   * Tag counts read from the server's own keyword counters: one Keyword/get
+   * for every tag, where the query path costs two Email/query per tag.
+   *
+   * The counters cover the whole account, so `excludeMailboxIds` (#1156) is
+   * not applied: a server that counts keywords answers for its own notion of
+   * a tag's messages, and a gateway that maps tags to provider labels reports
+   * the numbers the provider shows for the label. Returns null when the call
+   * fails, so the caller can fall back to querying.
+   */
+  private async getTagCountsFromKeywords(
+    tagIds: string[],
+    accountId: string,
+  ): Promise<Record<string, { total: number; unread: number }> | null> {
+    try {
+      const response = await this.request(
+        [["Keyword/get", { accountId, ids: tagIds.map((id) => `$label:${id}`) }, "0"]],
+        ["urn:ietf:params:jmap:core", KEYWORDS_CAPABILITY],
+      );
+      const [method, result] = response.methodResponses?.[0] ?? [];
+      if (method !== 'Keyword/get' || !Array.isArray(result?.list)) return null;
+      // Keywords are case-insensitive (RFC 8621 4.1.1).
+      const byId = new Map((result.list as KeywordInfo[]).map((k) => [k.id.toLowerCase(), k]));
+      const counts: Record<string, { total: number; unread: number }> = {};
+      for (const id of tagIds) {
+        const keyword = byId.get(`$label:${id}`.toLowerCase());
+        counts[id] = { total: keyword?.total ?? 0, unread: keyword?.unread ?? 0 };
+      }
+      return counts;
+    } catch (error) {
+      console.error('Failed to get tag counts from Keyword/get:', error);
+      return null;
+    }
   }
 
   /**
