@@ -905,7 +905,7 @@ export function MvExpandedConversationCard({
             onClick={() => onReply(email)}
             className="grid place-items-center w-10 h-10 -my-2 -me-2 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors flex-shrink-0"
             title={t('tooltips.reply')}
-            aria-label={t('tooltips.reply')}
+            aria-label={t('reply')}
           >
             <Reply className="w-5 h-5" />
           </button>
@@ -4624,7 +4624,8 @@ export function EmailViewer({
                 {toolbarPosition === 'top' && !mvViewer && (
                   <IconButton
                     onClick={onToggleStar}
-                    label={isStarred ? t('tooltips.unstar') : t('tooltips.star')}
+                    label={isStarred ? t('unstar') : t('star')}
+                    title={isStarred ? t('tooltips.unstar') : t('tooltips.star')}
                     aria-pressed={!!isStarred}
                     data-testid="subject-star"
                     className="flex-shrink-0 -my-1"
@@ -4814,7 +4815,7 @@ export function EmailViewer({
                           onClick={onToggleStar}
                           className="grid place-items-center w-10 h-10 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                           title={isStarred ? t('tooltips.unstar') : t('tooltips.star')}
-                          aria-label={isStarred ? t('tooltips.unstar') : t('tooltips.star')}
+                          aria-label={isStarred ? t('unstar') : t('star')}
                           aria-pressed={!!isStarred}
                         >
                           <Star className={cn("w-5 h-5", isStarred && "fill-amber-400 text-amber-400")} />
@@ -4825,7 +4826,7 @@ export function EmailViewer({
                             onClick={() => onReply?.()}
                             className="grid place-items-center w-10 h-10 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                             title={t('tooltips.reply')}
-                            aria-label={t('tooltips.reply')}
+                            aria-label={t('reply')}
                           >
                             <Reply className="w-5 h-5" />
                           </button>
@@ -6303,7 +6304,6 @@ export function EmailViewer({
           <button
             onClick={() => onReply?.()}
             className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-h-[44px] grow shrink-0 basis-[64px] text-muted-foreground active:text-foreground transition-colors duration-150"
-            aria-label={t('tooltips.reply')}
           >
             <Reply className="w-5 h-5" />
             <span className="text-[10px] font-medium leading-tight truncate max-w-full">{t('reply')}</span>
@@ -6311,7 +6311,6 @@ export function EmailViewer({
           <button
             onClick={onReplyAll}
             className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-h-[44px] grow shrink-0 basis-[64px] text-muted-foreground active:text-foreground transition-colors duration-150"
-            aria-label={t('tooltips.reply_all')}
           >
             <ReplyAll className="w-5 h-5" />
             <span className="text-[10px] font-medium leading-tight truncate max-w-full">{t('reply_all')}</span>
@@ -6319,7 +6318,6 @@ export function EmailViewer({
           <button
             onClick={onForward}
             className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-h-[44px] grow shrink-0 basis-[64px] text-muted-foreground active:text-foreground transition-colors duration-150"
-            aria-label={t('tooltips.forward')}
           >
             <Forward className="w-5 h-5" />
             <span className="text-[10px] font-medium leading-tight truncate max-w-full">{t('forward')}</span>
