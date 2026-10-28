@@ -136,3 +136,27 @@ describe('Delete on a selection', () => {
     expect(bulkDeleteIsPermanent({ role: 'inbox' })).toBe(false);
   });
 });
+
+describe('Undo after a delete to Trash', () => {
+  it('puts the message back where it was, unread again', async () => {
+    useSettingsStore.setState({ deleteAction: 'trash-and-read' } as never);
+    client.restoreEmails = vi.fn().mockResolvedValue(undefined);
+    render(<MailApp />);
+    fireEvent.click(await screen.findByText('stub delete', {}, { timeout: 5000 }));
+    await waitFor(() => expect(useToastStore.getState().toasts.some(t => t.title === 'notifications.email_deleted')).toBe(true));
+    const deleted = useToastStore.getState().toasts.find(t => t.title === 'notifications.email_deleted')!;
+    expect(deleted.action?.label).toBe('undo');
+    deleted.action!.onClick();
+    await waitFor(() => expect(client.restoreEmails).toHaveBeenCalled());
+    expect(client.restoreEmails).toHaveBeenCalledWith([{ id: 'm1', mailboxIds: { inbox: true }, seen: false }], undefined);
+  });
+
+  it('is not offered for a permanent delete', async () => {
+    useSettingsStore.setState({ deleteAction: 'permanent' } as never);
+    render(<MailApp />);
+    fireEvent.click(await screen.findByText('stub delete', {}, { timeout: 5000 }));
+    fireEvent.click(await screen.findByText('email_list.permanent_delete', { selector: 'button' }));
+    await waitFor(() => expect(useToastStore.getState().toasts.some(t => t.title === 'notifications.email_deleted')).toBe(true));
+    expect(useToastStore.getState().toasts.find(t => t.title === 'notifications.email_deleted')!.action).toBeUndefined();
+  });
+});

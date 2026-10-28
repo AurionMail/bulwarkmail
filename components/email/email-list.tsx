@@ -15,7 +15,7 @@ import { Trash2, Mail, MailX, MailOpen, Loader2, SearchX, AlertTriangle, Calenda
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder, type ListRow } from "@/stores/email-store";
+import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder, restoreBatchesForSelection, isAggregateListView, type ListRow } from "@/stores/email-store";
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { useShallow } from "zustand/react/shallow";
 import { useAuthStore } from "@/stores/auth-store";
@@ -29,7 +29,7 @@ import { useContextMenu } from "@/hooks/use-context-menu";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useTranslations } from "next-intl";
 import { toast } from "@/stores/toast-store";
-import { runBatchEmailAction } from "@/lib/email-action-toast";
+import { runBatchEmailAction, toastWithUndo, undoLabels, undoMoveAction } from "@/lib/email-action-toast";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { TagDisplayContext, useMeasuredTagDisplay } from "@/hooks/use-tag-display";
 import { SearchChips } from "@/components/search/search-chips";
@@ -168,6 +168,7 @@ export function EmailList({
   const tSpam = useTranslations('email_viewer.spam');
   const tNotifications = useTranslations('notifications');
   const tViewer = useTranslations('email_viewer');
+  const undo = undoLabels(tNotifications);
   const { client } = useAuthStore(useShallow((state) => ({ client: state.client })));
   const {
     selectedEmailKeys,
@@ -605,9 +606,69 @@ export function EmailList({
     setIsProcessing(true);
     try {
       const emailIds = resolveSelectedEmails(useEmailStore.getState()).map(e => e.id);
-      if (await batchUndoSpam(client, emailIds)) toast.success(tSpam('toast_not_spam_batch', { count: emailIds.length }));
+      const restore = restoreBatchesForSelection(client);
+      if (await batchUndoSpam(client, emailIds)) {
+        toastWithUndo(tSpam('toast_not_spam_batch', { count: emailIds.length }), undoMoveAction(client, restore, undo));
+      }
     } catch {
       toast.error(tSpam('error_not_spam'));
+    } finally {
+      setTimeout(() => setIsProcessing(false), 500);
+    }
+  };
+
+  const handleBatchMarkAsSpam = async () => {
+    if (!client || isProcessing) return;
+    setIsProcessing(true);
+    try {
+      const emailIds = resolveSelectedEmails(useEmailStore.getState()).map(e => e.id);
+      const restore = restoreBatchesForSelection(client);
+      if (await batchMarkAsSpam(client, emailIds)) {
+        toastWithUndo(tSpam('toast_batch', { count: emailIds.length }), undoMoveAction(client, restore, undo));
+      }
+    } catch {
+      toast.error(tSpam('error'));
+    } finally {
+      setTimeout(() => setIsProcessing(false), 500);
+    }
+  };
+
+  const handleBatchArchive = async () => {
+    if (!client || isProcessing) return;
+    setIsProcessing(true);
+    const count = selectedEmailKeys.size;
+    const restore = restoreBatchesForSelection(client);
+    try {
+      await runBatchEmailAction(() => batchArchive(client), {
+        success: tNotifications('emails_archived', { count }),
+        error: tNotifications('error_archiving'),
+        describeError: (error) => error instanceof ArchiveMailboxNotFoundError
+          ? tViewer('archive_mailbox_not_found')
+          : undefined,
+        undo: undoMoveAction(client, restore, undo),
+      });
+    } finally {
+      setTimeout(() => setIsProcessing(false), 500);
+    }
+  };
+
+  const handleBatchMoveToMailbox = async (mailboxId: string) => {
+    if (!client || isProcessing) return;
+    setIsProcessing(true);
+    const count = selectedEmailKeys.size;
+    // A move to another account's folder copies the messages there, which
+    // Undo can't take back.
+    const destination = mailboxes.find(m => m.id === mailboxId);
+    const source = mailboxes.find(m => m.id === selectedMailbox);
+    const crossAccount = isAggregateListView()
+      || (!!destination?.accountId && !!source?.accountId && destination.accountId !== source.accountId);
+    const restore = crossAccount ? null : restoreBatchesForSelection(client);
+    try {
+      await runBatchEmailAction(() => batchMoveToMailbox(client, mailboxId), {
+        success: tNotifications('emails_moved', { count }),
+        error: tNotifications('move_failed'),
+        undo: undoMoveAction(client, restore, undo),
+      });
     } finally {
       setTimeout(() => setIsProcessing(false), 500);
     }
@@ -637,10 +698,12 @@ export function EmailList({
 
     setIsProcessing(true);
     const count = selectedEmailKeys.size;
+    const restore = isInTrash ? null : restoreBatchesForSelection(client);
     try {
       await runBatchEmailAction(() => batchDelete(client, isInTrash), {
         success: tNotifications('emails_deleted', { count }),
         error: tNotifications('error_deleting'),
+        undo: undoMoveAction(client, restore, undo),
       });
     } finally {
       setTimeout(() => setIsProcessing(false), 500);
@@ -1171,57 +1234,15 @@ export function EmailList({
           batchTagIds={selectionTags.all}
           batchPartialTagIds={selectionTags.some}
           onBatchToggleTag={handleBatchToggleTag}
-          onBatchDelete={async () => {
-            if (!client) return;
-            const count = selectedEmailKeys.size;
-            await runBatchEmailAction(() => batchDelete(client), {
-              success: tNotifications('emails_deleted', { count }),
-              error: tNotifications('error_deleting'),
-            });
-          }}
-          onBatchArchive={async () => {
-            if (!client) return;
-            const count = selectedEmailKeys.size;
-            await runBatchEmailAction(() => batchArchive(client), {
-              success: tNotifications('emails_archived', { count }),
-              error: tNotifications('error_archiving'),
-              describeError: (error) => error instanceof ArchiveMailboxNotFoundError
-                ? tViewer('archive_mailbox_not_found')
-                : undefined,
-            });
-          }}
+          onBatchDelete={() => void handleBatchDelete()}
+          onBatchArchive={() => void handleBatchArchive()}
           batchEmails={selectedEmailsForRemoval}
           onBatchRemoveFromFolder={() => void handleBatchRemoveFromFolder()}
-          onBatchMoveToMailbox={async (mailboxId) => {
-            if (!client) return;
-            const count = selectedEmailKeys.size;
-            await runBatchEmailAction(() => batchMoveToMailbox(client, mailboxId), {
-              success: tNotifications('emails_moved', { count }),
-              error: tNotifications('move_failed'),
-            });
-          }}
-          onBatchMarkAsSpam={async () => {
-            if (client) {
-              const emailIds = resolveSelectedEmails(useEmailStore.getState()).map(e => e.id);
-              try {
-                if (await batchMarkAsSpam(client, emailIds)) toast.success(
-                  tSpam('toast_batch', { count: emailIds.length })
-                );
-              } catch {
-                toast.error(tSpam('error'));
-              }
-            }
-          }}
+          onBatchMoveToMailbox={(mailboxId) => void handleBatchMoveToMailbox(mailboxId)}
+          onBatchMarkAsSpam={() => void handleBatchMarkAsSpam()}
           onBatchUndoSpam={async () => {
             if (client) {
-              const emailIds = resolveSelectedEmails(useEmailStore.getState()).map(e => e.id);
-              try {
-                if (await batchUndoSpam(client, emailIds)) toast.success(
-                  tSpam('toast_not_spam_batch', { count: emailIds.length })
-                );
-              } catch {
-                toast.error(tSpam('error_not_spam'));
-              }
+              await handleBatchUndoSpam();
             }
           }}
         />

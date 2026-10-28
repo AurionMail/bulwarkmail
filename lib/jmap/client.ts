@@ -3600,6 +3600,20 @@ export class JMAPClient implements IJMAPClient {
     }
   }
 
+  async restoreEmails(emails: Array<{ id: string; mailboxIds: Record<string, boolean>; seen?: boolean }>, accountId?: string): Promise<void> {
+    if (emails.length === 0) return;
+    for (const batch of batched(emails, this.getMaxObjectsInSet())) {
+      const update = Object.fromEntries(batch.map(email => [email.id, {
+        mailboxIds: email.mailboxIds,
+        ...(email.seen === undefined ? {} : { 'keywords/$seen': email.seen ? true : null }),
+      }]));
+      const response = await this.request([
+        ["Email/set", { accountId: accountId || this.accountId, update }, "0"],
+      ]);
+      assertSetSucceeded(response, 'Failed to restore emails');
+    }
+  }
+
   async emptyMailbox(mailboxId: string, accountId?: string): Promise<number> {
     const targetAccountId = accountId || this.accountId;
     const batchSize = Math.min(500, this.getMaxObjectsInSet());

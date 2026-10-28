@@ -37,7 +37,7 @@ import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
 import { messagePriorityFromHeaders, type MessagePriority } from "@/lib/message-priority";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
-import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, resolveEmailActionContext, emailWriteSource, emailLinkSource, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, isAggregateListView, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
+import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, resolveEmailActionContext, emailWriteSource, emailLinkSource, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, isAggregateListView, removalFolder, canRemoveFromFolder, restoreBatchesFor, restoreBatchesForSelection, type EmailRestoreBatch } from "@/stores/email-store";
 import { findDraftIdentityIdForLogin, listRowSource, resolveDraftSource, type DraftSource } from "@/lib/draft-source";
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
@@ -46,7 +46,7 @@ import { cancelFailureToast, partlyRefusedWarning, rescheduleFailureToast } from
 import { formatRejectedRecipients, RescheduleRestoredError } from "@/lib/jmap/client";
 import { subscribePushStateChanges } from "@/lib/push-events";
 import { createMailPushListener } from "@/lib/mail-push-listener";
-import { runBatchEmailAction } from "@/lib/email-action-toast";
+import { runBatchEmailAction, toastWithUndo, undoLabels, undoMoveAction } from "@/lib/email-action-toast";
 import { MailboxShareDialog } from "@/components/layout/mailbox-share-dialog";
 import { ShareNotificationToaster } from "@/components/layout/share-notification-toaster";
 import { CalendarEventNotificationToaster } from "@/components/layout/calendar-event-notification-toaster";
@@ -214,6 +214,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // Static Lite build: the route params are empty, read the link from the URL.
   const linkSegments = useLiteLinkSegments('mail', routeSegments);
   const t = useTranslations();
+  const tNotifications = useTranslations('notifications');
+  // The toasts' Undo after a delete to Trash, archive, move or spam report.
+  const undo = undoLabels(tNotifications);
   const tCommon = useTranslations('common');
   const appName = productName(useConfig().appName);
   const tQuote = useTranslations('quote_header');
@@ -936,8 +939,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (isScheduledView) return;
       if (shortcutsTargetSelection && client) {
         const count = selectedEmailKeys.size;
+        const restore = restoreBatchesForSelection(client);
         await runBatchEmailAction(() => batchArchive(client), {
           success: t('notifications.emails_archived', { count }),
+          undo: undoMoveAction(client, restore, undo),
           error: t('notifications.error_archiving'),
           describeError: (error) => error instanceof ArchiveMailboxNotFoundError
             ? t('email_viewer.archive_mailbox_not_found')
@@ -968,9 +973,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           if (!confirmed) return;
         }
         const count = selectedEmailKeys.size;
+        const restore = permanent ? null : restoreBatchesForSelection(client);
         await runBatchEmailAction(() => batchDelete(client, permanent), {
           success: t('notifications.emails_deleted', { count }),
           error: t('notifications.error_deleting'),
+          undo: undoMoveAction(client, restore, undo),
         });
       } else if (selectedEmail) {
         handleDelete();
@@ -1009,11 +1016,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         // The spam actions take bare ids of the viewed account: resolve the
         // selection keys through the loaded rows and thread members.
         const ids = resolveSelectedEmails(useEmailStore.getState()).map(e => e.id);
+        const restore = restoreBatchesForSelection(client);
         try {
           if (isInJunk) {
-            if (await batchUndoSpam(client, ids)) toast.success(t('email_viewer.spam.toast_not_spam_batch', { count: ids.length }));
+            if (await batchUndoSpam(client, ids)) toastWithUndo(t('email_viewer.spam.toast_not_spam_batch', { count: ids.length }), undoMoveAction(client, restore, undo));
           } else {
-            if (await batchMarkAsSpam(client, ids)) toast.success(t('email_viewer.spam.toast_batch', { count: ids.length }));
+            if (await batchMarkAsSpam(client, ids)) toastWithUndo(t('email_viewer.spam.toast_batch', { count: ids.length }), undoMoveAction(client, restore, undo));
           }
         } catch (error) {
           console.error("Failed to batch toggle spam:", error);
@@ -2809,7 +2817,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const isInTrash = currentMailbox?.role === 'trash';
     // Trash, Junk with "permanently delete junk", or the "Delete permanently"
     // setting: the mail is destroyed, so ask first, as the batch delete does.
+    // A move to Trash gets Undo instead.
     const permanent = bulkDeleteIsPermanent(currentMailbox);
+    const restore = permanent ? null : restoreBatchesFor([emailToDelete], client);
 
     if (permanent) {
       const confirmed = await confirmDialog({
@@ -2826,7 +2836,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     // it. In Trash it always destroys. (#281 for the account routing)
     try {
       // false: a plugin stopped it and said why, so no "deleted" here.
-      if (await deleteEmail(client, emailToDelete.id, isInTrash, emailKeyFor(emailToDelete))) toast.success(t('notifications.email_deleted'));
+      if (await deleteEmail(client, emailToDelete.id, isInTrash, emailKeyFor(emailToDelete))) {
+        toastWithUndo(t('notifications.email_deleted'), undoMoveAction(client, restore, undo));
+      }
     } catch (error) {
       console.error("Failed to delete email:", error);
       toast.error(t('notifications.error_deleting'), error instanceof Error ? error.message : undefined);
@@ -2880,8 +2892,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (!archiveMailbox) return; // a plugin refused the Archive folder
 
       let archived: boolean;
+      let restore: EmailRestoreBatch[] | null = null;
+      const keepRestore = (batches: EmailRestoreBatch[]) => { restore = batches; };
       if (archiveMode === 'single') {
-        archived = await moveThreadToMailbox(client, emailToArchive.id, archiveMailbox.id, emailKeyFor(emailToArchive));
+        archived = await moveThreadToMailbox(client, emailToArchive.id, archiveMailbox.id, emailKeyFor(emailToArchive), keepRestore);
       } else {
         const emailDate = new Date(emailToArchive.receivedAt);
         const year = emailDate.getFullYear().toString();
@@ -2906,7 +2920,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         }
 
         if (archiveMode === 'year') {
-          archived = await moveThreadToMailbox(client, emailToArchive.id, yearMailbox.id, emailKeyFor(emailToArchive));
+          archived = await moveThreadToMailbox(client, emailToArchive.id, yearMailbox.id, emailKeyFor(emailToArchive), keepRestore);
         } else {
           const yearId = yearMailbox.originalId || yearMailbox.id;
           const afterYear = readMailboxes();
@@ -2916,7 +2930,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             if (!monthMailbox) return; // a plugin refused the folder
             await refreshMailboxes();
           }
-          archived = await moveThreadToMailbox(client, emailToArchive.id, monthMailbox.id, emailKeyFor(emailToArchive));
+          archived = await moveThreadToMailbox(client, emailToArchive.id, monthMailbox.id, emailKeyFor(emailToArchive), keepRestore);
         }
       }
       if (!archived) return;
@@ -2928,7 +2942,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         setConversationEmails([]);
       }
 
-      toast.success(t('notifications.email_archived'));
+      toastWithUndo(t('notifications.email_archived'), undoMoveAction(client, restore, undo));
       void refreshMailboxes();
     } catch (error) {
       console.error("Failed to archive email:", error);
@@ -2951,10 +2965,18 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const destinationList = [mailboxes, ...Object.values(accountMailboxes)]
       .find(list => list.some(m => m.id === mailboxId));
     const destination = destinationList?.find(m => m.id === mailboxId);
+    // Undo for a move within the message's own account; a move to another
+    // account copies the message there, which Undo can't take back.
+    const email = useEmailStore.getState().emails.find(e => (emailKey ? emailKeyFor(e) === emailKey : e.id === emailId));
+    const sourceFolder = [mailboxes, ...Object.values(accountMailboxes)].flat().find(m => m.id === selectedMailbox);
+    const sourceAccount = email?.sourceAccountId ?? sourceFolder?.accountId;
+    const crossAccount = !!destination?.accountId && !!sourceAccount && destination.accountId !== sourceAccount;
+    const restore = email && !crossAccount ? restoreBatchesFor([email], client) : null;
     try {
       if (!(await moveToMailboxCrossAware(client, emailId, mailboxId, emailKey))) return;
-      toast.success(
+      toastWithUndo(
         t('notifications.email_moved'),
+        undoMoveAction(client, restore, undo),
         destination && destinationList
           ? t('notifications.moved_to_mailbox', { mailbox: getMailboxPath(destination, destinationList) })
           : undefined,

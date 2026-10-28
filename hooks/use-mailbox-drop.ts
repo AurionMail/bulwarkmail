@@ -2,7 +2,7 @@
 
 import { useCallback, useState, DragEvent } from "react";
 import { Mailbox, Email } from "@/lib/jmap/types";
-import { useEmailStore, isAggregateListView } from "@/stores/email-store";
+import { useEmailStore, isAggregateListView, restoreBatchesFor, type EmailRestoreBatch } from "@/stores/email-store";
 import { useShallow } from "zustand/react/shallow";
 import { emailKeyFor } from "@/lib/thread-utils";
 import { useAuthStore } from "@/stores/auth-store";
@@ -35,8 +35,10 @@ interface UseMailboxDropOptions {
    */
   accountId?: string;
   onDropComplete?: () => void;
-  // Translation callbacks for toast messages
-  onSuccess?: (count: number, mailboxName: string) => void;
+  // Translation callbacks for toast messages. `restore` says where the
+  // messages were, for the toast's Undo; null when the move went to another
+  // account, which Undo can't take back.
+  onSuccess?: (count: number, mailboxName: string, restore: EmailRestoreBatch[] | null) => void;
   onError?: (error: string) => void;
 }
 
@@ -132,7 +134,12 @@ export function useMailboxDrop({ mailbox, accountId, onDropComplete, onSuccess, 
 
       let isCrossAccount = false;
       let moved: boolean;
+      let restore: EmailRestoreBatch[] | null = null;
       if (isAggregateListView()) {
+        // Undo only when every row moved inside its own account.
+        const inPlace = draggedEmails.length > 0 && draggedEmails.every(em =>
+          em.sourceAccountId === mailbox.accountId && (!em.sourceClientAccountId || em.sourceClientAccountId === destAccountId));
+        if (inPlace) restore = restoreBatchesFor(draggedEmails, client);
         // A list that mixes accounts (unified, tag and "All folders" views)
         // stamps every row with its login and account. The store moves each
         // of those groups apart - in place only in the folder's own account,
@@ -190,6 +197,7 @@ export function useMailboxDrop({ mailbox, accountId, onDropComplete, onSuccess, 
           moved = await crossAccountMoveEmails(bySource, destAccountId, jmapDestId, destJmapOverride, sourceJmapOverride);
         } else {
           // Single-account or same-account-shared move: bulk JMAP request.
+          restore = restoreBatchesFor(draggedEmails.filter(em => emailIds.includes(em.id)), client);
           moved = await moveEmailsToMailbox(client, emailIds, mailbox.id);
         }
       }
@@ -218,7 +226,7 @@ export function useMailboxDrop({ mailbox, accountId, onDropComplete, onSuccess, 
       const mailboxPath = getMailboxPath(mailbox, mailboxes);
 
       if (onSuccess) {
-        onSuccess(emailIds.length, mailboxPath);
+        onSuccess(emailIds.length, mailboxPath, restore);
       } else {
         if (emailIds.length === 1) {
           toast.success("Email moved", `Moved to ${mailboxPath}`);

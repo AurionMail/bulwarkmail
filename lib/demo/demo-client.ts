@@ -652,6 +652,19 @@ export class DemoJMAPClient implements IJMAPClient {
     this.recalcMailboxCounts();
   }
 
+  async restoreEmails(emails: Array<{ id: string; mailboxIds: Record<string, boolean>; seen?: boolean }>): Promise<void> {
+    for (const { id, mailboxIds, seen } of emails) {
+      const email = this.data.emails.find(e => e.id === id);
+      if (!email) continue;
+      email.mailboxIds = { ...mailboxIds };
+      if (seen !== undefined) {
+        if (seen) email.keywords.$seen = true;
+        else delete email.keywords.$seen;
+      }
+    }
+    this.recalcMailboxCounts();
+  }
+
   async emptyMailbox(mailboxId: string, _accountId?: string): Promise<number> {
     const before = this.data.emails.length;
     this.data.emails = this.data.emails.filter(e => !e.mailboxIds[mailboxId]);

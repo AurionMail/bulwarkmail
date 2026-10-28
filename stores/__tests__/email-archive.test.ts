@@ -108,4 +108,32 @@ describe('email-store archive thread behavior', () => {
 
     expect(client.batchMoveEmails).toHaveBeenCalledWith(['email-1', 'email-2'], 'server-archive', 'shared-account');
   });
+
+  it('tells Undo where the archived messages were, and Undo puts them back', async () => {
+    const client = {
+      getThread: vi.fn().mockResolvedValue({ id: 'thread-1', emailIds: ['email-1', 'email-2', 'sent-1'] }),
+      getEmailFields: vi.fn().mockResolvedValue([
+        { id: 'email-1', mailboxIds: { 'server-inbox': true }, keywords: { $seen: true } },
+        { id: 'email-2', mailboxIds: { 'server-inbox': true, 'server-work': true }, keywords: {} },
+        { id: 'sent-1', mailboxIds: { 'server-sent': true }, keywords: { $seen: true } },
+      ]),
+      batchMoveEmails: vi.fn().mockResolvedValue(undefined),
+      restoreEmails: vi.fn().mockResolvedValue(undefined),
+    } as unknown as IJMAPClient;
+    const onMoved = vi.fn();
+    useEmailStore.setState({ refreshCurrentMailbox: vi.fn().mockResolvedValue(undefined), fetchMailboxes: vi.fn().mockResolvedValue(undefined) });
+
+    await useEmailStore.getState().moveThreadToMailbox(client, 'email-1', 'archive-local', undefined, onMoved);
+
+    expect(onMoved).toHaveBeenCalledTimes(1);
+    const [batches] = onMoved.mock.calls[0];
+    expect(batches).toEqual([{ client, accountId: 'shared-account', points: [
+      { id: 'email-1', mailboxIds: { 'server-inbox': true }, seen: true },
+      { id: 'email-2', mailboxIds: { 'server-inbox': true, 'server-work': true }, seen: false },
+    ] }]);
+
+    await useEmailStore.getState().restoreEmails(client, batches);
+    expect(client.restoreEmails).toHaveBeenCalledWith(batches[0].points, 'shared-account');
+    expect(useEmailStore.getState().refreshCurrentMailbox).toHaveBeenCalled();
+  });
 });

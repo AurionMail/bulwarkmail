@@ -72,6 +72,7 @@ import { useSettingsStore, getKeywordVisibility } from "@/stores/settings-store"
 import { usePolicyStore } from "@/stores/policy-store";
 import { useEmailStore } from "@/stores/email-store";
 import { toast } from "@/stores/toast-store";
+import { toastWithUndo, undoLabels, undoMoveAction } from "@/lib/email-action-toast";
 import { debug } from "@/lib/debug";
 import { AccountSwitcher } from "./account-switcher";
 import { useIsEmbedded } from "@/hooks/use-is-embedded";
@@ -634,18 +635,12 @@ function MailboxTreeItem({
   const { dropHandlers, isValidDropTarget, isInvalidDropTarget } = useMailboxDrop({
     mailbox: node,
     accountId: dragAccountId ?? undefined,
-    onSuccess: (count, mailboxName) => {
-      if (count === 1) {
-        toast.success(
-          tNotifications('email_moved'),
-          tNotifications('moved_to_mailbox', { mailbox: mailboxName })
-        );
-      } else {
-        toast.success(
-          tNotifications('emails_moved', { count }),
-          tNotifications('moved_to_mailbox', { mailbox: mailboxName })
-        );
-      }
+    onSuccess: (count, mailboxName, restore) => {
+      toastWithUndo(
+        count === 1 ? tNotifications('email_moved') : tNotifications('emails_moved', { count }),
+        undoMoveAction(useAuthStore.getState().client, restore, undoLabels(tNotifications)),
+        tNotifications('moved_to_mailbox', { mailbox: mailboxName }),
+      );
     },
     onError: () => {
       toast.error(tNotifications('move_failed'), tNotifications('move_error'));
