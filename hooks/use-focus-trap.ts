@@ -8,12 +8,15 @@ interface UseFocusTrapOptions {
   isActive: boolean;
   onEscape?: () => void;
   restoreFocus?: boolean;
+  /** Where the focus goes on open, instead of the first focusable element. */
+  initialFocus?: () => HTMLElement | null | undefined;
 }
 
 export function useFocusTrap({
   isActive,
   onEscape,
   restoreFocus = true,
+  initialFocus,
 }: UseFocusTrapOptions) {
   const containerRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
@@ -22,8 +25,10 @@ export function useFocusTrap({
   // focus back to the opener and then to the first element, out of the field
   // the user was typing in whenever the page behind rendered again.
   const onEscapeRef = useRef(onEscape);
+  const initialFocusRef = useRef(initialFocus);
   useEffect(() => {
     onEscapeRef.current = onEscape;
+    initialFocusRef.current = initialFocus;
   });
 
   useEffect(() => {
@@ -57,12 +62,9 @@ export function useFocusTrap({
     };
     container.addEventListener('focusin', handleFocusIn);
 
-    // Focus first element
-    const focusableElements = getFocusableElements();
-    const firstElement = focusableElements[0];
-    if (firstElement) {
-      firstElement.focus();
-    }
+    // Focus the requested element, else the first one
+    const target = initialFocusRef.current?.() ?? getFocusableElements()[0];
+    target?.focus();
 
     // Handle Tab key to trap focus
     const handleKeyDown = (e: KeyboardEvent) => {

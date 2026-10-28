@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, type ReactNode, type RefObject, type FormEvent } from "react";
+import { useId, useRef, type ReactNode, type RefObject, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
@@ -91,22 +91,17 @@ export function Dialog({
   const id = useId();
   const titleId = `${id}-title`;
   const descriptionId = `${id}-description`;
-  const panelRef = useFocusTrap({ isActive: isOpen, onEscape: onClose, restoreFocus: true });
+  // The focus starts on an explicit target, else the first field, else
+  // the first control.
+  const panelRef = useFocusTrap({
+    isActive: isOpen,
+    onEscape: onClose,
+    restoreFocus: true,
+    initialFocus: () => initialFocus?.current ?? panelRef.current?.querySelector<HTMLElement>(FIELD_SELECTOR),
+  });
   // A press that started on the backdrop, so a text selection dragged out of
   // a field and released outside doesn't count as an outside click.
   const pressedOnBackdrop = useRef(false);
-
-  // The focus trap has put the focus on the first control; a field or an
-  // explicit target is the better start.
-  useEffect(() => {
-    if (!isOpen) return;
-    const panel = panelRef.current;
-    if (!panel) return;
-    const target = initialFocus?.current ?? panel.querySelector<HTMLElement>(FIELD_SELECTOR);
-    target?.focus();
-    // Only on open: a later render must not pull the focus back.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
 
   if (!isOpen || typeof document === "undefined") return null;
 
