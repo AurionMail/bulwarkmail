@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { PluginSidebarSections } from "@/components/plugins/plugin-sidebar-sections";
-import { Button } from "@/components/ui/button";
+import { Button, TOUCH_HIT_AREA } from "@/components/ui/button";
 import {
   Inbox,
   Send,
@@ -422,7 +422,9 @@ function SidebarRow({
                 onExpandToggle();
               }}
               data-testid="folder-expand-toggle"
-              className="flex items-center justify-center rounded hover:bg-muted active:bg-accent transition-colors"
+              aria-label={isExpanded ? t('collapse_tooltip') : t('expand_tooltip')}
+              aria-expanded={isExpanded}
+              className={cn("flex items-center justify-center rounded hover:bg-muted active:bg-accent transition-colors", TOUCH_HIT_AREA)}
               style={{ width: CHEVRON_SLOT, height: CHEVRON_SLOT }}
               title={isExpanded ? t('collapse_tooltip') : t('expand_tooltip')}
             >

@@ -6,6 +6,7 @@ import { Search, X } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Input } from "@/components/ui/input";
+import { TOUCH_HIT_AREA } from "@/components/ui/button";
 import { useContactStore } from "@/stores/contact-store";
 import { useSearchHistoryStore } from "@/stores/search-history-store";
 import { buildSearchSuggestions, type ContactSuggestion, type SearchSuggestion } from "@/lib/search-suggestions";
@@ -185,7 +186,7 @@ export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact,
               close();
               onClear();
             }}
-            className="absolute end-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            className={cn("absolute end-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors", TOUCH_HIT_AREA)}
             aria-label={t("clear_search")}
           >
             <X className="w-4 h-4" />

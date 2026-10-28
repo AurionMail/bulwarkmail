@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useMvComposeWindow } from "@/components/email/mv-compose-context";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
+import { Button, TOUCH_HIT_AREA } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { Input } from "@/components/ui/input";
@@ -4415,8 +4415,9 @@ export function EmailComposer({
                     )}
                     <button
                       onClick={() => removeAttachment(index)}
-                      className="ms-1 hover:text-destructive min-w-[20px] min-h-[20px] flex items-center justify-center"
-                      title={att.uploading ? t('upload_cancel') : undefined}
+                      className={cn("ms-1 hover:text-destructive min-w-[20px] min-h-[20px] flex items-center justify-center", TOUCH_HIT_AREA)}
+                      title={att.uploading ? t('upload_cancel') : t('recipient_remove')}
+                      aria-label={att.uploading ? t('upload_cancel') : `${t('recipient_remove')} ${att.name}`}
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -5475,7 +5476,8 @@ function RecipientChipInput({
               )}
               <button
                 type="button"
-                className="flex items-center justify-center w-4 h-4 rounded-full hover:bg-muted-foreground/20 transition-colors"
+                className={cn("flex items-center justify-center w-4 h-4 rounded-full hover:bg-muted-foreground/20 transition-colors", TOUCH_HIT_AREA)}
+                aria-label={t('recipient_remove')}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (isEditing) {

@@ -67,3 +67,14 @@ describe('folder list from the keyboard', () => {
     expect(container.querySelectorAll('button button, button [role="button"]')).toHaveLength(0);
   });
 });
+
+describe('folder list on touch', () => {
+  it('gives the expand chevron a 44px hit area and a name', () => {
+    useSettingsStore.setState({ hideAccountSwitcher: true } as never);
+    const withChild = [...mailboxes, { ...box('trips', 'Trips', null), parentId: 'travel' } as Mailbox];
+    render(<Sidebar mailboxes={withChild} selectedMailbox="inbox" />);
+    const toggle = row('travel').querySelector('[data-testid="folder-expand-toggle"]')!;
+    expect(toggle.className).toContain('pointer-coarse:after:min-h-11');
+    expect(toggle.getAttribute('aria-label')).toBeTruthy();
+  });
+});
