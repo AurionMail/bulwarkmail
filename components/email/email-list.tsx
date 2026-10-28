@@ -16,6 +16,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } fr
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useArchiveActionEnabled } from "@/lib/archive-gate";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder, restoreBatchesForSelection, isAggregateListView, type ListRow } from "@/stores/email-store";
@@ -69,6 +70,10 @@ interface EmailListProps {
   onForward?: (email: Email) => void;
   onForwardAsAttachment?: (email: Email) => void;
   onBatchForwardAsAttachment?: () => void;
+  /** The empty search state's "Clear search". */
+  onClearSearch?: () => void;
+  /** The empty Drafts folder's "Compose". */
+  onCompose?: () => void;
   onMarkAsRead?: (email: Email, read: boolean) => void;
   onToggleStar?: (email: Email) => void;
   onTogglePinned?: (email: Email) => void;
@@ -150,6 +155,8 @@ export function EmailList({
   onForward,
   onForwardAsAttachment,
   onBatchForwardAsAttachment,
+  onClearSearch,
+  onCompose,
   onMarkAsRead,
   onToggleStar,
   onTogglePinned,
@@ -174,6 +181,7 @@ export function EmailList({
   const tSpam = useTranslations('email_viewer.spam');
   const tNotifications = useTranslations('notifications');
   const tViewer = useTranslations('email_viewer');
+  const tSidebar = useTranslations('sidebar');
   const undo = undoLabels(tNotifications);
   const { client } = useAuthStore(useShallow((state) => ({ client: state.client })));
   const {
@@ -1065,22 +1073,19 @@ export function EmailList({
         {isLoading && emails.length === 0 ? (
           <LoadingSkeleton />
         ) : emails.length === 0 && !isLoading ? (
-          <div className="flex flex-col items-center justify-center h-full py-12">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted shadow-lg flex items-center justify-center">
-              {isScheduledView ? (
-                <CalendarClock className="w-10 h-10 text-muted-foreground" />
-              ) : searchQuery || !isFilterEmpty(searchFilters) ? (
-                <SearchX className="w-10 h-10 text-muted-foreground" />
-              ) : (
-                <MailX className="w-10 h-10 text-muted-foreground" />
-              )}
-            </div>
-            <p className="text-base font-medium text-foreground">
-              {isScheduledView ? t('no_scheduled_emails') : searchQuery || !isFilterEmpty(searchFilters) ? t('no_search_results') : t('no_emails')}
-            </p>
-            <p className="text-sm mt-1 text-muted-foreground">
-              {isScheduledView ? t('no_scheduled_emails_description') : searchQuery || !isFilterEmpty(searchFilters) ? t('no_search_results_description') : t('no_emails_description')}
-            </p>
+          <div className="flex flex-col items-center justify-center h-full">
+            {/* R9: an empty search offers Clear search; Drafts, which the
+                user fills, offers Compose. */}
+            <EmptyState
+              icon={isScheduledView ? CalendarClock : isSearching ? SearchX : MailX}
+              title={isScheduledView ? t('no_scheduled_emails') : isSearching ? t('no_search_results') : t('no_emails')}
+              description={isScheduledView ? t('no_scheduled_emails_description') : isSearching ? t('no_search_results_description') : t('no_emails_description')}
+              actions={!isScheduledView && isSearching && onClearSearch ? (
+                <Button size="sm" variant="outline" onClick={onClearSearch}>{tSidebar('clear_search')}</Button>
+              ) : !isScheduledView && !isSearching && effectiveMailboxRole === 'drafts' && onCompose ? (
+                <Button size="sm" onClick={onCompose}>{tSidebar('compose')}</Button>
+              ) : undefined}
+            />
             <PluginSlot name="message-list-empty" className="mt-4 w-full max-w-md px-4" extraProps={emptySlotProps} />
           </div>
         ) : (

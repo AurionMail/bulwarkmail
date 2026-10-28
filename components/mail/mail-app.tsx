@@ -5341,6 +5341,15 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 onBatchForwardAsAttachment={() => {
                   void handleBatchForwardAsAttachment();
                 }}
+                onClearSearch={() => void handleClearSearch()}
+                onCompose={() => {
+                  void withComposeGate('compose', {}, () => {
+                    startFreshComposerSession();
+                    setComposerMode('compose');
+                    setShowComposer(true);
+                    if (isMobile) setActiveView('viewer');
+                  });
+                }}
                 onMarkAsRead={async (email, read) => {
                   if (client) {
                     await markAsRead(client, email.id, read, emailKeyFor(email)).catch(toastUpdateFailure);

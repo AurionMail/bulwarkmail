@@ -81,3 +81,21 @@ describe('selection bar and rows from the keyboard', () => {
     for (const box of boxes) expect(box.getAttribute('aria-label')).toBe('select_row');
   });
 });
+
+describe('empty list', () => {
+  it('offers Clear search when a search found nothing', () => {
+    const onClearSearch = vi.fn();
+    useEmailStore.setState({ emails: [], selectedEmailKeys: new Set(), searchQuery: 'zebra' });
+    render(<EmailList emails={[]} onClearSearch={onClearSearch} />);
+    fireEvent.click(screen.getByRole('button', { name: 'clear_search' }));
+    expect(onClearSearch).toHaveBeenCalled();
+  });
+
+  it('offers Compose in an empty Drafts folder', () => {
+    const onCompose = vi.fn();
+    useEmailStore.setState({ emails: [], selectedEmailKeys: new Set(), searchQuery: '', mailboxes: [folder('drafts', 'drafts')], selectedMailbox: 'drafts' });
+    render(<EmailList emails={[]} onCompose={onCompose} />);
+    fireEvent.click(screen.getByRole('button', { name: 'compose' }));
+    expect(onCompose).toHaveBeenCalled();
+  });
+});

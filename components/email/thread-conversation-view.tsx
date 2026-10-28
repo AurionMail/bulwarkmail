@@ -21,6 +21,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatFileSize, cn, cleanPreview } from "@/lib/utils";
 import { IconButton } from "@/components/ui/icon-button";
+import { PaneSpinner } from "@/components/ui/spinner";
 import {
   Archive,
   Mail,
@@ -36,7 +37,6 @@ import {
   Paperclip,
   Star,
   Download,
-  Loader2,
   FileText,
   FileImage,
   FileVideo,
@@ -257,14 +257,8 @@ export function ThreadConversationView({
   };
 
   if (isLoading) {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">{t("threads.loading")}</p>
-        </div>
-      </div>
-    );
+    // One centred spinner for a whole pane (R9).
+    return <PaneSpinner label={t("threads.loading")} className="bg-background" />;
   }
 
   return (
