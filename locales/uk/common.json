@@ -308,7 +308,7 @@
       "mark_read": "Позначити як прочитане",
       "mark_unread": "Позначити як непрочитане",
       "delete": "Видалити",
-      "delete_confirm_title": "Видалити електронні листи",
+      "delete_confirm_title": "Видалити ці листи?",
       "delete_confirm_message": "Ви впевнені, що хочете видалити {count, plural, one {1 email} other {# emails}}?",
       "clear_selection": "Очистити вибір",
       "more": "Інші дії з вибраним"
@@ -327,7 +327,8 @@
       "custom": "Власний порядок (у налаштуваннях)"
     },
     "permanent_delete": "Видалити остаточно",
-    "permanent_delete_confirm_title": "Видалити назавжди",
+    "permanent_delete_confirm_title": "Видалити цей лист назавжди?",
+    "permanent_delete_confirm_batch_title": "Видалити ці листи назавжди?",
     "permanent_delete_confirm_message": "Цей електронний лист буде видалено назавжди. Цю дію не можна скасувати.",
     "permanent_delete_confirm_batch_message": "Ці {count, plural, one {1 email} other {# emails}} буде остаточно видалено. Цю дію не можна скасувати.",
     "empty_folder": {
@@ -530,7 +531,7 @@
     "spam": {
       "button_title": "Повідомити про спам",
       "not_spam_title": "Позначити як законне",
-      "toast_success": "Перенесено в сміття",
+      "toast_success": "Перенесено до спаму",
       "toast_batch": "{count} електронних листів переміщено до спаму",
       "toast_undo": "Скасувати",
       "toast_not_spam_success": "Переміщено до папки \"Вхідні\".",
@@ -672,6 +673,7 @@
     "already_sent": "Цей лист уже надіслано.",
     "no_longer_scheduled": "Цей лист більше не заплановано.",
     "reschedule_recipients_refused": "Нічого не змінено: сервер відхилив {recipients}.",
+    "rescheduled_for": "Перенесено на {date}",
     "contact_sidebar": {
       "title": "Контакт",
       "close": "Закрити бічну панель",
@@ -975,7 +977,7 @@
     "refreshing": "Оновлення…"
   },
   "notifications": {
-    "email_sent": "Електронна пошта успішно надіслана",
+    "email_sent": "Лист надіслано",
     "email_deleted": "Електронну пошту видалено",
     "email_archived": "Електронний лист заархівовано",
     "emails_deleted": "{count, plural, one {# лист видалено} few {# листи видалено} many {# листів видалено} other {# листа видалено}}",
@@ -2942,10 +2944,10 @@
     "unstar": "Зняти зірочку",
     "pin": "Закріпити",
     "unpin": "Відкріпити",
-    "move_to": "Перемістити до...",
+    "move_to": "Перемістити до",
     "move_to_dialog": "Перемістити до…",
     "go_to_folder": "Перейти до {folder}",
-    "copy_to_account": "Копіювати в обліковий запис...",
+    "copy_to_account": "Копіювати в обліковий запис",
     "remove_from_folder": "Прибрати з цієї папки",
     "archive": "Архів",
     "delete": "Видалити",
@@ -2985,10 +2987,10 @@
     "mark_folder_read": "Позначити папку як прочитану",
     "mark_folder_tree_read": "Позначити папку та вкладені папки як прочитані",
     "mark_all_folders_read": "Позначити всі папки як прочитані",
-    "new_subfolder": "Нова вкладена папка...",
-    "new_folder": "Нова папка...",
-    "rename": "Перейменувати...",
-    "share": "Поділитися...",
+    "new_subfolder": "Нова вкладена папка…",
+    "new_folder": "Нова папка…",
+    "rename": "Перейменувати…",
+    "share": "Поділитися…",
     "import_email": "Імпортувати .eml або .zip...",
     "empty_folder": "Очистити папку",
     "empty_folder_generic": "Очистити папку",

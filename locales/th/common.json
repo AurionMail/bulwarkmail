@@ -398,7 +398,7 @@
     "toggle_thread": "สลับมุมมองการสนทนา"
   },
   "notifications": {
-    "email_sent": "ส่งอีเมลเรียบร้อยแล้ว",
+    "email_sent": "ส่งอีเมลแล้ว",
     "email_deleted": "ลบอีเมลแล้ว",
     "email_archived": "เก็บอีเมลถาวรแล้ว",
     "emails_deleted": "{count, plural, other {ลบอีเมลแล้ว # ฉบับ}}",
@@ -512,7 +512,7 @@
       "mark_read": "ทำเครื่องหมายว่าอ่านแล้ว",
       "mark_unread": "ทำเครื่องหมายว่ายังไม่อ่าน",
       "delete": "ลบ",
-      "delete_confirm_title": "ยืนยันการลบอีเมล",
+      "delete_confirm_title": "ลบอีเมลเหล่านี้หรือไม่",
       "delete_confirm_message": "คุณแน่ใจหรือไม่ว่าต้องการลบอีเมล {count, plural, other {# ฉบับ}} ที่เลือกไว้?",
       "clear_selection": "ล้างการเลือก",
       "more": "การดำเนินการเพิ่มเติมสำหรับรายการที่เลือก"
@@ -531,7 +531,8 @@
       "custom": "ลำดับที่กำหนดเอง (ในการตั้งค่า)"
     },
     "permanent_delete": "ลบถาวร",
-    "permanent_delete_confirm_title": "ยืนยันการลบถาวร",
+    "permanent_delete_confirm_title": "ลบอีเมลนี้อย่างถาวรหรือไม่",
+    "permanent_delete_confirm_batch_title": "ลบอีเมลเหล่านี้อย่างถาวรหรือไม่",
     "permanent_delete_confirm_message": "อีเมลนี้จะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้",
     "permanent_delete_confirm_batch_message": "อีเมล {count, plural, other {# ฉบับ}} นี้จะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้",
     "empty_folder": {
@@ -562,10 +563,10 @@
     "unstar": "ยกเลิกติดดาว",
     "pin": "ปักหมุด",
     "unpin": "ถอนหมุด",
-    "move_to": "ย้ายไปที่...",
+    "move_to": "ย้ายไปที่",
     "move_to_dialog": "ย้ายไปที่…",
     "go_to_folder": "ไปที่ {folder}",
-    "copy_to_account": "คัดลอกไปยังบัญชี...",
+    "copy_to_account": "คัดลอกไปยังบัญชี",
     "remove_from_folder": "นำออกจากโฟลเดอร์นี้",
     "archive": "เก็บถาวร",
     "delete": "ลบ",
@@ -605,10 +606,10 @@
     "mark_folder_read": "ทำเครื่องหมายโฟลเดอร์ว่าอ่านแล้ว",
     "mark_folder_tree_read": "ทำเครื่องหมายโฟลเดอร์และโฟลเดอร์ย่อยว่าอ่านแล้ว",
     "mark_all_folders_read": "ทำเครื่องหมายทุกโฟลเดอร์ว่าอ่านแล้ว",
-    "new_subfolder": "สร้างโฟลเดอร์ย่อยใหม่...",
-    "new_folder": "สร้างโฟลเดอร์ใหม่...",
-    "rename": "เปลี่ยนชื่อ...",
-    "share": "แชร์...",
+    "new_subfolder": "สร้างโฟลเดอร์ย่อยใหม่…",
+    "new_folder": "สร้างโฟลเดอร์ใหม่…",
+    "rename": "เปลี่ยนชื่อ…",
+    "share": "แชร์…",
     "import_email": "นำเข้าไฟล์ .eml หรือ .zip...",
     "empty_folder": "ล้างข้อมูลในโฟลเดอร์",
     "empty_folder_generic": "ล้างข้อมูลในโฟลเดอร์",
@@ -1432,6 +1433,7 @@
     "already_sent": "ข้อความนี้ถูกส่งออกไปแล้ว",
     "no_longer_scheduled": "ข้อความนี้ไม่มีกำหนดเวลาส่งแล้ว",
     "reschedule_recipients_refused": "ไม่มีการเปลี่ยนแปลง: เซิร์ฟเวอร์ปฏิเสธผู้รับ {recipients}",
+    "rescheduled_for": "กำหนดเวลาใหม่เป็น {date}",
     "contact_sidebar": {
       "title": "ข้อมูลผู้ติดต่อ",
       "close": "ปิด",

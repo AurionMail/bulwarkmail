@@ -308,7 +308,7 @@
       "mark_read": "Mark as read",
       "mark_unread": "Mark as unread",
       "delete": "Delete",
-      "delete_confirm_title": "Delete emails",
+      "delete_confirm_title": "Delete these emails?",
       "delete_confirm_message": "Are you sure you want to delete {count, plural, one {1 email} other {# emails}}?",
       "clear_selection": "Clear selection",
       "more": "More actions for the selection"
@@ -327,7 +327,8 @@
       "custom": "Custom order (in Settings)"
     },
     "permanent_delete": "Delete permanently",
-    "permanent_delete_confirm_title": "Permanently delete",
+    "permanent_delete_confirm_title": "Delete this email permanently?",
+    "permanent_delete_confirm_batch_title": "Delete these emails permanently?",
     "permanent_delete_confirm_message": "This email will be permanently deleted. This action cannot be undone.",
     "permanent_delete_confirm_batch_message": "These {count, plural, one {1 email} other {# emails}} will be permanently deleted. This action cannot be undone.",
     "empty_folder": {
@@ -555,8 +556,8 @@
     "spam": {
       "button_title": "Report spam",
       "not_spam_title": "Not spam",
-      "toast_success": "Moved to Junk",
-      "toast_batch": "{count} emails moved to Junk",
+      "toast_success": "Moved to Spam",
+      "toast_batch": "{count} emails moved to Spam",
       "toast_undo": "Undo",
       "toast_not_spam_success": "Moved to Inbox",
       "toast_not_spam_batch": "{count} emails moved to Inbox",
@@ -672,6 +673,7 @@
     "already_sent": "This message was already sent.",
     "no_longer_scheduled": "This message is no longer scheduled.",
     "reschedule_recipients_refused": "Nothing was changed: the server refused {recipients}.",
+    "rescheduled_for": "Rescheduled for {date}",
     "contact_sidebar": {
       "title": "Contact",
       "close": "Close sidebar",
@@ -717,7 +719,7 @@
     "minimize": "Minimize",
     "maximize": "Full screen",
     "restore": "Restore",
-    "new_message": "New Message",
+    "new_message": "New message",
     "signature_edit_hint": "Double-click to edit the signature",
     "reply": "Reply",
     "reply_all": "Reply all",
@@ -788,7 +790,7 @@
       "email_placeholder": "alias@example.com",
       "envelope_notice": "If your server doesn't accept this address as the envelope sender, {identity} is used there instead, and recipients can see it in the Return-Path header."
     },
-    "save_as_template": "Save as Template",
+    "save_as_template": "Save as template",
     "attach_from_device": "Upload from this device",
     "templates_menu": "Templates",
     "insert_template": "Insert template",
@@ -975,7 +977,7 @@
     "refreshing": "Refreshing…"
   },
   "notifications": {
-    "email_sent": "Email sent successfully",
+    "email_sent": "Email sent",
     "email_deleted": "Email deleted",
     "email_archived": "Email archived",
     "emails_deleted": "{count, plural, one {# email deleted} other {# emails deleted}}",
@@ -2945,7 +2947,7 @@
     "move_to": "Move to",
     "move_to_dialog": "Move to…",
     "go_to_folder": "Go to {folder}",
-    "copy_to_account": "Copy to account...",
+    "copy_to_account": "Copy to account",
     "remove_from_folder": "Remove from this folder",
     "archive": "Archive",
     "delete": "Delete",
@@ -2985,10 +2987,10 @@
     "mark_folder_read": "Mark folder as read",
     "mark_folder_tree_read": "Mark folder & subfolders as read",
     "mark_all_folders_read": "Mark all folders as read",
-    "new_subfolder": "New subfolder...",
-    "new_folder": "New folder...",
-    "rename": "Rename...",
-    "share": "Share...",
+    "new_subfolder": "New subfolder…",
+    "new_folder": "New folder…",
+    "rename": "Rename…",
+    "share": "Share…",
     "import_email": "Import .eml or .zip…",
     "empty_folder": "Empty folder",
     "empty_folder_generic": "Empty folder",

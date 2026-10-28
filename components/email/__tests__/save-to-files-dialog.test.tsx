@@ -48,4 +48,18 @@ describe('SaveToFilesDialog', () => {
     await waitFor(() => expect(createFileNode).toHaveBeenCalledWith('invoice.pdf', 'blob-mine', 'application/pdf', 1234, 'docs'));
     expect(copyBlobs).toHaveBeenCalledWith('team', ['blob-1'], 'me');
   });
+
+  // "Save here" was greyed out until My files was clicked, with nothing on
+  // screen saying why.
+  it('starts with My files selected, so Save here saves there right away', async () => {
+    const createFileNode = vi.fn().mockResolvedValue({});
+    const client = { listAllFileNodes: vi.fn().mockResolvedValue(nodes), createFileNode } as unknown as IJMAPClient;
+    render(<SaveToFilesDialog attachment={attachment} client={client} onClose={vi.fn()} />);
+
+    await screen.findByText('Documents');
+    const saveHere = screen.getByRole('button', { name: 'save_here' }) as HTMLButtonElement;
+    expect(saveHere.disabled).toBe(false);
+    fireEvent.click(saveHere);
+    await waitFor(() => expect(createFileNode).toHaveBeenCalledWith('invoice.pdf', 'blob-1', 'application/pdf', 1234, null));
+  });
 });

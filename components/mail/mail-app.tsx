@@ -42,7 +42,8 @@ import { findDraftIdentityIdForLogin, listRowSource, resolveDraftSource, type Dr
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
 import { toast } from "@/stores/toast-store";
-import { cancelFailureToast, partlyRefusedWarning, rescheduleFailureToast } from "@/lib/send-failure-message";
+import { cancelFailureToast, partlyRefusedWarning, rescheduleFailureToast, rescheduledToast } from "@/lib/send-failure-message";
+import { formatScheduledSendAt } from "@/lib/scheduled-send-label";
 import { formatRejectedRecipients, RescheduleRestoredError } from "@/lib/jmap/client";
 import { subscribePushStateChanges } from "@/lib/push-events";
 import { createMailPushListener } from "@/lib/mail-push-listener";
@@ -90,7 +91,7 @@ import { isFilterEmpty, activeFilterCount, DEFAULT_SEARCH_FILTERS } from "@/lib/
 import { SearchBox, type ContactSearchField } from "@/components/search/search-box";
 import { FilterPanelHost } from "@/components/search/filter-panel-host";
 import type { ContactSuggestion } from "@/lib/search-suggestions";
-import type { Attachment } from "@/lib/jmap/types";
+import type { Attachment, SendEmailResult } from "@/lib/jmap/types";
 import { peekListAttachments, requestListAttachments, type ListAttachmentSource, type LoadListAttachments } from "@/lib/list-attachments";
 import { useSearchHistoryStore } from "@/stores/search-history-store";
 import { WelcomeBanner } from "@/components/ui/welcome-banner";
@@ -948,7 +949,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         if (shouldConfirmBulkDelete(currentMailbox)) {
           const confirmed = await confirmDialog({
             title: permanent
-              ? t('email_list.permanent_delete_confirm_title')
+              ? t('email_list.permanent_delete_confirm_batch_title')
               : t('email_list.batch_actions.delete_confirm_title'),
             message: permanent
               ? t('email_list.permanent_delete_confirm_batch_message', { count: selectedEmailKeys.size })
@@ -2438,8 +2439,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (!client || !email.emailSubmissionId || !email.scheduledIdentityId) return;
     try {
       const result = await rescheduleScheduledEmail(client, email.emailSubmissionId, email.id, email.scheduledIdentityId, delayedUntil, email.scheduledAccountId);
-      const refused = partlyRefusedWarning(result, tComposer);
-      if (refused) toast.warning(refused);
+      announceRescheduled(result, delayedUntil);
     } catch (error) {
       console.error('Failed to reschedule the scheduled send:', error);
       const { title, message } = rescheduleFailureToast(error, tViewer, tComposer, scheduledTime(email.scheduledSendAt));
@@ -2449,6 +2449,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
   const scheduledTime = (sendAt: string | undefined) =>
     sendAt ? formatDateTime(sendAt, useSettingsStore.getState().timeFormat) : undefined;
+
+  // R9: a reschedule says when the message goes out now.
+  const announceRescheduled = (result: SendEmailResult, delayedUntil: string) => {
+    const { kind, title, message } = rescheduledToast(result, tViewer, tComposer, formatScheduledSendAt(result.sendAt || delayedUntil, useSettingsStore.getState().timeFormat));
+    toast[kind](title, message ? { message } : undefined);
+  };
 
   const toastCancelFailure = (error: unknown, cancelFailedTitle: string) => {
     const { title, message } = cancelFailureToast(error, tViewer, cancelFailedTitle);
@@ -2481,8 +2487,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // and compose again".
   const handleCancelScheduledSend = async (email: Email) => {
     if (email.isSmimeScheduled || email.scheduledUndoStatus !== 'pending') return;
+    const wasOpen = useEmailStore.getState().selectedEmail?.id === email.id;
     const restored = await cancelScheduledForEdit(email);
     if (restored === undefined) return;
+    // The store closed it in the reader; on a phone or tablet the list comes back.
+    if (wasOpen && (isMobile || isTablet)) handleMobileBack();
     toast.success(
       tViewer('send_cancelled'),
       t('notifications.moved_to_mailbox', { mailbox: t('sidebar.mailboxes.drafts') }),
@@ -3048,25 +3057,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const handleMarkAsSpam = async (emailToMark: Email | null = selectedEmail) => {
     if (!client || !emailToMark) return;
 
-    const emailId = emailToMark.id;
-
+    // Undo puts it back in its own folders, read state included, as every
+    // other Undo does.
+    const restore = restoreBatchesFor([emailToMark], client);
     try {
-      if (!(await markAsSpam(client, emailId, emailKeyFor(emailToMark)))) return;
-
-      toast.success(t('email_viewer.spam.toast_success'), {
-        action: {
-          label: t('email_viewer.spam.toast_undo'),
-          onClick: async () => {
-            try {
-              if (await undoSpam(client, emailId, emailKeyFor(emailToMark))) toast.success(t('notifications.email_moved'));
-            } catch (_error) {
-              console.error("Failed to undo spam:", _error);
-              toast.error(t('email_viewer.spam.error'));
-            }
-          },
-        },
-        duration: 5000,
-      });
+      if (!(await markAsSpam(client, emailToMark.id, emailKeyFor(emailToMark)))) return;
+      toastWithUndo(t('email_viewer.spam.toast_success'), undoMoveAction(client, restore, undo));
     } catch (_error) {
       console.error("Failed to mark as spam:", _error);
       toast.error(t('email_viewer.spam.error'));
@@ -3076,10 +3072,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const handleUndoSpam = async (emailToRestore: Email | null = selectedEmail) => {
     if (!client || !emailToRestore) return;
 
+    const restore = restoreBatchesFor([emailToRestore], client);
     try {
       if (!(await undoSpam(client, emailToRestore.id, emailKeyFor(emailToRestore)))) return;
-
-      toast.success(t('email_viewer.spam.toast_not_spam_success'));
+      toastWithUndo(t('email_viewer.spam.toast_not_spam_success'), undoMoveAction(client, restore, undo));
     } catch (_error) {
       console.error("Failed to restore email:", _error);
       toast.error(t('email_viewer.spam.error_not_spam'));
@@ -5544,28 +5540,32 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   }
                 }}
                 mailboxRole={mailboxes.find(m => m.id === selectedMailbox)?.role ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined)}
-                // What the list row does with the conversation, then back to
-                // the list, which now shows what is left.
-                onArchive={archiveActionEnabled ? () => {
+                // What the list row does with the conversation's newest
+                // message. What takes it out of the folder goes back to the
+                // list first, which then shows what is left.
+                actions={(() => {
                   const target = conversationThread.latestEmail;
-                  handleMobileBack();
-                  void handleArchive(target);
-                } : undefined}
-                onDelete={() => {
-                  const target = conversationThread.latestEmail;
-                  handleMobileBack();
-                  void handleDelete(target);
-                }}
-                onToggleSpam={conversationSpamApplicable ? () => {
-                  const target = conversationThread.latestEmail;
-                  handleMobileBack();
-                  void (conversationInJunk ? handleUndoSpam(target) : handleMarkAsSpam(target));
-                } : undefined}
-                onMarkUnread={client ? () => {
-                  const target = conversationThread.latestEmail;
-                  handleMobileBack();
-                  void markAsRead(client, target.id, false, emailKeyFor(target)).catch(toastUpdateFailure);
-                } : undefined}
+                  const leaving = (run: () => unknown) => () => { handleMobileBack(); void run(); };
+                  return {
+                    mailboxes,
+                    selectedMailbox,
+                    currentMailboxRole: conversationRole,
+                    onArchive: archiveActionEnabled ? leaving(() => handleArchive(target)) : undefined,
+                    onDelete: leaving(() => handleDelete(target)),
+                    onMoveToMailbox: (mailboxId: string) => leaving(() => handleMoveToMailbox(target.id, mailboxId, emailKeyFor(target)))(),
+                    onForwardAsAttachment: () => void handleForwardAsAttachment(target),
+                    onMarkAsRead: client ? (read: boolean) => {
+                      const run = () => markAsRead(client, target.id, read, emailKeyFor(target)).catch(toastUpdateFailure);
+                      // Marked unread, the conversation is done with for now.
+                      if (read) void run(); else leaving(run)();
+                    } : undefined,
+                    onToggleStar: client ? () => void toggleStar(client, target.id, emailKeyFor(target)).catch(toastUpdateFailure) : undefined,
+                    onTogglePinned: () => void handleTogglePinned(target),
+                    onSetTag: (tagId: string | null) => void handleSetTag(target.id, tagId, emailKeyFor(target)),
+                    onMarkAsSpam: conversationSpamApplicable && !conversationInJunk ? leaving(() => handleMarkAsSpam(target)) : undefined,
+                    onUndoSpam: conversationInJunk ? leaving(() => handleUndoSpam(target)) : undefined,
+                  };
+                })()}
               />
             ) : (
               <>
@@ -5659,8 +5659,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     onRescheduleScheduled={async (delayedUntil) => {
                       if (client && selectedEmail?.emailSubmissionId && selectedEmail.scheduledIdentityId) {
                         const result = await rescheduleScheduledEmail(client, selectedEmail.emailSubmissionId, selectedEmail.id, selectedEmail.scheduledIdentityId, delayedUntil, selectedEmail.scheduledAccountId);
-                        const refused = partlyRefusedWarning(result, tComposer);
-                        if (refused) toast.warning(refused);
+                        announceRescheduled(result, delayedUntil);
                       }
                     }}
                     onCompose={() => {

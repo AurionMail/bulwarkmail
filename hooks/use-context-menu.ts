@@ -40,6 +40,16 @@ function openedByKeyboard(e: React.MouseEvent): boolean {
   return false;
 }
 
+/**
+ * Where the focus goes back to when the menu closes: the control inside the
+ * opener that had it (a folder row's button, a message row's checkbox, where
+ * Shift+F10 was pressed), else the opener itself.
+ */
+function focusReturnTarget(opener: HTMLElement): HTMLElement {
+  const active = typeof document === "undefined" ? null : document.activeElement;
+  return active instanceof HTMLElement && opener.contains(active) ? active : opener;
+}
+
 /** The position that opens a menu under an element. */
 export function anchorPosition(element: HTMLElement, align: "start" | "end" = "start"): ContextMenuPosition {
   const rect = element.getBoundingClientRect();
@@ -89,9 +99,10 @@ export function useContextMenu<T>(): UseContextMenuReturn<T> {
     e.stopPropagation();
 
     const target = e.currentTarget instanceof HTMLElement ? e.currentTarget : null;
+    const trigger = target ? focusReturnTarget(target) : null;
     const position = target && openedByKeyboard(e)
-      ? anchorPosition(target)
-      : { ...calculatePosition(e.clientX, e.clientY), trigger: target };
+      ? { ...anchorPosition(target), trigger }
+      : { ...calculatePosition(e.clientX, e.clientY), trigger };
 
     setContextMenu({
       isOpen: true,

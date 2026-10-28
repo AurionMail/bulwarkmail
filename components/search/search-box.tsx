@@ -147,7 +147,10 @@ export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact,
         <Input
           type="search"
           autoFocus={autoFocus}
-          placeholder={placeholder ?? t(touch ? "search_placeholder" : "search_placeholder_hint")}
+          // Short, so a narrow list column doesn't cut it; the "/" shortcut
+          // shows as a key cap below instead of in the text.
+          placeholder={placeholder ?? t("search_placeholder")}
+          aria-keyshortcuts={touch ? undefined : "/"}
           value={draft}
           onChange={(e) => {
             setDraft(e.target.value);
@@ -166,7 +169,7 @@ export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact,
             close();
           }}
           onKeyDown={handleKeyDown}
-          className={cn("ps-9 h-9 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none", draft && "pe-8")}
+          className={cn("peer ps-9 h-9 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none", draft ? "pe-8" : !touch && "pe-8")}
           role="combobox"
           aria-expanded={showDropdown}
           aria-controls={listId}
@@ -178,6 +181,14 @@ export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact,
           disabled={disabled}
           title={title}
         />
+        {!draft && !touch && (
+          <kbd
+            aria-hidden="true"
+            className="pointer-events-none absolute end-2 top-1/2 -translate-y-1/2 rounded border border-border px-1.5 font-sans text-[11px] leading-4 text-muted-foreground peer-focus:hidden"
+          >
+            /
+          </kbd>
+        )}
         {draft && (
           <button
             type="button"

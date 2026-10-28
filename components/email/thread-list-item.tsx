@@ -80,6 +80,7 @@ export function listMailboxRole(state: {
     ?? (state.isUnifiedView ? (state.unifiedRole ?? undefined) : undefined);
 }
 
+/** Hover actions mount on the first pointerover or keyboard focus in the row. */
 function useArmOnPointerOver(): [boolean, () => void] {
   const [armed, setArmed] = React.useState(false);
   const arm = React.useCallback(() => setArmed(true), []);
@@ -545,6 +546,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
         {...touchHandlers}
         data-testid="email-list-item"
         onPointerOver={armHoverActions}
+        onFocus={armHoverActions}
         onPointerDown={(e) => { if (onPrefetch && isMousePressOnRow(e)) onPrefetch(); }}
         data-email-id={email.id}
         data-subject={email.subject || ''}
@@ -673,7 +675,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                       <span className="sr-only">{accountDescription}</span>
                     </span>
                   )}
-                  <span className={cn(
+                  <span dir={columns ? undefined : "auto"} className={cn(
                     columns ? cn(LIST_COLUMN_CLASS.from, 'flex items-center gap-2') : 'w-32 shrink-0 truncate lg:w-40',
                     'text-sm',
                     isUnread ? (mvRow ? 'font-bold text-foreground' : 'font-semibold text-foreground') : 'font-medium text-foreground/80'
@@ -691,7 +693,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                             <span className="sr-only">{accountDescription}</span>
                           </span>
                         )}
-                        <span className="min-w-0 truncate">
+                        <span dir="auto" className="min-w-0 truncate">
                           {sender?.name || (sender?.email && formatAddress(sender.email)) || tUnknown}
                         </span>
                       </>
@@ -705,7 +707,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                         ))}
                       </span>
                     )}
-                    <span className={cn(
+                    <span dir="auto" className={cn(
                       'min-w-0 truncate',
                       isUnread ? (mvRow ? 'font-bold text-foreground' : 'font-semibold text-foreground') : 'text-foreground/90'
                     )}>
@@ -713,7 +715,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                     </span>
                     <PluginRowBadges email={email} className={mvRow ? "ms-2" : undefined} />
                     {(previewSnippet || inlinePreview) && (
-                      <span className="min-w-0 shrink-[9999] truncate text-muted-foreground">
+                      <span dir="auto" className="min-w-0 shrink-[9999] truncate text-muted-foreground">
                         {/* Gmail runs the snippet on from the subject after a dash. */}
                         {mvRow && '\u00a0-\u00a0'}
                         {previewSnippet ? <> <SearchSnippetText snippet={previewSnippet} /></> : (mvRow ? trimmedPreview : inlinePreview)}
@@ -771,7 +773,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                         <span className="sr-only">{accountDescription}</span>
                       </span>
                     )}
-                    <span className={cn(
+                    <span dir="auto" className={cn(
                       "truncate text-sm",
                       isUnread
                         ? "font-bold text-foreground"
@@ -848,7 +850,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                         ))}
                       </span>
                   )}
-                  <span className={cn(
+                  <span dir="auto" className={cn(
                     "min-w-0 flex-1 truncate text-sm",
                     isUnread
                       ? "font-semibold text-foreground"
@@ -861,7 +863,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
 
                 {showPreview && density !== 'extra-compact' && density !== 'compact' && (
                   <div className={cn("flex min-w-0 items-center gap-1", !mvMobileRow && "contents")}>
-                    <p className={cn(
+                    <p dir="auto" className={cn(
                       "text-sm leading-relaxed",
                       mvMobileRow ? "line-clamp-1 min-w-0 flex-1" : "line-clamp-2",
                       isUnread
@@ -1198,6 +1200,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
           {...dragHandlers}
           {...threadTouchHandlers}
           onPointerOver={armHoverActions}
+          onFocus={armHoverActions}
           onPointerDown={(e) => { if (onPrefetch && isMousePressOnRow(e)) onPrefetch(latestEmail); }}
           aria-current={isSelected ? 'true' : undefined}
           data-unread={hasUnread ? 'true' : 'false'}
@@ -1376,7 +1379,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                             <span className="sr-only">{threadAccountDescription}</span>
                           </span>
                         )}
-                        <span className={cn('min-w-0 truncate', hasUnread ? 'font-semibold text-foreground' : 'font-medium text-foreground/80')}>
+                        <span dir="auto" className={cn('min-w-0 truncate', hasUnread ? 'font-semibold text-foreground' : 'font-medium text-foreground/80')}>
                           {displayNames.join(', ')}
                         </span>
                         <span className="shrink-0 text-xs text-muted-foreground" title={t('messages_tooltip', { count: emailCount })}>
@@ -1386,7 +1389,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                     ) : mvRow ? (
                       // Gmail puts the message count after the names, in grey.
                       <span data-mv-names="" className="flex w-32 shrink-0 items-baseline gap-1 text-sm lg:w-40">
-                        <span className={cn('min-w-0 truncate', hasUnread ? 'font-bold text-foreground' : 'font-medium text-foreground/80')}>
+                        <span dir="auto" className={cn('min-w-0 truncate', hasUnread ? 'font-bold text-foreground' : 'font-medium text-foreground/80')}>
                           {displayNames.join(', ')}
                         </span>
                         <span className="shrink-0 text-xs text-muted-foreground" title={t('messages_tooltip', { count: emailCount })}>
@@ -1394,7 +1397,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                         </span>
                       </span>
                     ) : (
-                    <span className={cn(
+                    <span dir="auto" className={cn(
                       // Matches SingleEmailItem: the sender column sets where
                       // every row's tags and subject begin, so the two have to
                       // agree or thread rows sit 1rem further right.
@@ -1419,7 +1422,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                         ))}
                       </span>
                       )}
-                      <span className={cn(
+                      <span dir="auto" className={cn(
                         'min-w-0 truncate',
                         hasUnread ? (mvRow ? 'font-bold text-foreground' : 'font-semibold text-foreground') : 'text-foreground/90'
                       )}>
@@ -1427,7 +1430,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                       </span>
                       <PluginRowBadges email={latestEmail} className={mvRow ? "ms-2" : undefined} />
                       {(previewSnippet || inlinePreview) && (
-                        <span className="min-w-0 shrink-[9999] truncate text-muted-foreground">
+                        <span dir="auto" className="min-w-0 shrink-[9999] truncate text-muted-foreground">
                           {mvRow && '\u00a0-\u00a0'}
                           {previewSnippet ? <> <SearchSnippetText snippet={previewSnippet} /></> : (mvRow ? trimmedPreview : inlinePreview)}
                         </span>
@@ -1489,7 +1492,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                           <span className="sr-only">{threadAccountDescription}</span>
                         </span>
                       )}
-                      <span className={cn(
+                      <span dir="auto" className={cn(
                         "truncate text-sm",
                         hasUnread
                           ? "font-bold text-foreground"
@@ -1569,7 +1572,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                           ))}
                         </span>
                     )}
-                    <span className={cn(
+                    <span dir="auto" className={cn(
                       "min-w-0 flex-1 truncate text-sm",
                       hasUnread
                         ? "font-semibold text-foreground"
@@ -1582,7 +1585,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
 
                   {showPreview && density !== 'extra-compact' && density !== 'compact' && (
                     <div className={cn("flex min-w-0 items-center gap-1", !mvMobileRow && "contents")}>
-                      <p className={cn(
+                      <p dir="auto" className={cn(
                         "text-sm leading-relaxed",
                         mvMobileRow ? "line-clamp-1 min-w-0 flex-1" : "line-clamp-2",
                         hasUnread

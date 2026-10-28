@@ -308,7 +308,7 @@
       "mark_read": "标记为已读",
       "mark_unread": "标记为未读",
       "delete": "删除",
-      "delete_confirm_title": "删除邮件",
+      "delete_confirm_title": "要删除这些邮件吗？",
       "delete_confirm_message": "确定要删除{count, plural, one {1 封邮件} other {# 封邮件}}吗？",
       "clear_selection": "清除选择",
       "more": "所选项目的更多操作"
@@ -327,7 +327,8 @@
       "custom": "自定义顺序（在设置中）"
     },
     "permanent_delete": "永久删除",
-    "permanent_delete_confirm_title": "永久删除",
+    "permanent_delete_confirm_title": "要永久删除这封邮件吗？",
+    "permanent_delete_confirm_batch_title": "要永久删除这些邮件吗？",
     "permanent_delete_confirm_message": "该邮件将被永久删除。此操作无法撤销。",
     "permanent_delete_confirm_batch_message": "这些{count, plural, one {1 封邮件} other {# 封邮件}}将被永久删除。此操作无法撤销。",
     "empty_folder": {
@@ -672,6 +673,7 @@
     "already_sent": "此邮件已发送。",
     "no_longer_scheduled": "此邮件已不在定时发送中。",
     "reschedule_recipients_refused": "未作任何更改：服务器拒绝了 {recipients}。",
+    "rescheduled_for": "已改为在 {date} 发送",
     "contact_sidebar": {
       "title": "联系人",
       "close": "关闭侧边栏",
@@ -975,7 +977,7 @@
     "refreshing": "正在刷新…"
   },
   "notifications": {
-    "email_sent": "邮件发送成功",
+    "email_sent": "邮件已发送",
     "email_deleted": "邮件已删除",
     "email_archived": "邮件已归档",
     "emails_deleted": "{count, plural, other {已删除 # 封邮件}}",
@@ -2942,10 +2944,10 @@
     "unstar": "取消星标",
     "pin": "固定",
     "unpin": "取消固定",
-    "move_to": "移动到…",
+    "move_to": "移动到",
     "move_to_dialog": "移动到…",
     "go_to_folder": "转到{folder}",
-    "copy_to_account": "复制到账户…",
+    "copy_to_account": "复制到账户",
     "remove_from_folder": "从此文件夹中移除",
     "archive": "归档",
     "delete": "删除",
@@ -2985,10 +2987,10 @@
     "mark_folder_read": "将文件夹标记为已读",
     "mark_folder_tree_read": "将文件夹及子文件夹标记为已读",
     "mark_all_folders_read": "将所有文件夹标记为已读",
-    "new_subfolder": "新建子文件夹...",
-    "new_folder": "新建文件夹...",
-    "rename": "重命名...",
-    "share": "共享...",
+    "new_subfolder": "新建子文件夹…",
+    "new_folder": "新建文件夹…",
+    "rename": "重命名…",
+    "share": "共享…",
     "import_email": "导入 .eml 或 .zip...",
     "empty_folder": "清空文件夹",
     "empty_folder_generic": "清空文件夹",

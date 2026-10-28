@@ -101,6 +101,8 @@ export function SaveToFilesDialog({ attachment, client, blobAccountId, onClose }
       confirmText={t("save_here")}
       folders={folders}
       currentId={NO_CURRENT_FOLDER}
+      // My files, ready to take it: Save here works without a pick first.
+      initialSelectedId={null}
       onPick={(parentId) => void save(parentId)}
     />
   );

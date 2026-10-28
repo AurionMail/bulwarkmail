@@ -808,6 +808,24 @@ describe('ThreadListItem hover actions', () => {
     fireEvent.pointerOver(row!, { relatedTarget: screen.getByTestId('list') });
     expect(screen.getByTestId('hover-action-delete')).toBeTruthy();
   });
+
+  // Tabbing to a row's checkbox shows them too (group-focus-within), so they
+  // have to be there without a pointer.
+  it.each([
+    ['a single message', () => groupEmailsByThread([makeEmail()])[0]],
+    ['a conversation', () => groupEmailsByThread([
+      makeEmail({ id: 'a', receivedAt: '2024-01-15T10:00:00Z' }),
+      makeEmail({ id: 'b', receivedAt: '2024-01-15T11:00:00Z' }),
+    ])[0]],
+  ])('mounts them for %s when a control in the row gets the keyboard focus', (_name, makeThread) => {
+    const { container } = renderInList(makeThread());
+    expect(screen.queryByTestId('hover-action-delete')).toBeNull();
+    const row = screen.queryByTestId('email-list-item') ?? container.querySelector('[data-unread]');
+    const control = row!.querySelector<HTMLElement>('button, [tabindex]:not([tabindex="-1"])');
+    expect(control).not.toBeNull();
+    act(() => { control!.focus(); });
+    expect(screen.getByTestId('hover-action-delete')).toBeTruthy();
+  });
 });
 
 describe('ThreadListItem open message', () => {
@@ -855,5 +873,27 @@ describe('ThreadListItem swipe on a conversation', () => {
     fireEvent.touchMove(row, { touches: [{ clientX: 160, clientY: 12 }] });
     fireEvent.touchEnd(row);
     expect(onArchive).toHaveBeenCalledWith(expect.objectContaining({ id: 'b' }));
+  });
+});
+
+// R11: in an Arabic interface an English subject was cut on the wrong side.
+// The text takes its direction from itself, wherever it sits.
+describe('ThreadListItem text direction', () => {
+  beforeEach(() => {
+    useSettingsStore.setState({ emailKeywords: [...DEFAULT_KEYWORDS], showPreview: true, mailLayout: 'split', interfaceLayout: 'default' });
+  });
+
+  it.each([
+    ['a single message', () => groupEmailsByThread([makeEmail({ preview: 'Preview text here' })])[0]],
+    ['a conversation', () => groupEmailsByThread([
+      makeEmail({ id: 'a', receivedAt: '2024-01-15T10:00:00Z', preview: 'Preview text here' }),
+      makeEmail({ id: 'b', receivedAt: '2024-01-15T11:00:00Z', preview: 'Preview text here' }),
+    ])[0]],
+  ])('gives the sender, subject and preview of %s dir="auto"', (_name, makeThread) => {
+    render(<ThreadListItem thread={makeThread()} isExpanded={false} onToggleExpand={() => {}} onEmailSelect={() => {}} />);
+    for (const text of ['Alice', 'Test Subject', 'Preview text here']) {
+      const el = screen.getAllByText((_c, node) => node?.textContent?.trim() === text && node.children.length === 0)[0];
+      expect(el.closest('[dir="auto"]'), text).not.toBeNull();
+    }
   });
 });

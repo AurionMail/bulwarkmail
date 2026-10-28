@@ -277,7 +277,8 @@ describe('MvListToolbar delete prompt', () => {
     select(folder);
     deleteSelection();
 
-    expect(await screen.findByText('permanent_delete_confirm_title')).toBeInTheDocument();
+    // A selection: "Delete these emails permanently?", not the one-message title.
+    expect(await screen.findByText('permanent_delete_confirm_batch_title')).toBeInTheDocument();
     expect(batchDelete).not.toHaveBeenCalled();
   });
 });

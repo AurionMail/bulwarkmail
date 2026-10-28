@@ -110,6 +110,19 @@ describe('cancelling a send and restoring the draft', () => {
     await expect(useEmailStore.getState().cancelScheduledEmailForEdit(client, scheduled)).resolves.toEqual({ id: 'sent-1' });
   });
 
+  // The reader kept showing the Scheduled banner and its buttons for a
+  // message that was back in Drafts.
+  it('closes the cancelled message in the reader, and leaves another open message alone', async () => {
+    useEmailStore.setState({ selectedEmail: { ...scheduled, isScheduled: true } as Email });
+    await useEmailStore.getState().cancelScheduledEmailForEdit(client, scheduled);
+    expect(useEmailStore.getState().selectedEmail).toBeNull();
+
+    const other = { id: 'other-1' } as Email;
+    useEmailStore.setState({ selectedEmail: other });
+    await useEmailStore.getState().cancelScheduledEmailForEdit(client, scheduled);
+    expect(useEmailStore.getState().selectedEmail).toBe(other);
+  });
+
   it('restores mail sent from the own identity in the own Drafts, as before', async () => {
     const restored = await useEmailStore.getState().cancelUndoSend(client, { ...pending, submissionAccountId: 'account-1' });
 

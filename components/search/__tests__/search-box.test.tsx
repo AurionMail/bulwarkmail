@@ -264,3 +264,22 @@ describe('SearchBox draft', () => {
     expect(input().value).toBe('from:alice');
   });
 });
+
+// At 1440 the list column cut "Search mail... (press /)" to "Search mail...
+// (pres". The placeholder is short now; the "/" shortcut shows as a key cap
+// at the end of the empty field and is named for assistive tech.
+describe('SearchBox shortcut hint', () => {
+  it('keeps the placeholder short and shows the / key apart', () => {
+    const { container } = render(<Harness />);
+    expect(input().getAttribute('placeholder')).toBe('search_placeholder');
+    expect(input().getAttribute('aria-keyshortcuts')).toBe('/');
+    const kbd = container.querySelector('kbd');
+    expect(kbd?.textContent).toBe('/');
+    expect(kbd?.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('drops the key cap once something is typed', () => {
+    const { container } = render(<Harness initial="invoice" />);
+    expect(container.querySelector('kbd')).toBeNull();
+  });
+});

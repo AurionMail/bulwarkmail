@@ -207,7 +207,21 @@ describe('phone touch targets (MAIL-18)', () => {
     expect(close.className).toContain('h-11');
     expect(close.className).toContain('w-11');
     const star = screen.getByTestId('subject-star');
-    expect(star).toHaveAccessibleName('tooltips.star');
+    expect(star).toHaveAccessibleName('star');
     expect(star.className).toContain('pointer-coarse:after:min-h-11');
+  });
+});
+
+// R8: a key hint means nothing on a touch screen, and a screen reader read
+// "Reply (r)". The names are the plain ones; a hint stays in the tooltip.
+describe('phone reader names (MAIL-20)', () => {
+  it('names the bottom bar and the star without key hints', () => {
+    renderViewer({ onToggleStar: vi.fn(), onReply: vi.fn(), onReplyAll: vi.fn(), onForward: vi.fn() });
+    expect(screen.getByTestId('subject-star')).toHaveAccessibleName('star');
+    for (const name of ['reply', 'reply_all', 'forward']) {
+      expect(screen.getAllByRole('button', { name }).length).toBeGreaterThan(0);
+    }
+    const hinted = screen.queryAllByRole('button').filter((b) => /^tooltips\.(reply|reply_all|forward|star|unstar)$/.test(b.getAttribute('aria-label') ?? ''));
+    expect(hinted).toEqual([]);
   });
 });

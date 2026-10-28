@@ -26,6 +26,8 @@ interface FolderPickerDialogProps {
   excludeIds?: Set<string>;
   /** The folder that is pre-selected and can't be picked (where the items already are). */
   currentId?: string | null;
+  /** A folder selected and ready to pick when the dialog opens; null is My files. */
+  initialSelectedId?: string | null;
 }
 
 const ROOT = "";
@@ -35,10 +37,12 @@ const ROOT = "";
  * tree with My files at the top, browsed with the mouse or the arrow keys.
  */
 export function FolderPickerDialog({
-  isOpen, onClose, onPick, title, confirmText, folders, excludeIds, currentId = null,
+  isOpen, onClose, onPick, title, confirmText, folders, excludeIds, currentId = null, initialSelectedId,
 }: FolderPickerDialogProps) {
   const t = useTranslations("files");
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(
+    initialSelectedId === undefined ? null : (initialSelectedId ?? ROOT),
+  );
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set([ROOT]));
   const listRef = useRef<HTMLDivElement>(null);
 

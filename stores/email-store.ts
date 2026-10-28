@@ -7966,13 +7966,15 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     try {
       if (email.isSmimeScheduled) {
         await client.deleteEmail(email.id, accountId);
-        set(state => ({
-          selectedEmail: state.selectedEmail?.id === email.id ? null : state.selectedEmail,
-          selectedEmailKeys: dropFromSelection(state, e => e.id === email.id),
-        }));
       } else {
         await restoreSentToDraft(client, get().mailboxes, email.id, accountId);
       }
+      // Gone from Scheduled either way: the reader must not keep showing it
+      // with the Scheduled banner and its buttons.
+      set(state => ({
+        selectedEmail: state.selectedEmail?.id === email.id ? null : state.selectedEmail,
+        selectedEmailKeys: dropFromSelection(state, e => e.id === email.id),
+      }));
     } catch (error) {
       void get().fetchScheduledEmails(client);
       throw new SendCancelledCleanupError(email.isSmimeScheduled ? 'remove' : 'restore', error);

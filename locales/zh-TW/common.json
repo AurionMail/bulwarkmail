@@ -308,7 +308,7 @@
       "mark_read": "標示為已讀",
       "mark_unread": "標示為未讀",
       "delete": "刪除",
-      "delete_confirm_title": "刪除郵件",
+      "delete_confirm_title": "要刪除這些郵件嗎？",
       "delete_confirm_message": "您確定要刪除{count, plural, one {1 封郵件} other {# 封郵件}}嗎？",
       "clear_selection": "清除選取",
       "more": "所選項目的更多動作"
@@ -327,7 +327,8 @@
       "custom": "自訂順序（在設定中）"
     },
     "permanent_delete": "永久刪除",
-    "permanent_delete_confirm_title": "永久刪除",
+    "permanent_delete_confirm_title": "要永久刪除這封郵件嗎？",
+    "permanent_delete_confirm_batch_title": "要永久刪除這些郵件嗎？",
     "permanent_delete_confirm_message": "這封郵件將永久刪除。此動作無法復原。",
     "permanent_delete_confirm_batch_message": "將永久刪除{count, plural, one {1 封郵件} other {# 封郵件}}。此動作無法復原。",
     "empty_folder": {
@@ -672,6 +673,7 @@
     "already_sent": "此郵件已寄出。",
     "no_longer_scheduled": "此郵件已不在排定傳送中。",
     "reschedule_recipients_refused": "未作任何變更：伺服器拒絕了 {recipients}。",
+    "rescheduled_for": "已改為在 {date} 傳送",
     "contact_sidebar": {
       "title": "聯絡人",
       "close": "關閉側邊欄",
@@ -975,7 +977,7 @@
     "refreshing": "正在重新整理…"
   },
   "notifications": {
-    "email_sent": "郵件傳送成功",
+    "email_sent": "郵件已傳送",
     "email_deleted": "郵件已刪除",
     "email_archived": "郵件已封存",
     "emails_deleted": "{count, plural, other {已刪除 # 封郵件}}",
@@ -2942,10 +2944,10 @@
     "unstar": "移除星號",
     "pin": "固定",
     "unpin": "取消固定",
-    "move_to": "移至…",
+    "move_to": "移至",
     "move_to_dialog": "移動到…",
     "go_to_folder": "前往{folder}",
-    "copy_to_account": "複製到帳戶…",
+    "copy_to_account": "複製到帳戶",
     "remove_from_folder": "從此資料夾移除",
     "archive": "封存",
     "delete": "刪除",
@@ -2988,7 +2990,7 @@
     "new_subfolder": "新增子信件匣…",
     "new_folder": "新增信件匣…",
     "rename": "重新命名…",
-    "share": "共用...",
+    "share": "共用…",
     "import_email": "匯入 .eml 或 .zip…",
     "empty_folder": "清空信件匣",
     "empty_folder_generic": "清空信件匣",

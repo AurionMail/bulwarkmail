@@ -308,7 +308,7 @@
       "mark_read": "Markér som læst",
       "mark_unread": "Markér som ulæst",
       "delete": "Slet",
-      "delete_confirm_title": "Slet e-mails",
+      "delete_confirm_title": "Slet disse e-mails?",
       "delete_confirm_message": "Er du sikker på, at du vil slette {count, plural, one {1 e-mail} other {# e-mails}}?",
       "clear_selection": "Ryd markering",
       "more": "Flere handlinger for markeringen"
@@ -327,7 +327,8 @@
       "custom": "Brugerdefineret rækkefølge (i indstillinger)"
     },
     "permanent_delete": "Slet permanent",
-    "permanent_delete_confirm_title": "Slet permanent",
+    "permanent_delete_confirm_title": "Slet denne e-mail permanent?",
+    "permanent_delete_confirm_batch_title": "Slet disse e-mails permanent?",
     "permanent_delete_confirm_message": "Denne e-mail vil blive slettet permanent. Denne handling kan ikke fortrydes.",
     "permanent_delete_confirm_batch_message": "Disse {count, plural, one {1 e-mail} other {# e-mails}} vil blive slettet permanent. Denne handling kan ikke fortrydes.",
     "empty_folder": {
@@ -672,6 +673,7 @@
     "already_sent": "Denne besked er allerede sendt.",
     "no_longer_scheduled": "Denne besked er ikke længere planlagt.",
     "reschedule_recipients_refused": "Intet blev ændret: serveren afviste {recipients}.",
+    "rescheduled_for": "Omplanlagt til {date}",
     "contact_sidebar": {
       "title": "Kontakt",
       "close": "Luk sidepanel",
@@ -975,7 +977,7 @@
     "refreshing": "Opdaterer…"
   },
   "notifications": {
-    "email_sent": "E-mail sendt succesfuldt",
+    "email_sent": "E-mail sendt",
     "email_deleted": "E-mail slettet",
     "email_archived": "E-mail arkiveret",
     "emails_deleted": "{count, plural, one {# e-mail slettet} other {# e-mails slettet}}",
@@ -2942,10 +2944,10 @@
     "unstar": "Fjern stjerne",
     "pin": "Fastgør",
     "unpin": "Frigør",
-    "move_to": "Flyt til...",
+    "move_to": "Flyt til",
     "move_to_dialog": "Flyt til…",
     "go_to_folder": "Gå til {folder}",
-    "copy_to_account": "Kopiér til konto...",
+    "copy_to_account": "Kopiér til konto",
     "remove_from_folder": "Fjern fra denne mappe",
     "archive": "Arkivér",
     "delete": "Slet",
@@ -2985,10 +2987,10 @@
     "mark_folder_read": "Markér mappe som læst",
     "mark_folder_tree_read": "Markér mappe & undermapper som læst",
     "mark_all_folders_read": "Markér alle mapper som læst",
-    "new_subfolder": "Ny undermappe...",
-    "new_folder": "Ny mappe...",
-    "rename": "Omdøb...",
-    "share": "Del...",
+    "new_subfolder": "Ny undermappe…",
+    "new_folder": "Ny mappe…",
+    "rename": "Omdøb…",
+    "share": "Del…",
     "import_email": "Importér .eml eller .zip...",
     "empty_folder": "Tøm mappe",
     "empty_folder_generic": "Tøm mappe",

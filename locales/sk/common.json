@@ -308,7 +308,7 @@
       "mark_read": "Označiť ako prečítané",
       "mark_unread": "Označiť ako neprečítané",
       "delete": "Odstrániť",
-      "delete_confirm_title": "Odstrániť e-maily",
+      "delete_confirm_title": "Odstrániť tieto e-maily?",
       "delete_confirm_message": "Naozaj chcete odstrániť {count, plural, one {1 e-mail} other {# e-mailov}}?",
       "clear_selection": "Zrušiť výber",
       "more": "Ďalšie akcie pre výber"
@@ -327,7 +327,8 @@
       "custom": "Vlastné poradie (v nastaveniach)"
     },
     "permanent_delete": "Trvalo odstrániť",
-    "permanent_delete_confirm_title": "Trvalo odstrániť",
+    "permanent_delete_confirm_title": "Trvalo odstrániť tento e-mail?",
+    "permanent_delete_confirm_batch_title": "Trvalo odstrániť tieto e-maily?",
     "permanent_delete_confirm_message": "Tento e-mail bude trvalo odstránený. Túto akciu nie je možné vrátiť.",
     "permanent_delete_confirm_batch_message": "Týchto {count, plural, one {1 e-mail} other {# e-mailov}} bude trvalo odstránených. Túto akciu nie je možné vrátiť.",
     "empty_folder": {
@@ -672,6 +673,7 @@
     "already_sent": "Táto správa už bola odoslaná.",
     "no_longer_scheduled": "Táto správa už nie je naplánovaná.",
     "reschedule_recipients_refused": "Nič sa nezmenilo: server odmietol {recipients}.",
+    "rescheduled_for": "Preplánované na {date}",
     "contact_sidebar": {
       "title": "Kontakt",
       "close": "Zavrieť postranný panel",
@@ -975,7 +977,7 @@
     "refreshing": "Obnovuje sa…"
   },
   "notifications": {
-    "email_sent": "E-mail bol úspešne odoslaný",
+    "email_sent": "E-mail bol odoslaný",
     "email_deleted": "E-mail bol odstránený",
     "email_archived": "E-mail bol archivovaný",
     "emails_deleted": "{count, plural, one {# e-mail odstránený} few {# e-maily odstránené} other {# e-mailov odstránených}}",
@@ -2942,10 +2944,10 @@
     "unstar": "Odstrániť hviezdičku",
     "pin": "Pripnúť",
     "unpin": "Odopnúť",
-    "move_to": "Presunúť do...",
+    "move_to": "Presunúť do",
     "move_to_dialog": "Presunúť do…",
     "go_to_folder": "Prejsť do {folder}",
-    "copy_to_account": "Kopírovať do účtu...",
+    "copy_to_account": "Kopírovať do účtu",
     "remove_from_folder": "Odstrániť z tohto priečinka",
     "archive": "Archivovať",
     "delete": "Odstrániť",
@@ -2985,10 +2987,10 @@
     "mark_folder_read": "Označiť priečinok ako prečítaný",
     "mark_folder_tree_read": "Označiť priečinok a podpriečinky ako prečítané",
     "mark_all_folders_read": "Označiť všetky priečinky ako prečítané",
-    "new_subfolder": "Nový podpriečinok...",
-    "new_folder": "Nový priečinok...",
-    "rename": "Premenovať...",
-    "share": "Zdieľať...",
+    "new_subfolder": "Nový podpriečinok…",
+    "new_folder": "Nový priečinok…",
+    "rename": "Premenovať…",
+    "share": "Zdieľať…",
     "import_email": "Importovať .eml alebo .zip...",
     "empty_folder": "Vyprázdniť priečinok",
     "empty_folder_generic": "Vyprázdniť priečinok",

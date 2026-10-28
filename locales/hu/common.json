@@ -308,7 +308,7 @@
       "mark_read": "Megjelölés olvasottként",
       "mark_unread": "Megjelölés olvasatlanként",
       "delete": "Törlés",
-      "delete_confirm_title": "E-mailek törlése",
+      "delete_confirm_title": "Törlöd ezeket az e-maileket?",
       "delete_confirm_message": "Biztosan törölni szeretnéd {count, plural, one {az 1 e-mailt} other {a # e-mailt}}?",
       "clear_selection": "Kijelölés megszüntetése",
       "more": "További műveletek a kijelöléshez"
@@ -327,7 +327,8 @@
       "custom": "Egyéni sorrend (a beállításokban)"
     },
     "permanent_delete": "Végleges törlés",
-    "permanent_delete_confirm_title": "Végleges törlés",
+    "permanent_delete_confirm_title": "Véglegesen törlöd ezt az e-mailt?",
+    "permanent_delete_confirm_batch_title": "Véglegesen törlöd ezeket az e-maileket?",
     "permanent_delete_confirm_message": "Ez az e-mail véglegesen törlődik. Ez a művelet nem vonható vissza.",
     "permanent_delete_confirm_batch_message": "Ez a(z) {count, plural, one {1 e-mail} other {# e-mail}} véglegesen törlődik. Ez a művelet nem vonható vissza.",
     "empty_folder": {
@@ -672,6 +673,7 @@
     "already_sent": "Ez az üzenet már el lett küldve.",
     "no_longer_scheduled": "Ez az üzenet már nincs ütemezve.",
     "reschedule_recipients_refused": "Semmi sem változott: a kiszolgáló elutasította a következőt: {recipients}.",
+    "rescheduled_for": "Átütemezve: {date}",
     "contact_sidebar": {
       "title": "Névjegy",
       "close": "Oldalsáv bezárása",
@@ -975,7 +977,7 @@
     "refreshing": "Frissítés…"
   },
   "notifications": {
-    "email_sent": "E-mail sikeresen elküldve",
+    "email_sent": "E-mail elküldve",
     "email_deleted": "E-mail törölve",
     "email_archived": "E-mail archiválva",
     "emails_deleted": "{count, plural, other {# e-mail törölve}}",
@@ -2942,10 +2944,10 @@
     "unstar": "Csillagozás megszüntetése",
     "pin": "Rögzítés",
     "unpin": "Rögzítés feloldása",
-    "move_to": "Áthelyezés ide...",
+    "move_to": "Áthelyezés ide",
     "move_to_dialog": "Áthelyezés ide…",
     "go_to_folder": "Ugrás ide: {folder}",
-    "copy_to_account": "Másolás fiókba...",
+    "copy_to_account": "Másolás fiókba",
     "remove_from_folder": "Eltávolítás ebből a mappából",
     "archive": "Archiválás",
     "delete": "Törlés",
@@ -2985,10 +2987,10 @@
     "mark_folder_read": "Mappa olvasottnak jelölése",
     "mark_folder_tree_read": "Mappa és almappák olvasottnak jelölése",
     "mark_all_folders_read": "Összes mappa olvasottnak jelölése",
-    "new_subfolder": "Új almappa...",
-    "new_folder": "Új mappa...",
-    "rename": "Átnevezés...",
-    "share": "Megosztás...",
+    "new_subfolder": "Új almappa…",
+    "new_folder": "Új mappa…",
+    "rename": "Átnevezés…",
+    "share": "Megosztás…",
     "import_email": "Importálás .eml vagy .zip fájlból...",
     "empty_folder": "Mappa ürítése",
     "empty_folder_generic": "Mappa ürítése",

@@ -308,7 +308,7 @@
       "mark_read": "Atzīmēt kā izlasītu",
       "mark_unread": "Atzīmēt kā nelasītu",
       "delete": "Dzēst",
-      "delete_confirm_title": "Dzēst vēstules",
+      "delete_confirm_title": "Dzēst šīs vēstules?",
       "delete_confirm_message": "Vai tiešām vēlaties dzēst {count, plural, one {1 vēstuli} other {# vēstules}}?",
       "clear_selection": "Noņemt atlasi",
       "more": "Vairāk darbību atlasei"
@@ -327,7 +327,8 @@
       "custom": "Pielāgota secība (iestatījumos)"
     },
     "permanent_delete": "Dzēst neatgriezeniski",
-    "permanent_delete_confirm_title": "Dzēst neatgriezeniski",
+    "permanent_delete_confirm_title": "Neatgriezeniski dzēst šo vēstuli?",
+    "permanent_delete_confirm_batch_title": "Neatgriezeniski dzēst šīs vēstules?",
     "permanent_delete_confirm_message": "Šī vēstule tiks dzēsta neatgriezeniski. Šo darbību nevar atcelt.",
     "permanent_delete_confirm_batch_message": "{count, plural, one {1 vēstule} other {# vēstules}} tiks dzēstas neatgriezeniski. Šo darbību nevar atcelt.",
     "empty_folder": {
@@ -672,6 +673,7 @@
     "already_sent": "Šis ziņojums jau ir nosūtīts.",
     "no_longer_scheduled": "Šis ziņojums vairs nav ieplānots.",
     "reschedule_recipients_refused": "Nekas netika mainīts: serveris noraidīja {recipients}.",
+    "rescheduled_for": "Pārplānots uz {date}",
     "contact_sidebar": {
       "title": "Kontaktpersona",
       "close": "Aizvērt sānjoslu",
@@ -975,7 +977,7 @@
     "refreshing": "Atsvaidzina…"
   },
   "notifications": {
-    "email_sent": "Vēstule veiksmīgi nosūtīta",
+    "email_sent": "Vēstule nosūtīta",
     "email_deleted": "Vēstule izdzēsta",
     "email_archived": "Vēstule arhivēta",
     "emails_deleted": "{count, plural, zero {# e-pasti dzēsti} one {# e-pasts dzēsts} other {# e-pasti dzēsti}}",
@@ -2942,10 +2944,10 @@
     "unstar": "Noņemt zvaigznīti",
     "pin": "Piespraust",
     "unpin": "Atspraust",
-    "move_to": "Pārvietot uz...",
+    "move_to": "Pārvietot uz",
     "move_to_dialog": "Pārvietot uz…",
     "go_to_folder": "Doties uz {folder}",
-    "copy_to_account": "Kopēt uz kontu...",
+    "copy_to_account": "Kopēt uz kontu",
     "remove_from_folder": "Noņemt no šīs mapes",
     "archive": "Arhivēt",
     "delete": "Dzēst",
@@ -2985,10 +2987,10 @@
     "mark_folder_read": "Atzīmēt mapi kā lasītu",
     "mark_folder_tree_read": "Atzīmēt mapi un apakšmapes kā lasītas",
     "mark_all_folders_read": "Atzīmēt visas mapes kā lasītas",
-    "new_subfolder": "Jauna apakšmape...",
-    "new_folder": "Jauna mape...",
-    "rename": "Pārsaukt...",
-    "share": "Kopīgot...",
+    "new_subfolder": "Jauna apakšmape…",
+    "new_folder": "Jauna mape…",
+    "rename": "Pārsaukt…",
+    "share": "Kopīgot…",
     "import_email": "Importēt .eml vai .zip...",
     "empty_folder": "Iztukšot mapi",
     "empty_folder_generic": "Iztukšot mapi",

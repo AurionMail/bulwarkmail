@@ -308,7 +308,7 @@
       "mark_read": "Oznacz jako przeczytane",
       "mark_unread": "Oznacz jako nieprzeczytane",
       "delete": "Usuń",
-      "delete_confirm_title": "Usuń wiadomości",
+      "delete_confirm_title": "Usunąć te wiadomości?",
       "delete_confirm_message": "Czy na pewno chcesz usunąć {count, plural, one {1 wiadomość} other {# wiadomości}}?",
       "clear_selection": "Wyczyść zaznaczenie",
       "more": "Więcej działań dla zaznaczenia"
@@ -327,7 +327,8 @@
       "custom": "Własna kolejność (w ustawieniach)"
     },
     "permanent_delete": "Usuń trwale",
-    "permanent_delete_confirm_title": "Trwałe usunięcie",
+    "permanent_delete_confirm_title": "Trwale usunąć tę wiadomość?",
+    "permanent_delete_confirm_batch_title": "Trwale usunąć te wiadomości?",
     "permanent_delete_confirm_message": "Ta wiadomość zostanie trwale usunięta. Tej operacji nie można cofnąć.",
     "permanent_delete_confirm_batch_message": "{count, plural, one {1 wiadomość zostanie trwale usunięta} other {# wiadomości zostanie trwale usuniętych}}. Tej operacji nie można cofnąć.",
     "empty_folder": {
@@ -672,6 +673,7 @@
     "already_sent": "Ta wiadomość została już wysłana.",
     "no_longer_scheduled": "Ta wiadomość nie jest już zaplanowana.",
     "reschedule_recipients_refused": "Nic nie zostało zmienione: serwer odrzucił {recipients}.",
+    "rescheduled_for": "Przełożono na {date}",
     "contact_sidebar": {
       "title": "Kontakt",
       "close": "Zamknij panel boczny",
@@ -975,7 +977,7 @@
     "refreshing": "Odświeżanie…"
   },
   "notifications": {
-    "email_sent": "Wiadomość wysłana pomyślnie",
+    "email_sent": "Wiadomość wysłana",
     "email_deleted": "Wiadomość usunięta",
     "email_archived": "Wiadomość zarchiwizowana",
     "emails_deleted": "{count, plural, one {# wiadomość usunięta} few {# wiadomości usunięte} many {# wiadomości usuniętych} other {# wiadomości usuniętych}}",
@@ -2942,10 +2944,10 @@
     "unstar": "Usuń gwiazdkę",
     "pin": "Przypnij",
     "unpin": "Odepnij",
-    "move_to": "Przenieś do...",
+    "move_to": "Przenieś do",
     "move_to_dialog": "Przenieś do…",
     "go_to_folder": "Przejdź do: {folder}",
-    "copy_to_account": "Kopiuj do konta...",
+    "copy_to_account": "Kopiuj do konta",
     "remove_from_folder": "Usuń z tego folderu",
     "archive": "Archiwizuj",
     "delete": "Usuń",
@@ -2985,10 +2987,10 @@
     "mark_folder_read": "Oznacz folder jako przeczytany",
     "mark_folder_tree_read": "Oznacz folder i podfoldery jako przeczytane",
     "mark_all_folders_read": "Oznacz wszystkie foldery jako przeczytane",
-    "new_subfolder": "Nowy podfolder...",
-    "new_folder": "Nowy folder...",
-    "rename": "Zmień nazwę...",
-    "share": "Udostępnij...",
+    "new_subfolder": "Nowy podfolder…",
+    "new_folder": "Nowy folder…",
+    "rename": "Zmień nazwę…",
+    "share": "Udostępnij…",
     "import_email": "Importuj .eml lub .zip...",
     "empty_folder": "Opróżnij folder",
     "empty_folder_generic": "Opróżnij folder",

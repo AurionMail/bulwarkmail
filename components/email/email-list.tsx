@@ -677,7 +677,7 @@ export function EmailList({
     if (shouldConfirmBulkDelete(currentMailbox)) {
       const confirmed = await confirmDialog({
         title: isInTrash
-          ? t('permanent_delete_confirm_title')
+          ? t('permanent_delete_confirm_batch_title')
           : t('batch_actions.delete_confirm_title'),
         message: isInTrash
           ? t('permanent_delete_confirm_batch_message', { count: selectedEmailKeys.size })
@@ -965,17 +965,28 @@ export function EmailList({
               />
             )}
             <div className={cn("w-px h-6 bg-border", batchNarrow ? "mx-0.5" : "mx-1")} />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearSelection}
-              title={t('batch_actions.clear_selection')}
-              aria-label={t('batch_actions.clear_selection')}
-              disabled={isProcessing}
-              className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 whitespace-nowrap"
-            >
-              {batchNarrow ? <X className="w-4 h-4" /> : t('batch_actions.clear_selection')}
-            </Button>
+            {/* The bar's buttons share one height (R1): 32px icons, and the
+                text button at xs when there is room for it. */}
+            {batchNarrow ? (
+              <IconButton
+                label={t('batch_actions.clear_selection')}
+                onClick={clearSelection}
+                disabled={isProcessing}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X />
+              </IconButton>
+            ) : (
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={clearSelection}
+                disabled={isProcessing}
+                className="text-muted-foreground hover:text-foreground whitespace-nowrap"
+              >
+                {t('batch_actions.clear_selection')}
+              </Button>
+            )}
           </div>
         </div>
         )}

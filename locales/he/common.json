@@ -272,7 +272,7 @@
       "mark_read": "סמן כנקרא",
       "mark_unread": "סמן כלא נקרא",
       "delete": "לִמְחוֹק",
-      "delete_confirm_title": "מחק מיילים",
+      "delete_confirm_title": "למחוק את ההודעות האלה?",
       "delete_confirm_message": "האם למחוק {count, plural, one {הודעת דוא״ל אחת} other {# הודעות דוא״ל}}?",
       "clear_selection": "נקה בחירה",
       "more": "פעולות נוספות לבחירה",
@@ -292,7 +292,8 @@
       "custom": "סדר מותאם (בהגדרות)"
     },
     "permanent_delete": "מחק לצמיתות",
-    "permanent_delete_confirm_title": "מחק לצמיתות",
+    "permanent_delete_confirm_title": "למחוק את ההודעה הזו לצמיתות?",
+    "permanent_delete_confirm_batch_title": "למחוק את ההודעות האלה לצמיתות?",
     "permanent_delete_confirm_message": "אימייל זה יימחק לצמיתות. לא ניתן לבטל פעולה זו.",
     "permanent_delete_confirm_batch_message": "{count, plural, one {הודעת דוא״ל אחת תימחק לצמיתות} other {# הודעות דוא״ל יימחקו לצמיתות}}. לא ניתן לבטל פעולה זו.",
     "empty_folder": {
@@ -477,8 +478,8 @@
     "spam": {
       "button_title": "דווח על ספאם",
       "not_spam_title": "סמן כלגיטימי",
-      "toast_success": "עבר לזבל",
-      "toast_batch": "הודעות דוא\"ל{count}הועברו ל-Junk",
+      "toast_success": "הועבר לספאם",
+      "toast_batch": "{count} הודעות הועברו לספאם",
       "toast_undo": "בטל",
       "toast_not_spam_success": "הועבר לתיבת הדואר הנכנס",
       "toast_not_spam_batch": "הודעות דוא\"ל{count}הועברו ל-Inbox",
@@ -637,6 +638,7 @@
     "already_sent": "ההודעה הזו כבר נשלחה.",
     "no_longer_scheduled": "ההודעה הזו כבר אינה מתוזמנת.",
     "reschedule_recipients_refused": "דבר לא השתנה: השרת דחה את {recipients}.",
+    "rescheduled_for": "התזמון שונה ל-{date}",
     "contact_sidebar": {
       "title": "איש קשר",
       "close": "סגור סרגל צד",
@@ -940,7 +942,7 @@
     "refreshing": "מרענן…"
   },
   "notifications": {
-    "email_sent": "האימייל נשלח בהצלחה",
+    "email_sent": "האימייל נשלח",
     "email_deleted": "האימייל נמחק",
     "email_archived": "האימייל הועבר לארכיון",
     "emails_deleted": "{count, plural, one {הודעה אחת נמחקה} other {# הודעות נמחקו}}",
@@ -2908,10 +2910,10 @@
     "unstar": "הסר כוכב",
     "pin": "הצמד",
     "unpin": "בטל הצמדה",
-    "move_to": "העבר ל...",
+    "move_to": "העבר ל",
     "move_to_dialog": "העברה אל…",
     "go_to_folder": "מעבר אל {folder}",
-    "copy_to_account": "העתק לחשבון...",
+    "copy_to_account": "העתק לחשבון",
     "remove_from_folder": "הסרה מתיקייה זו",
     "archive": "ארכיון",
     "delete": "לִמְחוֹק",
@@ -4531,7 +4533,7 @@
     "new_subfolder": "תת־תיקייה חדשה…",
     "new_folder": "תיקייה חדשה…",
     "rename": "שנה שם…",
-    "share": "שיתוף...",
+    "share": "שיתוף…",
     "import_email": "ייבא .eml או .zip…",
     "empty_folder": "תיקייה ריקה",
     "empty_folder_generic": "תיקייה ריקה",
