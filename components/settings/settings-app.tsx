@@ -971,9 +971,9 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
                         <button
                           key={`${tab.id}:${sub.label}`}
                           onClick={() => handleSubResultSelect(tab.id, sub)}
-                          className="w-full flex items-center ps-12 pe-5 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 text-start"
+                          className="w-full flex items-center ps-12 pe-5 py-2 pointer-coarse:min-h-11 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 text-start"
                         >
-                          <span className="truncate">{sub.label}</span>
+                          <span className="truncate" title={sub.label}>{sub.label}</span>
                         </button>
                       ))}
                     </div>
@@ -1138,7 +1138,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
                           onClick={() => handleSubResultSelect(tab.id, sub)}
                           className="w-full text-start ps-9 pe-3 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150"
                         >
-                          <span className="truncate block">{sub.label}</span>
+                          <span className="truncate block" title={sub.label}>{sub.label}</span>
                         </button>
                       ))}
                     </div>
