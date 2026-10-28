@@ -3058,6 +3058,7 @@
   "settings": {
     "title": "การตั้งค่า",
     "back_to_mail": "กลับไปยังอีเมล",
+    "back_to_settings": "กลับไปที่การตั้งค่า",
     "save_success": "บันทึกการตั้งค่าเรียบร้อยแล้ว",
     "import_success": "นำเข้าการตั้งค่าเรียบร้อยแล้ว",
     "import_error": "นำเข้าการตั้งค่าไม่สำเร็จ",
@@ -4372,6 +4373,8 @@
       "add_condition": "เพิ่มเงื่อนไข",
       "actions": "การดำเนินการ",
       "add_action": "เพิ่มการดำเนินการ",
+      "remove_condition": "นำเงื่อนไขออก",
+      "remove_action": "นำการทำงานออก",
       "stop_processing": "หยุดการประมวลผลกฎข้อถัดไป",
       "include_spam": "ย้ายข้อความที่ทำเครื่องหมายว่าเป็นสแปมด้วย",
       "attachment_type_placeholder": "เช่น pdf, doc, jpg",

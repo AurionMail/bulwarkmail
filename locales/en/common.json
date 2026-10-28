@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "Settings",
     "back_to_mail": "Back to Mail",
+    "back_to_settings": "Back to settings",
     "save_success": "Settings saved successfully",
     "import_success": "Settings imported",
     "import_error": "Couldn't import settings",
@@ -2362,6 +2363,8 @@
       "add_condition": "Add Condition",
       "actions": "Actions",
       "add_action": "Add Action",
+      "remove_condition": "Remove condition",
+      "remove_action": "Remove action",
       "stop_processing": "Stop processing subsequent rules",
       "include_spam": "Also move messages marked as spam",
       "attachment_type_placeholder": "e.g. pdf, doc, jpg",

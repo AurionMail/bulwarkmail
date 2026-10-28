@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "設定",
     "back_to_mail": "メールに戻る",
+    "back_to_settings": "設定に戻る",
     "save_success": "設定を保存しました",
     "import_success": "設定をインポートしました",
     "import_error": "設定のインポートに失敗しました",
@@ -2355,6 +2356,8 @@
       "add_condition": "条件を追加",
       "actions": "アクション",
       "add_action": "アクションを追加",
+      "remove_condition": "条件を削除",
+      "remove_action": "操作を削除",
       "stop_processing": "以降のルールの処理を停止",
       "include_spam": "迷惑メールと判定されたメッセージも移動する",
       "attachment_type_placeholder": "例: pdf, doc, jpg",

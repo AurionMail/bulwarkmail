@@ -4,7 +4,8 @@ import { useState, useCallback, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2 } from "@/components/icons";
+import { Plus, X } from "@/components/icons";
+import { IconButton } from "@/components/ui/icon-button";
 import { Dialog } from "@/components/ui/dialog";
 import { useDiscardChanges } from "@/components/settings/use-discard-changes";
 import type {
@@ -602,15 +603,14 @@ export function FilterRuleModal({
                     />
                   )}
 
-                  <button
-                    type="button"
+                  <IconButton
+                    label={t("remove_condition")}
                     onClick={() => removeCondition(index)}
                     disabled={conditions.length <= 1}
-                    className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors disabled:opacity-30 disabled:pointer-events-none"
-                    aria-label={t("delete_rule")}
+                    className="text-muted-foreground hover:text-destructive disabled:opacity-30"
                   >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    <X />
+                  </IconButton>
                 </div>
               ))}
             </div>
@@ -727,15 +727,14 @@ export function FilterRuleModal({
                     </select>
                   )}
 
-                  <button
-                    type="button"
+                  <IconButton
+                    label={t("remove_action")}
                     onClick={() => removeAction(index)}
                     disabled={actions.length <= 1}
-                    className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors disabled:opacity-30 disabled:pointer-events-none"
-                    aria-label={t("delete_rule")}
+                    className="text-muted-foreground hover:text-destructive disabled:opacity-30"
                   >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    <X />
+                  </IconButton>
                 </div>
               ))}
             </div>

@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "Nastavení",
     "back_to_mail": "Zpět na poštu",
+    "back_to_settings": "Zpět do nastavení",
     "save_success": "Nastavení bylo uloženo",
     "import_success": "Nastavení bylo importováno",
     "import_error": "Import nastavení selhal",
@@ -2355,6 +2356,8 @@
       "add_condition": "Přidat podmínku",
       "actions": "Akce",
       "add_action": "Přidat akci",
+      "remove_condition": "Odebrat podmínku",
+      "remove_action": "Odebrat akci",
       "stop_processing": "Zastavit zpracování dalších pravidel",
       "include_spam": "Přesouvat i zprávy označené jako spam",
       "attachment_type_placeholder": "např. pdf, doc, jpg",

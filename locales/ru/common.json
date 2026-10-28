@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "Настройки",
     "back_to_mail": "Вернуться к почте",
+    "back_to_settings": "Назад к настройкам",
     "save_success": "Настройки успешно сохранены",
     "import_success": "Настройки успешно импортированы",
     "import_error": "Не удалось импортировать настройки",
@@ -2355,6 +2356,8 @@
       "add_condition": "Добавить условие",
       "actions": "Действия",
       "add_action": "Добавить действие",
+      "remove_condition": "Убрать условие",
+      "remove_action": "Убрать действие",
       "stop_processing": "Прекратить обработку последующих правил",
       "include_spam": "Перемещать также письма, помеченные как спам",
       "attachment_type_placeholder": "напр. pdf, doc, jpg",

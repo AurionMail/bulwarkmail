@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "Configuració",
     "back_to_mail": "Torna al correu",
+    "back_to_settings": "Torna als paràmetres",
     "save_success": "Configuració desada correctament",
     "import_success": "Configuració importada correctament",
     "import_error": "No s'ha pogut importar la configuració",
@@ -2362,6 +2363,8 @@
       "add_condition": "Afegeix una condició",
       "actions": "Accions",
       "add_action": "Afegeix una acció",
+      "remove_condition": "Treu la condició",
+      "remove_action": "Treu l'acció",
       "stop_processing": "Atura el processament de les regles següents",
       "include_spam": "Mou també els missatges marcats com a correu brossa",
       "attachment_type_placeholder": "p. ex. pdf, doc, jpg",

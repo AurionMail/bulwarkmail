@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "設定",
     "back_to_mail": "回到郵件",
+    "back_to_settings": "返回設定",
     "save_success": "設定已成功儲存",
     "import_success": "已成功匯入設定",
     "import_error": "無法匯入設定",
@@ -2362,6 +2363,8 @@
       "add_condition": "新增條件",
       "actions": "動作",
       "add_action": "新增動作",
+      "remove_condition": "移除條件",
+      "remove_action": "移除動作",
       "stop_processing": "停止處理後續規則",
       "include_spam": "同時移動被標記為垃圾郵件的郵件",
       "attachment_type_placeholder": "例如：pdf、doc、jpg",

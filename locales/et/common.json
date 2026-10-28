@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "Seaded",
     "back_to_mail": "Tagasi postkasti",
+    "back_to_settings": "Tagasi seadete juurde",
     "save_success": "Seaded salvestatud",
     "import_success": "Seaded imporditud",
     "import_error": "Seadete importimine ebaõnnestus",
@@ -2362,6 +2363,8 @@
       "add_condition": "Lisa tingimus",
       "actions": "Tegevused",
       "add_action": "Lisa tegevus",
+      "remove_condition": "Eemalda tingimus",
+      "remove_action": "Eemalda toiming",
       "stop_processing": "Peata järgmiste reeglite töötlemine",
       "include_spam": "Liiguta ka rämpspostiks märgitud kirjad",
       "attachment_type_placeholder": "nt pdf, doc, jpg",

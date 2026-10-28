@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "Iestatījumi",
     "back_to_mail": "Atgriezties pie pasta",
+    "back_to_settings": "Atpakaļ uz iestatījumiem",
     "save_success": "Iestatījumi veiksmīgi saglabāti",
     "import_success": "Iestatījumi veiksmīgi importēti",
     "import_error": "Neizdevās importēt iestatījumus",
@@ -2355,6 +2356,8 @@
       "add_condition": "Pievienot nosacījumu",
       "actions": "Darbības",
       "add_action": "Pievienot darbību",
+      "remove_condition": "Noņemt nosacījumu",
+      "remove_action": "Noņemt darbību",
       "stop_processing": "Pārtraukt nākamo noteikumu apstrādi",
       "include_spam": "Pārvietot arī ziņas, kas atzīmētas kā mēstules",
       "attachment_type_placeholder": "piem. pdf, doc, jpg",

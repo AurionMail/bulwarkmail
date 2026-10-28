@@ -28,6 +28,7 @@ import {
   type AppIcon,
 } from '@/components/icons';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
 import { Input } from '@/components/ui/input';
 import { AppearanceSettings } from '@/components/settings/appearance-settings';
 import { AppTopBannerSlot } from '@/components/plugins/app-top-banner-slot';
@@ -868,14 +869,9 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
         <div className={cn("flex flex-col bg-background pt-[env(safe-area-inset-top)]", isEmbedded ? "h-full" : "h-dvh")}>
           <AppTopBannerSlot />
           <div className="flex items-center gap-2 px-4 h-14 border-b border-border bg-background shrink-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => window.history.back()}
-              className="h-10 w-10"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
+            <IconButton label={t('back_to_settings')} size="icon-lg" onClick={() => window.history.back()}>
+              <ArrowLeft />
+            </IconButton>
             <h1 className="font-semibold text-lg truncate">{activeTabLabel}</h1>
           </div>
 
@@ -901,14 +897,9 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       <div className={cn("flex flex-col bg-background pt-[env(safe-area-inset-top)]", isEmbedded ? "h-full" : "h-dvh")}>
         <AppTopBannerSlot />
         <div className="flex items-center gap-2 px-4 h-14 border-b border-border bg-background shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push('/')}
-            className="h-10 w-10"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
+          <IconButton label={t('back_to_mail')} size="icon-lg" onClick={() => router.push('/')}>
+            <ArrowLeft />
+          </IconButton>
           <div className="flex items-center gap-2">
             <SettingsIcon className="w-5 h-5 text-muted-foreground" />
             <h1 className="font-semibold text-lg">{t('title')}</h1>
@@ -928,14 +919,13 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
                 aria-label={t('search_placeholder')}
               />
               {searchQuery && (
-                <button
-                  type="button"
+                <IconButton
+                  label={t('search_clear')}
                   onClick={() => setSearchQuery('')}
-                  className="absolute end-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={t('search_clear')}
+                  className="absolute end-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full text-muted-foreground"
                 >
-                  <X className="w-4 h-4" />
-                </button>
+                  <X />
+                </IconButton>
               )}
             </div>
           </div>
@@ -1090,14 +1080,13 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
                 aria-label={t('search_placeholder')}
               />
               {searchQuery && (
-                <button
-                  type="button"
+                <IconButton
+                  label={t('search_clear')}
                   onClick={() => setSearchQuery('')}
-                  className="absolute end-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={t('search_clear')}
+                  className="absolute end-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full text-muted-foreground"
                 >
-                  <X className="w-4 h-4" />
-                </button>
+                  <X />
+                </IconButton>
               )}
             </div>
           </div>

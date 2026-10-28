@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "Тохиргоо",
     "back_to_mail": "Мэйл рүү буцах",
+    "back_to_settings": "Тохиргоо руу буцах",
     "save_success": "Тохиргоог амжилттай хадгаллаа",
     "import_success": "Тохиргоог амжилттай импортоллоо",
     "import_error": "Тохиргоог оруулж чадсангүй",
@@ -2362,6 +2363,8 @@
       "add_condition": "Нөхцөл нэмэх",
       "actions": "Үйлдэл",
       "add_action": "Үйлдэл нэмэх",
+      "remove_condition": "Нөхцөлийг хасах",
+      "remove_action": "Үйлдлийг хасах",
       "stop_processing": "Дараагийн дүрмийг боловсруулахаа зогсоох",
       "include_spam": "Спам гэж тэмдэглэсэн захидлыг мөн зөөх",
       "attachment_type_placeholder": "жишээ нь pdf, doc, jpg",

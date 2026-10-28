@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "Indstillinger",
     "back_to_mail": "Tilbage til mail",
+    "back_to_settings": "Tilbage til indstillinger",
     "save_success": "Indstillinger gemt succesfuldt",
     "import_success": "Indstillinger importeret succesfuldt",
     "import_error": "Kunne ikke importere indstillinger",
@@ -2358,6 +2359,8 @@
       "add_condition": "Tilføj betingelse",
       "actions": "Handlinger",
       "add_action": "Tilføj handling",
+      "remove_condition": "Fjern betingelse",
+      "remove_action": "Fjern handling",
       "stop_processing": "Stop behandling af efterfølgende regler",
       "include_spam": "Flyt også beskeder, der er markeret som spam",
       "attachment_type_placeholder": "f.eks. pdf, doc, jpg",

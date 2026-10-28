@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "Innstillinger",
     "back_to_mail": "Tilbake til e-post",
+    "back_to_settings": "Tilbake til innstillinger",
     "save_success": "Innstillingene er lagret",
     "import_success": "Innstillingene er importert",
     "import_error": "Kunne ikke importere innstillinger",
@@ -2362,6 +2363,8 @@
       "add_condition": "Legg til vilkår",
       "actions": "Handlinger",
       "add_action": "Legg til handling",
+      "remove_condition": "Fjern betingelse",
+      "remove_action": "Fjern handling",
       "stop_processing": "Ikke behandle flere regler",
       "include_spam": "Flytt også meldinger som er merket som søppelpost",
       "attachment_type_placeholder": "f.eks. pdf, doc, jpg",

@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "Instellingen",
     "back_to_mail": "Terug naar Mail",
+    "back_to_settings": "Terug naar instellingen",
     "save_success": "Instellingen succesvol opgeslagen",
     "import_success": "Instellingen succesvol geïmporteerd",
     "import_error": "Kan instellingen niet importeren",
@@ -2355,6 +2356,8 @@
       "add_condition": "Voorwaarde toevoegen",
       "actions": "Acties",
       "add_action": "Actie toevoegen",
+      "remove_condition": "Voorwaarde verwijderen",
+      "remove_action": "Actie verwijderen",
       "stop_processing": "Verwerking van volgende regels stoppen",
       "include_spam": "Ook berichten verplaatsen die als spam zijn gemarkeerd",
       "attachment_type_placeholder": "bijv. pdf, doc, jpg",

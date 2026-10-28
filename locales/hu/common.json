@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "Beállítások",
     "back_to_mail": "Vissza a levelekhez",
+    "back_to_settings": "Vissza a beállításokhoz",
     "save_success": "Beállítások sikeresen elmentve",
     "import_success": "Beállítások sikeresen importálva",
     "import_error": "Nem sikerült importálni a beállításokat",
@@ -2358,6 +2359,8 @@
       "add_condition": "Feltétel hozzáadása",
       "actions": "Műveletek",
       "add_action": "Művelet hozzáadása",
+      "remove_condition": "Feltétel eltávolítása",
+      "remove_action": "Művelet eltávolítása",
       "stop_processing": "További szabályok feldolgozásának leállítása",
       "include_spam": "A levélszemétnek jelölt üzenetek áthelyezése is",
       "attachment_type_placeholder": "pl. pdf, doc, jpg",

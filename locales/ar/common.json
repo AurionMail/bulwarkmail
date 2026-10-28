@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "الإعدادات",
     "back_to_mail": "العودة إلى البريد",
+    "back_to_settings": "العودة إلى الإعدادات",
     "save_success": "تم حفظ الإعدادات بنجاح",
     "import_success": "تم استيراد الإعدادات بنجاح",
     "import_error": "فشل استيراد الإعدادات",
@@ -2362,6 +2363,8 @@
       "add_condition": "إضافة شرط",
       "actions": "الإجراءات",
       "add_action": "إضافة إجراء",
+      "remove_condition": "إزالة الشرط",
+      "remove_action": "إزالة الإجراء",
       "stop_processing": "إيقاف معالجة القواعد التالية",
       "include_spam": "نقل الرسائل المصنفة كرسائل مزعجة أيضًا",
       "attachment_type_placeholder": "مثال: pdf, doc, jpg",

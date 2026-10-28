@@ -20,10 +20,12 @@ import { IS_LITE } from '@/lib/lite';
 import { useConfig } from '@/hooks/use-config';
 import { totpIssuer } from '@/lib/totp-issuer';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { IconButton } from '@/components/ui/icon-button';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 
 function PasswordChangeSection() {
   const t = useTranslations('settings.security');
+  const tLogin = useTranslations('login');
   const { changePassword, isSaving, otpEnabled } = useAccountSecurityStore();
   const [currentPassword, setCurrentPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
@@ -78,13 +80,14 @@ function PasswordChangeSection() {
               autoComplete="current-password"
               className="pe-10"
             />
-            <button
-              type="button"
+            <IconButton
+              label={showCurrent ? tLogin('hide_password') : tLogin('show_password')}
+              aria-pressed={showCurrent}
               onClick={() => setShowCurrent(!showCurrent)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute end-1 top-1/2 -translate-y-1/2 text-muted-foreground"
             >
-              {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
+              {showCurrent ? <EyeOff /> : <Eye />}
+            </IconButton>
           </div>
         </div>
         {otpEnabled && (
@@ -112,13 +115,14 @@ function PasswordChangeSection() {
               autoComplete="new-password"
               className="pe-10"
             />
-            <button
-              type="button"
+            <IconButton
+              label={showNew ? tLogin('hide_password') : tLogin('show_password')}
+              aria-pressed={showNew}
               onClick={() => setShowNew(!showNew)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute end-1 top-1/2 -translate-y-1/2 text-muted-foreground"
             >
-              {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
+              {showNew ? <EyeOff /> : <Eye />}
+            </IconButton>
           </div>
         </div>
         <div>
@@ -392,7 +396,7 @@ function parseIpList(raw: string): string[] {
     .filter(Boolean);
 }
 
-function CredentialRow({ entry, onRemove, isSaving }: { entry: AppPasswordInfo | ApiKeyInfo; onRemove: (id: string) => void; isSaving: boolean }) {
+function CredentialRow({ entry, onRemove, isSaving, deleteLabel }: { entry: AppPasswordInfo | ApiKeyInfo; onRemove: (id: string) => void; isSaving: boolean; deleteLabel: string }) {
   return (
     <div className="flex items-start justify-between py-2 px-3 bg-muted/50 rounded-md gap-2">
       <div className="flex flex-col min-w-0 flex-1">
@@ -416,15 +420,14 @@ function CredentialRow({ entry, onRemove, isSaving }: { entry: AppPasswordInfo |
           </div>
         )}
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
+      <IconButton
+        label={deleteLabel}
         onClick={() => onRemove(entry.id)}
         disabled={isSaving}
         className="text-destructive hover:text-destructive shrink-0"
       >
-        <Trash2 className="w-3 h-3" />
-      </Button>
+        <Trash2 />
+      </IconButton>
     </div>
   );
 }
@@ -582,7 +585,7 @@ function CredentialSection({ icon: Icon, i18nNamespace, entries, onCreate, onRem
       {entries.length > 0 ? (
         <div className="space-y-1">
           {entries.map((entry) => (
-            <CredentialRow key={entry.id} entry={entry} onRemove={handleRemove} isSaving={isSaving} />
+            <CredentialRow key={entry.id} entry={entry} onRemove={handleRemove} isSaving={isSaving} deleteLabel={tCommon('delete')} />
           ))}
         </div>
       ) : (
@@ -869,30 +872,27 @@ function PublicKeysSection() {
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <IconButton
+                    label={isEncryptedWithThisKey ? t('encryption.disable_tooltip') : t('encryption.enable_tooltip')}
                     onClick={() => handleToggleEncryption(key.id)}
                     disabled={isSaving}
-                    title={isEncryptedWithThisKey ? t('encryption.disable_tooltip') : t('encryption.enable_tooltip')}
                     className={cn(
                       isEncryptedWithThisKey
                         ? 'text-green-600 hover:text-green-700 dark:text-green-400'
                         : 'text-muted-foreground hover:text-foreground'
                     )}
                   >
-                    {isEncryptedWithThisKey ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-                  </Button>
+                    {isEncryptedWithThisKey ? <Lock /> : <Unlock />}
+                  </IconButton>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <IconButton
+                    label={tCommon('delete')}
                     onClick={() => handleRemove(key.id)}
                     disabled={isSaving || isEncryptedWithThisKey}
                     className="text-destructive hover:text-destructive"
                   >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
+                    <Trash2 />
+                  </IconButton>
                 </div>
               </div>
             );

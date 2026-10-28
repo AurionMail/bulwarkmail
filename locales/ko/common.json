@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "설정",
     "back_to_mail": "메일로 돌아가기",
+    "back_to_settings": "설정으로 돌아가기",
     "save_success": "설정이 저장되었어요",
     "import_success": "설정을 성공적으로 가져왔어요",
     "import_error": "설정 가져오기에 실패했어요",
@@ -2355,6 +2356,8 @@
       "add_condition": "조건 추가",
       "actions": "동작",
       "add_action": "동작 추가",
+      "remove_condition": "조건 제거",
+      "remove_action": "동작 제거",
       "stop_processing": "이후 규칙 무시하기",
       "include_spam": "스팸으로 표시된 메시지도 이동",
       "attachment_type_placeholder": "예: pdf, doc, jpg",

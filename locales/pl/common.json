@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "Ustawienia",
     "back_to_mail": "Powrót do poczty",
+    "back_to_settings": "Wróć do ustawień",
     "save_success": "Ustawienia zostały zapisane",
     "import_success": "Ustawienia zostały zaimportowane",
     "import_error": "Nie udało się zaimportować ustawień",
@@ -2355,6 +2356,8 @@
       "add_condition": "Dodaj warunek",
       "actions": "Akcje",
       "add_action": "Dodaj akcję",
+      "remove_condition": "Usuń warunek",
+      "remove_action": "Usuń akcję",
       "stop_processing": "Zatrzymaj przetwarzanie kolejnych reguł",
       "include_spam": "Przenoś również wiadomości oznaczone jako spam",
       "attachment_type_placeholder": "np. pdf, doc, jpg",

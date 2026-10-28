@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "设置",
     "back_to_mail": "返回邮件",
+    "back_to_settings": "返回设置",
     "save_success": "设置保存成功",
     "import_success": "设置导入成功",
     "import_error": "导入设置失败",
@@ -2355,6 +2356,8 @@
       "add_condition": "添加条件",
       "actions": "操作",
       "add_action": "添加操作",
+      "remove_condition": "移除条件",
+      "remove_action": "移除操作",
       "stop_processing": "停止处理后续规则",
       "include_spam": "同时移动被标记为垃圾邮件的邮件",
       "attachment_type_placeholder": "例如：pdf、doc、jpg",

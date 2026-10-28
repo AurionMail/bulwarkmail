@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "Setări",
     "back_to_mail": "Înapoi la Mail",
+    "back_to_settings": "Înapoi la setări",
     "save_success": "Setările au fost salvate cu succes",
     "import_success": "Setările au fost importate cu succes",
     "import_error": "Nu s-au putut importa setările",
@@ -2362,6 +2363,8 @@
       "add_condition": "Adăugați condiție",
       "actions": "Acțiuni",
       "add_action": "Adăugare acțiune",
+      "remove_condition": "Elimină condiția",
+      "remove_action": "Elimină acțiunea",
       "stop_processing": "Opriți procesarea regulilor următoare",
       "include_spam": "Mută și mesajele marcate ca spam",
       "attachment_type_placeholder": "de ex. pdf, doc, jpg",

@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "Ayarlar",
     "back_to_mail": "Postaya Dön",
+    "back_to_settings": "Ayarlara dön",
     "save_success": "Ayarlar başarıyla kaydedildi",
     "import_success": "Ayarlar başarıyla içe aktarıldı",
     "import_error": "Ayarlar içe aktarılamadı",
@@ -2355,6 +2356,8 @@
       "add_condition": "Koşul Ekle",
       "actions": "İşlemler",
       "add_action": "İşlem Ekle",
+      "remove_condition": "Koşulu kaldır",
+      "remove_action": "Eylemi kaldır",
       "stop_processing": "Sonraki kuralları işlemeyi durdur",
       "include_spam": "İstenmeyen olarak işaretlenen iletileri de taşı",
       "attachment_type_placeholder": "örn. pdf, doc, jpg",

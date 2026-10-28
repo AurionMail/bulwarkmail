@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "Einstellungen",
     "back_to_mail": "Zurück zu E-Mails",
+    "back_to_settings": "Zurück zu den Einstellungen",
     "save_success": "Einstellungen erfolgreich gespeichert",
     "import_success": "Einstellungen erfolgreich importiert",
     "import_error": "Import der Einstellungen fehlgeschlagen",
@@ -2355,6 +2356,8 @@
       "add_condition": "Bedingung hinzufügen",
       "actions": "Aktionen",
       "add_action": "Aktion hinzufügen",
+      "remove_condition": "Bedingung entfernen",
+      "remove_action": "Aktion entfernen",
       "stop_processing": "Verarbeitung nachfolgender Regeln stoppen",
       "include_spam": "Auch als Spam markierte Nachrichten verschieben",
       "attachment_type_placeholder": "z.B. pdf, doc, jpg",

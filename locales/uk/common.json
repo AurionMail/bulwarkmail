@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "Налаштування",
     "back_to_mail": "Назад до пошти",
+    "back_to_settings": "Назад до налаштувань",
     "save_success": "Налаштування успішно збережено",
     "import_success": "Налаштування успішно імпортовано",
     "import_error": "Не вдалося імпортувати налаштування",
@@ -2355,6 +2356,8 @@
       "add_condition": "Додати умову",
       "actions": "Дії",
       "add_action": "Додати дію",
+      "remove_condition": "Прибрати умову",
+      "remove_action": "Прибрати дію",
       "stop_processing": "Зупинити обробку наступних правил",
       "include_spam": "Переміщувати також листи, позначені як спам",
       "attachment_type_placeholder": "напр. pdf, doc, jpg",

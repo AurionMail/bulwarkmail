@@ -1048,6 +1048,7 @@
   "settings": {
     "title": "تنظیمات",
     "back_to_mail": "بازگشت به ایمیل",
+    "back_to_settings": "بازگشت به تنظیمات",
     "save_success": "تنظیمات با موفقیت ذخیره شد",
     "import_success": "تنظیمات با موفقیت وارد شد",
     "import_error": "وارد کردن تنظیمات ناموفق بود",
@@ -2362,6 +2363,8 @@
       "add_condition": "افزودن شرط",
       "actions": "عملیات‌ها",
       "add_action": "افزودن عملیات",
+      "remove_condition": "حذف شرط",
+      "remove_action": "حذف کنش",
       "stop_processing": "توقف پردازش قوانین بعدی",
       "include_spam": "پیام‌های علامت‌خورده به‌عنوان هرزنامه هم منتقل شوند",
       "attachment_type_placeholder": "مثال: pdf, doc, jpg",

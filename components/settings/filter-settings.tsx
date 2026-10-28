@@ -672,6 +672,7 @@ export function FilterSettings() {
                     <ToggleSwitch
                       checked={rule.enabled}
                       onChange={() => handleToggle(rule.id)}
+                      ariaLabel={rule.name}
                     />
                   </div>
 
@@ -755,6 +756,7 @@ export function FilterSettings() {
               <ToggleSwitch
                 checked={expandedFilterView}
                 onChange={(v) => updateSetting("expandedFilterView", v)}
+                ariaLabel={t("expanded_view")}
               />
             </div>
           )}
