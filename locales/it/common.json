@@ -76,6 +76,13 @@
       "back_to_login": "Torna al login"
     }
   },
+  "totp_reauth": {
+    "title": "Sessione scaduta",
+    "description": "Il codice a due fattori è cambiato. Inserisci un nuovo codice dall'app di autenticazione per continuare.",
+    "oauth_hint": "Per non ricevere più questa richiesta, chiedi all'amministratore di attivare l'accesso con OAuth (l'OAuth integrato di Stalwart o un provider di identità esterno).",
+    "code_label": "Codice di autenticazione",
+    "verify": "Verifica"
+  },
   "sidebar": {
     "close": "Chiudi",
     "compose": "Scrivi",

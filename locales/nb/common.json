@@ -76,6 +76,13 @@
       "back_to_login": "Tilbake til pålogging"
     }
   },
+  "totp_reauth": {
+    "title": "Økten er utløpt",
+    "description": "Tofaktorkoden din er endret. Skriv inn en ny kode fra autentiseringsappen for å fortsette.",
+    "oauth_hint": "Be administratoren om å slå på pålogging med OAuth (Stalwarts innebygde OAuth eller en ekstern identitetsleverandør), så slipper du denne forespørselen.",
+    "code_label": "Autentiseringskode",
+    "verify": "Bekreft"
+  },
   "sidebar": {
     "close": "Lukk",
     "compose": "Skriv",

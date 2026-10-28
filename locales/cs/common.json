@@ -76,6 +76,13 @@
       "back_to_login": "Zpět na přihlášení"
     }
   },
+  "totp_reauth": {
+    "title": "Relace vypršela",
+    "description": "Váš dvoufázový kód se změnil. Pro pokračování zadejte nový kód z ověřovací aplikace.",
+    "oauth_hint": "Aby se tato výzva neopakovala, požádejte správce o zapnutí přihlašování přes OAuth (vestavěné OAuth ve Stalwartu nebo externího poskytovatele identity).",
+    "code_label": "Ověřovací kód",
+    "verify": "Ověřit"
+  },
   "sidebar": {
     "close": "Zavřít",
     "compose": "Napsat",

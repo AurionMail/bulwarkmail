@@ -76,6 +76,13 @@
       "back_to_login": "Tagasi"
     }
   },
+  "totp_reauth": {
+    "title": "Seanss on aegunud",
+    "description": "Teie kaheastmelise tuvastuse kood on muutunud. Jätkamiseks sisestage autentimisrakendusest uus kood.",
+    "oauth_hint": "Et see küsimus ei korduks, paluge administraatoril lülitada sisse OAuth-sisselogimine (Stalwarti sisseehitatud OAuth või väline identiteedipakkuja).",
+    "code_label": "Autentimiskood",
+    "verify": "Kinnita"
+  },
   "sidebar": {
     "close": "Sulge",
     "compose": "Koosta",

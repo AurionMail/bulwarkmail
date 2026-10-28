@@ -76,6 +76,13 @@
       "back_to_login": "로그인 화면으로 돌아가기"
     }
   },
+  "totp_reauth": {
+    "title": "세션이 만료되었습니다",
+    "description": "2단계 인증 코드가 바뀌었습니다. 계속하려면 인증 앱의 새 코드를 입력하세요.",
+    "oauth_hint": "이 요청이 다시 나타나지 않게 하려면 관리자에게 OAuth 로그인(Stalwart 내장 OAuth 또는 외부 ID 공급자)을 켜 달라고 요청하세요.",
+    "code_label": "인증 코드",
+    "verify": "확인"
+  },
   "sidebar": {
     "close": "닫기",
     "compose": "메일 쓰기",

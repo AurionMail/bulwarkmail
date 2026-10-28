@@ -76,6 +76,13 @@
       "back_to_login": "Voltar ao login"
     }
   },
+  "totp_reauth": {
+    "title": "Sessão expirada",
+    "description": "O seu código de dois fatores mudou. Introduza um código novo da aplicação de autenticação para continuar.",
+    "oauth_hint": "Para deixar de ver este pedido, peça ao administrador que ative o início de sessão com OAuth (o OAuth integrado do Stalwart ou um fornecedor de identidade externo).",
+    "code_label": "Código de autenticação",
+    "verify": "Verificar"
+  },
   "sidebar": {
     "close": "Fechar",
     "compose": "Escrever",

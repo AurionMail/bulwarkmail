@@ -76,6 +76,13 @@
       "back_to_login": "Atgriezties pie pierakstīšanās"
     }
   },
+  "totp_reauth": {
+    "title": "Sesija ir beigusies",
+    "description": "Jūsu divfaktoru kods ir mainījies. Lai turpinātu, ievadiet jaunu kodu no autentifikācijas lietotnes.",
+    "oauth_hint": "Lai šis pieprasījums vairs neparādītos, lūdziet administratoram ieslēgt pieteikšanos ar OAuth (Stalwart iebūvēto OAuth vai ārēju identitātes nodrošinātāju).",
+    "code_label": "Autentifikācijas kods",
+    "verify": "Apstiprināt"
+  },
   "sidebar": {
     "close": "Aizvērt",
     "compose": "Rakstīt",

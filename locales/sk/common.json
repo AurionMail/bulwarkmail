@@ -76,6 +76,13 @@
       "back_to_login": "Späť na prihlásenie"
     }
   },
+  "totp_reauth": {
+    "title": "Relácia vypršala",
+    "description": "Váš dvojfaktorový kód sa zmenil. Ak chcete pokračovať, zadajte nový kód z overovacej aplikácie.",
+    "oauth_hint": "Aby sa táto výzva neopakovala, požiadajte správcu o zapnutie prihlasovania cez OAuth (vstavané OAuth v Stalwarte alebo externého poskytovateľa identity).",
+    "code_label": "Overovací kód",
+    "verify": "Overiť"
+  },
   "sidebar": {
     "unified_mailbox": "Zjednotená schránka",
     "close": "Zavrieť",

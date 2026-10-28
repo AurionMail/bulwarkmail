@@ -76,6 +76,13 @@
       "back_to_login": "Înapoi la autentificare"
     }
   },
+  "totp_reauth": {
+    "title": "Sesiunea a expirat",
+    "description": "Codul de autentificare în doi pași s-a schimbat. Introduceți un cod nou din aplicația de autentificare pentru a continua.",
+    "oauth_hint": "Ca această solicitare să nu mai apară, cereți administratorului să activeze conectarea prin OAuth (OAuth-ul integrat în Stalwart sau un furnizor de identitate extern).",
+    "code_label": "Cod de autentificare",
+    "verify": "Verifică"
+  },
   "sidebar": {
     "close": "Închide",
     "compose": "Compune",

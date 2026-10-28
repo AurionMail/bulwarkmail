@@ -76,6 +76,13 @@
       "back_to_login": "Giriş sayfasına dön"
     }
   },
+  "totp_reauth": {
+    "title": "Oturumun süresi doldu",
+    "description": "İki adımlı doğrulama kodunuz değişti. Devam etmek için kimlik doğrulama uygulamanızdan yeni bir kod girin.",
+    "oauth_hint": "Bu isteğin tekrar çıkmaması için yöneticinizden OAuth ile oturum açmayı (Stalwart'ın yerleşik OAuth'u veya harici bir kimlik sağlayıcı) açmasını isteyin.",
+    "code_label": "Doğrulama kodu",
+    "verify": "Doğrula"
+  },
   "sidebar": {
     "close": "Kapat",
     "compose": "Yeni E-posta",

@@ -76,6 +76,13 @@
       "back_to_login": "Tilbage til login"
     }
   },
+  "totp_reauth": {
+    "title": "Sessionen er udløbet",
+    "description": "Din tofaktorkode er ændret. Indtast en ny kode fra din godkendelsesapp for at fortsætte.",
+    "oauth_hint": "Bed din administrator om at slå login med OAuth til (Stalwarts indbyggede OAuth eller en ekstern identitetsudbyder), så du ikke bliver spurgt igen.",
+    "code_label": "Godkendelseskode",
+    "verify": "Bekræft"
+  },
   "sidebar": {
     "close": "Luk",
     "compose": "Ny besked",

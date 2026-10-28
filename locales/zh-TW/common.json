@@ -76,6 +76,13 @@
       "back_to_login": "返回登入頁面"
     }
   },
+  "totp_reauth": {
+    "title": "工作階段已過期",
+    "description": "您的雙重驗證碼已變更。請輸入驗證器應用程式中的新驗證碼以繼續。",
+    "oauth_hint": "若不想再看到此提示，請請管理員啟用 OAuth 登入（Stalwart 內建的 OAuth 或外部身分提供者）。",
+    "code_label": "驗證碼",
+    "verify": "驗證"
+  },
   "sidebar": {
     "close": "關閉",
     "compose": "撰寫郵件",

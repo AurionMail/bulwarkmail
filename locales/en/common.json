@@ -76,6 +76,13 @@
       "back_to_login": "Back to login"
     }
   },
+  "totp_reauth": {
+    "title": "Session expired",
+    "description": "Your two-factor code has changed. Enter a new code from your authenticator app to continue.",
+    "oauth_hint": "To stop this prompt from coming back, ask your administrator to turn on OAuth sign-in (Stalwart's built-in OAuth or an external identity provider).",
+    "code_label": "Authentication code",
+    "verify": "Verify"
+  },
   "sidebar": {
     "close": "Close",
     "compose": "Compose",

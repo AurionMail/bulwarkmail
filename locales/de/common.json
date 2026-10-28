@@ -76,6 +76,13 @@
       "back_to_login": "Zurück zur Anmeldung"
     }
   },
+  "totp_reauth": {
+    "title": "Sitzung abgelaufen",
+    "description": "Ihr Zwei-Faktor-Code hat sich geändert. Geben Sie einen neuen Code aus Ihrer Authenticator-App ein, um fortzufahren.",
+    "oauth_hint": "Damit diese Abfrage nicht wiederkommt, bitten Sie Ihre Administration, die Anmeldung über OAuth einzuschalten (das integrierte OAuth von Stalwart oder einen externen Identitätsanbieter).",
+    "code_label": "Authentifizierungscode",
+    "verify": "Bestätigen"
+  },
   "sidebar": {
     "close": "Schließen",
     "compose": "Verfassen",

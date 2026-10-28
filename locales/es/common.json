@@ -76,6 +76,13 @@
       "back_to_login": "Volver al inicio de sesión"
     }
   },
+  "totp_reauth": {
+    "title": "La sesión ha caducado",
+    "description": "Tu código de doble factor ha cambiado. Introduce un código nuevo de tu aplicación de autenticación para continuar.",
+    "oauth_hint": "Para que este aviso no vuelva a aparecer, pide a tu administrador que active el inicio de sesión con OAuth (el OAuth integrado de Stalwart o un proveedor de identidad externo).",
+    "code_label": "Código de autenticación",
+    "verify": "Verificar"
+  },
   "sidebar": {
     "close": "Cerrar",
     "compose": "Redactar",

@@ -76,6 +76,13 @@
       "back_to_login": "Powrót do logowania"
     }
   },
+  "totp_reauth": {
+    "title": "Sesja wygasła",
+    "description": "Twój kod dwuskładnikowy się zmienił. Aby kontynuować, wpisz nowy kod z aplikacji uwierzytelniającej.",
+    "oauth_hint": "Aby ta prośba się nie powtarzała, poproś administratora o włączenie logowania przez OAuth (wbudowany OAuth w Stalwart lub zewnętrzny dostawca tożsamości).",
+    "code_label": "Kod uwierzytelniający",
+    "verify": "Zweryfikuj"
+  },
   "sidebar": {
     "close": "Zamknij",
     "compose": "Napisz",

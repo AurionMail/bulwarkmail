@@ -76,6 +76,13 @@
       "back_to_login": "Terug naar inloggen"
     }
   },
+  "totp_reauth": {
+    "title": "Sessie verlopen",
+    "description": "Je tweestapscode is veranderd. Voer een nieuwe code uit je authenticator-app in om door te gaan.",
+    "oauth_hint": "Vraag je beheerder om aanmelden via OAuth aan te zetten (de ingebouwde OAuth van Stalwart of een externe identiteitsprovider), dan krijg je deze vraag niet meer.",
+    "code_label": "Verificatiecode",
+    "verify": "Bevestigen"
+  },
   "sidebar": {
     "close": "Sluiten",
     "compose": "Nieuw bericht",

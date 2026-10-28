@@ -76,6 +76,13 @@
       "back_to_login": "ログインに戻る"
     }
   },
+  "totp_reauth": {
+    "title": "セッションの有効期限が切れました",
+    "description": "2 段階認証コードが変わりました。続けるには、認証アプリの新しいコードを入力してください。",
+    "oauth_hint": "この確認を繰り返さないようにするには、OAuth によるサインイン（Stalwart の組み込み OAuth または外部の ID プロバイダー）を有効にするよう管理者に依頼してください。",
+    "code_label": "認証コード",
+    "verify": "確認"
+  },
   "sidebar": {
     "close": "閉じる",
     "compose": "作成",

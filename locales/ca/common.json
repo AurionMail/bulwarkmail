@@ -76,6 +76,13 @@
       "back_to_login": "Torna a l'inici de sessió"
     }
   },
+  "totp_reauth": {
+    "title": "La sessió ha caducat",
+    "description": "El codi de doble factor ha canviat. Introduïu un codi nou de l'aplicació d'autenticació per continuar.",
+    "oauth_hint": "Perquè aquest avís no torni a aparèixer, demaneu a l'administrador que activi l'inici de sessió amb OAuth (l'OAuth integrat de Stalwart o un proveïdor d'identitat extern).",
+    "code_label": "Codi d'autenticació",
+    "verify": "Verifica"
+  },
   "sidebar": {
     "close": "Tanca",
     "compose": "Redacta",

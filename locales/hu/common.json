@@ -76,6 +76,13 @@
       "back_to_login": "Vissza a bejelentkezéshez"
     }
   },
+  "totp_reauth": {
+    "title": "A munkamenet lejárt",
+    "description": "A kétlépcsős kód megváltozott. A folytatáshoz adjon meg egy új kódot a hitelesítő alkalmazásból.",
+    "oauth_hint": "Hogy ez a kérés ne jelenjen meg újra, kérje meg a rendszergazdát, hogy kapcsolja be az OAuth-bejelentkezést (a Stalwart beépített OAuth-ját vagy egy külső identitásszolgáltatót).",
+    "code_label": "Hitelesítő kód",
+    "verify": "Ellenőrzés"
+  },
   "sidebar": {
     "close": "Bezárás",
     "compose": "Új levél",
