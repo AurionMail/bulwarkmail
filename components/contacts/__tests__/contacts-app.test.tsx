@@ -74,7 +74,7 @@ describe('ContactsApp', () => {
     });
   });
 
-  it('takes the closed drawer out of reach, so it can\'t cover the nav rail or catch Tab', () => {
+  it("takes the closed drawer out of reach, so it can't cover the nav rail or catch Tab", () => {
     renderContacts();
     expect(drawer()).toHaveAttribute('inert');
     expect(drawer().className).toContain('invisible');
@@ -82,5 +82,16 @@ describe('ContactsApp', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'open_categories' })[0]);
     expect(drawer()).not.toHaveAttribute('inert');
     expect(within(drawer()).getByText('tabs.all')).toBeInTheDocument();
+  });
+
+  it("closes the drawer when something in it is picked, so it doesn't stay over the form", () => {
+    renderContacts();
+    fireEvent.click(screen.getAllByRole('button', { name: 'open_categories' })[0]);
+    expect(drawer()).not.toHaveAttribute('inert');
+
+    // The header's "+" menu, then "New contact".
+    fireEvent.click(within(drawer()).getAllByRole('button')[0]);
+    fireEvent.click(within(drawer()).getByText('create_new'));
+    expect(drawer()).toHaveAttribute('inert');
   });
 });

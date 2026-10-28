@@ -151,6 +151,13 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   const isNarrow = !isDesktop;
   const [narrowSidebarOpen, setNarrowSidebarOpen] = useState(false);
   useEffect(() => { if (!isNarrow) setNarrowSidebarOpen(false); }, [isNarrow]);
+  // A new view (a form, a group, a contact) replaces whatever the drawer was for.
+  useEffect(() => { setNarrowSidebarOpen(false); }, [view]);
+  // Anything picked in the drawer closes it (R7).
+  const fromDrawer = <A extends unknown[], R>(action: (...args: A) => R) => (...args: A): R => {
+    setNarrowSidebarOpen(false);
+    return action(...args);
+  };
 
   // Panel resize state - sidebar (categories)
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -1013,31 +1020,31 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                       addressBooks={addressBooks}
                       activeCategory={activeCategory}
                       onSelectCategory={handleSelectCategory}
-                      onCreateGroup={handleCreateGroup}
-                      onCreateContact={handleCreateNew}
-                      onCreateAddressBook={client ? () => setCreatingAddressBook(true) : undefined}
-                      onImport={() => setShowImportDialog(true)}
-                      onEditGroup={handleEditGroupFromSidebar}
-                      onDeleteGroup={handleDeleteGroupFromSidebar}
-                      onComposeGroup={handleComposeGroupFromSidebar}
+                      onCreateGroup={fromDrawer(handleCreateGroup)}
+                      onCreateContact={fromDrawer(handleCreateNew)}
+                      onCreateAddressBook={client ? fromDrawer(() => setCreatingAddressBook(true)) : undefined}
+                      onImport={fromDrawer(() => setShowImportDialog(true))}
+                      onEditGroup={fromDrawer(handleEditGroupFromSidebar)}
+                      onDeleteGroup={fromDrawer(handleDeleteGroupFromSidebar)}
+                      onComposeGroup={fromDrawer(handleComposeGroupFromSidebar)}
                       onDropContacts={handleDropContacts}
                       onDropContactsToCategory={handleDropContactsToCategory}
-                      onRenameAddressBook={client ? (book) => setRenamingAddressBook(book) : undefined}
-                      onShareAddressBook={client ? (book) => setSharingAddressBookId(book.id) : undefined}
-                      onSetDefaultAddressBook={client ? async (book) => {
+                      onRenameAddressBook={client ? fromDrawer((book: AddressBook) => setRenamingAddressBook(book)) : undefined}
+                      onShareAddressBook={client ? fromDrawer((book: AddressBook) => setSharingAddressBookId(book.id)) : undefined}
+                      onSetDefaultAddressBook={client ? fromDrawer(async (book: AddressBook) => {
                         try {
                           await setDefaultAddressBook(client, book);
                           toast.success(t("address_books.default_updated"));
                         } catch {
                           toast.error(t("address_books.set_default_failed"));
                         }
-                      } : undefined}
-                      onCreateContactInBook={(book) => {
+                      }) : undefined}
+                      onCreateContactInBook={fromDrawer((book: AddressBook) => {
                         setDefaultBookIdForCreate(book.id);
                         setSelectedContact(null);
                         setView("create");
-                      }}
-                      onDeleteAddressBook={client ? async (book) => {
+                      })}
+                      onDeleteAddressBook={client ? fromDrawer(async (book: AddressBook) => {
                         const ok = await confirmDialog({
                           title: t("address_books.delete"),
                           message: t("address_books.confirm_delete", { name: book.name }),
@@ -1051,8 +1058,8 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                         } catch {
                           toast.error(t("address_books.delete_failed"));
                         }
-                      } : undefined}
-                      onRenameKeyword={(kw) => setRenamingKeyword(kw)}
+                      }) : undefined}
+                      onRenameKeyword={fromDrawer((kw: string) => setRenamingKeyword(kw))}
                       directoryCount={showDirectory ? directoryPrincipals.length : undefined}
                       multiAccountMode={multiAccountEnabled && accountClients.length > 1}
                     />

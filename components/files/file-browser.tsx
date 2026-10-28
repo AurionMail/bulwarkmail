@@ -242,6 +242,11 @@ export function FileBrowser({
   const [narrowSidebarOpen, setNarrowSidebarOpen] = useState(false);
   useEffect(() => { if (!isNarrow) setNarrowSidebarOpen(false); }, [isNarrow]);
   useEffect(() => { setNarrowSidebarOpen(false); }, [currentPath]);
+  // Anything picked in the drawer closes it (R7).
+  const fromDrawer = <A extends unknown[], R>(action: (...args: A) => R) => (...args: A): R => {
+    setNarrowSidebarOpen(false);
+    return action(...args);
+  };
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = Number(localStorage.getItem("files-sidebar-width"));
@@ -891,19 +896,19 @@ export function FileBrowser({
       canCreate={canCreate}
       onNavigate={onNavigate}
       onOpenRecent={onOpenRecent}
-      onUploadFiles={() => fileInputRef.current?.click()}
-      onUploadFolder={() => folderInputRef.current?.click()}
-      onNewFolder={() => setShowNewFolder(true)}
-      onNewTextFile={() => setShowNewTextFile(true)}
+      onUploadFiles={fromDrawer(() => fileInputRef.current?.click())}
+      onUploadFolder={fromDrawer(() => folderInputRef.current?.click())}
+      onNewFolder={fromDrawer(() => setShowNewFolder(true))}
+      onNewTextFile={fromDrawer(() => setShowNewTextFile(true))}
       onToggleFavorite={onToggleFavorite}
       onDropItems={moveNames}
       canShare={canShare}
-      onShare={(r) => setShareTargetId(r.id)}
-      onCreateIn={createIn}
-      onRenameFolder={setRenameFolder}
-      onDeleteFolder={(folder) => void onDeleteNode(folder.id, folder.name)}
-      onRevealRecent={(id) => void onRevealNode(id)}
-      onDownloadRecent={(id) => void onDownloadNode(id)}
+      onShare={fromDrawer((r: FileResource) => setShareTargetId(r.id))}
+      onCreateIn={fromDrawer(createIn)}
+      onRenameFolder={fromDrawer(setRenameFolder)}
+      onDeleteFolder={fromDrawer((folder: FileResource) => void onDeleteNode(folder.id, folder.name))}
+      onRevealRecent={fromDrawer((id: string) => void onRevealNode(id))}
+      onDownloadRecent={fromDrawer((id: string) => void onDownloadNode(id))}
       onRemoveRecent={onRemoveRecent}
     />
   );
