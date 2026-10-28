@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { useTranslations } from "next-intl";
-import { ArrowUp, ArrowDown, MoreHorizontal, Download, Share2, Star, Check } from "@/components/icons";
+import { ArrowUp, ArrowDown, MoreVertical, Download, Share2, Star, Check } from "@/components/icons";
 import { cn, formatFileSize } from "@/lib/utils";
 import { IconButton } from "@/components/ui/icon-button";
 import type { FileResource } from "@/stores/file-store";
@@ -229,7 +229,7 @@ function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isS
         LIST_COLUMNS,
         "group px-4 border-b border-border/60 cursor-default select-none transition-colors outline-none",
         touch ? "min-h-[52px] py-1.5" : "h-10",
-        isSelected ? "bg-primary/10" : isDropTarget ? "bg-primary/10 ring-1 ring-inset ring-primary/50" : "hover:bg-muted/60",
+        isSelected ? "bg-selection" : isDropTarget ? "bg-primary/10 ring-1 ring-inset ring-primary/50" : "hover:bg-muted/60",
         isFocused && "ring-1 ring-inset ring-ring/60",
         isCut && "opacity-50",
       )}
@@ -297,7 +297,7 @@ function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isS
           onDoubleClick={(e) => e.stopPropagation()}
           className="text-muted-foreground hover:text-foreground"
         >
-          <MoreHorizontal />
+          <MoreVertical />
         </IconButton>
       </div>
     </div>
@@ -395,7 +395,7 @@ function FolderTile({ resource, isSelected, isFocused, isDropTarget, isCut, isSt
       {...touchProps}
       className={cn(
         "group relative flex items-center gap-2.5 h-11 ps-3 pe-1 rounded-lg border cursor-default select-none transition-colors",
-        isSelected ? "border-primary/60 bg-primary/10" : isDropTarget ? "border-primary bg-primary/10" : "border-border bg-background hover:bg-muted/60",
+        isSelected ? "border-primary/60 bg-selection" : isDropTarget ? "border-primary bg-primary/10" : "border-border bg-background hover:bg-muted/60",
         isFocused && "ring-2 ring-ring/50",
         isCut && "opacity-50",
       )}
@@ -425,7 +425,7 @@ function FolderTile({ resource, isSelected, isFocused, isDropTarget, isCut, isSt
         onDoubleClick={(e) => e.stopPropagation()}
         className={cn("text-muted-foreground hover:text-foreground", !touch && "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100")}
       >
-        <MoreHorizontal />
+        <MoreVertical />
       </IconButton>
     </div>
   );
@@ -447,7 +447,7 @@ function FileTile({ resource, isSelected, isFocused, isCut, selecting, touch, ic
       {...touchProps}
       className={cn(
         "group relative flex flex-col rounded-lg border overflow-hidden cursor-default select-none transition-colors",
-        isSelected ? "border-primary/60 bg-primary/10" : "border-border bg-background hover:bg-muted/60",
+        isSelected ? "border-primary/60 bg-selection" : "border-border bg-background hover:bg-muted/60",
         isFocused && "ring-2 ring-ring/50",
         isCut && "opacity-50",
       )}
@@ -494,7 +494,7 @@ function FileTile({ resource, isSelected, isFocused, isCut, selecting, touch, ic
           onDoubleClick={(e) => e.stopPropagation()}
           className={cn("text-muted-foreground hover:text-foreground shrink-0", !touch && "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100")}
         >
-          <MoreHorizontal />
+          <MoreVertical />
         </IconButton>
       </div>
     </div>

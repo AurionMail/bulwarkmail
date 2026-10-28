@@ -159,7 +159,7 @@ export function FilePickerDialog({ client, onClose, onPick }: FilePickerDialogPr
         onClick={() => toggle(node)}
         className={cn(
           "w-full flex items-center gap-3 px-3 py-2 rounded-md text-start text-sm transition-colors",
-          checked ? "bg-primary/10" : "hover:bg-muted",
+          checked ? "bg-selection" : "hover:bg-muted",
         )}
       >
         <span
