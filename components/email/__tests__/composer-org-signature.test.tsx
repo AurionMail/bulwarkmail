@@ -4,6 +4,9 @@ import React from 'react';
 import { EmailComposer } from '../email-composer';
 import { useSettingsStore } from '@/stores/settings-store';
 import { usePolicyStore } from '@/stores/policy-store';
+import { useAuthStore } from '@/stores/auth-store';
+import { registerOrgOutgoing } from '@/lib/org/outgoing';
+import { resetSendPipeline } from '@/lib/outgoing/send-pipeline';
 import { DEFAULT_POLICY, type SettingsPolicy } from '@/lib/admin/types';
 import { DEFAULT_ORGANISATION_POLICY } from '@/lib/admin/organisation-policy';
 
@@ -406,5 +409,64 @@ describe('organisation signature in the composer', () => {
       await waitFor(() => expect(editorState.html).toContain('ACME Ltd'));
       expectOrgSignatureOnce(await send(onSend), 'Team');
     });
+  });
+});
+
+describe('organisation disclaimer in the composer', () => {
+  const DISCLAIMER = { html: '<p>Confidential, from {email}</p>', text: '' };
+
+  beforeEach(() => {
+    registerOrgOutgoing();
+    const policy: SettingsPolicy = {
+      ...DEFAULT_POLICY,
+      organisation: { ...DEFAULT_ORGANISATION_POLICY, disclaimer: DISCLAIMER },
+    };
+    usePolicyStore.setState({ policy, rawPolicy: policy, subject: null });
+  });
+  afterEach(() => {
+    resetSendPipeline();
+    useAuthStore.setState({ client: null });
+    useSettingsStore.setState({ plainTextMode: false });
+    setOrgPolicy({ signature: null });
+    vi.clearAllMocks();
+  });
+
+  it('shows it read-only under the editor', () => {
+    render(<EmailComposer prefill={{ to: ['bob@example.com'] }} />);
+    const preview = screen.getByTestId('org-disclaimer-preview');
+    expect(preview).toHaveTextContent('disclaimer_added_on_send');
+    expect(preview.innerHTML).toContain('<p>Confidential, from me@example.com</p>');
+    expect(editorState.html).not.toContain('Confidential');
+  });
+
+  it('sends it once below the quote, and saves the draft without it', async () => {
+    const createDraft = vi.fn().mockResolvedValue('draft-1');
+    useAuthStore.setState({
+      client: { createDraft, getEmail: vi.fn().mockResolvedValue(null), hasDelayedSend: () => false, getMaxDelayedSend: () => 0 } as never,
+    });
+    const onSend = vi.fn();
+    render(<EmailComposer mode="reply" replyTo={REPLY_TO} onSend={onSend} />);
+    // A change arms the autosave, which the send flushes first.
+    fireEvent.change(screen.getByTestId('composer-subject'), { target: { value: 'Re: Question?' } });
+    const sent = await send(onSend);
+
+    expect(createDraft).toHaveBeenCalled();
+    for (const call of createDraft.mock.calls) {
+      expect(`${call[2]} ${call[10]}`).not.toContain('Confidential');
+    }
+    expect(countOf(sent.htmlBody!, 'Confidential')).toBe(1);
+    expect(sent.htmlBody).toMatch(/Original text[\s\S]*<hr><div data-org-disclaimer=""><p>Confidential, from me@example.com<\/p><\/div>$/);
+    expect(countOf(sent.body, 'Confidential')).toBe(1);
+    expect(sent.body).toMatch(/Original text[\s\S]*\n\nConfidential, from me@example.com$/);
+  });
+
+  it('sends it once in a plain-text mail', async () => {
+    useSettingsStore.setState({ plainTextMode: true });
+    const onSend = vi.fn();
+    render(<EmailComposer prefill={{ to: ['bob@example.com'] }} onSend={onSend} />);
+    const sent = await send(onSend);
+    expect(sent.htmlBody).toBeUndefined();
+    expect(countOf(sent.body, 'Confidential')).toBe(1);
+    expect(sent.body.endsWith('\n\nConfidential, from me@example.com')).toBe(true);
   });
 });

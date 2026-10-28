@@ -104,3 +104,57 @@ describe('policyForSender', () => {
     expect(policyForSender(view, 'alias@other.test')).toBe(view.policy);
   });
 });
+
+describe('disclaimer on send', () => {
+  function setDisclaimer(disclaimer: { html: string; text: string }) {
+    const policy: SettingsPolicy = { ...DEFAULT_POLICY, organisation: { ...DEFAULT_ORGANISATION_POLICY, disclaimer } };
+    usePolicyStore.setState({ policy, rawPolicy: policy, subject: null });
+  }
+
+  beforeEach(() => {
+    resetSendPipeline();
+    registerOrgOutgoing();
+    useIdentityStore.setState({ identities: [{ id: 'id-alice', name: 'Alice', email: 'alice@example.org', mayDelete: false } as Identity] });
+  });
+  afterEach(() => {
+    resetSendPipeline();
+    usePolicyStore.setState({ policy: DEFAULT_POLICY, rawPolicy: DEFAULT_POLICY });
+  });
+
+  it('goes below everything: a line and the HTML, a blank line and the text', () => {
+    setDisclaimer({ html: '<p>Confidential <b>{domain}</b></p>', text: 'Confidential {domain}' });
+    const out = finalizeOutgoing({ html: '<div><p>Hi</p><blockquote>quote</blockquote></div>', text: 'Hi\n\n> quote\n' }, CONTEXT);
+    expect(out.html).toBe('<div><p>Hi</p><blockquote>quote</blockquote></div><hr><div data-org-disclaimer=""><p>Confidential <b>example.org</b></p></div>');
+    expect(out.text).toBe('Hi\n\n> quote\n\nConfidential example.org');
+  });
+
+  it('makes the text from the HTML when there is none, and only text for a plain-text mail', () => {
+    setDisclaimer({ html: '<p>Line one</p><p>Line two</p>', text: '' });
+    expect(finalizeOutgoing({ html: '<div>Hi</div>', text: 'Hi' }, CONTEXT).text).toBe('Hi\n\nLine one\nLine two');
+    expect(finalizeOutgoing({ text: 'Hi' }, { ...CONTEXT, plainText: true })).toEqual({ html: undefined, text: 'Hi\n\nLine one\nLine two' });
+  });
+
+  it('is added once: not again to a body that ends with it, but also to a reply quoting it', () => {
+    setDisclaimer({ html: '', text: 'Confidential.' });
+    const once = finalizeOutgoing({ html: '<div>Hi</div>', text: 'Hi' }, CONTEXT);
+    expect(once.html).toBe('<div>Hi</div><hr><div data-org-disclaimer="">Confidential.</div>');
+    expect(finalizeOutgoing(once, CONTEXT)).toEqual(once);
+    const reply = finalizeOutgoing({ text: 'Thanks\n\n> Hi\n>\n> Confidential.' }, { ...CONTEXT, plainText: true });
+    expect(reply.text).toBe('Thanks\n\n> Hi\n>\n> Confidential.\n\nConfidential.');
+    // An HTML reply's text part carries the quote without "> ".
+    const htmlReply = finalizeOutgoing({ html: '<div><p>Thanks</p><blockquote><p>Hi</p><p>Confidential.</p></blockquote></div>', text: 'Thanks\n\nHi\n\nConfidential.' }, CONTEXT);
+    expect(htmlReply.html!.split('Confidential.').length - 1).toBe(2);
+    expect(htmlReply.text).toBe('Thanks\n\nHi\n\nConfidential.\n\nConfidential.');
+  });
+
+  it('comes after a locked signature that was put back', () => {
+    const policy: SettingsPolicy = {
+      ...DEFAULT_POLICY,
+      restrictions: { signature: { locked: true } },
+      organisation: { ...DEFAULT_ORGANISATION_POLICY, signature: { html: '', text: 'Sig {name}', fields: [] }, disclaimer: { html: '', text: 'Disclaimer' } },
+    };
+    usePolicyStore.setState({ policy, rawPolicy: policy, subject: null });
+    const out = finalizeOutgoing({ text: 'Hi' }, { ...CONTEXT, plainText: true });
+    expect(out.text).toBe('Hi\n\n-- \nSig Alice\n\nDisclaimer');
+  });
+});

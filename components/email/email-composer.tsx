@@ -87,6 +87,7 @@ import { useTemplateStore, renderTemplateWithPlugins, notifyTemplateApplied } fr
 import { notifyIdentitySelected } from "@/stores/identity-store";
 import { usePluginSignature } from "@/hooks/use-plugin-signature";
 import { useOrgSignatureIdentity } from "@/hooks/use-org-signature";
+import { OrgDisclaimerPreview } from "@/components/email/org-disclaimer-preview";
 import { SubAddressHelper } from "@/components/identity/sub-address-helper";
 import { generateSubAddress } from "@/lib/sub-addressing";
 import { substitutePlaceholders, spliceTemplateAboveSignature, composeBodyHasUserContent } from "@/lib/template-utils";
@@ -4409,6 +4410,8 @@ export function EmailComposer({
             dangerouslySetInnerHTML={{ __html: `${wantsSignatureSeparator(signatureSeparatorEnabled, signatureIdentity) ? '<div>-- </div>' : ''}${composerSignatureHtml}` }}
           />
         ) : null}
+        {/* The admin's disclaimer: added on send (lib/org/outgoing.ts), never part of the body. */}
+        <OrgDisclaimerPreview sending={currentIdentity} plainText={plainTextMode} />
         {wantsPluginDraft && (
           <PluginSlot name="composer-below-body" className="w-full" extraProps={pluginDraftProps} />
         )}

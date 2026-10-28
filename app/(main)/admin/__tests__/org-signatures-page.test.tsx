@@ -79,4 +79,16 @@ describe('Organisation > Signatures', () => {
     fireEvent.click(screen.getByRole('button', { name: '{department}' }));
     await waitFor(() => expect((screen.getByTestId('org-signature-text') as HTMLTextAreaElement).value).toBe('{department}'));
   });
+
+  it('sets a disclaimer for a scope, with a preview', async () => {
+    render(<OrgSignaturesPage />);
+    await screen.findByTestId('org-disclaimer-text');
+    fireEvent.click(screen.getByRole('button', { name: 'Example' }));
+    fireEvent.change(screen.getByTestId('org-disclaimer-text'), { target: { value: 'Confidential, {company}' } });
+    expect(screen.getByTestId('org-disclaimer-sample')).toHaveTextContent('Confidential, ACME Ltd');
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(puts).toHaveLength(1));
+    const scope = (puts[0].scopes as Array<{ policy: Record<string, unknown> }>)[0];
+    expect(scope.policy).toEqual({ organisation: { disclaimer: { text: 'Confidential, {company}' } } });
+  });
 });

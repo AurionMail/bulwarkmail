@@ -130,8 +130,9 @@ export function insertPlaceholder(target: FocusedTemplate | null, placeholder: S
 /**
  * Organisation > Signatures (feature 1): the organisation signature as an
  * HTML and a plain-text template with placeholders, the user details it
- * asks for, and the `signature` restriction. Everything per scope through
- * the draft hook; stored in policy.json `organisation.signature`.
+ * asks for, the `signature` restriction, and the disclaimer. Everything per
+ * scope through the draft hook; stored in policy.json
+ * `organisation.signature` and `organisation.disclaimer`.
  */
 export function SignatureSection({ draft }: { draft: OrgPolicyDraft }) {
   const config = useConfig();
@@ -141,6 +142,8 @@ export function SignatureSection({ draft }: { draft: OrgPolicyDraft }) {
   const html = draft.orgValue('signature', 'html');
   const text = draft.orgValue('signature', 'text');
   const fields = draft.orgValue('signature', 'fields');
+  const disclaimerHtml = draft.orgValue('disclaimer', 'html');
+  const disclaimerText = draft.orgValue('disclaimer', 'text');
 
   // Which details users are asked for follows the templates. It is stored
   // with them (`fields`), so a hand-written policy.json can say it too.
@@ -169,6 +172,7 @@ export function SignatureSection({ draft }: { draft: OrgPolicyDraft }) {
     config.loginCompanyName || 'Example Ltd',
   );
   const sample = buildOrgSignature({ html: html.value, text: text.value }, values);
+  const sampleDisclaimer = buildOrgSignature({ html: disclaimerHtml.value, text: disclaimerText.value }, values);
   const usedFields = signatureFieldsUsed({ html: html.value, text: text.value });
 
   return (
@@ -262,6 +266,45 @@ export function SignatureSection({ draft }: { draft: OrgPolicyDraft }) {
             );
           })}
         </ul>
+      </SettingsSection>
+
+      <SettingsSection
+        id="disclaimer"
+        title="Disclaimer"
+        description="Added below everything, the quoted message included, when a message is sent. Never in drafts. Users see it under the editor and can't remove it."
+      >
+        <div className="space-y-5">
+          <TemplateField
+            draft={draft}
+            label="HTML disclaimer"
+            hint="Goes into the HTML part, below a line. The placeholders work here too."
+            value={disclaimerHtml.value}
+            own={disclaimerHtml.own}
+            everyone={disclaimerHtml.everyone}
+            rows={4}
+            testId="org-disclaimer-html"
+            onChange={(value) => draft.setOrgValue('disclaimer', 'html', value)}
+            onReset={() => draft.clearOrgValue('disclaimer', 'html')}
+            onFocusField={(el) => { focused.current = { el, apply: (value) => draft.setOrgValue('disclaimer', 'html', value) }; }}
+          />
+          <TemplateField
+            draft={draft}
+            label="Plain-text disclaimer"
+            hint="Goes into the text part, after a blank line. Leave it empty to send the HTML disclaimer as text."
+            value={disclaimerText.value}
+            own={disclaimerText.own}
+            everyone={disclaimerText.everyone}
+            rows={3}
+            testId="org-disclaimer-text"
+            onChange={(value) => draft.setOrgValue('disclaimer', 'text', value)}
+            onReset={() => draft.clearOrgValue('disclaimer', 'text')}
+            onFocusField={(el) => { focused.current = { el, apply: (value) => draft.setOrgValue('disclaimer', 'text', value) }; }}
+          />
+          {sampleDisclaimer && <TemplatePreview html={sampleDisclaimer.html} text={sampleDisclaimer.text} testId="org-disclaimer-sample" />}
+          <p className="text-xs text-muted-foreground">
+            Bulwark adds the signature and the disclaimer in the browser. Mail sent from other apps over IMAP and SMTP gets neither.
+          </p>
+        </div>
       </SettingsSection>
     </>
   );

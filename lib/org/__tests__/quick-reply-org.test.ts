@@ -62,4 +62,11 @@ describe('quick reply and the organisation', () => {
     expect((await reply(TEAM, TEAM))?.text).toBe('Thanks\n\n-- \nTeam | ACME');
     expect((await reply(ME, ME))?.text).toBe('Thanks\n\n-- \nMine');
   });
+
+  it('gets the disclaimer once, after the signature', async () => {
+    setOrganisation({ signature: SIGNATURE, disclaimer: { html: '<p>Confidential</p>', text: '' } }, true);
+    const out = await reply(TEAM, ME);
+    expect(out?.html).toBe('<div>Thanks</div><br><br>-- <br><p>Team | ACME</p><hr><div data-org-disclaimer=""><p>Confidential</p></div>');
+    expect(out?.text).toBe('Thanks\n\n-- \nTeam | ACME\n\nConfidential');
+  });
 });
