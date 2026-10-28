@@ -53,6 +53,9 @@ export function ICalImportModal({ calendars, client, onClose, initialUrl }: ICal
   const [urlInput, setUrlInput] = useState(initialUrl || "");
   const [isFetchingUrl, setIsFetchingUrl] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // The dialog opens on the drop zone, or on the address field for a link.
+  const dropZoneRef = useRef<HTMLButtonElement>(null);
+  const urlInputRef = useRef<HTMLInputElement>(null);
   const targetId = useId();
 
   const validateFile = useCallback((file: File): string | null => {
@@ -229,6 +232,7 @@ export function ICalImportModal({ calendars, client, onClose, initialUrl }: ICal
       onClose={close}
       title={t("title")}
       size="full-on-phone"
+      initialFocus={importMode === "url" ? urlInputRef : dropZoneRef}
       dirty={step !== "select" || urlInput.trim() !== (initialUrl ?? "")}
       footer={step !== "importing" ? (
         <>
@@ -281,6 +285,7 @@ export function ICalImportModal({ calendars, client, onClose, initialUrl }: ICal
               {importMode === "file" && (
                 <>
                 <button
+                  ref={dropZoneRef}
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   onDragOver={handleDragOver}
@@ -313,6 +318,7 @@ export function ICalImportModal({ calendars, client, onClose, initialUrl }: ICal
                   <p className="text-sm text-muted-foreground">{t("url_description")}</p>
                   <div className="flex gap-2">
                     <input
+                      ref={urlInputRef}
                       type="url"
                       value={urlInput}
                       onChange={(e) => setUrlInput(e.target.value)}

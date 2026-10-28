@@ -53,8 +53,10 @@ const SIZES: Record<DialogSize, string> = {
     "max-w-2xl max-sm:max-w-none max-sm:h-full max-sm:max-h-none max-sm:rounded-none max-sm:border-0",
 };
 
+// A field out of the tab order (the hidden input behind a file drop zone)
+// can't take the focus: picking it left the focus on the page behind.
 const FIELD_SELECTOR =
-  'input:not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]):not(:disabled), textarea:not(:disabled), select:not(:disabled), [contenteditable="true"]';
+  'input:not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([tabindex="-1"]):not(:disabled), textarea:not([tabindex="-1"]):not(:disabled), select:not([tabindex="-1"]):not(:disabled), [contenteditable="true"]';
 
 /**
  * The one dialog shell (R4): a portal on <body> at z-[60] over a dimmed

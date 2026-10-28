@@ -61,6 +61,16 @@ describe('import dialog from the keyboard', () => {
     render(<ICalImportModal calendars={calendars} client={client} onClose={vi.fn()} />);
     expect(screen.getByRole('button', { name: /select_file/ })).toBeInTheDocument();
   });
+
+  // It focused the hidden file input, which can't take the focus, so the
+  // focus stayed on the page behind and Tab walked the calendar.
+  it('opens with the focus on the drop zone, or on the address field for a link', () => {
+    const { unmount } = render(<ICalImportModal calendars={calendars} client={client} onClose={vi.fn()} />);
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: /select_file/ }));
+    unmount();
+    render(<ICalImportModal calendars={calendars} client={client} onClose={vi.fn()} initialUrl="https://example.com/a.ics" />);
+    expect(document.activeElement).toBe(screen.getByLabelText('tab_url'));
+  });
 });
 
 describe('import preview', () => {
