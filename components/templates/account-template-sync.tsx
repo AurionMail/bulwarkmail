@@ -3,7 +3,8 @@
 import { useEffect } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAccountTemplatesStore } from '@/stores/account-templates-store';
-import { refreshAccountTemplates } from '@/lib/templates/personal-templates';
+import { refreshAccountTemplates, scheduleAccountSync } from '@/lib/templates/personal-templates';
+import { useTemplateStore } from '@/stores/template-store';
 import { refreshTeamTemplates } from '@/lib/templates/team-templates';
 
 /**
@@ -19,6 +20,13 @@ export function AccountTemplateSync() {
 
   useEffect(() => {
     useAccountTemplatesStore.setState({ active: isAuthenticated ? activeAccountId : null });
+  }, [activeAccountId, isAuthenticated]);
+
+  // The browser's list changing (the account's synced settings just
+  // loaded, or a template changed there) is merged in at once.
+  useEffect(() => {
+    if (!isAuthenticated || !activeAccountId) return;
+    return useTemplateStore.subscribe(() => scheduleAccountSync(activeAccountId));
   }, [activeAccountId, isAuthenticated]);
 
   useEffect(() => {

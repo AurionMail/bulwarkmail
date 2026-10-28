@@ -208,13 +208,6 @@ export function scheduleAccountSync(accountId: string): void {
 
 onPersonalChange(scheduleAccountSync);
 
-// The browser's list changing (an account's synced settings just loaded,
-// or the user changed a template there) is merged in at once.
-useTemplateStore.subscribe(() => {
-  const active = useAuthStore.getState().activeAccountId;
-  if (active) scheduleAccountSync(active);
-});
-
 const lastSync = new Map<string, number>();
 
 /** Sync when the last round is older than `maxAgeMs` (opening the picker or the manager, coming back to the tab). */
