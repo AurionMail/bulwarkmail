@@ -2026,6 +2026,7 @@
       },
       "save": "Salvar alterações",
       "saving": "Salvando...",
+      "saved": "Salvo",
       "warnings": {
         "end_before_start": "A data de fim deve ser posterior à data de início",
         "invalid_date": "Indique uma data de início e de fim válidas com hora ou deixe o campo vazio",

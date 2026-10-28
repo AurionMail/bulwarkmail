@@ -2026,6 +2026,7 @@
       },
       "save": "Zapisz zmiany",
       "saving": "Zapisywanie...",
+      "saved": "Zapisano",
       "warnings": {
         "end_before_start": "Data zakończenia musi być późniejsza niż data rozpoczęcia",
         "invalid_date": "Podaj prawidłową datę rozpoczęcia i zakończenia z godziną albo pozostaw pole puste",

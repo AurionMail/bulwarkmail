@@ -2026,6 +2026,7 @@
       },
       "save": "Saglabāt izmaiņas",
       "saving": "Saglabā...",
+      "saved": "Saglabāts",
       "warnings": {
         "end_before_start": "Beigu datumam jābūt vēlāk par sākuma datumu",
         "invalid_date": "Norādiet derīgu sākuma un beigu datumu ar laiku vai atstājiet lauku tukšu",

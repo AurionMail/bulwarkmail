@@ -2033,6 +2033,7 @@
       },
       "save": "Salvați modificările",
       "saving": "Se salvează...",
+      "saved": "Salvat",
       "warnings": {
         "end_before_start": "Data de încheiere trebuie să fie ulterioară datei de începere",
         "invalid_date": "Introduceți o dată de început și de sfârșit validă, cu oră, sau lăsați câmpul gol",

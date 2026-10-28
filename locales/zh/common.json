@@ -2026,6 +2026,7 @@
       },
       "save": "保存更改",
       "saving": "正在保存…",
+      "saved": "已保存",
       "warnings": {
         "end_before_start": "结束日期必须晚于开始日期",
         "invalid_date": "请输入带时间的有效开始和结束日期，或将该字段留空",

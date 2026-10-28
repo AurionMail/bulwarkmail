@@ -2033,6 +2033,7 @@
       },
       "save": "Uložiť zmeny",
       "saving": "Ukladanie...",
+      "saved": "Uložené",
       "warnings": {
         "end_before_start": "Dátum ukončenia musí byť po dátume začiatku",
         "invalid_date": "Zadajte platný dátum začiatku a konca aj s časom alebo pole nechajte prázdne",

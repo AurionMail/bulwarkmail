@@ -2033,6 +2033,7 @@
       },
       "save": "Salvesta muudatused",
       "saving": "Salvestamine...",
+      "saved": "Salvestatud",
       "warnings": {
         "end_before_start": "Lõppkuupäev peab olema hilisem kui alguskuupäev",
         "invalid_date": "Sisesta kehtiv algus- ja lõppkuupäev koos kellaajaga või jäta väli tühjaks",

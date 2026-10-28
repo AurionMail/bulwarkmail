@@ -2026,6 +2026,7 @@
       },
       "save": "Wijzigingen opslaan",
       "saving": "Opslaan...",
+      "saved": "Opgeslagen",
       "warnings": {
         "end_before_start": "De einddatum moet na de startdatum liggen",
         "invalid_date": "Vul een geldige start- en einddatum met tijd in, of laat het veld leeg",

@@ -2033,6 +2033,7 @@
       },
       "save": "Desa els canvis",
       "saving": "Desant...",
+      "saved": "Desat",
       "warnings": {
         "end_before_start": "La data de finalització ha de ser posterior a la data d'inici",
         "invalid_date": "Introdueix una data d'inici i de finalització vàlides amb l'hora, o deixa el camp buit",

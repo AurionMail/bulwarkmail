@@ -2026,6 +2026,7 @@
       },
       "save": "Enregistrer les modifications",
       "saving": "Enregistrement...",
+      "saved": "Enregistré",
       "warnings": {
         "end_before_start": "La date de fin doit être postérieure à la date de début",
         "invalid_date": "Indiquez une date de début et de fin valides avec l'heure, ou laissez le champ vide",

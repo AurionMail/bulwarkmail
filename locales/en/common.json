@@ -2031,8 +2031,9 @@
         "show": "Show preview",
         "hide": "Hide preview"
       },
-      "save": "Save Changes",
+      "save": "Save",
       "saving": "Saving...",
+      "saved": "Saved",
       "warnings": {
         "end_before_start": "End date must be after start date",
         "invalid_date": "Enter a valid start and end date with a time, or leave the field empty",

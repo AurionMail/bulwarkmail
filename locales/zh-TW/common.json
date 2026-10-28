@@ -2033,6 +2033,7 @@
       },
       "save": "儲存變更",
       "saving": "正在儲存…",
+      "saved": "已儲存",
       "warnings": {
         "end_before_start": "結束日期必須晚於開始日期",
         "invalid_date": "請輸入含時間的有效開始與結束日期，或將該欄位留空",

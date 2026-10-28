@@ -2026,6 +2026,7 @@
       },
       "save": "Änderungen speichern",
       "saving": "Speichern...",
+      "saved": "Gespeichert",
       "warnings": {
         "end_before_start": "Das Enddatum muss nach dem Startdatum liegen",
         "invalid_date": "Bitte ein gültiges Start- und Enddatum mit Uhrzeit angeben oder das Feld leer lassen",

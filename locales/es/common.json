@@ -2026,6 +2026,7 @@
       },
       "save": "Guardar cambios",
       "saving": "Guardando...",
+      "saved": "Guardado",
       "warnings": {
         "end_before_start": "La fecha de fin debe ser posterior a la fecha de inicio",
         "invalid_date": "Introduce una fecha de inicio y de fin válidas con hora o deja el campo vacío",

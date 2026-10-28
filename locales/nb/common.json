@@ -2033,6 +2033,7 @@
       },
       "save": "Lagre endringer",
       "saving": "Lagrer...",
+      "saved": "Lagret",
       "warnings": {
         "end_before_start": "Sluttdatoen må være etter startdatoen",
         "invalid_date": "Angi en gyldig start- og sluttdato med klokkeslett, eller la feltet stå tomt",

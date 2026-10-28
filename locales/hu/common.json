@@ -2029,6 +2029,7 @@
       },
       "save": "Változtatások mentése",
       "saving": "Mentés...",
+      "saved": "Mentve",
       "warnings": {
         "end_before_start": "A befejező dátumnak a kezdő dátum után kell lennie",
         "invalid_date": "Adjon meg érvényes kezdő és befejező dátumot időponttal, vagy hagyja üresen a mezőt",

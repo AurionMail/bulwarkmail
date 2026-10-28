@@ -2026,6 +2026,7 @@
       },
       "save": "Değişiklikleri Kaydet",
       "saving": "Kaydediliyor...",
+      "saved": "Kaydedildi",
       "warnings": {
         "end_before_start": "Bitiş tarihi başlangıç tarihinden sonra olmalıdır",
         "invalid_date": "Saatiyle birlikte geçerli bir başlangıç ve bitiş tarihi girin veya alanı boş bırakın",
