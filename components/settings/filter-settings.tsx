@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { SettingsSection, ToggleSwitch } from "./settings-section";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { FilterRuleModal } from "@/components/filters/filter-rule-modal";
 import { SieveEditorModal } from "@/components/filters/sieve-editor-modal";
 import { useFilterStore } from "@/stores/filter-store";
@@ -21,7 +22,7 @@ import { useManagedAccountStore } from "@/stores/managed-account-store";
 import {
   Plus,
   GripVertical,
-  X,
+  Trash2,
   Code,
   AlertTriangle,
   Loader2,
@@ -288,7 +289,6 @@ export function FilterSettings() {
   const [editingRule, setEditingRule] = useState<FilterRule | undefined>();
   const [showRuleModal, setShowRuleModal] = useState(false);
   const [showSieveEditor, setShowSieveEditor] = useState(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const draggedIndexRef = useRef<number | null>(null);
@@ -336,22 +336,38 @@ export function FilterSettings() {
     [client, toggleRule, saveFilters, tNotifications]
   );
 
+  // A rule can be put back as it was, so it goes at once with an Undo (R3).
   const handleDelete = useCallback(
     async (ruleId: string) => {
-      const deletedRule = rules.find((r) => r.id === ruleId);
+      const before = useFilterStore.getState().rules;
+      const deletedRule = before.find((r) => r.id === ruleId);
+      if (!deletedRule) return;
       deleteRule(ruleId);
-      setDeleteConfirmId(null);
-      if (client) {
-        try {
-          await saveFilters(client);
-          toast.success(tNotifications("filters_deleted"));
-        } catch {
-          if (deletedRule) addRule(deletedRule);
-          toast.error(tNotifications("filters_save_failed"));
-        }
+      if (!client) return;
+      const putBack = () => useFilterStore.setState({ rules: before });
+      try {
+        await saveFilters(client);
+      } catch {
+        putBack();
+        toast.error(tNotifications("filters_save_failed"));
+        return;
       }
+      toast.success(tNotifications("filters_deleted"), {
+        action: {
+          label: tNotifications("rule_undo"),
+          onClick: () => {
+            if (useFilterStore.getState().rules.some((r) => r.id === ruleId)) return;
+            const current = useFilterStore.getState().rules;
+            putBack();
+            saveFilters(client).catch(() => {
+              useFilterStore.setState({ rules: current });
+              toast.error(tNotifications("filters_save_failed"));
+            });
+          },
+        },
+      });
     },
-    [client, rules, deleteRule, addRule, saveFilters, tNotifications]
+    [client, deleteRule, saveFilters, tNotifications]
   );
 
   const handleSaveRule = useCallback(
@@ -700,33 +716,13 @@ export function FilterSettings() {
                     )}
                   </div>
 
-                  {deleteConfirmId === rule.id ? (
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(rule.id)}
-                      >
-                        {t("confirm_delete")}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeleteConfirmId(null)}
-                      >
-                        {t("cancel")}
-                      </Button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setDeleteConfirmId(rule.id)}
-                      className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                      aria-label={t("delete_rule")}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
+                  <IconButton
+                    label={t("delete_rule")}
+                    onClick={() => void handleDelete(rule.id)}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 />
+                  </IconButton>
                 </div>
               );
             })}

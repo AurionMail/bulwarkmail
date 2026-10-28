@@ -1287,6 +1287,7 @@
       "id_exists": "Aquest ID d'etiqueta ja existeix",
       "edit": "Edita l'etiqueta",
       "delete": "Suprimeix l'etiqueta",
+      "deleted": "Etiqueta suprimida",
       "save": "Desa",
       "add": "Afegeix",
       "cancel": "Cancel·la",

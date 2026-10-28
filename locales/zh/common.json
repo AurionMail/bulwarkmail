@@ -1284,6 +1284,7 @@
       "id_exists": "此标签ID已存在",
       "edit": "编辑标签",
       "delete": "删除标签",
+      "deleted": "标签已删除",
       "save": "保存",
       "add": "添加",
       "cancel": "取消",

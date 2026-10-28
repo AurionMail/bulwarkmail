@@ -1287,6 +1287,7 @@
       "id_exists": "Dette tag-ID findes allerede",
       "edit": "Redigér tag",
       "delete": "Slet tag",
+      "deleted": "Tag slettet",
       "save": "Gem",
       "add": "Tilføj",
       "cancel": "Annuller",

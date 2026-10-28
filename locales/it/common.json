@@ -1284,6 +1284,7 @@
       "id_exists": "Questo ID etichetta esiste già",
       "edit": "Modifica etichetta",
       "delete": "Elimina etichetta",
+      "deleted": "Etichetta eliminata",
       "save": "Salva",
       "add": "Aggiungi",
       "cancel": "Annulla",

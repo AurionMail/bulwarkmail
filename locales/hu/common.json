@@ -1287,6 +1287,7 @@
       "id_exists": "Ez a címke azonosító már létezik",
       "edit": "Címke szerkesztése",
       "delete": "Címke törlése",
+      "deleted": "Címke törölve",
       "save": "Mentés",
       "add": "Hozzáadás",
       "cancel": "Mégse",

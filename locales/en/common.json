@@ -1287,6 +1287,7 @@
       "id_exists": "This tag ID already exists",
       "edit": "Edit tag",
       "delete": "Delete tag",
+      "deleted": "Tag deleted",
       "save": "Save",
       "add": "Add",
       "cancel": "Cancel",

@@ -1287,6 +1287,7 @@
       "id_exists": "See sildi ID on juba kasutusel",
       "edit": "Muuda silti",
       "delete": "Kustuta silt",
+      "deleted": "Silt kustutatud",
       "save": "Salvesta",
       "add": "Lisa",
       "cancel": "Tühista",

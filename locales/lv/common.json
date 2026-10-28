@@ -1284,6 +1284,7 @@
       "id_exists": "Šāds taga identifikators jau pastāv",
       "edit": "Rediģēt tagu",
       "delete": "Dzēst tagu",
+      "deleted": "Tags izdzēsts",
       "save": "Saglabāt",
       "add": "Pievienot",
       "cancel": "Atcelt",

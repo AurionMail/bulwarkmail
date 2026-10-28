@@ -1284,6 +1284,7 @@
       "id_exists": "Diese Label-ID existiert bereits",
       "edit": "Label bearbeiten",
       "delete": "Label löschen",
+      "deleted": "Label gelöscht",
       "save": "Speichern",
       "add": "Hinzufügen",
       "cancel": "Abbrechen",

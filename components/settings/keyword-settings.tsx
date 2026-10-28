@@ -523,6 +523,7 @@ function UnrecognizedKeywords() {
 
 export function KeywordSettings() {
   const t = useTranslations("settings.keywords");
+  const tNotifications = useTranslations("notifications");
   const { emailKeywords, nestedTags, addKeyword, updateKeyword, renameKeyword, removeKeyword, reorderKeywords, updateSetting } =
     useSettingsStore();
   const { client } = useAuthStore();
@@ -634,8 +635,25 @@ export function KeywordSettings() {
     setEditingId(null);
   };
 
+  // A tag can be put back as it was, so it goes at once with an Undo (R3).
   const handleDelete = (id: string) => {
+    const before = useSettingsStore.getState().emailKeywords;
+    const index = before.findIndex((k) => k.id === id);
+    const removed = before[index];
+    if (!removed) return;
     removeKeyword(id);
+    toast.success(t("deleted"), {
+      action: {
+        label: tNotifications("rule_undo"),
+        onClick: () => {
+          const now = useSettingsStore.getState().emailKeywords;
+          if (now.some((k) => k.id === id)) return;
+          const restored = [...now];
+          restored.splice(Math.min(index, restored.length), 0, removed);
+          reorderKeywords(restored);
+        },
+      },
+    });
   };
 
   const handleVisibilityChange = (id: string, visibility: KeywordVisibility) => {

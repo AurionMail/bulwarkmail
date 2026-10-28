@@ -1287,6 +1287,7 @@
       "id_exists": "Toto ID štítku už existuje",
       "edit": "Upraviť štítok",
       "delete": "Odstrániť štítok",
+      "deleted": "Štítok bol odstránený",
       "save": "Uložiť",
       "add": "Pridať",
       "cancel": "Zrušiť",

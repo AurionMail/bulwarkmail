@@ -1284,6 +1284,7 @@
       "id_exists": "Deze label-ID bestaat al",
       "edit": "Label bewerken",
       "delete": "Label verwijderen",
+      "deleted": "Label verwijderd",
       "save": "Opslaan",
       "add": "Toevoegen",
       "cancel": "Annuleren",

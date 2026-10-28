@@ -1284,6 +1284,7 @@
       "id_exists": "Bu etiket kimliği zaten mevcut",
       "edit": "Etiketi düzenle",
       "delete": "Etiketi sil",
+      "deleted": "Etiket silindi",
       "save": "Kaydet",
       "add": "Ekle",
       "cancel": "İptal",
