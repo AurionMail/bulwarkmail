@@ -62,6 +62,31 @@ describe('address books in Settings', () => {
   });
 });
 
+// Phone: four icons next to an address book's name left it a few letters.
+// The actions are in a named ⋮ menu (right-click too), as for calendars.
+describe('address book row menu', () => {
+  it('offers the row actions from a named ⋮ menu, Delete last and only where it applies', async () => {
+    render(<AddressBookManagementSettings />);
+    const more = screen.getAllByRole('button', { name: 'row_actions' });
+    expect(more).toHaveLength(2);
+
+    fireEvent.click(more[1]); // Club, not the default book
+    const menu = await screen.findByRole('menu');
+    const items = Array.from(menu.querySelectorAll('[role="menuitem"]')).map((el) => el.textContent);
+    expect(items).toEqual(['rename', 'set_default', 'share', 'delete']);
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'delete' }));
+    expect(await screen.findByRole('alertdialog', { name: 'delete_title' })).toBeTruthy();
+  });
+
+  it('hides the row icons on a phone, where the menu is', () => {
+    render(<AddressBookManagementSettings />);
+    const group = screen.getAllByRole('button', { name: 'rename' })[0].parentElement as HTMLElement;
+    expect(group.className).toMatch(/(^| )hidden( |$)/);
+    expect(group.className).toContain('sm:flex');
+  });
+});
+
 describe('categories in Settings', () => {
   it('deletes a category from its contacts, and Undo puts it back on the same ones', async () => {
     render(<AddressBookManagementSettings />);

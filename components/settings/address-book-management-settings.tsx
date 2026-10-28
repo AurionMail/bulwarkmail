@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Book, BookPlus, Pencil, Share2, Star, Tag, Trash2, Users } from "@/components/icons";
+import { Book, BookPlus, MoreVertical, Pencil, Share2, Star, Tag, Trash2, Users } from "@/components/icons";
 import { useContactStore } from "@/stores/contact-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { useManagedAccountStore } from "@/stores/managed-account-store";
@@ -16,6 +16,8 @@ import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useDeleteCategory } from "@/hooks/use-delete-category";
+import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
+import { useContextMenu } from "@/hooks/use-context-menu";
 
 function AddressBookEditRow({
   initial,
@@ -86,6 +88,7 @@ export function AddressBookManagementSettings() {
   const [sharingId, setSharingId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { contextMenu, openContextMenu, openContextMenuFrom, closeContextMenu, menuRef } = useContextMenu<AddressBook>();
 
   useEffect(() => {
     if (client && addressBooks.length === 0) {
@@ -178,6 +181,44 @@ export function AddressBookManagementSettings() {
     else sharedGroups.set(key, { accountName: book.accountName || book.accountId, books: [book] });
   }
 
+  // One action list per address book (R6), as for calendars: the row's icons
+  // on wider screens, the ⋮ and right-click menu everywhere.
+  const bookActions = (book: AddressBook) => {
+    const canRename = !book.isShared || book.myRights?.mayWrite !== false;
+    // The default only applies to books the account owns, and re-setting the
+    // current default is a no-op, so hide it in both cases.
+    const canSetDefault = !!client && !book.isShared && !book.isDefault;
+    // The default book is where new contacts go, so it stays; a shared one
+    // only when its owner lets this account delete it.
+    const canDelete = !!client && !book.isDefault && book.myRights?.mayDelete !== false;
+    const actions: Array<{ id: string; label: string; icon: typeof Pencil; run: () => void; disabled?: boolean; destructive?: boolean }> = [];
+    if (canRename) actions.push({ id: "rename", label: t("rename"), icon: Pencil, run: () => setEditingId(book.id) });
+    if (canSetDefault) actions.push({ id: "default", label: t("set_default"), icon: Star, run: () => void handleSetDefault(book), disabled: isLoading });
+    if (!book.isShared && book.myRights?.mayShare) actions.push({ id: "share", label: t("share"), icon: Users, run: () => setSharingId(book.id) });
+    if (canDelete) actions.push({ id: "delete", label: t("delete"), icon: Trash2, run: () => void handleDelete(book), disabled: isLoading, destructive: true });
+    return actions;
+  };
+
+  const renderBookMenu = () => {
+    const book = contextMenu.data;
+    if (!book) return null;
+    const run = (fn: () => void) => () => { closeContextMenu(); fn(); };
+    const actions = bookActions(book);
+    const plain = actions.filter((a) => !a.destructive);
+    const destructive = actions.filter((a) => a.destructive);
+    return (
+      <ContextMenu ref={menuRef} isOpen={contextMenu.isOpen} position={contextMenu.position} onClose={closeContextMenu}>
+        {plain.map((a) => (
+          <ContextMenuItem key={a.id} icon={a.icon} label={a.label} disabled={a.disabled} onClick={run(a.run)} />
+        ))}
+        {plain.length > 0 && destructive.length > 0 && <ContextMenuSeparator />}
+        {destructive.map((a) => (
+          <ContextMenuItem key={a.id} icon={a.icon} label={a.label} disabled={a.disabled} destructive onClick={run(a.run)} />
+        ))}
+      </ContextMenu>
+    );
+  };
+
   const renderBook = (book: AddressBook) => {
     if (editingId === book.id) {
       return (
@@ -191,17 +232,12 @@ export function AddressBookManagementSettings() {
       );
     }
 
-    const canRename = !book.isShared || book.myRights?.mayWrite !== false;
-    // The default only applies to books the account owns, and re-setting the
-    // current default is a no-op, so hide it in both cases.
-    const canSetDefault = !!client && !book.isShared && !book.isDefault;
-    // The default book is where new contacts go, so it stays; a shared one
-    // only when its owner lets this account delete it.
-    const canDelete = !!client && !book.isDefault && book.myRights?.mayDelete !== false;
+    const actions = bookActions(book);
 
     return (
       <div
         key={book.id}
+        onContextMenu={actions.length > 0 ? (e) => openContextMenu(e, book) : undefined}
         className={cn(
           "flex items-center gap-3 py-2.5 px-3 rounded-md border border-border bg-background group"
         )}
@@ -228,32 +264,32 @@ export function AddressBookManagementSettings() {
             </span>
           );
         })()}
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity">
-          {canRename && (
-            <IconButton label={t("rename")} onClick={() => setEditingId(book.id)} className="text-muted-foreground">
-              <Pencil />
-            </IconButton>
-          )}
-          {canSetDefault && (
-            <IconButton label={t("set_default")} onClick={() => handleSetDefault(book)} disabled={isLoading} className="text-muted-foreground">
-              <Star />
-            </IconButton>
-          )}
-          {!book.isShared && book.myRights?.mayShare && (
-            <IconButton label={t("share")} onClick={() => setSharingId(book.id)} className="text-muted-foreground">
-              <Users />
-            </IconButton>
-          )}
-          {canDelete && (
+        {/* Phone: four icons next to the name left it a few letters, so the
+            actions sit behind a ⋮ there, as for calendars. */}
+        {actions.length > 0 && (
+          <IconButton
+            label={tContacts("row_actions", { name: book.name })}
+            className="sm:hidden flex-shrink-0 text-muted-foreground"
+            onClick={(e) => openContextMenuFrom(e.currentTarget, book, "end")}
+          >
+            <MoreVertical />
+          </IconButton>
+        )}
+        <div className="hidden sm:flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity">
+          {actions.map((action) => (
             <IconButton
-              label={t("delete")}
-              onClick={() => void handleDelete(book)}
-              disabled={isLoading}
-              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              key={action.id}
+              label={action.label}
+              onClick={action.run}
+              disabled={action.disabled}
+              className={cn(
+                "text-muted-foreground",
+                action.destructive && "hover:text-destructive hover:bg-destructive/10",
+              )}
             >
-              <Trash2 />
+              <action.icon />
             </IconButton>
-          )}
+          ))}
         </div>
       </div>
     );
@@ -285,6 +321,7 @@ export function AddressBookManagementSettings() {
   return (
     <>
     <SettingsSection id="address-books" title={tSettings("manage_title")} description={tSettings("manage_description")}>
+      {renderBookMenu()}
       <div className="space-y-2">
         {/* In scoped mode (managing a shared account) hide the user's own
             address books and show only the managed account's group. */}
