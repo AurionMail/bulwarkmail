@@ -133,6 +133,7 @@ import type { Editor } from "@tiptap/react";
 import { htmlToPlainText as htmlToPlainTextShared } from "@/lib/html-to-text";
 import { fileStorage } from "@/lib/plugin-storage";
 import { usePolicyStore } from "@/stores/policy-store";
+import { registerComposeFlush } from "@/lib/compose-flush-registry";
 import { toUnicodeEmail } from "@/lib/idn";
 
 /**
@@ -231,6 +232,12 @@ export interface ComposerDraftData {
   references?: string[];
   /** Priority of a re-opened draft, read back from its headers (#970). */
   priority?: MessagePriority;
+  /**
+   * Handed to the host when the composer went away with edits the server may
+   * not have: the composer opened again with it counts them as unsaved, so
+   * an automatic sign-out saves them (lib/compose-flush-registry.ts).
+   */
+  unsaved?: boolean;
 }
 
 interface EmailComposerProps {
@@ -1574,7 +1581,8 @@ export function EmailComposer({
   // Bumped on every edit and compared with the edit the last successful save
   // covered. Closing a message autosave already stored asked about "unsaved
   // changes" that were not there.
-  const changeVersionRef = useRef(0);
+  // Stashed edits handed back by the host start out unsaved.
+  const changeVersionRef = useRef(initialData?.unsaved ? 1 : 0);
   const savedVersionRef = useRef(0);
   const firstChangeRunRef = useRef(true);
   useEffect(() => {
@@ -1648,6 +1656,7 @@ export function EmailComposer({
           mode,
           replyTo,
           priority: priorityRef.current,
+          unsaved: true,
         });
       }
     };
@@ -2698,6 +2707,18 @@ export function EmailComposer({
 
   // Keep saveDraftRef pointing to latest saveDraft
   saveDraftRef.current = saveDraft;
+
+  // An automatic sign-out saves what the server doesn't have yet, with the
+  // same save the close and send paths use.
+  useEffect(() => registerComposeFlush(async () => {
+    const unsaved = changeVersionRef.current !== savedVersionRef.current || saveFailedRef.current;
+    if (!unsaved) return;
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    await saveDraftRef.current();
+  }), []);
 
   // The draft as plugins see it: onDraftChange, the frames above and below
   // the body, and clicks on plugin entries in the Send menu.

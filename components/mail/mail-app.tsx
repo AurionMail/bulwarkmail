@@ -159,6 +159,7 @@ import { consumePendingDeepLink, subscribePendingDeepLink } from "@/lib/deep-lin
 import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
 import type { QuoteHeader } from "@/lib/plugin-types";
 import { initialLinkSearch, useLiteLinkSegments } from "@/hooks/use-lite-link-segments";
+import { registerComposeFlush, waitForComposeFlush } from "@/lib/compose-flush-registry";
 
 export interface MailAppProps {
   /**
@@ -197,6 +198,9 @@ function freshMailboxes(previous: Mailbox[], timeoutMs = 10_000): Promise<Mailbo
  * message itself has loaded, before showing it with a placeholder. (#1223)
  */
 const MV_CONVERSATION_WAIT_MS = 800;
+
+/** How long an automatic sign-out waits for a minimised composer to open again and register. */
+const MINIMISED_COMPOSER_REOPEN_MS = 3000;
 
 /** Plugin buttons in the top bar are not about any one item. */
 const TOP_BAR_CONTEXT: Record<string, unknown> = {};
@@ -2265,6 +2269,19 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     setComposerSessionId(id => id + 1);
     setPendingDraft(null);
   }, []);
+
+  // A minimised composer's edits live only in pendingDraft. Before an
+  // automatic sign-out it is opened again and saves them itself.
+  const minimisedUnsaved = !showComposer && pendingDraft?.unsaved === true;
+  useEffect(() => {
+    if (!minimisedUnsaved) return;
+    return registerComposeFlush(async () => {
+      const reopened = waitForComposeFlush(MINIMISED_COMPOSER_REOPEN_MS);
+      setShowComposer(true);
+      const flush = await reopened;
+      await flush?.();
+    });
+  }, [minimisedUnsaved]);
 
   const handleReply = async (draftText?: string) => {
     if (selectedEmail) {
