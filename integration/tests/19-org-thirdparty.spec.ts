@@ -104,7 +104,9 @@ test('signing in, reading, composing and settings reach no outside host', async 
   await closeComposer(page);
 
   await page.goto('/settings/notifications');
-  await expect(page.getByText(/Push notifications need a push relay run by your organisation/)).toBeVisible({ timeout: 20000 });
+  const pushNote = page.getByText(/Push notifications need a push relay run by your organisation/);
+  await expect(pushNote).toBeVisible({ timeout: 20000 });
+  await pushNote.scrollIntoViewIfNeeded();
   await shot(page, 'thirdparty-push-settings');
   await page.goto('/settings/message_list');
   await expect(page.getByText(/Sender/).first()).toBeVisible({ timeout: 20000 });
@@ -171,7 +173,9 @@ test('the admin section and the user settings work at phone width', async ({ bro
   await signIn(user, ORG.alice);
   await user.goto('/settings/notifications');
   await user.getByRole('button', { name: 'Notifications' }).or(user.getByRole('link', { name: 'Notifications' })).first().click();
-  await expect(user.getByText(/Push notifications need a push relay run by your organisation/)).toBeVisible({ timeout: 20000 });
+  const pushNote = user.getByText(/Push notifications need a push relay run by your organisation/);
+  await expect(pushNote).toBeVisible({ timeout: 20000 });
+  await pushNote.scrollIntoViewIfNeeded();
   await shot(user, 'thirdparty-push-settings-phone');
   expect(outside(urls)).toEqual([]);
   await context.close();
