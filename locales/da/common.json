@@ -3080,8 +3080,6 @@
     }
   },
   "threads": {
-    "messages_one": "{count} besked",
-    "messages_other": "{count} beskeder",
     "messages_tooltip": "{count, plural, one {# besked i denne samtale} other {# beskeder i denne samtale}}",
     "expand": "Udvid samtale",
     "collapse": "Skjul samtale",
@@ -3092,7 +3090,8 @@
     "delete": "Slet samtale",
     "star": "Stjernemarkér samtale",
     "unstar": "Fjern stjernemarkering",
-    "toggle_thread": "Slå tråd til/fra"
+    "toggle_thread": "Slå tråd til/fra",
+    "messages_count": "{count, plural, one {# besked} other {# beskeder}}"
   },
   "identities": {
     "modal_title": "Administrér afsenderidentiteter",

@@ -3080,8 +3080,6 @@
     }
   },
   "threads": {
-    "messages_one": "{count} bericht",
-    "messages_other": "{count} berichten",
     "messages_tooltip": "{count, plural, one {# bericht in dit gesprek} other {# berichten in dit gesprek}}",
     "expand": "Gesprek uitklappen",
     "collapse": "Gesprek inklappen",
@@ -3092,7 +3090,8 @@
     "delete": "Gesprek verwijderen",
     "star": "Ster toevoegen aan gesprek",
     "unstar": "Ster verwijderen van gesprek",
-    "toggle_thread": "Gesprek in-/uitvouwen"
+    "toggle_thread": "Gesprek in-/uitvouwen",
+    "messages_count": "{count, plural, one {# bericht} other {# berichten}}"
   },
   "identities": {
     "modal_title": "Verzendidentiteiten beheren",

@@ -3080,8 +3080,6 @@
     }
   },
   "threads": {
-    "messages_one": "{count} message",
-    "messages_other": "{count} messages",
     "messages_tooltip": "{count, plural, one {# message in this conversation} other {# messages in this conversation}}",
     "expand": "Expand conversation",
     "collapse": "Collapse conversation",
@@ -3092,7 +3090,8 @@
     "delete": "Delete conversation",
     "star": "Star conversation",
     "unstar": "Unstar conversation",
-    "toggle_thread": "Toggle thread"
+    "toggle_thread": "Toggle thread",
+    "messages_count": "{count, plural, one {# message} other {# messages}}"
   },
   "identities": {
     "modal_title": "Manage sending identities",

@@ -3080,9 +3080,7 @@
     }
   },
   "threads": {
-    "messages_one": "{count} ziņojums",
-    "messages_other": "{count} ziņojumi",
-    "messages_tooltip": "{count, plural, one {# ziņojums šajā sarunā} other {# ziņojumi šajā sarunā}}",
+    "messages_tooltip": "{count, plural, zero {# ziņojumu šajā sarunā} one {# ziņojums šajā sarunā} other {# ziņojumi šajā sarunā}}",
     "expand": "Izvērst sarunu",
     "collapse": "Sairt sarunu",
     "loading": "Ielādē sarunu...",
@@ -3092,7 +3090,8 @@
     "delete": "Dzēst sarunu",
     "star": "Pievienot zvaigznīti sarunai",
     "unstar": "Noņemt zvaigznīti sarunai",
-    "toggle_thread": "Pārslēgt sarunu"
+    "toggle_thread": "Pārslēgt sarunu",
+    "messages_count": "{count, plural, zero {# ziņojumu} one {# ziņojums} other {# ziņojumi}}"
   },
   "identities": {
     "modal_title": "Pārvaldīt sūtītāja identitātes",

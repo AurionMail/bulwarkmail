@@ -3080,8 +3080,6 @@
     }
   },
   "threads": {
-    "messages_one": "{count} ileti",
-    "messages_other": "{count} ileti",
     "messages_tooltip": "{count, plural, one {Bu konuşmada # ileti} other {Bu konuşmada # ileti}}",
     "expand": "Konuşmayı genişlet",
     "collapse": "Konuşmayı daralt",
@@ -3092,7 +3090,8 @@
     "delete": "Konuşmayı sil",
     "star": "Konuşmaya yıldız ekle",
     "unstar": "Konuşmanın yıldızını kaldır",
-    "toggle_thread": "İleti dizisini aç/kapat"
+    "toggle_thread": "İleti dizisini aç/kapat",
+    "messages_count": "{count, plural, one {# ileti} other {# ileti}}"
   },
   "identities": {
     "modal_title": "Gönderme Kimliklerini Yönet",

@@ -3080,8 +3080,6 @@
     }
   },
   "threads": {
-    "messages_one": "{count} mensaje",
-    "messages_other": "{count} mensajes",
     "messages_tooltip": "{count, plural, one {# mensaje en esta conversación} other {# mensajes en esta conversación}}",
     "expand": "Expandir conversación",
     "collapse": "Contraer conversación",
@@ -3092,7 +3090,8 @@
     "delete": "Eliminar conversación",
     "star": "Destacar conversación",
     "unstar": "Quitar destacado de conversación",
-    "toggle_thread": "Expandir/contraer hilo"
+    "toggle_thread": "Expandir/contraer hilo",
+    "messages_count": "{count, plural, one {# mensaje} other {# mensajes}}"
   },
   "identities": {
     "modal_title": "Administrar Identidades de Envío",

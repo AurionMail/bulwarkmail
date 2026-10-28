@@ -3080,9 +3080,7 @@
     }
   },
   "threads": {
-    "messages_one": "{count} mesaj",
-    "messages_other": "{count} mesaje",
-    "messages_tooltip": "{count, plural, one {# mesajul din această conversație} few {# mesaje din această conversație} other {# de mesaje din această conversație}}",
+    "messages_tooltip": "{count, plural, one {# mesaj în această conversație} few {# mesaje în această conversație} other {# de mesaje în această conversație}}",
     "expand": "Extinde conversația",
     "collapse": "Ascunde conversația",
     "loading": "Se încarcă conversația...",
@@ -3092,7 +3090,8 @@
     "delete": "Șterge conversația",
     "star": "Marcați conversația cu stea",
     "unstar": "Dezactivează marcajul conversației",
-    "toggle_thread": "Comutare fir de discuție"
+    "toggle_thread": "Comutare fir de discuție",
+    "messages_count": "{count, plural, one {# mesaj} few {# mesaje} other {# de mesaje}}"
   },
   "identities": {
     "modal_title": "Gestionarea identităților de expediere",

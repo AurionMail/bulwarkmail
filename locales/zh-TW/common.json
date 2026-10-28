@@ -3080,8 +3080,6 @@
     }
   },
   "threads": {
-    "messages_one": "{count} 封郵件",
-    "messages_other": "{count} 封郵件",
     "messages_tooltip": "{count, plural, one {此對話串有 # 封郵件} other {此對話串有 # 封郵件}}",
     "expand": "展開對話串",
     "collapse": "收合對話串",
@@ -3092,7 +3090,8 @@
     "delete": "刪除對話串",
     "star": "為對話串加上星號",
     "unstar": "移除對話串星號",
-    "toggle_thread": "展開／收合對話串"
+    "toggle_thread": "展開／收合對話串",
+    "messages_count": "{count, plural, other {# 封郵件}}"
   },
   "identities": {
     "modal_title": "管理寄件身分",

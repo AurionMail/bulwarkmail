@@ -3080,8 +3080,6 @@
     }
   },
   "threads": {
-    "messages_one": "{count} Nachricht",
-    "messages_other": "{count} Nachrichten",
     "messages_tooltip": "{count, plural, one {# Nachricht in dieser Unterhaltung} other {# Nachrichten in dieser Unterhaltung}}",
     "expand": "Unterhaltung erweitern",
     "collapse": "Unterhaltung einklappen",
@@ -3092,7 +3090,8 @@
     "delete": "Unterhaltung löschen",
     "star": "Unterhaltung mit Stern markieren",
     "unstar": "Stern von Unterhaltung entfernen",
-    "toggle_thread": "Unterhaltung ein-/ausklappen"
+    "toggle_thread": "Unterhaltung ein-/ausklappen",
+    "messages_count": "{count, plural, one {# Nachricht} other {# Nachrichten}}"
   },
   "identities": {
     "modal_title": "Sendeidentitäten verwalten",

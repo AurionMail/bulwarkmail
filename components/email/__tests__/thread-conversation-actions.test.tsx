@@ -70,3 +70,32 @@ describe('phone conversation header', () => {
     expect(screen.getByRole('heading', { level: 1 }).className).toContain('line-clamp-2');
   });
 });
+
+// In Arabic the per-message "Reply all" and "Forward" were cut with no way to
+// read them, and the count said "3 رسالة" (one form for every number).
+describe('phone conversation messages', () => {
+  it('counts the messages with the plural message', () => {
+    renderView({});
+    expect(screen.getByText('threads.messages_count')).toBeTruthy();
+  });
+
+  it('wraps the reply buttons instead of cutting their names', () => {
+    render(
+      <ThreadConversationView
+        thread={{ threadId: 't1', emails: [email], latestEmail: email } as never}
+        emails={[email] as never}
+        onBack={() => {}}
+        onReply={() => {}}
+        onReplyAll={() => {}}
+        onForward={() => {}}
+      />,
+    );
+    const replyAll = screen.getByRole('button', { name: 'email_viewer.reply_all' });
+    expect(replyAll.parentElement?.className).toContain('flex-wrap');
+    for (const name of ['email_viewer.reply', 'email_viewer.reply_all', 'email_viewer.forward']) {
+      const button = screen.getByRole('button', { name });
+      expect(button.className).not.toContain('min-w-0');
+      expect(button.querySelector('.truncate')).toBeNull();
+    }
+  });
+});

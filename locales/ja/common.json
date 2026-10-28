@@ -3080,8 +3080,6 @@
     }
   },
   "threads": {
-    "messages_one": "{count}件のメッセージ",
-    "messages_other": "{count}件のメッセージ",
     "messages_tooltip": "{count, plural, other {この会話の#件のメッセージ}}",
     "expand": "会話を展開",
     "collapse": "会話を折りたたむ",
@@ -3092,7 +3090,8 @@
     "delete": "会話を削除",
     "star": "会話にスターを付ける",
     "unstar": "会話のスターを外す",
-    "toggle_thread": "スレッドの展開/折りたたみ"
+    "toggle_thread": "スレッドの展開/折りたたみ",
+    "messages_count": "{count, plural, other {#件のメッセージ}}"
   },
   "identities": {
     "modal_title": "送信者情報を管理",

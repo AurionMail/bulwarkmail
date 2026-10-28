@@ -3080,8 +3080,6 @@
     }
   },
   "threads": {
-    "messages_one": "{count} sõnum",
-    "messages_other": "{count} sõnumit",
     "messages_tooltip": "{count, plural, one {# sõnum selles vestluses} other {# sõnumit selles vestluses}}",
     "expand": "Ava vestlus",
     "collapse": "Sulge vestlus",
@@ -3092,7 +3090,8 @@
     "delete": "Kustuta vestlus",
     "star": "Tähista vestlus",
     "unstar": "Eemalda vestluse tähistus",
-    "toggle_thread": "Lülita vestlus"
+    "toggle_thread": "Lülita vestlus",
+    "messages_count": "{count, plural, one {# sõnum} other {# sõnumit}}"
   },
   "identities": {
     "modal_title": "Halda saatja identiteete",

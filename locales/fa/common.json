@@ -3080,8 +3080,6 @@
     }
   },
   "threads": {
-    "messages_one": "{count} پیام",
-    "messages_other": "{count} پیام",
     "messages_tooltip": "{count, plural, one {# پیام در این مکالمه} other {# پیام در این مکالمه}}",
     "expand": "باز کردن مکالمه",
     "collapse": "جمع کردن مکالمه",
@@ -3092,7 +3090,8 @@
     "delete": "حذف مکالمه",
     "star": "ستاره‌دار کردن مکالمه",
     "unstar": "حذف ستاره مکالمه",
-    "toggle_thread": "تغییر وضعیت رشته"
+    "toggle_thread": "تغییر وضعیت رشته",
+    "messages_count": "{count, plural, one {# پیام} other {# پیام}}"
   },
   "identities": {
     "modal_title": "مدیریت هویت‌های ارسال",

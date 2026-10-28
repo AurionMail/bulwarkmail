@@ -3080,8 +3080,6 @@
     }
   },
   "threads": {
-    "messages_one": "{count} missatge",
-    "messages_other": "{count} missatges",
     "messages_tooltip": "{count, plural, one {# missatge en aquesta conversa} other {# missatges en aquesta conversa}}",
     "expand": "Desplega la conversa",
     "collapse": "Replega la conversa",
@@ -3092,7 +3090,8 @@
     "delete": "Suprimeix la conversa",
     "star": "Marca la conversa amb estrella",
     "unstar": "Treu l'estrella de la conversa",
-    "toggle_thread": "Commuta el fil"
+    "toggle_thread": "Commuta el fil",
+    "messages_count": "{count, plural, one {# missatge} other {# missatges}}"
   },
   "identities": {
     "modal_title": "Gestiona les identitats d'enviament",

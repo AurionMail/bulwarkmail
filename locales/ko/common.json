@@ -3080,9 +3080,7 @@
     }
   },
   "threads": {
-    "messages_one": "메시지 1개",
-    "messages_other": "메시지 {count}개",
-    "messages_tooltip": "이 대화에 {count}개의 메시지가 있어요",
+    "messages_tooltip": "{count, plural, other {이 대화에 #개의 메시지가 있어요}}",
     "expand": "대화 펼치기",
     "collapse": "대화 접기",
     "loading": "대화를 불러오는 중...",
@@ -3092,7 +3090,8 @@
     "delete": "대화 삭제",
     "star": "대화 전체에 별표 달기",
     "unstar": "대화 전체 별표 해제",
-    "toggle_thread": "스레드 켜기/끄기"
+    "toggle_thread": "스레드 켜기/끄기",
+    "messages_count": "{count, plural, other {메시지 #개}}"
   },
   "identities": {
     "modal_title": "보내는 사람 관리",

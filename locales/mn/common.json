@@ -3080,8 +3080,6 @@
     }
   },
   "threads": {
-    "messages_one": "{count} мессеж",
-    "messages_other": "{count} мессежүүд",
     "messages_tooltip": "{count, plural, one {Энэ харилцан ярианд # зурвас байна} other {Энэ харилцан ярианд # зурвас байна}}",
     "expand": "Харилцан яриаг өргөжүүлэх",
     "collapse": "Харилцан яриаг хураах",
@@ -3092,7 +3090,8 @@
     "delete": "Харилцан яриаг устгах",
     "star": "Харилцан яриаг одтой болгох",
     "unstar": "Харилцан ярианы одыг авах",
-    "toggle_thread": "Хэлхээсийг дэлгэх/хумих"
+    "toggle_thread": "Хэлхээсийг дэлгэх/хумих",
+    "messages_count": "{count, plural, one {# мессеж} other {# мессеж}}"
   },
   "identities": {
     "modal_title": "Илгээж буй таниулбаруудыг удирдах",

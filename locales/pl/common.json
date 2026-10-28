@@ -3080,9 +3080,7 @@
     }
   },
   "threads": {
-    "messages_one": "{count} wiadomość",
-    "messages_other": "{count} wiadomości",
-    "messages_tooltip": "{count, plural, one {# wiadomość w tej konwersacji} other {# wiadomości w tej konwersacji}}",
+    "messages_tooltip": "{count, plural, one {# wiadomość w tej konwersacji} few {# wiadomości w tej konwersacji} many {# wiadomości w tej konwersacji} other {# wiadomości w tej konwersacji}}",
     "expand": "Rozwiń konwersację",
     "collapse": "Zwiń konwersację",
     "loading": "Ładowanie konwersacji...",
@@ -3092,7 +3090,8 @@
     "delete": "Usuń konwersację",
     "star": "Oznacz konwersację gwiazdką",
     "unstar": "Usuń gwiazdkę z konwersacji",
-    "toggle_thread": "Przełącz widok wątku"
+    "toggle_thread": "Przełącz widok wątku",
+    "messages_count": "{count, plural, one {# wiadomość} few {# wiadomości} many {# wiadomości} other {# wiadomości}}"
   },
   "identities": {
     "modal_title": "Zarządzaj tożsamościami nadawcy",

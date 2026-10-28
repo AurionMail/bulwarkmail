@@ -3080,8 +3080,6 @@
     }
   },
   "threads": {
-    "messages_one": "{count} üzenet",
-    "messages_other": "{count} üzenet",
     "messages_tooltip": "{count, plural, one {# üzenet ebben a beszélgetésben} other {# üzenet ebben a beszélgetésben}}",
     "expand": "Beszélgetés kibontása",
     "collapse": "Beszélgetés összecsukása",
@@ -3092,7 +3090,8 @@
     "delete": "Beszélgetés törlése",
     "star": "Beszélgetés csillagozása",
     "unstar": "Beszélgetés csillagozásának megszüntetése",
-    "toggle_thread": "Beszélgetés váltása"
+    "toggle_thread": "Beszélgetés váltása",
+    "messages_count": "{count, plural, one {# üzenet} other {# üzenet}}"
   },
   "identities": {
     "modal_title": "Küldő azonosságok kezelése",

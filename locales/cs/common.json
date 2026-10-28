@@ -3080,9 +3080,7 @@
     }
   },
   "threads": {
-    "messages_one": "{count} zpráva",
-    "messages_other": "{count} zpráv",
-    "messages_tooltip": "{count, plural, one {1 zpráva v této konverzaci} few {# zprávy v této konverzaci} other {# zpráv v této konverzaci}}",
+    "messages_tooltip": "{count, plural, one {# zpráva v této konverzaci} few {# zprávy v této konverzaci} many {# zprávy v této konverzaci} other {# zpráv v této konverzaci}}",
     "expand": "Rozbalit konverzaci",
     "collapse": "Sbalit konverzaci",
     "loading": "Načítání konverzace...",
@@ -3092,7 +3090,8 @@
     "delete": "Odstranit konverzaci",
     "star": "Označit konverzaci hvězdičkou",
     "unstar": "Odebrat hvězdičku z konverzace",
-    "toggle_thread": "Přepnout zobrazení vlákna"
+    "toggle_thread": "Přepnout zobrazení vlákna",
+    "messages_count": "{count, plural, one {# zpráva} few {# zprávy} many {# zprávy} other {# zpráv}}"
   },
   "identities": {
     "modal_title": "Správa identit odesílatele",

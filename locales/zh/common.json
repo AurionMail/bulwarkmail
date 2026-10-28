@@ -3080,8 +3080,6 @@
     }
   },
   "threads": {
-    "messages_one": "{count} 条消息",
-    "messages_other": "{count} 条消息",
     "messages_tooltip": "{count, plural, one {此会话中有 # 条消息} other {此会话中有 # 条消息}}",
     "expand": "展开会话",
     "collapse": "折叠会话",
@@ -3092,7 +3090,8 @@
     "delete": "删除会话",
     "star": "会话加星标",
     "unstar": "取消会话星标",
-    "toggle_thread": "展开/折叠会话"
+    "toggle_thread": "展开/折叠会话",
+    "messages_count": "{count, plural, other {# 条消息}}"
   },
   "identities": {
     "modal_title": "管理发送身份",

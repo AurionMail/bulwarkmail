@@ -3080,8 +3080,6 @@
     }
   },
   "threads": {
-    "messages_one": "{count} messaggio",
-    "messages_other": "{count} messaggi",
     "messages_tooltip": "{count, plural, one {# messaggio in questa conversazione} other {# messaggi in questa conversazione}}",
     "expand": "Espandi conversazione",
     "collapse": "Comprimi conversazione",
@@ -3092,7 +3090,8 @@
     "delete": "Elimina conversazione",
     "star": "Aggiungi stella alla conversazione",
     "unstar": "Rimuovi stella dalla conversazione",
-    "toggle_thread": "Espandi/comprimi discussione"
+    "toggle_thread": "Espandi/comprimi discussione",
+    "messages_count": "{count, plural, one {# messaggio} other {# messaggi}}"
   },
   "identities": {
     "modal_title": "Gestisci identità di invio",

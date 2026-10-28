@@ -3080,8 +3080,6 @@
     }
   },
   "threads": {
-    "messages_one": "{count} message",
-    "messages_other": "{count} messages",
     "messages_tooltip": "{count, plural, one {# message dans cette conversation} other {# messages dans cette conversation}}",
     "expand": "Développer la conversation",
     "collapse": "Réduire la conversation",
@@ -3092,7 +3090,8 @@
     "delete": "Supprimer la conversation",
     "star": "Marquer la conversation comme favorite",
     "unstar": "Retirer des favoris",
-    "toggle_thread": "Déplier/replier la discussion"
+    "toggle_thread": "Déplier/replier la discussion",
+    "messages_count": "{count, plural, one {# message} other {# messages}}"
   },
   "identities": {
     "modal_title": "Gérer les identités d'envoi",

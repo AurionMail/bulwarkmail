@@ -241,3 +241,25 @@ describe('mail menu labels', () => {
     expect(resolveKey(loadLocale(locale), 'email_viewer.keyboard_shortcuts')).not.toMatch(/[(（][?？؟][)）]/);
   });
 });
+
+describe('message counts', () => {
+  // The phone conversation said "3 رسالة": it used the hand-made "other"
+  // form for every count, and several plural messages missed the forms
+  // their language has (Arabic two/few/many, Russian few).
+  const KEYS = ['threads.messages_count', 'threads.messages_tooltip'];
+  const branches = (message: string) => new Set([...message.matchAll(/(?:^|[}\s,])(zero|one|two|few|many|other)\s*\{/g)].map((m) => m[1]));
+
+  it.each(locales)('%s has a plural form for every whole count', (locale) => {
+    const table = loadLocale(locale);
+    const rules = new Intl.PluralRules(locale);
+    const needed = new Set<string>();
+    for (let n = 0; n <= 200; n++) needed.add(rules.select(n));
+    const missing = KEYS.flatMap((key) => {
+      const message = resolveKey(table, key);
+      if (typeof message !== 'string' || !message.includes('plural')) return [`${key}: not a plural message`];
+      const have = branches(message);
+      return [...needed].filter((form) => !have.has(form)).map((form) => `${key}: ${form}`);
+    });
+    expect(missing).toEqual([]);
+  });
+});

@@ -3080,9 +3080,7 @@
     }
   },
   "threads": {
-    "messages_one": "{count} رسالة",
-    "messages_other": "{count} رسالة",
-    "messages_tooltip": "{count, plural, one {# رسالة في هذه المحادثة} other {# رسالة في هذه المحادثة}}",
+    "messages_tooltip": "{count, plural, zero {لا رسائل في هذه المحادثة} one {رسالة واحدة في هذه المحادثة} two {رسالتان في هذه المحادثة} few {# رسائل في هذه المحادثة} many {# رسالة في هذه المحادثة} other {# رسالة في هذه المحادثة}}",
     "expand": "توسيع المحادثة",
     "collapse": "طي المحادثة",
     "loading": "جارٍ تحميل المحادثة...",
@@ -3092,7 +3090,8 @@
     "delete": "حذف المحادثة",
     "star": "تمييز المحادثة بنجمة",
     "unstar": "إزالة النجمة عن المحادثة",
-    "toggle_thread": "تبديل عرض المحادثة"
+    "toggle_thread": "تبديل عرض المحادثة",
+    "messages_count": "{count, plural, zero {لا رسائل} one {رسالة واحدة} two {رسالتان} few {# رسائل} many {# رسالة} other {# رسالة}}"
   },
   "identities": {
     "modal_title": "إدارة هويات الإرسال",

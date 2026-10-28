@@ -2998,9 +2998,7 @@
     }
   },
   "threads": {
-    "messages_one": "הודעת{count}",
-    "messages_other": "הודעות{count}",
-    "messages_tooltip": "{count, plural, one {הודעה אחת בשיחה זו} other {# הודעות בשיחה זו}}",
+    "messages_tooltip": "{count, plural, one {הודעה אחת בשיחה זו} two {שתי הודעות בשיחה זו} other {# הודעות בשיחה זו}}",
     "expand": "הרחב את השיחה",
     "collapse": "כווץ השיחה",
     "loading": "טוען שיחה...",
@@ -3010,7 +3008,8 @@
     "delete": "מחק את השיחה",
     "star": "שיחת כוכב",
     "unstar": "הסר שיחה בכוכב",
-    "toggle_thread": "החלף חוט"
+    "toggle_thread": "החלף חוט",
+    "messages_count": "{count, plural, one {הודעה אחת} two {שתי הודעות} other {# הודעות}}"
   },
   "identities": {
     "modal_title": "ניהול זהויות שליחה",

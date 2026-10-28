@@ -383,8 +383,6 @@
     "open_app": "เปิด {name}"
   },
   "threads": {
-    "messages_one": "{count} ข้อความ",
-    "messages_other": "{count} ข้อความ",
     "messages_tooltip": "{count, plural, other {# ข้อความในการสนทนานี้}}",
     "expand": "ขยายการสนทนา",
     "collapse": "ย่อการสนทนา",
@@ -395,7 +393,8 @@
     "delete": "ลบการสนทนา",
     "star": "ติดดาวการสนทนา",
     "unstar": "ยกเลิกติดดาวการสนทนา",
-    "toggle_thread": "สลับมุมมองการสนทนา"
+    "toggle_thread": "สลับมุมมองการสนทนา",
+    "messages_count": "{count, plural, other {# ข้อความ}}"
   },
   "notifications": {
     "email_sent": "ส่งอีเมลแล้ว",

@@ -3080,8 +3080,6 @@
     }
   },
   "threads": {
-    "messages_one": "{count} mensagem",
-    "messages_other": "{count} mensagens",
     "messages_tooltip": "{count, plural, one {# mensagem nesta conversa} other {# mensagens nesta conversa}}",
     "expand": "Expandir conversa",
     "collapse": "Recolher conversa",
@@ -3092,7 +3090,8 @@
     "delete": "Excluir conversa",
     "star": "Adicionar estrela à conversa",
     "unstar": "Remover estrela da conversa",
-    "toggle_thread": "Expandir/recolher conversa"
+    "toggle_thread": "Expandir/recolher conversa",
+    "messages_count": "{count, plural, one {# mensagem} other {# mensagens}}"
   },
   "identities": {
     "modal_title": "Gerenciar Identidades de Envio",

@@ -263,7 +263,7 @@ export function ThreadConversationView({
             {thread.latestEmail.subject || t("email_viewer.no_subject")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {t("threads.messages_other", { count: emails.length })}
+            {t("threads.messages_count", { count: emails.length })}
           </p>
         </div>
         {actions && <ConversationHeaderActions email={thread.latestEmail} actions={actions} />}
@@ -436,8 +436,9 @@ function EmailCard({
           <PluginSlot name="email-footer" className="w-full" extraProps={plugin.idProps} />
 
           {/* Action Buttons; plugin reader actions behind a "more" button, as
-              in the single reader's More panel on phones. */}
-          <div className="px-4 pb-4 flex gap-2">
+              in the single reader's More panel on phones. Long names (Arabic
+              "Reply all") wrap to a second line instead of being cut. */}
+          <div className="px-4 pb-4 flex flex-wrap gap-2">
             {onReply && (
               <Button
                 variant="outline"
@@ -446,10 +447,10 @@ function EmailCard({
                   e.stopPropagation();
                   onReply();
                 }}
-                className="flex-1 min-w-0 px-2 whitespace-nowrap"
+                className="flex-auto px-2 whitespace-nowrap"
               >
                 <Reply className="w-4 h-4 me-1.5 shrink-0" />
-                <span className="truncate">{t("email_viewer.reply")}</span>
+                {t("email_viewer.reply")}
               </Button>
             )}
             {onReplyAll && (
@@ -460,10 +461,10 @@ function EmailCard({
                   e.stopPropagation();
                   onReplyAll();
                 }}
-                className="flex-1 min-w-0 px-2 whitespace-nowrap"
+                className="flex-auto px-2 whitespace-nowrap"
               >
                 <ReplyAll className="w-4 h-4 me-1.5 shrink-0" />
-                <span className="truncate">{t("email_viewer.reply_all")}</span>
+                {t("email_viewer.reply_all")}
               </Button>
             )}
             {onForward && (
@@ -474,10 +475,10 @@ function EmailCard({
                   e.stopPropagation();
                   onForward();
                 }}
-                className="flex-1 min-w-0 px-2 whitespace-nowrap"
+                className="flex-auto px-2 whitespace-nowrap"
               >
                 <Forward className="w-4 h-4 me-1.5 shrink-0" />
-                <span className="truncate">{t("email_viewer.forward")}</span>
+                {t("email_viewer.forward")}
               </Button>
             )}
             <PluginActions

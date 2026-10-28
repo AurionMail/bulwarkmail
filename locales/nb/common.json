@@ -3080,8 +3080,6 @@
     }
   },
   "threads": {
-    "messages_one": "{count} melding",
-    "messages_other": "{count} meldinger",
     "messages_tooltip": "{count, plural, one {# melding i denne samtalen} other {# meldinger i denne samtalen}}",
     "expand": "Utvid samtalen",
     "collapse": "Fold sammen samtalen",
@@ -3092,7 +3090,8 @@
     "delete": "Slett samtalen",
     "star": "Stjernemerk samtalen",
     "unstar": "Fjern stjernemerking fra samtalen",
-    "toggle_thread": "Utvid eller fold sammen tråden"
+    "toggle_thread": "Utvid eller fold sammen tråden",
+    "messages_count": "{count, plural, one {# melding} other {# meldinger}}"
   },
   "identities": {
     "modal_title": "Administrer avsenderidentiteter",
