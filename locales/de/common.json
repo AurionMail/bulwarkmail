@@ -2184,12 +2184,15 @@
       "refresh_cache": {
         "label": "Zwischengespeicherte Daten aktualisieren",
         "description": "Kontakte, Kalender und Ordner vom Server neu laden. Konten und Sitzungen bleiben erhalten; veraltete oder fehlerhafte Ansichten werden korrigiert, ohne dass Sie sich abmelden müssen.",
-        "button": "Aktualisieren"
+        "button": "Aktualisieren",
+        "confirm_title": "Zwischengespeicherte Daten aktualisieren?"
       },
       "reset_settings": {
         "label": "Einstellungen zurücksetzen",
         "description": "Alle Einstellungen auf Standardwerte zurücksetzen",
-        "button": "Auf Standard zurücksetzen"
+        "button": "Auf Standard zurücksetzen",
+        "confirm_title": "Alle Einstellungen zurücksetzen?",
+        "done": "Einstellungen zurückgesetzt"
       },
       "export_settings": {
         "label": "Einstellungen exportieren",

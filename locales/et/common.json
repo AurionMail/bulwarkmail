@@ -2191,12 +2191,15 @@
       "refresh_cache": {
         "label": "Värskenda vahemällu salvestatud andmeid",
         "description": "Laadi kontaktid, kalendrid ja kaustad serverist uuesti. Kontod ja seansid jäävad alles — parandab aegunud või vale kuva ilma välja logimata.",
-        "button": "Värskenda"
+        "button": "Värskenda",
+        "confirm_title": "Värskendada vahemälu andmed?"
       },
       "reset_settings": {
         "label": "Lähtesta seaded",
         "description": "Taasta kõik seaded vaikeväärtustele",
-        "button": "Lähtesta vaikeväärtustele"
+        "button": "Lähtesta vaikeväärtustele",
+        "confirm_title": "Lähtestada kõik seaded?",
+        "done": "Seaded lähtestatud"
       },
       "export_settings": {
         "label": "Ekspordi seaded",

@@ -2184,12 +2184,15 @@
       "refresh_cache": {
         "label": "Atualizar dados armazenados em cache",
         "description": "Atualize os contatos, calendários e pastas do servidor. Mantém suas contas e sessões — corrige uma visualização desatualizada ou incorreta sem precisar sair da conta.",
-        "button": "Recarregar"
+        "button": "Recarregar",
+        "confirm_title": "Atualizar os dados em cache?"
       },
       "reset_settings": {
         "label": "Redefinir Configurações",
         "description": "Restaurar todas as configurações para valores padrão",
-        "button": "Redefinir para Padrões"
+        "button": "Redefinir para Padrões",
+        "confirm_title": "Repor todas as definições?",
+        "done": "Definições repostas"
       },
       "export_settings": {
         "label": "Exportar Configurações",

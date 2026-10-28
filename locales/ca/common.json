@@ -2191,12 +2191,15 @@
       "refresh_cache": {
         "label": "Actualitza les dades emmagatzemades",
         "description": "Torna a carregar els contactes, els calendaris i les carpetes des del servidor. Manté els comptes i les sessions — soluciona una vista obsoleta o incorrecta sense tancar la sessió.",
-        "button": "Actualitza"
+        "button": "Actualitza",
+        "confirm_title": "Voleu actualitzar les dades de la memòria cau?"
       },
       "reset_settings": {
         "label": "Restableix la configuració",
         "description": "Restaura tota la configuració als valors per defecte",
-        "button": "Restableix als valors per defecte"
+        "button": "Restableix als valors per defecte",
+        "confirm_title": "Voleu restablir tots els paràmetres?",
+        "done": "Paràmetres restablerts"
       },
       "export_settings": {
         "label": "Exporta la configuració",

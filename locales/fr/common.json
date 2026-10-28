@@ -2184,12 +2184,15 @@
       "refresh_cache": {
         "label": "Actualiser les données en cache",
         "description": "Actualiser les contacts, calendriers et dossiers depuis le serveur. Vos comptes et sessions sont conservés. Corrige un affichage obsolète ou incorrect sans vous déconnecter.",
-        "button": "Actualiser"
+        "button": "Actualiser",
+        "confirm_title": "Actualiser les données en cache ?"
       },
       "reset_settings": {
         "label": "Réinitialiser les paramètres",
         "description": "Restaurer tous les paramètres par défaut",
-        "button": "Réinitialiser"
+        "button": "Réinitialiser",
+        "confirm_title": "Réinitialiser tous les paramètres ?",
+        "done": "Paramètres réinitialisés"
       },
       "export_settings": {
         "label": "Exporter les paramètres",

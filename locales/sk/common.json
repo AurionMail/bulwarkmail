@@ -2191,12 +2191,15 @@
       "refresh_cache": {
         "label": "Obnoviť uložené údaje",
         "description": "Znova načíta kontakty, kalendáre a priečinky zo servera. Zachová vaše účty a prihlásenia — opraví zastarané alebo nesprávne zobrazenie bez odhlásenia.",
-        "button": "Obnoviť"
+        "button": "Obnoviť",
+        "confirm_title": "Obnoviť údaje vo vyrovnávacej pamäti?"
       },
       "reset_settings": {
         "label": "Resetovať nastavenia",
         "description": "Obnoviť všetky nastavenia na predvolené hodnoty",
-        "button": "Obnoviť predvolené"
+        "button": "Obnoviť predvolené",
+        "confirm_title": "Obnoviť všetky nastavenia?",
+        "done": "Nastavenia boli obnovené"
       },
       "export_settings": {
         "label": "Exportovať nastavenia",

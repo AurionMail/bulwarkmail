@@ -2184,12 +2184,15 @@
       "refresh_cache": {
         "label": "Obnovit data z mezipaměti",
         "description": "Znovu načíst kontakty, kalendáře a složky ze serveru. Účty a přihlášení zůstanou zachovány – opraví zastaralé nebo chybné zobrazení bez odhlášení.",
-        "button": "Obnovit"
+        "button": "Obnovit",
+        "confirm_title": "Obnovit data v mezipaměti?"
       },
       "reset_settings": {
         "label": "Resetovat nastavení",
         "description": "Obnovit všechna nastavení na výchozí hodnoty",
-        "button": "Obnovit výchozí"
+        "button": "Obnovit výchozí",
+        "confirm_title": "Obnovit všechna nastavení?",
+        "done": "Nastavení byla obnovena"
       },
       "export_settings": {
         "label": "Exportovat nastavení",

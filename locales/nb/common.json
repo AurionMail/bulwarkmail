@@ -2191,12 +2191,15 @@
       "refresh_cache": {
         "label": "Oppdater bufrede data",
         "description": "Last inn kontakter, kalendere og mapper på nytt fra serveren. Kontoene og øktene beholdes, slik at du kan rette en utdatert eller feil visning uten å logge av.",
-        "button": "Oppdater"
+        "button": "Oppdater",
+        "confirm_title": "Oppdatere bufrede data?"
       },
       "reset_settings": {
         "label": "Tilbakestill innstillinger",
         "description": "Gjenopprett standardinnstillingene",
-        "button": "Tilbakestill til standard"
+        "button": "Tilbakestill til standard",
+        "confirm_title": "Tilbakestille alle innstillinger?",
+        "done": "Innstillinger tilbakestilt"
       },
       "export_settings": {
         "label": "Eksporter innstillinger",

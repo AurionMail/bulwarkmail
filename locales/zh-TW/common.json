@@ -2191,12 +2191,15 @@
       "refresh_cache": {
         "label": "重新整理快取資料",
         "description": "從伺服器重新載入聯絡人、行事曆與信件匣。保留帳號與工作階段，不需登出即可修正過時或錯誤的畫面。",
-        "button": "重新整理"
+        "button": "重新整理",
+        "confirm_title": "重新整理快取資料?"
       },
       "reset_settings": {
         "label": "重設設定",
         "description": "將所有設定還原為預設值",
-        "button": "重設為預設值"
+        "button": "重設為預設值",
+        "confirm_title": "重設所有設定?",
+        "done": "設定已重設"
       },
       "export_settings": {
         "label": "匯出設定",
