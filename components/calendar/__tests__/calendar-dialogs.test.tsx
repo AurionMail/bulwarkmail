@@ -80,3 +80,33 @@ describe('import preview', () => {
     expect(screen.getByText('recurrence.weekly')).toBeInTheDocument();
   });
 });
+
+describe('invitation view', () => {
+  it('shows an invitation with the same details as any event: maps link, meeting link, menu and answers', () => {
+    const shared = [{
+      id: 'team', name: 'Team', color: '#123456',
+      myRights: { mayReadItems: true, mayWriteAll: false, mayWriteOwn: false, mayRSVP: true, mayDelete: false },
+    }] as unknown as Calendar[];
+    const invite = {
+      id: 'i1', uid: 'u1', '@type': 'Event', title: 'Planning', start: '2026-10-12T10:00:00', duration: 'PT1H',
+      showWithoutTime: false, calendarIds: { team: true },
+      description: 'Join: https://teams.microsoft.com/l/meetup-join/abc',
+      locations: { l: { '@type': 'Location', name: 'Main St 1, Berlin' } },
+      organizerCalendarAddress: 'mailto:boss@example.org',
+      participants: {
+        boss: { '@type': 'Participant', calendarAddress: 'mailto:boss@example.org', roles: { owner: true }, participationStatus: 'accepted' },
+        me: { '@type': 'Participant', calendarAddress: 'mailto:me@example.com', roles: { attendee: true }, participationStatus: 'needs-action' },
+      },
+    } as unknown as import('@/lib/jmap/types').CalendarEvent;
+    render(
+      <EventModal event={invite} calendars={shared} onSave={vi.fn()} onClose={vi.fn()} onRsvp={vi.fn()} onMore={vi.fn()}
+        currentUserEmails={['me@example.com']} />,
+    );
+    expect(screen.getByText('participants.invited_by')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Main St 1, Berlin' }).getAttribute('href')).toMatch(/maps/);
+    expect(screen.getByRole('link', { name: 'teams.microsoft.com' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'toolbar.more' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'participants.accept' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /events\.edit/ })).toBeNull();
+  });
+});

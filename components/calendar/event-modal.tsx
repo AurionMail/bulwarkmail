@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { LinkifiedText } from "@/components/ui/linkified-text";
 import { X, Trash2, Users, CalendarDays, CopyPlus, Pencil, Clock, MapPin, Video, Repeat, Bell, AlignLeft, AlertTriangle, MoreVertical } from "@/components/icons";
 import { IconButton } from "@/components/ui/icon-button";
+import { findMeetingLink, locationAction, mapsUrl, primaryLocationName } from "@/lib/event-links";
 import { ParticipantStatusBadge, RsvpButtons } from "./rsvp-buttons";
 import { format, parseISO, addHours, isSameDay } from "date-fns";
 import type { CalendarEvent, Calendar, CalendarParticipant, CalendarEventAlert, CalendarRecurrenceRule } from "@/lib/jmap/types";
@@ -958,127 +959,22 @@ export function EventModal({
 
   const hasParticipants = attendees.length > 0 || (event?.participants && Object.keys(event.participants).length > 0);
 
-  if (rsvpMode && event) {
-    const startD = getEventStartDate(event);
-    const endD = getEventEndDate(event);
-    const locationName = event.locations ? Object.values(event.locations)[0]?.name : null;
-    const participants = getParticipantList(event, { resolveName: resolveContactName });
-
-    return (
-      <div ref={modalRef} role="dialog" aria-modal={isMobile || undefined} aria-label={event.title || t("events.no_title")} className={isMobile ? mobileRootClass : "flex flex-col h-full bg-background"}>
-        <div className="flex items-center justify-between gap-2 px-6 py-4 border-b border-border flex-shrink-0">
-          <h2 className="text-lg font-semibold truncate" title={event.title || t("events.no_title")}>{event.title || t("events.no_title")}</h2>
-          {onMore && (
-            <IconButton label={t("toolbar.more")} aria-haspopup="menu" className="ms-auto flex-shrink-0" onClick={(e) => onMore(e.currentTarget)}>
-              <MoreVertical />
-            </IconButton>
-          )}
-          <IconButton label={tCommon("close")} onClick={onClose} className="flex-shrink-0 text-muted-foreground">
-            <X />
-          </IconButton>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          <div className="px-6 py-4 space-y-3">
-            <div className="flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
-              <CalendarDays className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-              <div className="text-sm">
-                <p className="font-medium text-foreground">
-                  {t("participants.invited_by", { name: organizerInfo?.name || organizerInfo?.email || t("participants.organizer") })}
-                </p>
-                <p className="text-muted-foreground mt-0.5">
-                  {t("participants.respond_below")}
-                </p>
-              </div>
-            </div>
-
-            {(() => {
-              const displayEnd = getEventDisplayEndDate(event);
-              const multiDay = !isSameDay(startD, displayEnd);
-              if (multiDay && event.showWithoutTime) {
-                return (
-                  <div className="text-sm">
-                    <div className="font-medium">{formatEventDate(startD)} –</div>
-                    <div className="font-medium">{formatEventDate(displayEnd)}</div>
-                  </div>
-                );
-              }
-              if (multiDay) {
-                return (
-                  <div className="text-sm">
-                    <div>
-                      <span className="font-medium">{formatEventDate(startD)}</span>
-                      <span className="text-muted-foreground ms-2">{format(startD, timeDisplayFmt)}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium">{formatEventDate(endD)}</span>
-                      <span className="text-muted-foreground ms-2">{format(endD, timeDisplayFmt)}</span>
-                    </div>
-                  </div>
-                );
-              }
-              return (
-                <div className="text-sm">
-                  <span className="font-medium">{formatEventDate(startD)}</span>
-                  {!event.showWithoutTime && (
-                    <span className="text-muted-foreground ms-2">
-                      {format(startD, timeDisplayFmt)} – {format(endD, timeDisplayFmt)}
-                    </span>
-                  )}
-                </div>
-              );
-            })()}
-
-            {event.description && (
-              <p className="text-sm text-muted-foreground whitespace-pre-line break-words">
-                <LinkifiedText text={event.description} />
-              </p>
-            )}
-
-            {locationName && (
-              <p className="text-sm text-muted-foreground">{locationName}</p>
-            )}
-
-            {participants.length > 0 && (
-              <div className="space-y-1">
-                <div className="flex items-center gap-1.5 text-sm font-medium">
-                  <Users className="w-4 h-4" />
-                  {t("participants.title")}
-                </div>
-                <div className="space-y-1 ps-5">
-                  {participants.map(p => (
-                    <div key={p.id} className="flex items-center justify-between text-sm">
-                      <span className="truncate" title={p.email}>
-                        {p.name || p.email}
-                        {p.isOrganizer && (
-                          <span className="text-muted-foreground ms-1">({t("participants.organizer").toLowerCase()})</span>
-                        )}
-                      </span>
-                      <ParticipantStatusBadge status={p.status} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {eventDetailProps && <PluginSlot name="calendar-event-detail" className="w-full" extraProps={eventDetailProps} />}
-          </div>
-        </div>
-
-        <div className="px-6 py-4 border-t border-border flex-shrink-0">
-          <RsvpBar status={userCurrentStatus} onRespond={handleRsvp} t={t} />
-        </div>
-      </div>
-    );
-  }
-
-  // View mode: read-only display of event details with Edit button
-  if (mode === "view" && event) {
+  // View mode: read-only display of event details with Edit button. An
+  // invitation the user can only answer is shown by the same view, with a
+  // banner on top and the answer buttons below - one layout for every event,
+  // like the card's.
+  if ((mode === "view" || rsvpMode) && event) {
     const startD = getEventStartDate(event);
     const durMin = parseDuration(event.duration);
     const endD = getEventEndDate(event);
-    const locationName = event.locations ? Object.values(event.locations)[0]?.name || null : null;
-    const virtualLoc = event.virtualLocations ? Object.values(event.virtualLocations)[0]?.uri || null : null;
+    const locationName = primaryLocationName(event) ?? null;
+    // Invitations (Teams above all) leave virtualLocations empty and bury the
+    // join URL in the description; it counts as the meeting link anyway.
+    const meeting = findMeetingLink(event);
+    const virtualLoc = meeting?.uri ?? null;
+    const locationHref = locationName
+      ? (() => { const action = locationAction(locationName, meeting); return action.kind === "url" ? action.uri : mapsUrl(action.query); })()
+      : null;
     const viewParticipants = getParticipantList(event, { resolveName: resolveContactName });
     const recurrenceLabel = getRecurrenceLabel(event, t, locale);
     const alertLabel = formatEventAlertsLabel(event, calendars, t);
@@ -1114,6 +1010,20 @@ export function EventModal({
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
           <div className="px-6 py-4 space-y-3">
+            {rsvpMode && (
+            <div className="flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+              <CalendarDays className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+              <div className="text-sm">
+                <p className="font-medium text-foreground">
+                  {t("participants.invited_by", { name: organizerInfo?.name || organizerInfo?.email || t("participants.organizer") })}
+                </p>
+                <p className="text-muted-foreground mt-0.5">
+                  {t("participants.respond_below")}
+                </p>
+              </div>
+            </div>
+            )}
+
             {/* Date & Time */}
             <div className="flex items-start gap-2.5">
               <Clock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
@@ -1174,13 +1084,12 @@ export function EventModal({
             {locationName && (
               <div className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                {/^https?:\/\//i.test(locationName) ? (
-                  <a href={locationName} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline truncate" title={locationName}>
-                    {(() => { try { return new URL(locationName).hostname; } catch { return locationName; } })()}
-                  </a>
-                ) : (
-                  <span className="text-sm text-foreground">{locationName}</span>
-                )}
+                {/* A URL opens as a link, a postal address in the maps, as on the card. */}
+                <a href={locationHref ?? undefined} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline min-w-0 break-words" title={locationName}>
+                  {/^https?:\/\//i.test(locationName)
+                    ? (() => { try { return new URL(locationName).hostname; } catch { return locationName; } })()
+                    : locationName}
+                </a>
               </div>
             )}
 
