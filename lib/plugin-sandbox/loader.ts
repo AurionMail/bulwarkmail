@@ -27,6 +27,7 @@ import { registerShortcuts } from './shortcuts';
 import { mayOfferSlot, mayRegisterHook, pluginHasPermission, slotPropsFor } from './permissions';
 import { clearPluginActions, setActionDispatcher } from './actions';
 import { clearDayLabels } from './day-labels';
+import { clearPluginListFilters } from './list-filters';
 import { clearPluginPages } from './pages';
 import { clearSectionTitle } from './section-titles';
 import { cancelPluginProxyRequests } from './proxy-client';
@@ -376,9 +377,10 @@ export function unloadSandboxedPlugin(pluginId: string): void {
   // Drop any message-list category tabs the plugin registered so the strip
   // disappears (and the inbox unfilters) the moment the plugin is disabled.
   try { useMessageListTabsStore.getState().clearTabs(pluginId); } catch { /* ignore */ }
-  // Same for the buttons, day labels and pages it declared, and anything
-  // still running through the proxy for it.
+  // Same for the buttons, list filters, day labels and pages it declared,
+  // and anything still running through the proxy for it.
   clearPluginActions(pluginId);
+  clearPluginListFilters(pluginId);
   clearDayLabels(pluginId);
   clearPluginPages(pluginId);
   clearSectionTitle(pluginId);

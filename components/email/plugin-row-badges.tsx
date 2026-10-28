@@ -7,6 +7,7 @@ import { renderHooks } from "@/lib/plugin-hooks";
 import { emailSummary } from "@/lib/plugin-projection";
 import { rowBadgeGeneration, subscribeRowBadges } from "@/lib/plugin-sandbox/row-badges";
 import { cn } from "@/lib/utils";
+import { iconForName } from "@/components/icons";
 import { TAG_GROUP_CLASS, TAG_LOZENGE_CLASS } from "./tag-badge";
 
 // Badges plugins add to a message-list row through onEmailListItemRender.
@@ -40,6 +41,8 @@ function cacheKey(email: Email, listeners: number, generation: number): string {
 // variable or a colour name. Anything else (url(), expressions, several
 // declarations) is dropped and the badge keeps the theme colours.
 const SAFE_COLOR = /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla)\([\d\s.,%/+-]+\)|var\(--[a-z0-9-]+\)|[a-z]{3,30})$/i;
+// A host icon name, as for plugin actions.
+const ICON_NAME = /^[A-Za-z0-9:-]{1,40}$/;
 
 // eslint-disable-next-line no-control-regex -- removing control characters is the point
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/g;
@@ -67,6 +70,8 @@ export function normalizeBadges(raw: unknown): EmailListBadge[] {
     if (color && SAFE_COLOR.test(color)) badge.color = color;
     const title = cleanText(candidate.title, MAX_TITLE_LENGTH);
     if (title) badge.title = title;
+    const icon = cleanText(candidate.icon, 40);
+    if (icon && ICON_NAME.test(icon)) badge.icon = icon;
     out.push(badge);
   }
   return out;
@@ -141,24 +146,30 @@ export function PluginRowBadges({ email, className }: { email: Email; className?
   if (badges.length === 0) return null;
   return (
     <span className={cn(TAG_GROUP_CLASS, className)} data-testid="plugin-row-badges">
-      {badges.map((badge) => (
-        <span
-          key={badge.key}
-          title={badge.title}
-          className={cn(
-            TAG_LOZENGE_CLASS,
-            "max-w-[8rem] truncate border",
-            !badge.color && "border-border bg-muted text-muted-foreground",
-          )}
-          style={badge.color ? {
-            color: badge.color,
-            borderColor: badge.color,
-            backgroundColor: `color-mix(in srgb, ${badge.color} 12%, transparent)`,
-          } : undefined}
-        >
-          {badge.label}
-        </span>
-      ))}
+      {badges.map((badge) => {
+        const Icon = iconForName(badge.icon);
+        return (
+          <span
+            key={badge.key}
+            title={badge.title}
+            data-plugin-row-badge={badge.key}
+            className={cn(
+              TAG_LOZENGE_CLASS,
+              "max-w-[8rem] truncate border",
+              Icon && "gap-0.5",
+              !badge.color && "border-border bg-muted text-muted-foreground",
+            )}
+            style={badge.color ? {
+              color: badge.color,
+              borderColor: badge.color,
+              backgroundColor: `color-mix(in srgb, ${badge.color} 12%, transparent)`,
+            } : undefined}
+          >
+            {Icon && <Icon className="w-3 h-3 flex-shrink-0" aria-hidden data-badge-icon={badge.icon} />}
+            {Icon ? <span className="truncate">{badge.label}</span> : badge.label}
+          </span>
+        );
+      })}
     </span>
   );
 }

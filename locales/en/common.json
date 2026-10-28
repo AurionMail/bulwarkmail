@@ -4412,7 +4412,7 @@
       },
       "account_read": {
         "title": "See your accounts",
-        "body": "See the accounts you added, with their addresses and servers."
+        "body": "See the accounts you added with their addresses and servers, which mail accounts are team mailboxes, and look up people in your organisation's directory."
       },
       "http_post": {
         "title": "Use the webmail server for you",
@@ -4575,6 +4575,10 @@
       "error_server": "Enter the server's address, for example https://cloud.example.com",
       "error_save": "Could not save: {error}"
     }
+  },
+  "plugin_list": {
+    "filters": "Filters",
+    "remove_filter": "Remove filter {label}"
   },
   "global_search": {
     "title": "Search everything",

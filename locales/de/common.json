@@ -4412,7 +4412,7 @@
       },
       "account_read": {
         "title": "Ihre Konten sehen",
-        "body": "Die von Ihnen hinzugefügten Konten mit ihren Adressen und Servern sehen."
+        "body": "Die von Ihnen hinzugefügten Konten mit ihren Adressen und Servern sehen, erkennen, welche Postfächer Team-Postfächer sind, und Personen im Verzeichnis Ihrer Organisation nachschlagen."
       },
       "http_post": {
         "title": "Den Webmail-Server für Sie nutzen",
@@ -4575,6 +4575,10 @@
       "error_server": "Geben Sie die Adresse des Servers ein, zum Beispiel https://cloud.example.com",
       "error_save": "Speichern fehlgeschlagen: {error}"
     }
+  },
+  "plugin_list": {
+    "filters": "Filter",
+    "remove_filter": "Filter {label} entfernen"
   },
   "global_search": {
     "title": "Alles durchsuchen",

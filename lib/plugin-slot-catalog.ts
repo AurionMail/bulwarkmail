@@ -58,7 +58,7 @@ export const SLOT_CATALOG = {
   // ─── Message list ──────────────────────────────────────────
   'message-list-header': S('mail-list', 'frame', ['ui:message-list'], { mailboxId: null, mailboxRole: null }, 'above the message list'),
   'message-list-empty': S('mail-list', 'frame', ['ui:message-list'], { mailboxId: null, mailboxRole: null, searching: null }, 'in an empty message list, below the "no messages" text'),
-  'message-row-actions': S('mail-list', 'action', ['ui:message-list'], { emailId: 'email:read' }, 'hover buttons on a message row, and the row menu on phones', true),
+  'message-row-actions': S('mail-list', 'action', ['ui:message-list'], { emailId: 'email:read', accountId: 'email:read' }, 'hover buttons on a message row, and its right-click menu (the row menu on phones); the click\'s `accountId` names the message\'s account when it is not the user\'s own (a team or shared mailbox)', true),
   'message-bulk-actions': S('mail-list', 'action', ['ui:message-list'], { emailIds: 'email:read' }, 'buttons in the toolbar shown while messages are selected', true),
   'context-menu-email': S('mail-list', 'frame', ['ui:context-menu'], {}, 'the right-click menu of a message'),
   'toolbar-actions': S('mail-list', 'frame', ['ui:toolbar'], {}, 'the message toolbar', true),
@@ -71,7 +71,7 @@ export const SLOT_CATALOG = {
   'reader-above-quote': S('reader', 'frame', ['ui:email-banner'], { email: 'email:read' }, 'between the new text of a message and the quoted text below it'),
   'email-footer': S('reader', 'frame', ['ui:email-footer'], { emailId: 'email:read' }, 'below the message body'),
   'thread-summary': S('reader', 'frame', ['ui:email-banner'], { threadId: 'email:read', emailIds: 'email:read', deviceType: null }, 'above the messages of an open conversation (the phone conversation view and Mountain View; the default desktop layout opens one message at a time and has no conversation view)'),
-  'reader-actions': S('reader', 'action', ['ui:toolbar'], { emailId: 'email:read' }, 'buttons in the open message\'s toolbar', true),
+  'reader-actions': S('reader', 'action', ['ui:toolbar'], { emailId: 'email:read', accountId: 'email:read' }, 'buttons in the open message\'s toolbar (its More menu on phones); `accountId` as on message-row-actions', true),
   'email-detail-sidebar': S('reader', 'frame', ['ui:email-details'], { email: 'email:read', selection: 'email:read', focusRequest: null }, 'a side panel next to the open message; `selection` is the text selected in the message as the user changes it ({ text }); `focusRequest` counts up when the plugin opened the panel with api.ui.openPanel'),
   'email-details-section': S('reader', 'frame', ['ui:email-details'], { email: 'email:read', category: null }, 'a section in the message details'),
   'attachment-actions': S('reader', 'frame', ['email:read'], { attachment: null }, 'buttons on each attachment', true),

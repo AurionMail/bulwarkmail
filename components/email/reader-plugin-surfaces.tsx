@@ -9,7 +9,7 @@ import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
 import { iconForName, MoreHorizontal, Puzzle } from "@/components/icons";
 import { ContextMenu } from "@/components/ui/context-menu";
-import { PluginActions, usePluginActions } from "@/components/plugins/plugin-actions";
+import { PluginActions, usePluginActions, type MessageActionTarget } from "@/components/plugins/plugin-actions";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { useContextMenu } from "@/hooks/use-context-menu";
@@ -128,14 +128,18 @@ export function PluginPanelEntries({
   surface,
   context,
   mailboxRole,
+  target,
   onRan,
 }: {
   surface: string;
   context: Record<string, unknown>;
   mailboxRole?: string | null;
+  /** The open message (useMessageActionTarget). */
+  target?: MessageActionTarget;
   onRan?: () => void;
 }) {
-  const actions = usePluginActions(surface, { mailboxRole });
+  const actions = usePluginActions(surface, { mailboxRole, accountKind: target?.accountKind ?? null, keywords: target?.keywords ?? null });
+  const clickContext = target?.accountId ? { ...context, accountId: target.accountId } : context;
   if (actions.length === 0) return null;
   return (
     <>
@@ -147,7 +151,7 @@ export function PluginPanelEntries({
             key={`${action.pluginId}:${action.id}`}
             role="menuitem"
             title={action.pluginName}
-            onClick={() => { onRan?.(); void runAction(action, surface, context); }}
+            onClick={() => { onRan?.(); void runAction(action, surface, clickContext); }}
             className={cn(
               "w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted flex items-center gap-3",
               action.danger ? "text-destructive" : "text-foreground",

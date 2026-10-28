@@ -908,6 +908,8 @@ export interface EmailListBadge {
   color?: string;
   /** Tooltip / aria-label */
   title?: string;
+  /** Name of a host icon (see components/icons) shown before the label, e.g. "check" or "user". */
+  icon?: string;
 }
 
 // ─── Message-list category tabs (Gmail-style inbox tabs) ─────

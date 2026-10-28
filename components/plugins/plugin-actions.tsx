@@ -1,6 +1,6 @@
 'use client';
 
-import { useSyncExternalStore, useState } from 'react';
+import { useMemo, useSyncExternalStore, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { iconForName, MoreHorizontal, Puzzle } from '@/components/icons';
 import { ContextMenu, ContextMenuItem } from '@/components/ui/context-menu';
@@ -12,15 +12,89 @@ import {
   badgeText,
   runAction,
   subscribeActions,
+  type ActionFilter,
   type RegisteredAction,
 } from '@/lib/plugin-sandbox/actions';
+import { mailAccountKind, type MailAccountKind } from '@/lib/plugin-sandbox/account-kind';
+import type { Email } from '@/lib/jmap/types';
+import { useAuthStore } from '@/stores/auth-store';
+import { resolveEmailBlobContext, useEmailStore } from '@/stores/email-store';
+import { usePolicyStore } from '@/stores/policy-store';
+import { useAccountSubjects } from '@/lib/org/account-subjects';
 
 const EMPTY: RegisteredAction[] = [];
 
-/** The actions plugins declared for a surface, filtered by folder role or MIME type. */
-export function usePluginActions(surface: string, filter: { mailboxRole?: string | null; mimeType?: string | null } = {}) {
+/** The actions plugins declared for a surface, filtered by folder role, MIME type, account and keywords. */
+export function usePluginActions(surface: string, filter: ActionFilter = {}) {
   const all = useSyncExternalStore(subscribeActions, () => actionsFor(surface), () => EMPTY);
   return all.filter((a) => actionApplies(a, filter));
+}
+
+/** The message an action surface is about: its account and keywords. */
+export interface MessageActionTarget {
+  /** The JMAP account the message is in, when it isn't the signed-in account's own. */
+  accountId?: string;
+  accountKind: MailAccountKind | null;
+  keywords: string[] | null;
+}
+
+type ActionEmail = Pick<Email, 'id' | 'keywords' | 'sourceAccountId' | 'sourceClientAccountId'>;
+
+/**
+ * The account and keywords of `email`, for the actions' `accounts`,
+ * `hasKeyword` and `notKeyword` and the click's `accountId`. Follows the
+ * group lists as they load, so a team mailbox's actions appear once the
+ * server said which accounts are groups.
+ */
+export function useMessageActionTarget(email: ActionEmail | null | undefined): MessageActionTarget {
+  const subject = usePolicyStore((s) => s.subject);
+  const subjects = useAccountSubjects((s) => s.subjects);
+  const client = useAuthStore((s) => s.client);
+  const selectedMailbox = useEmailStore((s) => s.selectedMailbox);
+  const mailboxes = useEmailStore((s) => s.mailboxes);
+  const keywords = email?.keywords;
+  const keywordKey = keywords ? Object.keys(keywords).filter((k) => keywords[k]).sort().join(' ') : '';
+  const sourceAccountId = email?.sourceAccountId;
+  const sourceClientAccountId = email?.sourceClientAccountId;
+  const hasEmail = !!email;
+  return useMemo(() => {
+    if (!hasEmail) return { accountKind: null, keywords: null };
+    const owner = resolveEmailBlobContext({ sourceAccountId, sourceClientAccountId }, client);
+    const own = owner.client?.getAccountId?.();
+    const accountId = owner.accountId && owner.accountId !== own ? owner.accountId : undefined;
+    return {
+      ...(accountId ? { accountId } : {}),
+      accountKind: owner.client ? mailAccountKind(owner.client, owner.accountId, owner.clientAccountId) : null,
+      keywords: keywordKey ? keywordKey.split(' ') : [],
+    };
+    // The group lists, the open folder and its mailboxes decide the account
+    // (resolveEmailBlobContext reads them from the stores).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasEmail, keywordKey, sourceAccountId, sourceClientAccountId, client, subject, subjects, selectedMailbox, mailboxes]);
+}
+
+/** The account kind of the open folder, for surfaces about the selection (message-bulk-actions). */
+export function useFolderAccountKind(): MailAccountKind | null {
+  const subject = usePolicyStore((s) => s.subject);
+  const subjects = useAccountSubjects((s) => s.subjects);
+  const client = useAuthStore((s) => s.client);
+  const selectedMailbox = useEmailStore((s) => s.selectedMailbox);
+  const mailboxes = useEmailStore((s) => s.mailboxes);
+  return useMemo(() => {
+    const owner = resolveEmailBlobContext({}, client);
+    return owner.client ? mailAccountKind(owner.client, owner.accountId, owner.clientAccountId) : null;
+    // See useMessageActionTarget.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client, subject, subjects, selectedMailbox, mailboxes]);
+}
+
+/** The context a message action's click carries: the surface's, plus the message's account. */
+function withTarget(context: Record<string, unknown>, target: MessageActionTarget | undefined): Record<string, unknown> {
+  return target?.accountId ? { ...context, accountId: target.accountId } : context;
+}
+
+function targetFilter(target: MessageActionTarget | undefined, accountKind: MailAccountKind | null | undefined): Pick<ActionFilter, 'accountKind' | 'keywords'> {
+  return { accountKind: target ? target.accountKind : accountKind ?? null, keywords: target?.keywords ?? null };
 }
 
 interface PluginActionsProps {
@@ -39,18 +113,22 @@ interface PluginActionsProps {
   overflow?: boolean;
   /** Called after a click, e.g. to close the menu the entry sits in. */
   onRan?: () => void;
+  /** The message the surface is about (useMessageActionTarget). */
+  target?: MessageActionTarget;
+  /** Surfaces about the selection: the open folder's account kind. */
+  accountKind?: MailAccountKind | null;
 }
 
 /**
  * Buttons or menu entries plugins declared with api.ui.setActions. The host
  * draws them so they match the app; the plugin gets the click.
  */
-export function PluginActions({ surface, context, variant = 'buttons', mailboxRole, mimeType, className, compact, overflow, onRan }: PluginActionsProps) {
-  const actions = usePluginActions(surface, { mailboxRole, mimeType });
+export function PluginActions({ surface, context, variant = 'buttons', mailboxRole, mimeType, className, compact, overflow, onRan, target, accountKind }: PluginActionsProps) {
+  const actions = usePluginActions(surface, { mailboxRole, mimeType, ...targetFilter(target, accountKind) });
   const [busy, setBusy] = useState<string | null>(null);
   if (actions.length === 0) return null;
   if (overflow && variant === 'buttons') {
-    return <PluginActionsOverflow surface={surface} context={context} mailboxRole={mailboxRole} mimeType={mimeType} className={className} />;
+    return <PluginActionsOverflow surface={surface} context={context} mailboxRole={mailboxRole} mimeType={mimeType} className={className} target={target} accountKind={accountKind} />;
   }
 
   const run = async (action: RegisteredAction) => {
@@ -58,7 +136,7 @@ export function PluginActions({ surface, context, variant = 'buttons', mailboxRo
     setBusy(key);
     try {
       onRan?.();
-      await runAction(action, surface, context);
+      await runAction(action, surface, withTarget(context, target));
     } finally {
       setBusy((current) => (current === key ? null : current));
     }
@@ -122,7 +200,7 @@ export function PluginActions({ surface, context, variant = 'buttons', mailboxRo
 }
 
 /** The actions of a surface behind one "more" button, for toolbars without room for them. */
-function PluginActionsOverflow({ surface, context, mailboxRole, mimeType, className }: Pick<PluginActionsProps, 'surface' | 'context' | 'mailboxRole' | 'mimeType' | 'className'>) {
+function PluginActionsOverflow({ surface, context, mailboxRole, mimeType, className, target, accountKind }: Pick<PluginActionsProps, 'surface' | 'context' | 'mailboxRole' | 'mimeType' | 'className' | 'target' | 'accountKind'>) {
   const t = useTranslations('email_viewer');
   const { contextMenu, openContextMenu, closeContextMenu, menuRef } = useContextMenu<true>();
   return (
@@ -148,6 +226,8 @@ function PluginActionsOverflow({ surface, context, mailboxRole, mimeType, classN
           context={context}
           mailboxRole={mailboxRole}
           mimeType={mimeType}
+          target={target}
+          accountKind={accountKind}
           onRan={closeContextMenu}
         />
       </ContextMenu>
