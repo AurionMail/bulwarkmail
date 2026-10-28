@@ -60,7 +60,7 @@ describe('MvListToolbar filing actions', () => {
     fireEvent.click(screen.getByLabelText('move_to'));
     fireEvent.click(screen.getByText('Receipts'));
 
-    await waitFor(() => expect(batchMoveToMailbox).toHaveBeenCalledWith({}, 'receipts'));
+    await waitFor(() => expect(batchMoveToMailbox).toHaveBeenCalledWith({}, 'receipts', undefined, []));
   });
 
   it('does not offer the folder you are already in as a destination', () => {
