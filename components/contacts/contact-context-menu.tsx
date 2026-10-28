@@ -45,12 +45,16 @@ interface ContactContextMenuProps {
   menuRef: React.RefObject<HTMLDivElement | null>;
   isMultiSelect?: boolean;
   selectedCount?: number;
-  onOpen: () => void;
+  /** Left out where the contact is already open (the detail's ⋮). */
+  onOpen?: () => void;
   /** Touch: start selecting with this contact (there is no Ctrl+click). */
   onSelect?: () => void;
-  onEdit: () => void;
+  /** Left out where Edit is a button next to the menu. */
+  onEdit?: () => void;
   onDelete: () => void;
-  onAddToGroup: () => void;
+  onAddToGroup?: () => void;
+  /** Leave out what the detail shows as buttons of its own. */
+  inDetail?: boolean;
   /** Writes to the contact in the app's composer. */
   onCompose?: () => void;
   onDuplicate?: () => void;
@@ -79,6 +83,7 @@ export function ContactContextMenu({
   onDuplicate,
   onMoveTo,
   onBatchMoveTo,
+  inDetail = false,
   onBatchExport,
   onBatchAddToGroup,
   onBatchDelete,
@@ -155,23 +160,42 @@ export function ContactContextMenu({
 
   return (
     <ContextMenu ref={menuRef} isOpen={isOpen} position={position} onClose={onClose}>
-      <ContextMenuItem icon={Eye} label={t("context_menu.open")} onClick={handle(onOpen)} />
+      {/* R6 order: Open, write, Edit, then the rest; the detail's ⋮ leaves
+          out what it has as buttons (Edit, Send email, Call). */}
+      {onOpen && <ContextMenuItem icon={Eye} label={t("context_menu.open")} onClick={handle(onOpen)} />}
       {onSelect && <ContextMenuItem icon={CheckSquare} label={t("filters.select")} onClick={handle(onSelect)} />}
-      <ContextMenuItem icon={Pencil} label={t("context_menu.edit")} onClick={handle(onEdit)} />
-      {(email || phone) && <ContextMenuSeparator />}
-      {email && onCompose && (
+      {email && onCompose && !inDetail && (
         <ContextMenuItem
           icon={Mail}
           label={t("context_menu.send_email")}
           onClick={handle(onCompose)}
         />
       )}
-      {phone && (
+      {phone && !inDetail && (
         <ContextMenuItem
           icon={Phone}
           label={t("context_menu.call")}
           onClick={handle(handleCall)}
         />
+      )}
+      {onEdit && <ContextMenuItem icon={Pencil} label={t("context_menu.edit")} onClick={handle(onEdit)} />}
+      {!inDetail && <ContextMenuSeparator />}
+      {onAddToGroup && (
+        <ContextMenuItem
+          icon={Users}
+          label={t("context_menu.add_to_group")}
+          onClick={handle(onAddToGroup)}
+        />
+      )}
+      {onDuplicate && (
+        <ContextMenuItem
+          icon={Copy}
+          label={t("context_menu.duplicate")}
+          onClick={handle(onDuplicate)}
+        />
+      )}
+      {onMoveTo && (
+        <ContextMenuItem icon={FolderInput} label={t("address_books.move_to")} onClick={handle(onMoveTo)} />
       )}
       {email && (
         <ContextMenuItem
@@ -186,22 +210,6 @@ export function ContactContextMenu({
           label={t("detail.copy_phone")}
           onClick={handle(() => handleCopy(phone))}
         />
-      )}
-      <ContextMenuSeparator />
-      <ContextMenuItem
-        icon={Users}
-        label={t("context_menu.add_to_group")}
-        onClick={handle(onAddToGroup)}
-      />
-      {onDuplicate && (
-        <ContextMenuItem
-          icon={Copy}
-          label={t("context_menu.duplicate")}
-          onClick={handle(onDuplicate)}
-        />
-      )}
-      {onMoveTo && (
-        <ContextMenuItem icon={FolderInput} label={t("address_books.move_to")} onClick={handle(onMoveTo)} />
       )}
       <ContextMenuItem
         icon={Download}

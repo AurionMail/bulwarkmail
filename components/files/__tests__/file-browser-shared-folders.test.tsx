@@ -449,4 +449,17 @@ describe('FileBrowser', () => {
     fireEvent.keyDown(document.body, { key: '/' });
     expect(document.activeElement).toHaveAttribute('role', 'searchbox');
   });
+
+  it("lists a folder's actions in the same order in the list and in the tree", () => {
+    renderBrowser({ props: { onDownloadZip: vi.fn(async () => {}), onMoveNode: vi.fn(async () => {}) } });
+    const labels = () => within(screen.getByRole('menu')).getAllByRole('menuitem').map((i) => (i.textContent ?? '').replace(/(F2|Del|Ctrl\+[A-Z]|⌘[A-Z])$/, ''));
+    fireEvent.contextMenu(within(list()).getByText('Documents'));
+    const inList = labels();
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
+    fireEvent.contextMenu(within(tree()).getByText('Documents'));
+    const inTree = labels();
+    const shared = inTree.filter((l) => inList.includes(l));
+    expect(shared).toEqual(inList.filter((l) => inTree.includes(l)));
+    expect(shared).toEqual(expect.arrayContaining(['open', 'star', 'rename', 'move_to', 'download_zip', 'delete']));
+  });
 });

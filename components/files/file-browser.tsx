@@ -876,22 +876,18 @@ export function FileBrowser({
     const starred = starredPaths.has(path);
     return (
       <>
+        {/* R6 order, the same as the folder tree's menu: Open, Edit, Share,
+            Star, Rename, Duplicate, Move to…, Cut, Copy, Download, Details, Delete. */}
         {resource.isDirectory ? (
-          <>
-            <ContextMenuItem icon={FolderOpen} label={t("open")} onClick={() => { closeMenu(); openResource(resource); }} />
-            {onDownloadZip && (
-              <ContextMenuItem icon={Download} label={t("download_zip")} onClick={() => { closeMenu(); downloadNames([resource.name]); }} />
-            )}
-          </>
+          <ContextMenuItem icon={FolderOpen} label={t("open")} onClick={() => { closeMenu(); openResource(resource); }} />
         ) : resource.isSymlink ? null : (
           <>
-            {isOfficeEditable?.(resource.name) && onEditFile && (
-              <ContextMenuItem icon={SquarePen} label={t("office_edit")} onClick={() => { closeMenu(); onEditFile(resource.name); }} />
-            )}
             {isPreviewable(resource.name) && (
               <ContextMenuItem icon={Eye} label={t("preview")} onClick={() => { closeMenu(); previewResource(resource); }} />
             )}
-            <ContextMenuItem icon={Download} label={t("download")} onClick={() => { closeMenu(); void onDownload(resource.name); }} />
+            {isOfficeEditable?.(resource.name) && onEditFile && (
+              <ContextMenuItem icon={SquarePen} label={t("office_edit")} onClick={() => { closeMenu(); onEditFile(resource.name); }} />
+            )}
           </>
         )}
         {(canShare(resource) || (resource.isDirectory && !resource.isShared)) && <ContextMenuSeparator />}
@@ -916,6 +912,12 @@ export function FileBrowser({
         <ContextMenuItem icon={Scissors} label={t("cut")} shortcut={formatShortcutCombo("Mod + X")} onClick={() => { closeMenu(); onCut([resource.name]); }} />
         {!resource.isSymlink && (
           <ContextMenuItem icon={Copy} label={t("copy")} shortcut={formatShortcutCombo("Mod + C")} onClick={() => { closeMenu(); onCopy([resource.name]); }} />
+        )}
+        {resource.isDirectory && onDownloadZip && (
+          <ContextMenuItem icon={Download} label={t("download_zip")} onClick={() => { closeMenu(); downloadNames([resource.name]); }} />
+        )}
+        {!resource.isDirectory && !resource.isSymlink && (
+          <ContextMenuItem icon={Download} label={t("download")} onClick={() => { closeMenu(); void onDownload(resource.name); }} />
         )}
         <ContextMenuItem icon={Info} label={t("details")} onClick={() => { closeMenu(); toggleDetails(true); }} />
         <ContextMenuSeparator />

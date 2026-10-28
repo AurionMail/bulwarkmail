@@ -464,7 +464,12 @@ export function FilesSidebar({
             <>
               <ContextMenuItem icon={FolderOpen} label={t("open")} onClick={() => run(() => onNavigate(path, folder.id))} />
               {writable && createItems(path, folder.id)}
+              {/* The list's folder menu in the same order; Cut, Copy and
+                  Details act on the list and are left out here (R6). */}
               {(!folder.isShared || canShare(folder)) && <ContextMenuSeparator />}
+              {canShare(folder) && (
+                <ContextMenuItem icon={Share2} label={t("share")} onClick={() => run(() => onShare(folder))} />
+              )}
               {!folder.isShared && (
                 <ContextMenuItem
                   icon={starred ? StarOff : Star}
@@ -472,10 +477,7 @@ export function FilesSidebar({
                   onClick={() => run(() => onToggleFavorite(path))}
                 />
               )}
-              {canShare(folder) && (
-                <ContextMenuItem icon={Share2} label={t("share")} onClick={() => run(() => onShare(folder))} />
-              )}
-              {(mayRename || mayDelete) && <ContextMenuSeparator />}
+              <ContextMenuSeparator />
               {mayRename && (
                 <ContextMenuItem icon={Pencil} label={t("rename")} onClick={() => run(() => onRenameFolder(folder))} />
               )}
@@ -485,6 +487,7 @@ export function FilesSidebar({
               {onDownloadFolder && (
                 <ContextMenuItem icon={Download} label={t("download_zip")} onClick={() => run(() => onDownloadFolder(folder))} />
               )}
+              {mayDelete && <ContextMenuSeparator />}
               {mayDelete && (
                 <ContextMenuItem icon={Trash2} label={t("delete")} destructive onClick={() => run(() => onDeleteFolder(folder))} />
               )}

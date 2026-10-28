@@ -117,6 +117,7 @@ interface ContactListProps {
   onAddContactToGroup: (id: string) => void;
   /** Opens the app's composer to the contact. */
   onComposeContact?: (contact: ContactCard) => void;
+  onDuplicateContact?: (contact: ContactCard) => void;
   /** Move contacts to another address book; undefined where there is none. */
   onMoveContacts?: (ids: string[]) => void;
   /** Show a burger button at the start that opens the (overlay) categories sidebar. */
@@ -145,6 +146,7 @@ export function ContactList({
   onDeleteContact,
   onAddContactToGroup,
   onComposeContact,
+  onDuplicateContact,
   onMoveContacts,
   onMenuClick,
   isLoading = false,
@@ -750,6 +752,7 @@ export function ContactList({
           onDelete={() => onDeleteContact(contextMenu.data!)}
           onAddToGroup={() => onAddContactToGroup(contextMenu.data!.id)}
           onCompose={onComposeContact ? () => onComposeContact(contextMenu.data!) : undefined}
+          onDuplicate={onDuplicateContact ? () => onDuplicateContact(contextMenu.data!) : undefined}
           onMoveTo={onMoveContacts ? () => onMoveContacts([contextMenu.data!.id]) : undefined}
           onBatchMoveTo={onMoveContacts ? () => onMoveContacts([...selectedContactIds]) : undefined}
           onBatchExport={onBulkExport}

@@ -1,7 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Users, Pencil, Trash2, UserMinus, Mail } from "@/components/icons";
+import { Users, Pencil, Trash2, UserMinus, Mail, MoreVertical } from "@/components/icons";
+import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
+import { useContextMenu } from "@/hooks/use-context-menu";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -35,6 +37,8 @@ export function ContactGroupDetail({
 }: ContactGroupDetailProps) {
   const t = useTranslations("contacts");
   const groupName = getContactDisplayName(group);
+  // Delete sits in a ⋮, as on a contact's page (R6).
+  const menu = useContextMenu<null>();
   const hasEmailMembers = members.some((m) => getContactPrimaryEmail(m).trim());
 
   return (
@@ -55,18 +59,24 @@ export function ContactGroupDetail({
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={onEdit} className="touch-manipulation">
               <Pencil className="w-4 h-4 me-1" />
-              {t("form.edit_title")}
+              {t("groups.edit")}
             </Button>
-            <Button
+            <IconButton
               variant="outline"
               size="sm"
-              onClick={onDelete}
-              aria-label={t("groups.delete")}
-              title={t("groups.delete")}
-              className="text-destructive hover:text-destructive hover:bg-destructive/10 touch-manipulation"
+              label={t("detail.more_actions")}
+              aria-haspopup="menu"
+              aria-expanded={menu.contextMenu.isOpen}
+              onClick={(e) => menu.openContextMenuFrom(e.currentTarget, null, "end")}
+              className="touch-manipulation"
             >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+              <MoreVertical />
+            </IconButton>
+            <ContextMenu ref={menu.menuRef} isOpen={menu.contextMenu.isOpen} position={menu.contextMenu.position} onClose={menu.closeContextMenu}>
+              <ContextMenuItem icon={Pencil} label={t("groups.edit")} onClick={() => { menu.closeContextMenu(); onEdit(); }} />
+              <ContextMenuSeparator />
+              <ContextMenuItem icon={Trash2} label={t("groups.delete")} destructive onClick={() => { menu.closeContextMenu(); onDelete(); }} />
+            </ContextMenu>
           </div>
         </div>
         {onComposeGroup && hasEmailMembers && (
