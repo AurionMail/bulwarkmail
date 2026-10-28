@@ -50,6 +50,18 @@
     "sign_in_sso": "Conectați-vă cu SSO",
     "add_account_title": "Adăugare cont",
     "add_account_subtitle": "Conectați-vă cu un alt cont",
+    "subtitle": "Conectați-vă la contul dvs.",
+    "version": {
+      "details": "Detalii despre versiune",
+      "version_line": "Versiune: {value}",
+      "build_line": "Build: {value}",
+      "latest_line": "Cea mai nouă: {value}",
+      "copy": "Copiază informațiile despre versiune",
+      "security_update": "Actualizare de securitate disponibilă",
+      "unsupported": "Versiunea nu mai este acceptată",
+      "new_version": "Versiune nouă disponibilă",
+      "release_notes": "Note de lansare"
+    },
     "cancel": "Anulează",
     "website": "Site web",
     "imprint": "Mențiuni legale",
@@ -75,6 +87,13 @@
       "access_denied": "Accesul a fost refuzat. Vă rugăm să contactați administratorul.",
       "back_to_login": "Înapoi la autentificare"
     }
+  },
+  "totp_reauth": {
+    "title": "Sesiunea a expirat",
+    "description": "Codul de autentificare în doi pași s-a schimbat. Introduceți un cod nou din aplicația de autentificare pentru a continua.",
+    "oauth_hint": "Ca această solicitare să nu mai apară, cereți administratorului să activeze conectarea prin OAuth (OAuth-ul integrat în Stalwart sau un furnizor de identitate extern).",
+    "code_label": "Cod de autentificare",
+    "verify": "Verifică"
   },
   "sidebar": {
     "close": "Închide",
@@ -157,8 +176,6 @@
     "notifications_muted": "Notificări dezactivate",
     "folder_options": "Opțiuni pentru {name}",
     "unread_filter": "Afișează doar necitite ({count})",
-    "unread_count": "{count} necitite",
-    "unread_total": "{unread} necitite / {total} în total",
     "mail": "E-mail",
     "nav_label": "Navigare",
     "add_app": "Aplicații",
@@ -167,6 +184,7 @@
     "unified_all_starred": "Toate cu stea",
     "unified_all_mail": "Toată poșta",
     "remove_account": "Remove account",
+    "remove_account_title": "Eliminați contul?",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Etichete",
     "create_label": "Creează o etichetă nouă",
@@ -2638,6 +2656,10 @@
     "retry": "Reîncearcă",
     "go_home": "Accesați căsuța de intrare"
   },
+  "not_found": {
+    "title": "Pagina nu a fost găsită",
+    "description": "Această pagină nu există sau a fost mutată. Verificați adresa sau reveniți la Inbox."
+  },
   "context_menu": {
     "reply": "Răspunde",
     "reply_all": "Răspunde tuturor",
@@ -4198,6 +4220,14 @@
     "copied": "Link copiat",
     "copy_failed": "Linkul nu a putut fi copiat"
   },
+  "connector_link": {
+    "opening": "Se deschide…",
+    "unknown_title": "Acest link este mai nou decât acest {name}",
+    "unknown_body": "Deschide ceva ce versiunea {version} nu cunoaște. Actualizarea {name} ar trebui să rezolve asta.",
+    "malformed_title": "Acest link nu este chiar corect",
+    "malformed_body": "Cere {label}, dar parametrul {param} lipsește sau este greșit. Nu s-a deschis nimic.",
+    "open_app": "Deschide {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Se finalizează autorizarea…",
@@ -4588,6 +4618,13 @@
   },
   "top_bar": {
     "more": "Mai multe opțiuni"
+  },
+  "shell": {
+    "resize": "Redimensionează",
+    "update_available": "Actualizare disponibilă",
+    "update_important": "Actualizare importantă disponibilă",
+    "folder_unread": "{count} necitite",
+    "folder_counts": "{unread} necitite, {total} în total"
   },
   "plugin_pages": {
     "loading": "Se încarcă pagina",

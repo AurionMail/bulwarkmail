@@ -38,7 +38,7 @@ export function PluginConsentDialog(): React.JSX.Element | null {
         className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-lg border border-border bg-background shadow-xl"
       >
         <div className="p-5 pb-3">
-          <h2 id={`${id}-title`} className="text-base font-semibold text-foreground">
+          <h2 id={`${id}-title`} className="text-lg font-semibold text-foreground">
             {t('title', { name: current.pluginName })}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">{t('intro')}</p>

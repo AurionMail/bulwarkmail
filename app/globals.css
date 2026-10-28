@@ -730,7 +730,11 @@ optgroup {
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    /* Every element transitions `all` by default once it has a duration.
+       Visibility is left out: a transition from hidden would keep a newly
+       shown menu or dialog hidden for a frame, and focus() would miss it. */
+    transition-property: all, visibility !important;
+    transition-duration: 0.01ms, 0s !important;
     scroll-behavior: auto !important;
   }
 }
@@ -741,7 +745,8 @@ optgroup {
 [data-animations="off"] *::after {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
+  transition-property: all, visibility !important;
+  transition-duration: 0.01ms, 0s !important;
   scroll-behavior: auto !important;
 }
 

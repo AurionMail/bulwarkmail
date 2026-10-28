@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useConfig } from '@/hooks/use-config';
 import { resolveTarget, type ResolveResult } from '@/lib/connector/registry';
 import { appPath } from '@/lib/deep-links';
@@ -26,6 +27,7 @@ const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '';
  * to the deep link. The admin area is the exception - see `?next=` below.
  */
 export function ConnectorClient({ target }: { target: string }) {
+  const t = useTranslations('connector_link');
   const [result, setResult] = useState<ResolveResult | null>(null);
   const name = productName(useConfig().appName);
 
@@ -47,7 +49,7 @@ export function ConnectorClient({ target }: { target: string }) {
   }, [destination]);
 
   if (result === null || result.kind === 'ok') {
-    return <Shell>Opening…</Shell>;
+    return <Shell>{t('opening')}</Shell>;
   }
 
   // Neither case 404s. A link that this version cannot honour should say so
@@ -55,10 +57,9 @@ export function ConnectorClient({ target }: { target: string }) {
   if (result.kind === 'unknown-target') {
     return (
       <Shell>
-        <h1 className="text-xl font-medium text-foreground">This link is newer than this {name}</h1>
+        <h1 className="text-xl font-medium text-foreground">{t('unknown_title', { name })}</h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          It opens something {APP_VERSION ? `version ${APP_VERSION} ` : 'this version '}
-          does not know about. Updating {name} should teach it.
+          {t('unknown_body', { name, version: APP_VERSION || '?' })}
         </p>
         <Actions name={name} />
       </Shell>
@@ -67,12 +68,10 @@ export function ConnectorClient({ target }: { target: string }) {
 
   return (
     <Shell>
-      <h1 className="text-xl font-medium text-foreground">That link is not quite right</h1>
+      <h1 className="text-xl font-medium text-foreground">{t('malformed_title')}</h1>
       <p className="mt-3 text-sm text-muted-foreground">
-        It asks for {result.target.label}, but its{' '}
         {/* The parameter is named, never echoed: its value is attacker-controlled. */}
-        <code className="rounded bg-muted px-1 py-0.5">{result.param}</code> is missing or
-        malformed. Nothing was opened.
+        {t('malformed_body', { label: result.target.label, param: result.param })}
       </p>
       <Actions name={name} />
     </Shell>
@@ -80,13 +79,14 @@ export function ConnectorClient({ target }: { target: string }) {
 }
 
 function Actions({ name }: { name: string }) {
+  const t = useTranslations('connector_link');
   return (
     <p className="mt-6">
       <a
         href={appPath('/mail')}
         className="inline-flex h-9 items-center rounded-sm border border-border px-4 text-sm hover:bg-muted"
       >
-        Open {name}
+        {t('open_app', { name })}
       </a>
     </p>
   );

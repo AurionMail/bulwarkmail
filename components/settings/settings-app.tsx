@@ -63,6 +63,7 @@ import { useSettingsStore } from '@/stores/settings-store';
 import { useManagedAccountStore } from '@/stores/managed-account-store';
 import { useIsDesktop } from '@/hooks/use-media-query';
 import { NavigationRail } from '@/components/layout/navigation-rail';
+import { PhoneHeaderActions } from '@/components/layout/phone-header-actions';
 import { SidebarAppsModal } from '@/components/layout/sidebar-apps-modal';
 import { InlineAppView } from '@/components/layout/inline-app-view';
 import { useSidebarApps } from '@/hooks/use-sidebar-apps';
@@ -844,6 +845,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <h1 className="font-semibold text-lg truncate">{activeTabLabel}</h1>
+            <PhoneHeaderActions />
           </div>
 
           <div className="flex-1 overflow-y-auto p-4">
@@ -880,6 +882,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
             <SettingsIcon className="w-5 h-5 text-muted-foreground" />
             <h1 className="font-semibold text-lg">{t('title')}</h1>
           </div>
+          <PhoneHeaderActions />
         </div>
 
         <div className="flex-1 overflow-y-auto">

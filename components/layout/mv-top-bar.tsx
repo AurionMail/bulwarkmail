@@ -6,7 +6,7 @@ import {
   Folder,
   Grid3x3,
   Users,
-  HelpCircle,
+  Keyboard,
   Mail,
   Menu,
   Puzzle,
@@ -17,7 +17,7 @@ import {
 } from "@/components/icons";
 import type { AppIcon as AppIconType } from "@/components/icons";
 import { useTranslations } from "next-intl";
-import { Link, usePathname } from "@/i18n/navigation";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShallow } from "zustand/react/shallow";
 import { useCalendarStore } from "@/stores/calendar-store";
@@ -31,6 +31,9 @@ import { getPathPrefix, withBasePath } from "@/lib/browser-navigation";
 import { useStalwartAdmin } from "@/hooks/use-stalwart-admin";
 import { useUpdateStore, selectHasUpdate } from "@/stores/update-store";
 import { cn } from "@/lib/utils";
+import { openKeyboardShortcuts, parkAppCommand, requestAppCommand } from "@/lib/app-commands";
+import { useSettingsStore } from "@/stores/settings-store";
+import { useAccountStore } from "@/stores/account-store";
 import { AccountSwitcher } from "@/components/layout/account-switcher";
 import { SearchBox, type ContactSearchField } from "@/components/search/search-box";
 import { PluginActions } from "@/components/plugins/plugin-actions";
@@ -76,9 +79,21 @@ interface MvTopBarProps {
   onInlineApp?: (appId: string, url: string, name: string) => void;
   onCloseInlineApp?: () => void;
   activeAppId?: string | null;
-  /** Opens the merged across-accounts inbox from the account popover. */
+  /**
+   * Opens the merged across-accounts inbox from the account popover. Outside
+   * mail the bar opens mail on that inbox itself, when it can be built.
+   */
   onSelectAllInboxes?: () => void;
   allInboxesSelected?: boolean;
+}
+
+/** Whether the merged inbox can be built: the terms the mail sidebar's unified section uses. */
+function useAllInboxesReachable(): boolean {
+  const enableUnifiedMailbox = useSettingsStore((s) => s.enableUnifiedMailbox);
+  const unifiedCrossAccount = useSettingsStore((s) => s.unifiedCrossAccount);
+  const gate = usePolicyStore((s) => s.isFeatureEnabled("unifiedCrossAccountEnabled"));
+  const connected = useAccountStore((s) => s.accounts.filter((a) => a.isConnected).length);
+  return enableUnifiedMailbox && unifiedCrossAccount && gate && connected > 1;
 }
 
 /**
@@ -102,7 +117,20 @@ export function MvTopBar({
 }: MvTopBarProps) {
   const t = useTranslations("sidebar");
   const tSearch = useTranslations("advanced_search");
+  const tShell = useTranslations("shell");
   const pathname = usePathname();
+  const router = useRouter();
+  const allInboxesReachable = useAllInboxesReachable();
+  // Every app gets the same cluster: shortcuts and "All inboxes" work from
+  // Calendar, Contacts, Files and Settings too, not only from mail.
+  const showShortcuts = onShowShortcuts ?? openKeyboardShortcuts;
+  const selectAllInboxes = onSelectAllInboxes ?? (allInboxesReachable
+    ? () => {
+        if (requestAppCommand("all-inboxes")) return;
+        parkAppCommand("all-inboxes");
+        router.push("/");
+      }
+    : undefined);
   const { appName, appLogoLightUrl, appLogoDarkUrl } = useConfig();
   const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
   const toggleSidebarCollapsed = useUIStore((s) => s.toggleSidebarCollapsed);
@@ -246,18 +274,15 @@ export function MvTopBar({
 
       <div className="flex items-center gap-1 shrink-0">
         <NotificationBell placement="below" className="w-12 h-12 rounded-full" />
-        {onShowShortcuts && (
-          <button
-            type="button"
-            onClick={onShowShortcuts}
-            className="grid place-items-center w-12 h-12 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            title={t("keyboard_shortcuts")}
-            aria-label={t("keyboard_shortcuts")}
-          >
-            {/* Gmail's help button, which is where it keeps the shortcuts too. */}
-            <HelpCircle className="w-5 h-5" />
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={showShortcuts}
+          className="grid place-items-center w-12 h-12 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          title={t("keyboard_shortcuts")}
+          aria-label={t("keyboard_shortcuts")}
+        >
+          <Keyboard className="w-5 h-5" />
+        </button>
         {/* Admin (Stalwart admins), as in the navigation rail this bar replaces.
             A hard navigation because /admin lives outside the [locale] tree. */}
         {isStalwartAdmin && (
@@ -265,7 +290,7 @@ export function MvTopBar({
             href={`${getPathPrefix()}/admin`}
             className="relative grid place-items-center w-12 h-12 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             title={t("admin")}
-            aria-label={t("admin")}
+            aria-label={hasUpdate ? `${t("admin")}, ${tShell(updateImportant ? "update_important" : "update_available")}` : t("admin")}
           >
             <Shield className="w-5 h-5" />
             {hasUpdate && (
@@ -274,7 +299,7 @@ export function MvTopBar({
                   "absolute top-3 end-3 w-2 h-2 rounded-full ring-2 ring-background",
                   updateImportant ? "bg-red-500" : "bg-amber-500",
                 )}
-                aria-label={updateImportant ? "Important update available" : "Update available"}
+                aria-hidden="true"
               />
             )}
           </a>
@@ -407,7 +432,7 @@ export function MvTopBar({
         <AccountSwitcher
           variant="header"
           className="ms-1"
-          onSelectAllInboxes={onSelectAllInboxes}
+          onSelectAllInboxes={selectAllInboxes}
           allInboxesSelected={allInboxesSelected}
         />
       </div>

@@ -50,6 +50,18 @@
     "sign_in_sso": "ورود با SSO",
     "add_account_title": "افزودن حساب",
     "add_account_subtitle": "ورود با حساب دیگر",
+    "subtitle": "به حساب خود وارد شوید",
+    "version": {
+      "details": "جزئیات نسخه",
+      "version_line": "نسخه: {value}",
+      "build_line": "بیلد: {value}",
+      "latest_line": "جدیدترین: {value}",
+      "copy": "کپی اطلاعات نسخه",
+      "security_update": "به‌روزرسانی امنیتی موجود است",
+      "unsupported": "این نسخه دیگر پشتیبانی نمی‌شود",
+      "new_version": "نسخهٔ جدید موجود است",
+      "release_notes": "یادداشت‌های انتشار"
+    },
     "cancel": "انصراف",
     "website": "وبسایت",
     "imprint": "اطلاعات حقوقی",
@@ -75,6 +87,13 @@
       "access_denied": "دسترسی رد شد. با مدیر سیستم تماس بگیرید.",
       "back_to_login": "بازگشت به صفحه ورود"
     }
+  },
+  "totp_reauth": {
+    "title": "نشست منقضی شد",
+    "description": "کد احراز هویت دومرحله‌ای شما تغییر کرده است. برای ادامه، کد جدیدی از برنامهٔ احراز هویت وارد کنید.",
+    "oauth_hint": "برای اینکه این درخواست دوباره نمایش داده نشود، از مدیر بخواهید ورود با OAuth را فعال کند (OAuth داخلی Stalwart یا یک ارائه‌دهندهٔ هویت خارجی).",
+    "code_label": "کد احراز هویت",
+    "verify": "تأیید"
   },
   "sidebar": {
     "close": "بستن",
@@ -157,8 +176,6 @@
     "notifications_muted": "اعلان‌ها بی‌صدا",
     "folder_options": "گزینه‌های {name}",
     "unread_filter": "فقط خوانده‌نشده‌ها ({count})",
-    "unread_count": "{count} خوانده‌نشده",
-    "unread_total": "{unread} خوانده‌نشده / {total} در کل",
     "mail": "ایمیل",
     "nav_label": "ناوبری",
     "add_app": "برنامه‌ها",
@@ -167,6 +184,7 @@
     "unified_all_starred": "همه ستاره‌دارها",
     "unified_all_unread": "همه خوانده‌نشده‌ها",
     "remove_account": "Remove account",
+    "remove_account_title": "حساب حذف شود؟",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "برچسب‌ها",
     "create_label": "ایجاد برچسب جدید",
@@ -2638,6 +2656,10 @@
     "retry": "تلاش مجدد",
     "go_home": "رفتن به صندوق ورودی"
   },
+  "not_found": {
+    "title": "صفحه پیدا نشد",
+    "description": "این صفحه وجود ندارد یا جابه‌جا شده است. نشانی را بررسی کنید یا به صندوق ورودی برگردید."
+  },
   "context_menu": {
     "reply": "پاسخ",
     "reply_all": "پاسخ به همه",
@@ -4198,6 +4220,14 @@
     "copied": "پیوند کپی شد",
     "copy_failed": "کپی پیوند ممکن نشد"
   },
+  "connector_link": {
+    "opening": "در حال باز کردن…",
+    "unknown_title": "این پیوند از این {name} جدیدتر است",
+    "unknown_body": "چیزی را باز می‌کند که نسخهٔ {version} آن را نمی‌شناسد. به‌روزرسانی {name} باید مشکل را حل کند.",
+    "malformed_title": "این پیوند کاملاً درست نیست",
+    "malformed_body": "{label} را می‌خواهد، اما پارامتر {param} آن وجود ندارد یا نادرست است. چیزی باز نشد.",
+    "open_app": "باز کردن {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "در حال تکمیل احراز هویت…",
@@ -4588,6 +4618,13 @@
   },
   "top_bar": {
     "more": "گزینه‌های بیشتر"
+  },
+  "shell": {
+    "resize": "تغییر اندازه",
+    "update_available": "به‌روزرسانی موجود است",
+    "update_important": "به‌روزرسانی مهم موجود است",
+    "folder_unread": "{count} خوانده‌نشده",
+    "folder_counts": "{unread} خوانده‌نشده، {total} در مجموع"
   },
   "plugin_pages": {
     "loading": "در حال بارگذاری صفحه",

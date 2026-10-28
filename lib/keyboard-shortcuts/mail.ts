@@ -27,7 +27,7 @@ export const MAIL_SHORTCUTS = {
     { key: "/", description: "shortcuts.global.search" },
     { key: "Shift + G", description: "shortcuts.global.refresh" },
     { key: "Mod + A", description: "shortcuts.global.select_all" },
-    { key: "Shift + ↓ / ↑", description: "shortcuts.global.extend_selection" },
+    { key: "Shift + ↓ / Shift + ↑", description: "shortcuts.global.extend_selection" },
   ],
   threads: [
     { key: "x", description: "shortcuts.threads.expand_collapse", layout: "default" },

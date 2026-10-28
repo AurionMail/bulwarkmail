@@ -50,6 +50,18 @@
     "sign_in_sso": "Logg på med SSO",
     "add_account_title": "Legg til konto",
     "add_account_subtitle": "Logg på med en annen konto",
+    "subtitle": "Logg på kontoen din",
+    "version": {
+      "details": "Versjonsdetaljer",
+      "version_line": "Versjon: {value}",
+      "build_line": "Bygg: {value}",
+      "latest_line": "Nyeste: {value}",
+      "copy": "Kopier versjonsinformasjon",
+      "security_update": "Sikkerhetsoppdatering tilgjengelig",
+      "unsupported": "Versjonen støttes ikke lenger",
+      "new_version": "Ny versjon tilgjengelig",
+      "release_notes": "Utgivelsesnotater"
+    },
     "cancel": "Avbryt",
     "website": "Nettsted",
     "imprint": "Juridisk informasjon",
@@ -75,6 +87,13 @@
       "access_denied": "Du fikk ikke tilgang. Kontakt administratoren din.",
       "back_to_login": "Tilbake til pålogging"
     }
+  },
+  "totp_reauth": {
+    "title": "Økten er utløpt",
+    "description": "Tofaktorkoden din er endret. Skriv inn en ny kode fra autentiseringsappen for å fortsette.",
+    "oauth_hint": "Be administratoren om å slå på pålogging med OAuth (Stalwarts innebygde OAuth eller en ekstern identitetsleverandør), så slipper du denne forespørselen.",
+    "code_label": "Autentiseringskode",
+    "verify": "Bekreft"
   },
   "sidebar": {
     "close": "Lukk",
@@ -157,8 +176,6 @@
     "notifications_muted": "Varsler dempet",
     "folder_options": "Alternativer for {name}",
     "unread_filter": "Vis bare uleste ({count})",
-    "unread_count": "{count} uleste",
-    "unread_total": "{unread} uleste / {total} totalt",
     "mail": "E-post",
     "nav_label": "Navigasjon",
     "add_app": "Apper",
@@ -167,6 +184,7 @@
     "unified_all_starred": "Alle stjernemerkede",
     "unified_all_mail": "All e-post",
     "remove_account": "Fjern konto",
+    "remove_account_title": "Fjerne kontoen?",
     "remove_account_confirm": "Vil du fjerne {account} fra denne enheten? Du kan legge den til igjen senere.",
     "labels": "Etiketter",
     "create_label": "Opprett ny etikett",
@@ -2638,6 +2656,10 @@
     "retry": "Prøv på nytt",
     "go_home": "Gå til innboksen"
   },
+  "not_found": {
+    "title": "Fant ikke siden",
+    "description": "Denne siden finnes ikke eller er flyttet. Sjekk adressen, eller gå tilbake til innboksen."
+  },
   "context_menu": {
     "reply": "Svar",
     "reply_all": "Svar alle",
@@ -4198,6 +4220,14 @@
     "copied": "Lenken er kopiert",
     "copy_failed": "Kunne ikke kopiere lenken"
   },
+  "connector_link": {
+    "opening": "Åpner…",
+    "unknown_title": "Denne lenken er nyere enn denne {name}",
+    "unknown_body": "Den åpner noe versjon {version} ikke kjenner til. En oppdatering av {name} bør løse det.",
+    "malformed_title": "Denne lenken er ikke helt riktig",
+    "malformed_body": "Den ber om {label}, men parameteren {param} mangler eller er ugyldig. Ingenting ble åpnet.",
+    "open_app": "Åpne {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Fullfører autorisering…",
@@ -4588,6 +4618,13 @@
   },
   "top_bar": {
     "more": "Flere alternativer"
+  },
+  "shell": {
+    "resize": "Endre størrelse",
+    "update_available": "Oppdatering tilgjengelig",
+    "update_important": "Viktig oppdatering tilgjengelig",
+    "folder_unread": "{count} uleste",
+    "folder_counts": "{unread} uleste, {total} totalt"
   },
   "plugin_pages": {
     "loading": "Laster inn siden",
