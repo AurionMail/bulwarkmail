@@ -2296,10 +2296,7 @@
       "no_address_books": "لم يتم العثور على دفاتر عناوين",
       "categories_title": "الفئات",
       "categories_description": "إعادة تسمية فئات جهات الاتصال",
-      "no_categories": "لم يتم العثور على فئات",
-      "delete_category": "حذف الفئة",
-      "category_deleted": "تم حذف الفئة",
-      "category_delete_failed": "تعذّر حذف الفئة"
+      "no_categories": "لم يتم العثور على فئات"
     },
     "calendar_management": {
       "delete_title": "حذف التقويم؟",

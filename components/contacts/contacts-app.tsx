@@ -52,6 +52,7 @@ import { useLiteLinkSegments } from "@/hooks/use-lite-link-segments";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useRegisterCommands } from "@/lib/command-registry";
 import { useCloseOnBack } from "@/hooks/use-close-on-back";
+import { useDeleteCategory } from "@/hooks/use-delete-category";
 import { MvTopBar } from "@/components/layout/mv-top-bar";
 import { useMountainViewShell } from "@/hooks/use-mountain-view-shell";
 
@@ -119,8 +120,6 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     shareAddressBook,
     setDefaultAddressBook,
     renameKeyword,
-    removeKeyword,
-    addKeyword,
     importContacts,
   } = useContactStore();
 
@@ -439,26 +438,13 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   }, [movingContactIds, contacts]);
 
   // Deleting a category only takes a label off contacts: no question, an Undo (R3).
+  const deleteCategory = useDeleteCategory();
   const handleDeleteKeyword = useCallback(async (keyword: string) => {
-    const jmapClient = supportsSync && client ? client : null;
-    try {
-      const ids = await removeKeyword(jmapClient, keyword);
-      if (typeof activeCategory === "object" && "keyword" in activeCategory && activeCategory.keyword === keyword) {
-        setActiveCategory("all");
-      }
-      toast.success(t("category_deleted", { name: keyword }), {
-        action: {
-          label: t("undo"),
-          onClick: () => {
-            void addKeyword(jmapClient, keyword, ids).catch(() => toast.error(t("toast.error_update")));
-          },
-        },
-      });
-    } catch (error) {
-      console.error("Failed to delete category:", error);
-      toast.error(t("category_delete_failed"));
+    if (!(await deleteCategory(keyword))) return;
+    if (typeof activeCategory === "object" && "keyword" in activeCategory && activeCategory.keyword === keyword) {
+      setActiveCategory("all");
     }
-  }, [supportsSync, client, removeKeyword, addKeyword, activeCategory, t]);
+  }, [deleteCategory, activeCategory]);
 
   const handleDropContactsToCategory = useCallback(async (contactIds: string[], keyword: string) => {
     if (!client && supportsSync) return;

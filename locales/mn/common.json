@@ -2296,10 +2296,7 @@
       "no_address_books": "Хаягийн дэвтэр олдсонгүй",
       "categories_title": "Ангилал",
       "categories_description": "Харилцах ангиллын нэрийг өөрчлөх",
-      "no_categories": "Ангилал олдсонгүй",
-      "delete_category": "Ангиллыг устгах",
-      "category_deleted": "Ангиллыг устгасан",
-      "category_delete_failed": "Ангиллыг устгаж чадсангүй"
+      "no_categories": "Ангилал олдсонгүй"
     },
     "calendar_management": {
       "delete_title": "Хуанлийг устгах уу?",

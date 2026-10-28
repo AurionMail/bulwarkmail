@@ -2296,10 +2296,7 @@
       "no_address_books": "找不到通訊錄",
       "categories_title": "類別",
       "categories_description": "重新命名聯絡人類別",
-      "no_categories": "找不到類別",
-      "delete_category": "刪除類別",
-      "category_deleted": "類別已刪除",
-      "category_delete_failed": "無法刪除類別"
+      "no_categories": "找不到類別"
     },
     "calendar_management": {
       "delete_title": "刪除行事曆?",

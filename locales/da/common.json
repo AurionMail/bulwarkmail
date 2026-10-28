@@ -2292,10 +2292,7 @@
       "no_address_books": "Ingen adressebøger fundet",
       "categories_title": "Kategorier",
       "categories_description": "Omdøb kontaktkategorier",
-      "no_categories": "Ingen kategorier fundet",
-      "delete_category": "Slet kategori",
-      "category_deleted": "Kategori slettet",
-      "category_delete_failed": "Kategorien kunne ikke slettes"
+      "no_categories": "Ingen kategorier fundet"
     },
     "calendar_management": {
       "delete_title": "Slet kalenderen?",

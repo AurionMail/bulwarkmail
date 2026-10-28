@@ -4457,10 +4457,7 @@
       "no_address_books": "ไม่พบสมุดที่อยู่",
       "categories_title": "หมวดหมู่",
       "categories_description": "เปลี่ยนชื่อหมวดหมู่ผู้ติดต่อ",
-      "no_categories": "ไม่พบหมวดหมู่",
-      "delete_category": "ลบหมวดหมู่",
-      "category_deleted": "ลบหมวดหมู่แล้ว",
-      "category_delete_failed": "ลบหมวดหมู่ไม่ได้"
+      "no_categories": "ไม่พบหมวดหมู่"
     },
     "calendar_management": {
       "delete_title": "ลบปฏิทินไหม",

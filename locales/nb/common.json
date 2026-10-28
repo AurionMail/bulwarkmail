@@ -2296,10 +2296,7 @@
       "no_address_books": "Ingen adressebøker funnet",
       "categories_title": "Kategorier",
       "categories_description": "Gi nytt navn til kontaktkategorier",
-      "no_categories": "Ingen kategorier funnet",
-      "delete_category": "Slett kategori",
-      "category_deleted": "Kategori slettet",
-      "category_delete_failed": "Kunne ikke slette kategorien"
+      "no_categories": "Ingen kategorier funnet"
     },
     "calendar_management": {
       "delete_title": "Slette kalenderen?",
