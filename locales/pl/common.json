@@ -3992,6 +3992,7 @@
     "management": {
       "title": "Zarządzanie kalendarzem",
       "description": "Twórz, zmieniaj nazwy i dostosowuj swoje kalendarze. Kliknij prawym przyciskiem kalendarz na pasku bocznym, aby szybko zmienić jego kolor.",
+      "description_touch": "Twórz, zmieniaj nazwy i dostosowuj swoje kalendarze.",
       "name": "Nazwa",
       "name_placeholder": "Nazwa kalendarza",
       "color": "Kolor",

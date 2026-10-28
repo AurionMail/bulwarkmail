@@ -4018,6 +4018,7 @@
     "management": {
       "title": "Kalenderadministration",
       "description": "Opret, omdøb og tilpas dine kalendere. Højreklik på en kalender i sidepanelet for hurtigt at ændre dens farve.",
+      "description_touch": "Opret, omdøb og tilpas dine kalendere.",
       "name": "Navn",
       "name_placeholder": "Kalendernavn",
       "color": "Farve",

@@ -3992,6 +3992,7 @@
     "management": {
       "title": "Gestione calendari",
       "description": "Crea, rinomina e personalizza i tuoi calendari. Fai clic destro su un calendario nella barra laterale per cambiarne rapidamente il colore.",
+      "description_touch": "Crea, rinomina e personalizza i tuoi calendari.",
       "name": "Nome",
       "name_placeholder": "Nome del calendario",
       "color": "Colore",

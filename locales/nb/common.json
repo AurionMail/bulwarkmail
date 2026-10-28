@@ -4021,6 +4021,7 @@
     "management": {
       "title": "Administrer kalendere",
       "description": "Opprett, gi nytt navn og tilpass kalenderne dine. Høyreklikk på en kalender i sidefeltet for raskt å endre fargen.",
+      "description_touch": "Opprett, gi nytt navn og tilpass kalenderne dine.",
       "name": "Navn",
       "name_placeholder": "Kalendernavn",
       "color": "Farge",

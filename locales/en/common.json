@@ -4021,6 +4021,7 @@
     "management": {
       "title": "Calendar management",
       "description": "Create, rename, and customize your calendars. Right-click a calendar in the sidebar to quickly change its color.",
+      "description_touch": "Create, rename, and customize your calendars.",
       "name": "Name",
       "name_placeholder": "Calendar name",
       "color": "Color",

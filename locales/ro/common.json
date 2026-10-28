@@ -4021,6 +4021,7 @@
     "management": {
       "title": "Gestionarea calendarului",
       "description": "Creați, redenumiți și personalizați-vă calendarele. Faceți clic dreapta pe un calendar din bara laterală pentru a-i schimba rapid culoarea.",
+      "description_touch": "Creați, redenumiți și personalizați-vă calendarele.",
       "name": "Nume",
       "name_placeholder": "Numele calendarului",
       "color": "Culoare",

@@ -3992,6 +3992,7 @@
     "management": {
       "title": "Správa kalendáře",
       "description": "Vytvářejte, přejmenovávejte a přizpůsobujte si své kalendáře. Klikněte pravým tlačítkem na kalendář v postranním panelu pro rychlou změnu jeho barvy.",
+      "description_touch": "Vytvářejte, přejmenovávejte a přizpůsobujte si své kalendáře.",
       "name": "Název",
       "name_placeholder": "Název kalendáře",
       "color": "Barva",

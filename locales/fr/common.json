@@ -4018,6 +4018,7 @@
     "management": {
       "title": "Gestion des calendriers",
       "description": "Créez, renommez et personnalisez vos calendriers. Clic droit sur un calendrier dans la barre latérale pour changer rapidement sa couleur.",
+      "description_touch": "Créez, renommez et personnalisez vos calendriers.",
       "name": "Nom",
       "name_placeholder": "Nom du calendrier",
       "color": "Couleur",

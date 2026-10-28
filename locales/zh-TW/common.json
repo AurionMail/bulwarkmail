@@ -4021,6 +4021,7 @@
     "management": {
       "title": "行事曆管理",
       "description": "建立、重新命名與自訂您的行事曆。在側邊欄的行事曆上按一下滑鼠右鍵，可快速變更顏色。",
+      "description_touch": "建立、重新命名與自訂您的行事曆。",
       "name": "名稱",
       "name_placeholder": "行事曆名稱",
       "color": "顏色",

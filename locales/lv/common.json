@@ -3991,6 +3991,7 @@
     "management": {
       "title": "Kalendāru pārvaldība",
       "description": "Izveidojiet, pārdēvējiet un konfigurējiet kalendārus. Ar labo klikšķi varat mainīt kalendāra krāsu.",
+      "description_touch": "Izveidojiet, pārdēvējiet un konfigurējiet kalendārus.",
       "name": "Nosaukums",
       "name_placeholder": "Kalendāra nosaukums",
       "color": "Krāsa",

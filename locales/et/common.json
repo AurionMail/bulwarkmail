@@ -4021,6 +4021,7 @@
     "management": {
       "title": "Kalendrite haldamine",
       "description": "Loo, nimeta ümber ja kohanda oma kalendreid. Kalendri värvi kiireks muutmiseks tee küljeribal kalendril paremklõps.",
+      "description_touch": "Loo, nimeta ümber ja kohanda oma kalendreid.",
       "name": "Nimi",
       "name_placeholder": "Kalendri nimi",
       "color": "Värv",

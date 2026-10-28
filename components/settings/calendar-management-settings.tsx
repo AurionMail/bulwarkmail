@@ -29,6 +29,9 @@ import { IS_LITE } from '@/lib/lite';
 import { shareRecipientNames, useShareRecipientLabels } from '@/hooks/use-share-recipient-labels';
 import { calendarAccountKey, moveCalendar } from '@/lib/calendar-sort';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { TOUCH_HIT_AREA } from '@/components/ui/button';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { useConfig } from '@/hooks/use-config';
 
 function CalendarColorPicker({
   value,
@@ -291,6 +294,10 @@ export function CalendarManagementSettings() {
   const colorPickerRef = useRef<HTMLDivElement>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const { contextMenu, openContextMenu, openContextMenuFrom, closeContextMenu, menuRef } = useContextMenu<Calendar>();
+  // No right-click on a touch screen, so the hint about it goes there.
+  const touch = useMediaQuery('(pointer: coarse)');
+  // The demo has no server to import into or subscribe from, as in Calendar.
+  const { demoMode } = useConfig();
 
   const listedCalendars = calendars
     .filter(cal => !isSubscriptionCalendar(cal.id))
@@ -620,7 +627,7 @@ export function CalendarManagementSettings() {
   };
 
   return (
-    <SettingsSection id="calendars" title={t('title')} description={t('description')}>
+    <SettingsSection id="calendars" title={t('title')} description={touch ? t('description_touch') : t('description')}>
       {renderRowMenu()}
       <div className="space-y-2">
         {listedCalendars.map((cal) => {
@@ -686,7 +693,10 @@ export function CalendarManagementSettings() {
                 <button
                   type="button"
                   onClick={() => setColorPickerId(colorPickerId === cal.id ? null : cal.id)}
-                  className="w-5 h-5 rounded-full shrink-0 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className={cn(
+                    "block w-5 h-5 rounded-full shrink-0 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    TOUCH_HIT_AREA,
+                  )}
                   style={{ backgroundColor: color }}
                   title={t('change_color')}
                   aria-label={t('change_color')}
@@ -811,31 +821,34 @@ export function CalendarManagementSettings() {
             isLoading={isLoading}
           />
         ) : (
-          <div className="flex gap-2">
+          // Stacked on a phone: side by side the three labels wrapped.
+          <div className="flex flex-col sm:flex-row gap-2">
             <button
               type="button"
               onClick={() => setIsCreating(true)}
-              className="flex items-center gap-2 flex-1 py-2.5 px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md border border-dashed border-border transition-colors"
+              className="flex items-center gap-2 flex-1 py-2.5 px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md border border-dashed border-border transition-colors whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
               {t('add_calendar')}
             </button>
-            <button
-              type="button"
-              data-search-label={tImport('title')}
-              onClick={() => setShowImportModal(true)}
-              className="flex items-center gap-2 py-2.5 px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md border border-dashed border-border transition-colors"
-            >
-              <Upload className="w-4 h-4" />
-              {tImport('title')}
-            </button>
+            {!demoMode && (
+              <button
+                type="button"
+                data-search-label={tImport('title')}
+                onClick={() => setShowImportModal(true)}
+                className="flex items-center gap-2 py-2.5 px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md border border-dashed border-border transition-colors whitespace-nowrap"
+              >
+                <Upload className="w-4 h-4" />
+                {tImport('title')}
+              </button>
+            )}
             {/* ICS URL subscriptions refresh via /api/fetch-ical, absent in the static build. */}
-            {!IS_LITE && (
+            {!IS_LITE && !demoMode && (
               <button
                 type="button"
                 data-search-label={tSub('title')}
                 onClick={() => setShowSubscriptionModal(true)}
-                className="flex items-center gap-2 py-2.5 px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md border border-dashed border-border transition-colors"
+                className="flex items-center gap-2 py-2.5 px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md border border-dashed border-border transition-colors whitespace-nowrap"
               >
                 <Globe className="w-4 h-4" />
                 {tSub('title')}

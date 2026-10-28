@@ -4018,6 +4018,7 @@
     "management": {
       "title": "Gerenciamento de calendários",
       "description": "Crie, renomeie e personalize seus calendários. Clique com o botão direito em um calendário na barra lateral para alterar rapidamente sua cor.",
+      "description_touch": "Crie, renomeie e personalize seus calendários.",
       "name": "Nome",
       "name_placeholder": "Nome do calendário",
       "color": "Cor",

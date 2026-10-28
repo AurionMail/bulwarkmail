@@ -3992,6 +3992,7 @@
     "management": {
       "title": "Agendabeheer",
       "description": "Maak, hernoem en pas uw agenda's aan. Klik met de rechtermuisknop op een agenda in de zijbalk om snel de kleur te wijzigen.",
+      "description_touch": "Maak, hernoem en pas uw agenda's aan.",
       "name": "Naam",
       "name_placeholder": "Agendanaam",
       "color": "Kleur",

@@ -3992,6 +3992,7 @@
     "management": {
       "title": "日历管理",
       "description": "创建、重命名和自定义您的日历。右键单击侧栏中的日历可快速更改其颜色。",
+      "description_touch": "创建、重命名和自定义您的日历。",
       "name": "名称",
       "name_placeholder": "日历名称",
       "color": "颜色",

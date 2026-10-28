@@ -4018,6 +4018,7 @@
     "management": {
       "title": "Takvim Yönetimi",
       "description": "Takvimlerinizi oluşturun, yeniden adlandırın ve özelleştirin. Rengini hızlıca değiştirmek için kenar çubuğundaki bir takvime sağ tıklayın.",
+      "description_touch": "Takvimlerinizi oluşturun, yeniden adlandırın ve özelleştirin.",
       "name": "Ad",
       "name_placeholder": "Takvim adı",
       "color": "Renk",

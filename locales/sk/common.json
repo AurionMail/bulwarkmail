@@ -4021,6 +4021,7 @@
     "management": {
       "title": "Správa kalendára",
       "description": "Vytvárajte, premenúvajte a prispôsobujte si svoje kalendáre.",
+      "description_touch": "Vytvárajte, premenúvajte a prispôsobujte si svoje kalendáre.",
       "name": "Názov",
       "name_placeholder": "Názov kalendára",
       "color": "Farba",

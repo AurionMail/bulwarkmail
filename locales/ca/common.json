@@ -4021,6 +4021,7 @@
     "management": {
       "title": "Gestió de calendaris",
       "description": "Creeu, canvieu el nom i personalitzeu els calendaris. Feu clic dret a un calendari a la barra lateral per canviar-ne ràpidament el color.",
+      "description_touch": "Creeu, canvieu el nom i personalitzeu els calendaris.",
       "name": "Nom",
       "name_placeholder": "Nom del calendari",
       "color": "Color",

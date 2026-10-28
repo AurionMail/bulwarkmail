@@ -4021,6 +4021,7 @@
     "management": {
       "title": "Naptár kezelés",
       "description": "Naptárak létrehozása, átnevezése és testreszabása. Kattints jobb gombbal egy naptárra az oldalsávban a szín gyors módosításához.",
+      "description_touch": "Naptárak létrehozása, átnevezése és testreszabása.",
       "name": "Név",
       "name_placeholder": "Naptár neve",
       "color": "Szín",

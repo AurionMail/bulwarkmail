@@ -3992,6 +3992,7 @@
     "management": {
       "title": "Kalenderverwaltung",
       "description": "Erstellen, umbenennen und anpassen Ihrer Kalender. Rechtsklick auf einen Kalender in der Seitenleiste, um die Farbe schnell zu ändern.",
+      "description_touch": "Erstellen, benennen und gestalten Sie Ihre Kalender.",
       "name": "Name",
       "name_placeholder": "Kalendername",
       "color": "Farbe",
