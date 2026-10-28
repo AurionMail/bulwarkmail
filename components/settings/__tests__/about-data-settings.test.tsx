@@ -54,3 +54,16 @@ describe('Backup & reset', () => {
     expect(alertSpy).not.toHaveBeenCalled();
   });
 });
+
+// SET-25: the About card in the settings sidebar is named by what it shows,
+// not a hard-coded English "About", and shows the focus ring.
+describe('About card', () => {
+  it('has a visible focus ring and no hard-coded English name', async () => {
+    const { AboutFooter } = await import('../about-data-settings');
+    render(<AboutFooter />);
+    const button = screen.getByTestId('settings-about').querySelector('button') as HTMLButtonElement;
+    expect(button.getAttribute('aria-label')).toBeNull();
+    expect(button.className).toContain('focus-visible:ring-2');
+    expect(button.textContent).toContain('about.title');
+  });
+});

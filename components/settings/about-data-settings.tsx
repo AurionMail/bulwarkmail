@@ -85,7 +85,13 @@ export function AboutFooter() {
     <div data-testid="settings-about" className="px-3 py-2">
       {showGame && <SpamSiegeGame onClose={() => setShowGame(false)} />}
       <div className="flex items-center gap-3">
-        <button onClick={handleLogoClick} className="flex items-center gap-3 flex-1 min-w-0 text-start focus:outline-none group/about cursor-pointer" aria-label="About">
+        {/* Named by what it shows (app name and version), with the focus
+            ring every other stop in the sidebar has. */}
+        <button
+          type="button"
+          onClick={handleLogoClick}
+          className="flex items-center gap-3 flex-1 min-w-0 text-start rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group/about cursor-pointer"
+        >
           <img
             src={logoLight}
             alt={branded ? appName : 'Bulwark'}
