@@ -10,6 +10,7 @@ import { ContactContextMenu } from "./contact-context-menu";
 import { useContactExportBusy } from "./contact-export";
 import { PluginActions } from "@/components/plugins/plugin-actions";
 import { useContextMenu } from "@/hooks/use-context-menu";
+import { PhoneHeaderActions } from "@/components/layout/phone-header-actions";
 import { cn } from "@/lib/utils";
 import type { AnniversaryDate, ContactCard } from "@/lib/jmap/types";
 import { getContactDisplayName, getContactSortName, hasContactPhoto } from "@/stores/contact-store";
@@ -352,6 +353,7 @@ export function ContactList({
                 </span>
               )}
             </button>
+            <PhoneHeaderActions below="md" />
           </div>
         </div>
 
