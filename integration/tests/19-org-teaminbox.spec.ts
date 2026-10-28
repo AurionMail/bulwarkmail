@@ -207,7 +207,16 @@ test('alice assigns a team message to bob', async ({ browser }) => {
   await expect(dialog).toHaveCount(0, { timeout: 20000 });
 
   await expect.poll(() => keywordsOf(FOR_BOB), { timeout: 20000 }).toContain(`$assigned:${bobId}`);
-  await expect(emailItem(alice, FOR_BOB).first().locator('[data-plugin-row-badge="team-inbox-assignee"]')).toBeVisible({ timeout: 20000 });
+  const forBobBadge = emailItem(alice, FOR_BOB).first().locator('[data-plugin-row-badge="team-inbox-assignee"]');
+  await expect(forBobBadge).toBeVisible({ timeout: 20000 });
+  // The badge names bob where the server shares names (metadata on v1.0.0,
+  // or a directory); without either it says the assignee isn't known.
+  if (ORG_SERVER === '1.0.0') {
+    await expect(forBobBadge).toHaveAttribute('title', `Assigned to Org Bob <${ORG.bob}>`);
+    await expect(forBobBadge).toHaveText('Org');
+  } else {
+    await expect(forBobBadge).toHaveAttribute('title', /Assigned to (Org Bob|a team member whose name Bulwark doesn't know)/);
+  }
 
   // Alice's own mailbox gets no team actions and no filters.
   await folderRow(alice, { role: 'inbox', shared: false }).first().click();
