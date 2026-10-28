@@ -40,6 +40,7 @@ import type { AccountInfo } from "./types";
 import { stalwartChangeId } from "./stalwart-state";
 import { downloadNameSegment } from "./download-name";
 import { toInertBlob } from "@/lib/file-preview";
+import { IS_LITE_STALWART } from "@/lib/lite";
 import { toStorageQuota, type JMAPQuota, type StorageQuota } from "@/lib/quota";
 import { messagePriorityHeaders, type MessagePriority } from "@/lib/message-priority";
 
@@ -210,6 +211,25 @@ export class RequestTimeoutError extends Error {
     super(`Request timed out after ${Math.round(timeoutMs / 1000)}s`);
     this.name = 'RequestTimeoutError';
   }
+}
+
+/**
+ * Credentials mode for the client's own JMAP requests, which always carry
+ * their own Authorization header.
+ *
+ * In the Lite bundle served by Stalwart the page and JMAP share an origin, so
+ * the default (`same-origin`) lets the browser act on Stalwart's
+ * `WWW-Authenticate: Basic` challenge: an expired access token makes Safari
+ * show its native login dialog before the 401 reaches the refresh-and-retry
+ * code. With credentials omitted the Fetch standard forbids that prompt
+ * (#1396). The regular build keeps the default: a same-origin JMAP server
+ * behind a cookie-gated proxy (Pangolin, Authelia) needs the cookie sent.
+ */
+const JMAP_FETCH_CREDENTIALS: RequestCredentials | undefined = IS_LITE_STALWART ? 'omit' : undefined;
+
+function withJmapCredentials(init: RequestInit | undefined): RequestInit {
+  if (!JMAP_FETCH_CREDENTIALS || init?.credentials) return { ...init };
+  return { ...init, credentials: JMAP_FETCH_CREDENTIALS };
 }
 
 const READ_ONLY_METHOD = /\/(?:get|query|changes|queryChanges|parse)$|^Core\/echo$/;
@@ -1684,7 +1704,7 @@ export class JMAPClient implements IJMAPClient {
     }, timeoutMs);
 
     try {
-      return await fetch(url, { ...init, headers, signal: controller.signal });
+      return await fetch(url, { ...withJmapCredentials(init), headers, signal: controller.signal });
     } catch (error) {
       if (timedOut) throw new RequestTimeoutError(timeoutMs);
       throw error;
@@ -1797,10 +1817,10 @@ export class JMAPClient implements IJMAPClient {
     // request with 401 instead of Stalwart's silent 200 - the credentials are
     // fine, Safari just dropped them. Retry the final URL directly. (#892)
     if (response.redirected && response.status === 401) {
-      return fetch(response.url, {
+      return fetch(response.url, withJmapCredentials({
         method: 'GET',
         headers: { 'Authorization': this.authHeader },
-      });
+      }));
     }
     if (!response.ok || !response.redirected) return response;
 
@@ -1809,10 +1829,10 @@ export class JMAPClient implements IJMAPClient {
     const hasUsername = typeof peek?.username === 'string' && peek.username.length > 0;
     if (hasAccounts || hasUsername) return response;
 
-    return fetch(response.url, {
+    return fetch(response.url, withJmapCredentials({
       method: 'GET',
       headers: { 'Authorization': this.authHeader },
-    });
+    }));
   }
 
   private async refreshSession(): Promise<void> {
