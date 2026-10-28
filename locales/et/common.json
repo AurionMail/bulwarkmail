@@ -76,6 +76,20 @@
       "back_to_login": "Tagasi"
     }
   },
+  "session_limits": {
+    "idle_title": "Kas oled veel siin?",
+    "idle_message": "Sind logitakse {seconds, plural, one {# sekundi} other {# sekundi}} pärast välja, sest tegevust ei olnud. Avatud kirjad salvestatakse mustanditena.",
+    "stay": "Jää sisselogituks",
+    "sign_out_now": "Logi kohe välja",
+    "max_title": "Sinu seanss lõpeb",
+    "max_message": "Sinu organisatsioon lõpetab seansid {hours, plural, one {# tund} other {# tundi}} pärast sisselogimist. Sind logitakse {seconds, plural, one {# sekundi} other {# sekundi}} pärast välja. Avatud kirjad salvestatakse mustanditena.",
+    "dismiss": "OK",
+    "signing_out": "Mustandite salvestamine ja väljalogimine…",
+    "reason_idle": "Sind logiti välja pärast {minutes, plural, one {# minutit} other {# minutit}} tegevuseta.",
+    "reason_max": "Sind logiti välja, sest seanss jõudis maksimaalse pikkuseni: {hours, plural, one {# tund} other {# tundi}}.",
+    "drafts_not_saved": "Ühte või mitut avatud kirja ei õnnestunud mustandina salvestada.",
+    "seconds_left": "{seconds, plural, one {# sekund} other {# sekundit}} jäänud"
+  },
   "sidebar": {
     "close": "Sulge",
     "compose": "Koosta",
@@ -311,6 +325,34 @@
     "cancel_and_edit": "Tühista ja muuda",
     "cancel_and_compose_again": "Tühista ja koosta uuesti",
     "reschedule_prompt": "Sisesta uus kuupäev/kellaaeg, nt 2026-05-04T15:30"
+  },
+  "shared_tags": {
+    "title": "Jagatud sildid",
+    "description": "Sinu grupipostkastide sildid. Kõik grupis näevad selle kirjadel samu nimesid ja värve.",
+    "picker_heading": "Jagatud kõigiga selles postkastis",
+    "sidebar_heading": "Sildid",
+    "edit": "Muuda jagatud silte",
+    "edit_tag": "Muuda: {name}",
+    "delete_tag": "Kustuta: {name}",
+    "name_it": "Anna nimi: {name}",
+    "add": "Lisa jagatud silt",
+    "name": "Nimi",
+    "color": "Värv",
+    "save": "Salvesta",
+    "cancel": "Tühista",
+    "delete": "Kustuta",
+    "delete_confirm": "Kas kustutada kõigi jaoks? Silt jääb oma kirjadele alles.",
+    "found_on_messages": "Kirjadel, veel ilma nimeta",
+    "empty": "Jagatud silte veel pole.",
+    "exists": "Selles postkastis on see silt juba olemas.",
+    "too_long": "See nimi on liiga pikk.",
+    "loading": "Laadimine…",
+    "unsupported": "See meiliserver ei saa jagatud silte hoida, seega näitab see postkast sinu enda silte.",
+    "unavailable": "Selle postkasti jagatud silte ei õnnestunud laadida, seega näitab see sinu enda silte. Bulwark proovib hiljem uuesti.",
+    "no_rights": "Saad neid silte kasutada, kuid ei saa neid selles postkastis muuta.",
+    "too_many": "Jagatud silte on liiga palju. Kustuta mõni enne uute lisamist.",
+    "save_failed": "Jagatud silte ei õnnestunud salvestada. Bulwark proovib uuesti, kui server vastab.",
+    "save_pending": "Pole veel salvestatud. Bulwark proovib uuesti, kui server vastab."
   },
   "email_viewer": {
     "read_receipt": {
@@ -659,6 +701,18 @@
     "plugin_panel_hide": "Peida pistikprogrammi paneel",
     "copy": "Kopeeri"
   },
+  "external_mail": {
+    "sender_label": "Väline",
+    "sender_tooltip": "Domeenilt {domain}, väljastpoolt sinu organisatsiooni",
+    "sender_tooltip_no_domain": "Domeenita aadressilt, väljastpoolt sinu organisatsiooni",
+    "confirm_title": "Kas saata väljapoole sinu organisatsiooni?",
+    "confirm_message": "{count, plural, one {See saaja on} other {Need # saajat on}} väljaspool sinu organisatsiooni. Saada ainult siis, kui see on nii mõeldud.",
+    "field_to": "Saaja",
+    "field_cc": "CC",
+    "field_bcc": "BCC",
+    "send_anyway": "Saada ikkagi",
+    "back": "Tagasi"
+  },
   "email_composer": {
     "select_from_directory": "Vali kataloogist",
     "minimize": "Minimeeri",
@@ -981,6 +1035,13 @@
     "rule_folder_failed": "Kausta loomine ebaõnnestus",
     "vacation_filters_save_failed": "Äraolekuteate seaded salvestati, kuid edastus- ja vastuse adressaate ei õnnestunud salvestada"
   },
+  "third_party": {
+    "push_needs_relay": "Tõuketeavitused vajavad sinu organisatsiooni hallatavat push-releed, kuid ühtegi pole seadistatud. Uued kirjad kuvatakse endiselt, kuni rakendus on avatud.",
+    "relay_desc": "Pakutakse ainult sinu organisatsiooni enda releesid, sest see server ei võta ühendust väliste teenustega.",
+    "relay_none": "Pole seadistatud",
+    "plugin_refused": "Ei käivitatud: see pistikprogramm ühendub väliste teenustega, mille sinu organisatsioon on välja lülitanud.",
+    "remote_content_blocked": "Sinu organisatsioon blokeerib teiste serverite sisu, seega selle kirja kaugpilte ei kuvata."
+  },
   "date": {
     "today": "Täna",
     "yesterday": "Eile",
@@ -1047,6 +1108,7 @@
   },
   "settings": {
     "title": "Seaded",
+    "org_locked": "Määratud sinu organisatsiooni poolt",
     "back_to_mail": "Tagasi postkasti",
     "save_success": "Seaded salvestatud",
     "import_success": "Seaded imporditud",
@@ -2832,6 +2894,23 @@
     "delete_button": "Kustuta",
     "delete_confirm_title": "Kustuta identiteet"
   },
+  "org_signature": {
+    "disclaimer_added_on_send": "Lisatakse saatmisel",
+    "identity_signature_label": "Allkiri",
+    "identity_no_signature": "Allkiri puudub",
+    "identity_default": "Jäta mõlemad allkirjad tühjaks, et sellelt aadressilt saadetaks sinu organisatsiooni allkiri.",
+    "details": {
+      "title": "Sinu andmed",
+      "description": "Sinu organisatsiooni allkiri näitab neid andmeid. Täida need üks kord; kõik aadressid, millelt saadad, kasutavad neid.",
+      "preview": "Sinu allkiri",
+      "fields": {
+        "title": "Ametinimetus",
+        "department": "Osakond",
+        "phone": "Telefon",
+        "mobile": "Mobiil"
+      }
+    }
+  },
   "templates": {
     "picker_title": "Vali mall",
     "search_placeholder": "Otsi malle...",
@@ -2858,6 +2937,26 @@
       "day_of_week": "Nädalapäev",
       "sender_name": "Sinu nimi"
     }
+  },
+  "org_templates": {
+    "section_personal": "Minu mallid",
+    "section_organisation": "Organisatsioon",
+    "sources_label": "Mallide loendid",
+    "organisation_note": "Sinu organisatsioonilt. Sa ei saa neid muuta, kuid saad mõne oma mallide hulka kopeerida.",
+    "copy_to_personal": "Kopeeri minu mallide hulka",
+    "duplicate": "Dubleeri",
+    "save_failed": "Malli ei õnnestunud salvestada. Proovi uuesti.",
+    "save_failed_forbidden": "Sa ei saa neid malle muuta.",
+    "save_failed_too_large": "See mall on suurem kui 8 KB, mida server ühe malli kohta hoiab. Lühenda seda ja salvesta uuesti.",
+    "save_failed_no_room": "Postkastis pole rohkemate mallide jaoks ruumi. Kustuta üks ja proovi uuesti.",
+    "local_only_too_large": "Ainult selles brauseris: suurem kui 8 KB, mida server ühe malli kohta hoiab.",
+    "local_only_no_room": "Ainult selles brauseris: sinu kontol pole rohkemate mallide jaoks ruumi.",
+    "personal_in_account": "Sinu malle hoitakse sinu kontol, seega on need sul olemas igas seadmes, kuhu sisse logid. Neid saab lugeda igaüks, kellega oma saabunud kirjade kausta jagad.",
+    "team_note": "Kõik grupis {name} näevad neid malle ja saavad neid muuta.",
+    "team_read_only": "Saad neid malle kasutada, kuid mitte muuta.",
+    "save_failed_conflict": "Keegi teine muutis seda. Laadi uuesti ja proovi uuesti.",
+    "preview_to": "Saaja: {list}",
+    "preview_cc": "CC: {list}"
   },
   "contacts": {
     "directory": {
@@ -3786,6 +3885,89 @@
       "custom": "Kohandatud"
     }
   },
+  "delegates": {
+    "tab": "Jagamine",
+    "title": "Asendajad",
+    "description": "Anna kellelegi ühe sammuga juurdepääs oma kirjadele, kalendritele ja kontaktidele ning vaata, kellel on juurdepääs millele.",
+    "give_access": "Anna juurdepääs",
+    "who_has_access": "Kellel on juurdepääs",
+    "nobody": "Kellelgi pole juurdepääsu sinu kirjadele, kalendritele, kontaktidele ega failidele.",
+    "loading": "Laadimine…",
+    "read_failed": "Osa sinu jagamisest ei õnnestunud lugeda, seega ootavad „Muuda” ja „Eemalda juurdepääs”, kuni see õnnestub.",
+    "change": "Muuda",
+    "remove": "Eemalda juurdepääs",
+    "remove_title": "Kas eemaldada kasutaja {name} juurdepääs?",
+    "remove_message": "{name} kaotab juurdepääsu kõigele, mida oled oma kontolt jaganud: kirjadele, kalendritele, kontaktidele ja failidele.",
+    "removed": "Juurdepääs eemaldatud",
+    "remove_partial": "Juurdepääs on endiselt olemas: {items}",
+    "applied": "Kasutajal {name} on nüüd juurdepääs",
+    "updated": "Juurdepääs uuendatud",
+    "unknown_person": "Tundmatu isik",
+    "group": "Grupp",
+    "has_access": "On juurdepääs",
+    "summary": {
+      "mail_all": "Kõik meilikaustad",
+      "mail_inbox": "Saabunud",
+      "mail_some": "{count, plural, one {# meilikaust} other {# meilikausta}}",
+      "calendars": "{count, plural, one {# kalender} other {# kalendrit}}",
+      "address_books": "{count, plural, one {# aadressiraamat} other {# aadressiraamatut}}",
+      "files": "{count, plural, one {# fail või kaust} other {# faili või kausta}}"
+    },
+    "level": {
+      "read": "Lugemine",
+      "write": "Lugemine ja kirjutamine",
+      "mixed": "Erinevad õigused",
+      "none": "Ainult vaba/hõivatud"
+    },
+    "dialog_title_add": "Anna juurdepääs",
+    "dialog_title_change": "Muuda kasutaja {name} juurdepääsu",
+    "person": "Isik",
+    "search_placeholder": "Nimi või e-posti aadress",
+    "change_person": "Muuda",
+    "no_match": "Kedagi ei leitud.",
+    "use_address": "Kasuta aadressi {address}",
+    "looking_up": "Otsimine…",
+    "not_found": "Selles serveris pole kellelgi aadressi {address}.",
+    "lookup_failed": "Seda aadressi ei õnnestunud otsida.",
+    "is_you": "See oled sina.",
+    "known_only": "Loetletud on ainult sinu grupid ja inimesed, kes on sinuga midagi jaganud.",
+    "directory_off_note": "Enne kui saad kellegi uue lisada, peab administraator Stalwartis kataloogipäringud sisse lülitama.",
+    "directory_failed": "Inimeste ja gruppide loendit ei õnnestunud laadida.",
+    "what": "Mida",
+    "mail": "Kirjad",
+    "mail_all": "Kõik kaustad",
+    "mail_inbox": "Ainult saabunud kirjad",
+    "calendars": "Kalendrid",
+    "calendars_default": "Vaikekalender",
+    "calendars_all": "Kõik kalendrid",
+    "address_books": "Kontaktid",
+    "address_books_default": "Vaikimisi aadressiraamat",
+    "address_books_all": "Kõik aadressiraamatud",
+    "none": "Mitte midagi",
+    "keep": "Jäta nii, nagu on",
+    "empty_scope": "Vali kirjad, kalendrid või kontaktid.",
+    "nothing_to_change": "Pole midagi muuta. Vali, mida see inimene saama peaks, või kasuta valikut „Eemalda juurdepääs”.",
+    "change_note": "Kaustad, kalendrid ja aadressiraamatud, mille välja jätad, kaotavad juurdepääsu. Jagatud failid jäävad nii, nagu on; „Eemalda juurdepääs” eemaldab ka need.",
+    "rights": "Õigused",
+    "rights_read": "Lugemine",
+    "rights_read_hint": "Näha sinu kirju, sündmusi ja kontakte.",
+    "rights_read_hint_flags": "Näha sinu kirju, sündmusi ja kontakte. See server lubab neil ka kirju lipuga märkida ja loetuks märkida.",
+    "rights_write": "Lugemine ja kirjutamine",
+    "rights_write_hint": "Lisaks kirju kaustadesse paigutada, märkida ja kustutada ning sündmusi ja kontakte muuta.",
+    "rights_keep": "Jäta nii, nagu on",
+    "rights_keep_hint": "Olemasolev säilitab oma õigused; lisatu saab samad õigused nagu ülejäänud sama tüüpi asjad, muidu lugemise.",
+    "send_note": "Asendajad saavad sinu kirju ja kalendrit lugeda ja korrastada. Stalwart ei luba neil saata sinu nimel ega sinu eest. Kui ühte aadressi peavad jagama mitu inimest, palu administraatorilt jagatud postkasti.",
+    "apply_add": "Anna juurdepääs",
+    "apply_change": "Salvesta",
+    "partial_title": "Neid ei õnnestunud muuta. Ülejäänu on tehtud.",
+    "retry": "Proovi uuesti",
+    "kind": {
+      "mailbox": "Meilikaust",
+      "calendar": "Kalender",
+      "addressBook": "Aadressiraamat",
+      "file": "Fail"
+    }
+  },
   "advanced_search": {
     "title": "Täpsem otsing",
     "from": "Saatja",
@@ -4136,6 +4318,32 @@
   "unified_mailbox": {
     "search_unavailable": "Otsing pole ühendatud vaates saadaval"
   },
+  "recover_deleted": {
+    "tab": "Taasta kustutatud üksused",
+    "title": "Taasta kustutatud üksused",
+    "description": "Kirjad, mille kustutasid jäädavalt, näiteks prügikasti tühjendades, kuid mida server veel hoiab. Vali kirjad ja taasta need.",
+    "range_days": "Kuvatakse kirjad, mis on kustutatud {days, plural, one {viimase päeva jooksul} other {viimase # päeva jooksul}}.",
+    "range_all": "Kuvatakse kõik kustutatud kirjad, mida server veel hoiab.",
+    "loading": "Kustutatud kirjade laadimine…",
+    "load_failed": "Kustutatud kirju ei õnnestunud laadida.",
+    "retry": "Proovi uuesti",
+    "empty": "Taastamiseks pole kustutatud kirju.",
+    "select_all": "Vali kõik",
+    "selected": "{count} valitud",
+    "refresh": "Värskenda",
+    "restore": "Taasta",
+    "restored": "{count, plural, one {# kiri liigub} other {# kirja liiguvad}} tagasi sinu saabunud kirjade kausta.",
+    "restore_partial": "{count, plural, one {# kirja ei õnnestunud taastada. See jääb valituks, et saaksid uuesti proovida.} other {# kirja ei õnnestunud taastada. Need jäävad valituks, et saaksid uuesti proovida.}}",
+    "restore_hint": "Taastatud kirjad tulevad tagasi saabunud kirjade kausta lugemata kujul ja algse kuupäeva järgi sorteerituna, seega võivad need olla loendis kaugel all. Server taastab need taustal. Kui see seal ebaõnnestub, läheb kiri kaotsi ja Bulwark ei saa sellest teada.",
+    "unknown_sender": "Tundmatu saatja",
+    "no_subject": "(teema puudub)",
+    "deleted_on": "Kustutatud {date}",
+    "trash_hint": "Kustutasid kogemata jäädavalt?",
+    "trash_link": "Taasta kustutatud üksused",
+    "empty_hint": "Kustutatud kirjad ilmuvad siia ainult siis, kui administraator on Stalwartis kustutatud üksuste arhiveerimise sisse lülitanud.",
+    "restore_gone": "{count, plural, one {# kirja polnud enam arhiivis: see on mujal taastatud või server ei hoia seda enam.} other {# kirja polnud enam arhiivis: need on mujal taastatud või server ei hoia neid enam.}}",
+    "show_older": "Näita vanemaid"
+  },
   "quote_header": {
     "reply_line": "{date}, {from} kirjutas:",
     "forwarded_separator": "---------- Edastatud sõnum ----------",
@@ -4245,7 +4453,7 @@
       },
       "email_write": {
         "title": "Muuda ja korrasta sinu kirju",
-        "body": "Lisada või eemaldada silte, lippe ja muid märksõnu sinu kirjadelt, liigutada neid sinu kaustade vahel ja arhiivi ning salvestada mustandeid."
+        "body": "Lisada või eemaldada silte, lippe ja muid märksõnu sinu kirjadelt, liigutada neid sinu kaustade vahel ja arhiivi ning salvestada mustandeid. See saab ka salvestada väikese väärtuse, mida iga meeskonnapostkasti liige saab lugeda."
       },
       "email_send": {
         "title": "Muuda kirja enne saatmist",
@@ -4361,7 +4569,11 @@
       },
       "account_read": {
         "title": "Vaata sinu kontosid",
-        "body": "Näha sinu lisatud kontosid koos nende aadresside ja serveritega."
+        "body": "Näha sinu lisatud kontosid koos nende aadresside ja serveritega ning seda, millised meilikontod on meeskonnapostkastid."
+      },
+      "directory_read": {
+        "title": "Inimeste otsimine",
+        "body": "Otsida inimesi sinu organisatsiooni kataloogist."
       },
       "http_post": {
         "title": "Kasuta veebimeili serverit sinu eest",
@@ -4524,6 +4736,10 @@
       "error_server": "Sisesta serveri aadress, näiteks https://cloud.example.com",
       "error_save": "Salvestamine ebaõnnestus: {error}"
     }
+  },
+  "plugin_list": {
+    "filters": "Filtrid",
+    "remove_filter": "Eemalda filter {label}"
   },
   "global_search": {
     "title": "Otsi kõike",

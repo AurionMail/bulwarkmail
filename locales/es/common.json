@@ -76,6 +76,20 @@
       "back_to_login": "Volver al inicio de sesión"
     }
   },
+  "session_limits": {
+    "idle_title": "¿Sigues ahí?",
+    "idle_message": "Se cerrará tu sesión en {seconds, plural, one {# segundo} other {# segundos}} porque no hubo actividad. Los mensajes abiertos se guardan como borradores.",
+    "stay": "Mantener la sesión",
+    "sign_out_now": "Cerrar sesión ahora",
+    "max_title": "Tu sesión está terminando",
+    "max_message": "Tu organización cierra las sesiones {hours, plural, one {# hora} other {# horas}} después de iniciar sesión. Se cerrará tu sesión en {seconds, plural, one {# segundo} other {# segundos}}. Los mensajes abiertos se guardan como borradores.",
+    "dismiss": "Aceptar",
+    "signing_out": "Guardando borradores y cerrando sesión…",
+    "reason_idle": "Se cerró tu sesión tras {minutes, plural, one {# minuto} other {# minutos}} sin actividad.",
+    "reason_max": "Se cerró tu sesión porque alcanzó su duración máxima de {hours, plural, one {# hora} other {# horas}}.",
+    "drafts_not_saved": "Uno o más mensajes abiertos no se pudieron guardar como borradores.",
+    "seconds_left": "{seconds, plural, one {Queda # segundo} other {Quedan # segundos}}"
+  },
   "sidebar": {
     "close": "Cerrar",
     "compose": "Redactar",
@@ -311,6 +325,34 @@
     "cancel_and_edit": "Cancelar y editar",
     "cancel_and_compose_again": "Cancelar y redactar de nuevo",
     "reschedule_prompt": "Introduce una nueva fecha/hora, p. ej. 2026-05-04T15:30"
+  },
+  "shared_tags": {
+    "title": "Etiquetas compartidas",
+    "description": "Etiquetas de tus buzones de grupo. Todos en el grupo ven los mismos nombres y colores en su correo.",
+    "picker_heading": "Compartidas con todos en este buzón",
+    "sidebar_heading": "Etiquetas",
+    "edit": "Editar etiquetas compartidas",
+    "edit_tag": "Editar {name}",
+    "delete_tag": "Eliminar {name}",
+    "name_it": "Poner nombre a {name}",
+    "add": "Añadir etiqueta compartida",
+    "name": "Nombre",
+    "color": "Color",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "delete_confirm": "¿Eliminar para todos? La etiqueta se queda en sus mensajes.",
+    "found_on_messages": "En mensajes, todavía sin nombre",
+    "empty": "Aún no hay etiquetas compartidas.",
+    "exists": "Este buzón ya tiene esta etiqueta.",
+    "too_long": "Este nombre es demasiado largo.",
+    "loading": "Cargando…",
+    "unsupported": "Este servidor de correo no puede guardar etiquetas compartidas, así que este buzón muestra tus propias etiquetas.",
+    "unavailable": "No se pudieron cargar las etiquetas compartidas de este buzón, así que muestra tus propias etiquetas. Bulwark lo volverá a intentar más tarde.",
+    "no_rights": "Puedes usar estas etiquetas, pero no cambiarlas en este buzón.",
+    "too_many": "Hay demasiadas etiquetas compartidas. Elimina algunas antes de añadir más.",
+    "save_failed": "No se pudieron guardar las etiquetas compartidas. Bulwark lo volverá a intentar cuando el servidor responda.",
+    "save_pending": "Aún no se ha guardado. Bulwark lo volverá a intentar cuando el servidor responda."
   },
   "email_viewer": {
     "read_receipt": {
@@ -659,6 +701,18 @@
     "plugin_panel_hide": "Ocultar el panel del complemento",
     "copy": "Copiar"
   },
+  "external_mail": {
+    "sender_label": "Externo",
+    "sender_tooltip": "De {domain}, fuera de tu organización",
+    "sender_tooltip_no_domain": "De una dirección sin dominio, fuera de tu organización",
+    "confirm_title": "¿Enviar fuera de tu organización?",
+    "confirm_message": "{count, plural, one {Este destinatario está} other {Estos # destinatarios están}} fuera de tu organización. Envía solo si es lo que quieres.",
+    "field_to": "Para",
+    "field_cc": "CC",
+    "field_bcc": "CCO",
+    "send_anyway": "Enviar de todos modos",
+    "back": "Atrás"
+  },
   "email_composer": {
     "select_from_directory": "Seleccionar del directorio",
     "minimize": "Minimizar",
@@ -981,6 +1035,13 @@
     "rule_folder_failed": "No se pudo crear la carpeta",
     "vacation_filters_save_failed": "Configuración de ausencia guardada, pero no se pudieron guardar el reenvío ni los destinatarios de la respuesta"
   },
+  "third_party": {
+    "push_needs_relay": "Las notificaciones push necesitan un relay push gestionado por tu organización, y no hay ninguno configurado. El correo nuevo se sigue mostrando mientras la aplicación está abierta.",
+    "relay_desc": "Solo se ofrecen los relays propios de tu organización, porque este servidor no contacta con servicios externos.",
+    "relay_none": "Ninguno configurado",
+    "plugin_refused": "No iniciado: este complemento se conecta a servicios externos, que tu organización ha desactivado.",
+    "remote_content_blocked": "Tu organización bloquea el contenido de otros servidores, así que las imágenes remotas de este mensaje no se muestran."
+  },
   "date": {
     "today": "Hoy",
     "yesterday": "Ayer",
@@ -1047,6 +1108,7 @@
   },
   "settings": {
     "title": "Configuración",
+    "org_locked": "Establecido por tu organización",
     "back_to_mail": "Volver al Correo",
     "save_success": "Configuración guardada exitosamente",
     "import_success": "Configuración importada exitosamente",
@@ -2832,6 +2894,23 @@
     "delete_button": "Eliminar",
     "delete_confirm_title": "Eliminar identidad"
   },
+  "org_signature": {
+    "disclaimer_added_on_send": "Se añade al enviar",
+    "identity_signature_label": "Firma",
+    "identity_no_signature": "Sin firma",
+    "identity_default": "Deja ambas firmas vacías para enviar la firma de tu organización desde esta dirección.",
+    "details": {
+      "title": "Tus datos",
+      "description": "La firma de tu organización muestra estos datos. Rellénalos una vez; todas las direcciones desde las que envías los usan.",
+      "preview": "Tu firma",
+      "fields": {
+        "title": "Cargo",
+        "department": "Departamento",
+        "phone": "Teléfono",
+        "mobile": "Móvil"
+      }
+    }
+  },
   "templates": {
     "picker_title": "Elegir una plantilla",
     "search_placeholder": "Buscar plantillas...",
@@ -2858,6 +2937,26 @@
       "day_of_week": "Día de la semana",
       "sender_name": "Tu nombre"
     }
+  },
+  "org_templates": {
+    "section_personal": "Mis plantillas",
+    "section_organisation": "Organización",
+    "sources_label": "Listas de plantillas",
+    "organisation_note": "De tu organización. No puedes cambiarlas, pero puedes copiar una a tus propias plantillas.",
+    "copy_to_personal": "Copiar a mis plantillas",
+    "duplicate": "Duplicar",
+    "save_failed": "No se pudo guardar la plantilla. Inténtalo de nuevo.",
+    "save_failed_forbidden": "No puedes cambiar estas plantillas.",
+    "save_failed_too_large": "Esta plantilla supera los 8 KB que el servidor guarda por plantilla. Acórtala y vuelve a guardarla.",
+    "save_failed_no_room": "El buzón no tiene espacio para más plantillas. Elimina una e inténtalo de nuevo.",
+    "local_only_too_large": "Solo en este navegador: supera los 8 KB que el servidor guarda por plantilla.",
+    "local_only_no_room": "Solo en este navegador: tu cuenta no tiene espacio para más plantillas.",
+    "personal_in_account": "Tus plantillas se guardan en tu cuenta, así que las tienes en todos los dispositivos en los que inicias sesión. Cualquier persona con quien compartas tu bandeja de entrada puede leerlas.",
+    "team_note": "Todos en {name} ven estas plantillas y pueden cambiarlas.",
+    "team_read_only": "Puedes usar estas plantillas, pero no cambiarlas.",
+    "save_failed_conflict": "Otra persona lo ha cambiado. Recarga e inténtalo de nuevo.",
+    "preview_to": "Para: {list}",
+    "preview_cc": "CC: {list}"
   },
   "contacts": {
     "directory": {
@@ -4090,6 +4189,32 @@
   "unified_mailbox": {
     "search_unavailable": "La búsqueda no está disponible en la vista unificada"
   },
+  "recover_deleted": {
+    "tab": "Recuperar elementos eliminados",
+    "title": "Recuperar elementos eliminados",
+    "description": "Correo que eliminaste definitivamente, por ejemplo al vaciar la papelera, y que el servidor aún conserva. Selecciona mensajes y restáuralos.",
+    "range_days": "Se muestra el correo eliminado {days, plural, one {en el último día} other {en los últimos # días}}.",
+    "range_all": "Se muestra todo el correo eliminado que el servidor aún conserva.",
+    "loading": "Cargando correo eliminado…",
+    "load_failed": "No se pudo cargar el correo eliminado.",
+    "retry": "Intentar de nuevo",
+    "empty": "No hay correo eliminado que recuperar.",
+    "select_all": "Seleccionar todo",
+    "selected": "{count} seleccionados",
+    "refresh": "Actualizar",
+    "restore": "Restaurar",
+    "restored": "{count, plural, one {# mensaje vuelve} other {# mensajes vuelven}} a tu bandeja de entrada.",
+    "restore_partial": "{count, plural, one {No se pudo restaurar # mensaje. Sigue seleccionado para que puedas intentarlo de nuevo.} other {No se pudieron restaurar # mensajes. Siguen seleccionados para que puedas intentarlo de nuevo.}}",
+    "restore_hint": "El correo restaurado vuelve a tu bandeja de entrada como no leído, ordenado por su fecha original, así que puede quedar muy abajo en la lista. El servidor lo restaura en segundo plano. Si allí falla, el mensaje se pierde y Bulwark no puede saberlo.",
+    "unknown_sender": "Remitente desconocido",
+    "no_subject": "(sin asunto)",
+    "deleted_on": "Eliminado el {date}",
+    "trash_hint": "¿Lo eliminaste definitivamente por error?",
+    "trash_link": "Recuperar elementos eliminados",
+    "empty_hint": "El correo eliminado solo aparece aquí si tu administrador activó el archivado de elementos eliminados en Stalwart.",
+    "restore_gone": "{count, plural, one {# mensaje ya no estaba en el archivo: se restauró en otro lugar o el servidor dejó de conservarlo.} other {# mensajes ya no estaban en el archivo: se restauraron en otro lugar o el servidor dejó de conservarlos.}}",
+    "show_older": "Mostrar más antiguos"
+  },
   "calendar_event_notifications": {
     "someone": "Alguien",
     "invited": "{name} te ha invitado a \"{title}\"",
@@ -4134,6 +4259,89 @@
       "readWrite": "Lectura y escritura",
       "manager": "Administrador",
       "custom": "Personalizado"
+    }
+  },
+  "delegates": {
+    "tab": "Uso compartido",
+    "title": "Delegados",
+    "description": "Da a alguien acceso a tu correo, calendarios y contactos en un solo paso, y mira quién tiene acceso a qué.",
+    "give_access": "Dar acceso",
+    "who_has_access": "Quién tiene acceso",
+    "nobody": "Nadie tiene acceso a tu correo, calendarios, contactos ni archivos.",
+    "loading": "Cargando…",
+    "read_failed": "No se pudo leer parte de lo que compartes, así que Cambiar y Quitar acceso esperan hasta que se pueda.",
+    "change": "Cambiar",
+    "remove": "Quitar acceso",
+    "remove_title": "¿Quitar el acceso a {name}?",
+    "remove_message": "{name} pierde el acceso a todo lo que compartiste desde tu propia cuenta: correo, calendarios, contactos y archivos.",
+    "removed": "Acceso retirado",
+    "remove_partial": "Estos siguen teniendo acceso: {items}",
+    "applied": "{name} ya tiene acceso",
+    "updated": "Acceso actualizado",
+    "unknown_person": "Persona desconocida",
+    "group": "Grupo",
+    "has_access": "Tiene acceso",
+    "summary": {
+      "mail_all": "Todas las carpetas de correo",
+      "mail_inbox": "Bandeja de entrada",
+      "mail_some": "{count, plural, one {# carpeta de correo} other {# carpetas de correo}}",
+      "calendars": "{count, plural, one {# calendario} other {# calendarios}}",
+      "address_books": "{count, plural, one {# libreta de direcciones} other {# libretas de direcciones}}",
+      "files": "{count, plural, one {# archivo o carpeta} other {# archivos o carpetas}}"
+    },
+    "level": {
+      "read": "Lectura",
+      "write": "Lectura y escritura",
+      "mixed": "Permisos distintos",
+      "none": "Solo disponibilidad"
+    },
+    "dialog_title_add": "Dar acceso",
+    "dialog_title_change": "Cambiar el acceso de {name}",
+    "person": "Persona",
+    "search_placeholder": "Nombre o dirección de correo",
+    "change_person": "Cambiar",
+    "no_match": "No se encontró a nadie.",
+    "use_address": "Usar {address}",
+    "looking_up": "Buscando…",
+    "not_found": "Nadie en este servidor tiene la dirección {address}.",
+    "lookup_failed": "No se pudo buscar esta dirección.",
+    "is_you": "Eres tú.",
+    "known_only": "Solo se muestran tus grupos y las personas que han compartido algo contigo.",
+    "directory_off_note": "Tu administrador tiene que activar las consultas al directorio en Stalwart antes de que puedas añadir a alguien nuevo.",
+    "directory_failed": "No se pudo cargar la lista de personas y grupos.",
+    "what": "Qué",
+    "mail": "Correo",
+    "mail_all": "Todas las carpetas",
+    "mail_inbox": "Solo la bandeja de entrada",
+    "calendars": "Calendarios",
+    "calendars_default": "Calendario predeterminado",
+    "calendars_all": "Todos los calendarios",
+    "address_books": "Contactos",
+    "address_books_default": "Libreta de direcciones predeterminada",
+    "address_books_all": "Todas las libretas de direcciones",
+    "none": "Nada",
+    "keep": "Dejar como está",
+    "empty_scope": "Elige correo, calendarios o contactos.",
+    "nothing_to_change": "No hay nada que cambiar. Elige lo que debe recibir esta persona o usa Quitar acceso.",
+    "change_note": "Las carpetas, calendarios y libretas de direcciones que dejes fuera pierden el acceso. Los archivos compartidos se quedan como están; Quitar acceso también los retira.",
+    "rights": "Permisos",
+    "rights_read": "Lectura",
+    "rights_read_hint": "Ver tu correo, eventos y contactos.",
+    "rights_read_hint_flags": "Ver tu correo, eventos y contactos. Este servidor también le permite marcar correo con una bandera y marcarlo como leído.",
+    "rights_write": "Lectura y escritura",
+    "rights_write_hint": "Además, archivar, marcar y eliminar correo, y cambiar eventos y contactos.",
+    "rights_keep": "Dejar como está",
+    "rights_keep_hint": "Lo que ya tiene conserva sus permisos; lo que se añada recibe los permisos que tiene el resto de ese tipo, o lectura.",
+    "send_note": "Los delegados pueden leer y organizar tu correo y tu calendario. Stalwart no les permite enviar como tú ni en tu nombre. Para compartir una dirección entre varias personas, pide a tu administrador un buzón compartido.",
+    "apply_add": "Dar acceso",
+    "apply_change": "Guardar",
+    "partial_title": "Estos no se pudieron cambiar. El resto está hecho.",
+    "retry": "Intentar de nuevo",
+    "kind": {
+      "mailbox": "Carpeta de correo",
+      "calendar": "Calendario",
+      "addressBook": "Libreta de direcciones",
+      "file": "Archivo"
     }
   },
   "quote_header": {
@@ -4245,7 +4453,7 @@
       },
       "email_write": {
         "title": "Cambiar y organizar tu correo",
-        "body": "Añadir o quitar etiquetas, marcas y otras palabras clave de tus mensajes, moverlos entre tus carpetas y al archivo, y guardar borradores."
+        "body": "Añadir o quitar etiquetas, marcas y otras palabras clave de tus mensajes, moverlos entre tus carpetas y al archivo, y guardar borradores. También puede guardar un pequeño valor que todos los miembros de un buzón de equipo pueden leer."
       },
       "email_send": {
         "title": "Cambiar el correo antes de enviarlo",
@@ -4361,7 +4569,11 @@
       },
       "account_read": {
         "title": "Ver tus cuentas",
-        "body": "Ver las cuentas que añadiste, con sus direcciones y servidores."
+        "body": "Ver las cuentas que añadiste, con sus direcciones y servidores, y qué cuentas de correo son buzones de equipo."
+      },
+      "directory_read": {
+        "title": "Buscar personas",
+        "body": "Buscar personas en el directorio de tu organización."
       },
       "http_post": {
         "title": "Usar el servidor del webmail por ti",
@@ -4524,6 +4736,10 @@
       "error_server": "Indica la dirección del servidor, por ejemplo https://cloud.example.com",
       "error_save": "No se pudo guardar: {error}"
     }
+  },
+  "plugin_list": {
+    "filters": "Filtros",
+    "remove_filter": "Quitar el filtro {label}"
   },
   "global_search": {
     "title": "Buscar en todo",

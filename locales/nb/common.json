@@ -76,6 +76,20 @@
       "back_to_login": "Tilbake til pålogging"
     }
   },
+  "session_limits": {
+    "idle_title": "Er du der fortsatt?",
+    "idle_message": "Du blir logget ut om {seconds, plural, one {# sekund} other {# sekunder}} fordi det ikke har vært noen aktivitet. Åpne meldinger lagres som utkast.",
+    "stay": "Forbli pålogget",
+    "sign_out_now": "Logg ut nå",
+    "max_title": "Økten din avsluttes",
+    "max_message": "Organisasjonen din avslutter økter {hours, plural, one {# time} other {# timer}} etter pålogging. Du blir logget ut om {seconds, plural, one {# sekund} other {# sekunder}}. Åpne meldinger lagres som utkast.",
+    "dismiss": "OK",
+    "signing_out": "Lagrer utkast og logger ut…",
+    "reason_idle": "Du ble logget ut etter {minutes, plural, one {# minutt} other {# minutter}} uten aktivitet.",
+    "reason_max": "Du ble logget ut fordi økten nådde maksimal lengde på {hours, plural, one {# time} other {# timer}}.",
+    "drafts_not_saved": "Én eller flere åpne meldinger kunne ikke lagres som utkast.",
+    "seconds_left": "{seconds, plural, one {# sekund} other {# sekunder}} igjen"
+  },
   "sidebar": {
     "close": "Lukk",
     "compose": "Skriv",
@@ -311,6 +325,34 @@
     "cancel_and_edit": "Avbryt og rediger",
     "cancel_and_compose_again": "Avbryt og skriv meldingen på nytt",
     "reschedule_prompt": "Skriv inn ny dato og klokkeslett, for eksempel 2026-05-04T15:30"
+  },
+  "shared_tags": {
+    "title": "Delte etiketter",
+    "description": "Etiketter i gruppepostkassene dine. Alle i gruppen ser de samme navnene og fargene på e-posten der.",
+    "picker_heading": "Delt med alle i denne postkassen",
+    "sidebar_heading": "Etiketter",
+    "edit": "Rediger delte etiketter",
+    "edit_tag": "Rediger {name}",
+    "delete_tag": "Slett {name}",
+    "name_it": "Gi {name} et navn",
+    "add": "Legg til delt etikett",
+    "name": "Navn",
+    "color": "Farge",
+    "save": "Lagre",
+    "cancel": "Avbryt",
+    "delete": "Slett",
+    "delete_confirm": "Slette for alle? Etiketten blir værende på meldingene sine.",
+    "found_on_messages": "På meldinger, uten navn ennå",
+    "empty": "Ingen delte etiketter ennå.",
+    "exists": "Denne postkassen har allerede denne etiketten.",
+    "too_long": "Navnet er for langt.",
+    "loading": "Laster…",
+    "unsupported": "Denne e-postserveren kan ikke lagre delte etiketter, så denne postkassen viser dine egne etiketter.",
+    "unavailable": "Kunne ikke laste inn de delte etikettene i denne postkassen, så den viser dine egne etiketter. Bulwark prøver igjen senere.",
+    "no_rights": "Du kan bruke disse etikettene, men du kan ikke endre dem i denne postkassen.",
+    "too_many": "Det er for mange delte etiketter. Slett noen før du legger til flere.",
+    "save_failed": "Kunne ikke lagre de delte etikettene. Bulwark prøver igjen når serveren svarer.",
+    "save_pending": "Ikke lagret ennå. Bulwark prøver igjen når serveren svarer."
   },
   "email_viewer": {
     "read_receipt": {
@@ -659,6 +701,18 @@
     "plugin_panel_hide": "Skjul tilleggspanel",
     "copy": "Kopier"
   },
+  "external_mail": {
+    "sender_label": "Ekstern",
+    "sender_tooltip": "Fra {domain}, utenfor organisasjonen din",
+    "sender_tooltip_no_domain": "Fra en adresse uten domene, utenfor organisasjonen din",
+    "confirm_title": "Sende utenfor organisasjonen din?",
+    "confirm_message": "{count, plural, one {Denne mottakeren er} other {Disse # mottakerne er}} utenfor organisasjonen din. Send bare hvis det er meningen.",
+    "field_to": "Til",
+    "field_cc": "CC",
+    "field_bcc": "BCC",
+    "send_anyway": "Send likevel",
+    "back": "Tilbake"
+  },
   "email_composer": {
     "select_from_directory": "Velg fra katalog",
     "minimize": "Minimer",
@@ -981,6 +1035,13 @@
     "rule_folder_failed": "Kunne ikke opprette mappen",
     "vacation_filters_save_failed": "Fraværsinnstillinger er lagret, men videresending og svarmottakere kunne ikke lagres"
   },
+  "third_party": {
+    "push_needs_relay": "Push-varsler trenger et push-relé som organisasjonen din driver, og det er ikke satt opp noe. Ny e-post vises fortsatt mens appen er åpen.",
+    "relay_desc": "Bare organisasjonens egne reléer tilbys, fordi denne serveren ikke kontakter eksterne tjenester.",
+    "relay_none": "Ingen satt opp",
+    "plugin_refused": "Ikke startet: dette tillegget kobler til eksterne tjenester, som organisasjonen din har slått av.",
+    "remote_content_blocked": "Organisasjonen din blokkerer innhold fra andre servere, så eksterne bilder i denne meldingen vises ikke."
+  },
   "date": {
     "today": "I dag",
     "yesterday": "I går",
@@ -1047,6 +1108,7 @@
   },
   "settings": {
     "title": "Innstillinger",
+    "org_locked": "Bestemt av organisasjonen din",
     "back_to_mail": "Tilbake til e-post",
     "save_success": "Innstillingene er lagret",
     "import_success": "Innstillingene er importert",
@@ -2832,6 +2894,23 @@
     "delete_button": "Slett",
     "delete_confirm_title": "Slett identitet"
   },
+  "org_signature": {
+    "disclaimer_added_on_send": "Legges til når du sender",
+    "identity_signature_label": "Signatur",
+    "identity_no_signature": "Ingen signatur",
+    "identity_default": "La begge signaturene være tomme for å sende organisasjonens signatur fra denne adressen.",
+    "details": {
+      "title": "Dine opplysninger",
+      "description": "Organisasjonens signatur viser disse opplysningene. Fyll dem ut én gang; alle adressene du sender fra, bruker dem.",
+      "preview": "Signaturen din",
+      "fields": {
+        "title": "Stillingstittel",
+        "department": "Avdeling",
+        "phone": "Telefon",
+        "mobile": "Mobil"
+      }
+    }
+  },
   "templates": {
     "picker_title": "Velg en mal",
     "search_placeholder": "Søk etter maler...",
@@ -2858,6 +2937,26 @@
       "day_of_week": "Ukedag",
       "sender_name": "Navnet ditt"
     }
+  },
+  "org_templates": {
+    "section_personal": "Mine maler",
+    "section_organisation": "Organisasjon",
+    "sources_label": "Mallister",
+    "organisation_note": "Fra organisasjonen din. Du kan ikke endre dem, men du kan kopiere en til dine egne maler.",
+    "copy_to_personal": "Kopier til mine maler",
+    "duplicate": "Dupliser",
+    "save_failed": "Malen kunne ikke lagres. Prøv igjen.",
+    "save_failed_forbidden": "Du kan ikke endre disse malene.",
+    "save_failed_too_large": "Denne malen er større enn de 8 KB serveren lagrer per mal. Gjør den kortere og lagre på nytt.",
+    "save_failed_no_room": "Postkassen har ikke plass til flere maler. Slett en og prøv igjen.",
+    "local_only_too_large": "Bare i denne nettleseren: større enn de 8 KB serveren lagrer per mal.",
+    "local_only_no_room": "Bare i denne nettleseren: kontoen din har ikke plass til flere maler.",
+    "personal_in_account": "Malene dine lagres i kontoen din, så du har dem på alle enheter du logger på. Alle du deler innboksen din med, kan lese dem.",
+    "team_note": "Alle i {name} ser disse malene og kan endre dem.",
+    "team_read_only": "Du kan bruke disse malene, men ikke endre dem.",
+    "save_failed_conflict": "Endret av noen andre. Last inn på nytt og prøv igjen.",
+    "preview_to": "Til: {list}",
+    "preview_cc": "CC: {list}"
   },
   "contacts": {
     "directory": {
@@ -3786,6 +3885,89 @@
       "custom": "Egendefinert"
     }
   },
+  "delegates": {
+    "tab": "Deling",
+    "title": "Stedfortredere",
+    "description": "Gi noen tilgang til e-post, kalendere og kontakter i ett steg, og se hvem som har tilgang til hva.",
+    "give_access": "Gi tilgang",
+    "who_has_access": "Hvem har tilgang",
+    "nobody": "Ingen har tilgang til e-posten, kalenderne, kontaktene eller filene dine.",
+    "loading": "Laster…",
+    "read_failed": "Noe av det du deler, kunne ikke leses, så Endre og Fjern tilgang venter til det går.",
+    "change": "Endre",
+    "remove": "Fjern tilgang",
+    "remove_title": "Fjerne tilgangen for {name}?",
+    "remove_message": "{name} mister tilgangen til alt du har delt fra din egen konto: e-post, kalendere, kontakter og filer.",
+    "removed": "Tilgangen er fjernet",
+    "remove_partial": "Disse har fortsatt tilgang: {items}",
+    "applied": "{name} har nå tilgang",
+    "updated": "Tilgangen er oppdatert",
+    "unknown_person": "Ukjent person",
+    "group": "Gruppe",
+    "has_access": "Har tilgang",
+    "summary": {
+      "mail_all": "Alle e-postmapper",
+      "mail_inbox": "Innboks",
+      "mail_some": "{count, plural, one {# e-postmappe} other {# e-postmapper}}",
+      "calendars": "{count, plural, one {# kalender} other {# kalendere}}",
+      "address_books": "{count, plural, one {# adressebok} other {# adressebøker}}",
+      "files": "{count, plural, one {# fil eller mappe} other {# filer eller mapper}}"
+    },
+    "level": {
+      "read": "Lese",
+      "write": "Lese og skrive",
+      "mixed": "Ulike rettigheter",
+      "none": "Bare ledig/opptatt"
+    },
+    "dialog_title_add": "Gi tilgang",
+    "dialog_title_change": "Endre tilgang for {name}",
+    "person": "Person",
+    "search_placeholder": "Navn eller e-postadresse",
+    "change_person": "Endre",
+    "no_match": "Fant ingen.",
+    "use_address": "Bruk {address}",
+    "looking_up": "Slår opp…",
+    "not_found": "Ingen på denne serveren har adressen {address}.",
+    "lookup_failed": "Kunne ikke slå opp denne adressen.",
+    "is_you": "Det er deg.",
+    "known_only": "Bare gruppene dine og personer som har delt noe med deg, vises.",
+    "directory_off_note": "Administratoren din må slå på katalogoppslag i Stalwart før du kan legge til noen nye.",
+    "directory_failed": "Kunne ikke laste inn listen over personer og grupper.",
+    "what": "Hva",
+    "mail": "E-post",
+    "mail_all": "Alle mapper",
+    "mail_inbox": "Bare innboksen",
+    "calendars": "Kalendere",
+    "calendars_default": "Standardkalender",
+    "calendars_all": "Alle kalendere",
+    "address_books": "Kontakter",
+    "address_books_default": "Standard adressebok",
+    "address_books_all": "Alle adressebøker",
+    "none": "Ingenting",
+    "keep": "La være som det er",
+    "empty_scope": "Velg e-post, kalendere eller kontakter.",
+    "nothing_to_change": "Ingenting å endre. Velg hva personen skal få, eller bruk Fjern tilgang.",
+    "change_note": "Mapper, kalendere og adressebøker du utelater, mister tilgangen. Delte filer forblir som de er; Fjern tilgang fjerner også dem.",
+    "rights": "Rettigheter",
+    "rights_read": "Lese",
+    "rights_read_hint": "Se e-posten, avtalene og kontaktene dine.",
+    "rights_read_hint_flags": "Se e-posten, avtalene og kontaktene dine. Denne serveren lar dem også flagge e-post og merke den som lest.",
+    "rights_write": "Lese og skrive",
+    "rights_write_hint": "Også arkivere, flagge og slette e-post, og endre avtaler og kontakter.",
+    "rights_keep": "La være som det er",
+    "rights_keep_hint": "Det personen har, beholder rettighetene sine; nye ting får rettighetene resten av samme type har, ellers lese.",
+    "send_note": "Stedfortredere kan lese og organisere e-posten og kalenderen din. Stalwart lar dem ikke sende som deg eller på dine vegne. Hvis flere skal dele én adresse, kan du be administratoren om en delt postkasse.",
+    "apply_add": "Gi tilgang",
+    "apply_change": "Lagre",
+    "partial_title": "Disse kunne ikke endres. Resten er gjort.",
+    "retry": "Prøv igjen",
+    "kind": {
+      "mailbox": "E-postmappe",
+      "calendar": "Kalender",
+      "addressBook": "Adressebok",
+      "file": "Fil"
+    }
+  },
   "advanced_search": {
     "title": "Avansert søk",
     "from": "Fra",
@@ -4136,6 +4318,32 @@
   "unified_mailbox": {
     "search_unavailable": "Søk er ikke tilgjengelig i den samlede visningen"
   },
+  "recover_deleted": {
+    "tab": "Gjenopprett slettede elementer",
+    "title": "Gjenopprett slettede elementer",
+    "description": "E-post du har slettet for godt, for eksempel ved å tømme papirkurven, og som serveren fortsatt tar vare på. Velg meldinger og gjenopprett dem.",
+    "range_days": "Viser e-post slettet {days, plural, one {det siste døgnet} other {de siste # dagene}}.",
+    "range_all": "Viser all slettet e-post som serveren fortsatt tar vare på.",
+    "loading": "Laster slettet e-post…",
+    "load_failed": "Kunne ikke laste inn slettet e-post.",
+    "retry": "Prøv igjen",
+    "empty": "Det finnes ingen slettet e-post å gjenopprette.",
+    "select_all": "Velg alle",
+    "selected": "{count} valgt",
+    "refresh": "Oppdater",
+    "restore": "Gjenopprett",
+    "restored": "{count, plural, one {# melding er} other {# meldinger er}} på vei tilbake til innboksen din.",
+    "restore_partial": "{count, plural, one {# melding kunne ikke gjenopprettes. Den forblir valgt, så du kan prøve igjen.} other {# meldinger kunne ikke gjenopprettes. De forblir valgt, så du kan prøve igjen.}}",
+    "restore_hint": "Gjenopprettet e-post kommer tilbake til innboksen som ulest, sortert etter den opprinnelige datoen, så den kan havne langt nede i listen. Serveren gjenoppretter den i bakgrunnen. Hvis det mislykkes der, er meldingen tapt, og Bulwark kan ikke vite det.",
+    "unknown_sender": "Ukjent avsender",
+    "no_subject": "(uten emne)",
+    "deleted_on": "Slettet {date}",
+    "trash_hint": "Slettet for godt ved en feil?",
+    "trash_link": "Gjenopprett slettede elementer",
+    "empty_hint": "Slettet e-post vises bare her hvis administratoren din har slått på arkivering av slettede elementer i Stalwart.",
+    "restore_gone": "{count, plural, one {# melding var ikke lenger i arkivet: den er gjenopprettet et annet sted, eller serveren tar ikke vare på den lenger.} other {# meldinger var ikke lenger i arkivet: de er gjenopprettet et annet sted, eller serveren tar ikke vare på dem lenger.}}",
+    "show_older": "Vis eldre"
+  },
   "quote_header": {
     "reply_line": "Den {date} skrev {from}:",
     "forwarded_separator": "---------- Videresendt melding ----------",
@@ -4245,7 +4453,7 @@
       },
       "email_write": {
         "title": "Endre og organisere e-posten din",
-        "body": "Legge til eller fjerne etiketter, flagg og andre nøkkelord på meldingene dine, flytte dem mellom mappene dine og til arkivet, og lagre utkast."
+        "body": "Legge til eller fjerne etiketter, flagg og andre nøkkelord på meldingene dine, flytte dem mellom mappene dine og til arkivet, og lagre utkast. Det kan også lagre en liten verdi som alle medlemmer av en teampostkasse kan lese."
       },
       "email_send": {
         "title": "Endre e-post før den sendes",
@@ -4361,7 +4569,11 @@
       },
       "account_read": {
         "title": "Se kontoene dine",
-        "body": "Se kontoene du har lagt til, med adressene og serverne deres."
+        "body": "Se kontoene du har lagt til, med adressene og serverne deres, og hvilke e-postkontoer som er teampostkasser."
+      },
+      "directory_read": {
+        "title": "Slå opp personer",
+        "body": "Slå opp personer i organisasjonens katalog."
       },
       "http_post": {
         "title": "Bruke webmailserveren for deg",
@@ -4524,6 +4736,10 @@
       "error_server": "Skriv inn adressen til serveren, for eksempel https://cloud.example.com",
       "error_save": "Kunne ikke lagre: {error}"
     }
+  },
+  "plugin_list": {
+    "filters": "Filtre",
+    "remove_filter": "Fjern filteret {label}"
   },
   "global_search": {
     "title": "Søk i alt",

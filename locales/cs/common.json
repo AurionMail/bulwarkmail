@@ -76,6 +76,20 @@
       "back_to_login": "Zpět na přihlášení"
     }
   },
+  "session_limits": {
+    "idle_title": "Jste tu ještě?",
+    "idle_message": "Za {seconds, plural, one {# sekundu} few {# sekundy} many {# sekundy} other {# sekund}} budete odhlášeni, protože nedošlo k žádné aktivitě. Otevřené zprávy se uloží jako koncepty.",
+    "stay": "Zůstat přihlášen",
+    "sign_out_now": "Odhlásit se hned",
+    "max_title": "Vaše relace končí",
+    "max_message": "Vaše organizace ukončuje relace {hours, plural, one {# hodinu} few {# hodiny} many {# hodiny} other {# hodin}} po přihlášení. Za {seconds, plural, one {# sekundu} few {# sekundy} many {# sekundy} other {# sekund}} budete odhlášeni. Otevřené zprávy se uloží jako koncepty.",
+    "dismiss": "OK",
+    "signing_out": "Ukládání konceptů a odhlašování…",
+    "reason_idle": "Byli jste odhlášeni po {minutes, plural, one {# minutě} few {# minutách} many {# minuty} other {# minutách}} bez aktivity.",
+    "reason_max": "Byli jste odhlášeni, protože relace dosáhla nejdelší povolené délky: {hours, plural, one {# hodina} few {# hodiny} many {# hodiny} other {# hodin}}.",
+    "drafts_not_saved": "Jednu nebo více otevřených zpráv se nepodařilo uložit jako koncept.",
+    "seconds_left": "{seconds, plural, one {Zbývá # sekunda} few {Zbývají # sekundy} many {Zbývá # sekundy} other {Zbývá # sekund}}"
+  },
   "sidebar": {
     "close": "Zavřít",
     "compose": "Napsat",
@@ -311,6 +325,34 @@
     "cancel_and_edit": "Zrušit a upravit",
     "cancel_and_compose_again": "Zrušit a napsat znovu",
     "reschedule_prompt": "Zadejte nové datum/čas, např. 2026-05-04T15:30"
+  },
+  "shared_tags": {
+    "title": "Sdílené štítky",
+    "description": "Štítky vašich skupinových schránek. Všichni ve skupině vidí u její pošty stejné názvy a barvy.",
+    "picker_heading": "Sdílené se všemi v této schránce",
+    "sidebar_heading": "Štítky",
+    "edit": "Upravit sdílené štítky",
+    "edit_tag": "Upravit {name}",
+    "delete_tag": "Odstranit {name}",
+    "name_it": "Pojmenovat {name}",
+    "add": "Přidat sdílený štítek",
+    "name": "Název",
+    "color": "Barva",
+    "save": "Uložit",
+    "cancel": "Zrušit",
+    "delete": "Odstranit",
+    "delete_confirm": "Odstranit pro všechny? Štítek u svých zpráv zůstane.",
+    "found_on_messages": "U zpráv, zatím bez názvu",
+    "empty": "Zatím žádné sdílené štítky.",
+    "exists": "Tato schránka už tento štítek má.",
+    "too_long": "Tento název je příliš dlouhý.",
+    "loading": "Načítání…",
+    "unsupported": "Tento poštovní server neumí ukládat sdílené štítky, proto tato schránka zobrazuje vaše vlastní štítky.",
+    "unavailable": "Sdílené štítky této schránky se nepodařilo načíst, proto zobrazuje vaše vlastní štítky. Bulwark to zkusí později znovu.",
+    "no_rights": "Tyto štítky můžete používat, ale v této schránce je nemůžete měnit.",
+    "too_many": "Sdílených štítků je příliš mnoho. Než přidáte další, některé odstraňte.",
+    "save_failed": "Sdílené štítky se nepodařilo uložit. Bulwark to zkusí znovu, až server odpoví.",
+    "save_pending": "Zatím neuloženo. Bulwark to zkusí znovu, až server odpoví."
   },
   "email_viewer": {
     "read_receipt": {
@@ -659,6 +701,18 @@
     "plugin_panel_hide": "Skrýt panel pluginu",
     "copy": "Kopírovat"
   },
+  "external_mail": {
+    "sender_label": "Externí",
+    "sender_tooltip": "Z {domain}, mimo vaši organizaci",
+    "sender_tooltip_no_domain": "Z adresy bez domény, mimo vaši organizaci",
+    "confirm_title": "Odeslat mimo vaši organizaci?",
+    "confirm_message": "{count, plural, one {Tento příjemce je} few {Tito # příjemci jsou} many {Těchto # příjemce je} other {Těchto # příjemců je}} mimo vaši organizaci. Odešlete jen tehdy, pokud to tak má být.",
+    "field_to": "Komu",
+    "field_cc": "Kopie",
+    "field_bcc": "Skrytá kopie",
+    "send_anyway": "Přesto odeslat",
+    "back": "Zpět"
+  },
   "email_composer": {
     "select_from_directory": "Vybrat z adresáře",
     "minimize": "Minimalizovat",
@@ -981,6 +1035,13 @@
     "rule_folder_failed": "Složku se nepodařilo vytvořit",
     "vacation_filters_save_failed": "Nastavení nepřítomnosti bylo uloženo, ale přeposílání a příjemce odpovědi se uložit nepodařilo"
   },
+  "third_party": {
+    "push_needs_relay": "Push oznámení potřebují push relay provozovaný vaší organizací a žádný není nastaven. Nová pošta se dál zobrazuje, dokud je aplikace otevřená.",
+    "relay_desc": "Nabízejí se jen vlastní relaye vaší organizace, protože tento server nekontaktuje externí služby.",
+    "relay_none": "Žádný nenastaven",
+    "plugin_refused": "Nespuštěno: tento plugin se připojuje k externím službám, které vaše organizace vypnula.",
+    "remote_content_blocked": "Vaše organizace blokuje obsah z jiných serverů, proto se vzdálené obrázky v této zprávě nezobrazují."
+  },
   "date": {
     "today": "Dnes",
     "yesterday": "Včera",
@@ -1047,6 +1108,7 @@
   },
   "settings": {
     "title": "Nastavení",
+    "org_locked": "Nastaveno vaší organizací",
     "back_to_mail": "Zpět na poštu",
     "save_success": "Nastavení bylo uloženo",
     "import_success": "Nastavení bylo importováno",
@@ -2832,6 +2894,23 @@
     "delete_button": "Odstranit",
     "delete_confirm_title": "Odstranit identitu"
   },
+  "org_signature": {
+    "disclaimer_added_on_send": "Přidá se při odeslání",
+    "identity_signature_label": "Podpis",
+    "identity_no_signature": "Bez podpisu",
+    "identity_default": "Nechte oba podpisy prázdné, chcete-li z této adresy odesílat podpis vaší organizace.",
+    "details": {
+      "title": "Vaše údaje",
+      "description": "Podpis vaší organizace zobrazuje tyto údaje. Vyplňte je jednou; používá je každá adresa, ze které odesíláte.",
+      "preview": "Váš podpis",
+      "fields": {
+        "title": "Pozice",
+        "department": "Oddělení",
+        "phone": "Telefon",
+        "mobile": "Mobil"
+      }
+    }
+  },
   "templates": {
     "picker_title": "Vyberte šablonu",
     "search_placeholder": "Hledat šablony...",
@@ -2858,6 +2937,26 @@
       "day_of_week": "Den v týdnu",
       "sender_name": "Vaše jméno"
     }
+  },
+  "org_templates": {
+    "section_personal": "Moje šablony",
+    "section_organisation": "Organizace",
+    "sources_label": "Seznamy šablon",
+    "organisation_note": "Od vaší organizace. Nemůžete je měnit, ale kteroukoli si můžete zkopírovat do vlastních šablon.",
+    "copy_to_personal": "Kopírovat do mých šablon",
+    "duplicate": "Duplikovat",
+    "save_failed": "Šablonu se nepodařilo uložit. Zkuste to znovu.",
+    "save_failed_forbidden": "Tyto šablony nemůžete měnit.",
+    "save_failed_too_large": "Tato šablona je větší než 8 KB, které server ukládá na jednu šablonu. Zkraťte ji a uložte znovu.",
+    "save_failed_no_room": "Ve schránce není místo pro další šablony. Jednu odstraňte a zkuste to znovu.",
+    "local_only_too_large": "Jen v tomto prohlížeči: větší než 8 KB, které server ukládá na jednu šablonu.",
+    "local_only_no_room": "Jen v tomto prohlížeči: ve vašem účtu není místo pro další šablony.",
+    "personal_in_account": "Vaše šablony se ukládají ve vašem účtu, takže je máte na každém zařízení, kde se přihlásíte. Může je číst každý, s kým sdílíte složku Doručené.",
+    "team_note": "Všichni v {name} vidí tyto šablony a mohou je měnit.",
+    "team_read_only": "Tyto šablony můžete používat, ale ne měnit.",
+    "save_failed_conflict": "Změnil to někdo jiný. Načtěte znovu a zkuste to znovu.",
+    "preview_to": "Komu: {list}",
+    "preview_cc": "Kopie: {list}"
   },
   "contacts": {
     "directory": {
@@ -4090,6 +4189,32 @@
   "unified_mailbox": {
     "search_unavailable": "Vyhledávání není ve sjednoceném zobrazení k dispozici"
   },
+  "recover_deleted": {
+    "tab": "Obnovit smazané položky",
+    "title": "Obnovit smazané položky",
+    "description": "Pošta, kterou jste trvale smazali, například vysypáním koše, ale server ji stále uchovává. Vyberte zprávy a obnovte je.",
+    "range_days": "Zobrazuje se pošta smazaná {days, plural, one {za poslední den} few {za poslední # dny} many {za posledních # dne} other {za posledních # dní}}.",
+    "range_all": "Zobrazuje se veškerá smazaná pošta, kterou server stále uchovává.",
+    "loading": "Načítání smazané pošty…",
+    "load_failed": "Smazanou poštu se nepodařilo načíst.",
+    "retry": "Zkusit znovu",
+    "empty": "Žádná smazaná pošta k obnovení.",
+    "select_all": "Vybrat vše",
+    "selected": "Vybráno: {count}",
+    "refresh": "Obnovit",
+    "restore": "Obnovit",
+    "restored": "{count, plural, one {# zpráva se vrací} few {# zprávy se vracejí} many {# zprávy se vrací} other {# zpráv se vrací}} do složky Doručené.",
+    "restore_partial": "{count, plural, one {# zprávu se nepodařilo obnovit. Zůstává vybraná, abyste to mohli zkusit znovu.} few {# zprávy se nepodařilo obnovit. Zůstávají vybrané, abyste to mohli zkusit znovu.} many {# zprávy se nepodařilo obnovit. Zůstávají vybrané, abyste to mohli zkusit znovu.} other {# zpráv se nepodařilo obnovit. Zůstávají vybrané, abyste to mohli zkusit znovu.}}",
+    "restore_hint": "Obnovená pošta se vrací do složky Doručené jako nepřečtená a řadí se podle původního data, takže může být daleko dole v seznamu. Server ji obnovuje na pozadí. Pokud se to tam nepodaří, zpráva je ztracena a Bulwark to nepozná.",
+    "unknown_sender": "Neznámý odesílatel",
+    "no_subject": "(bez předmětu)",
+    "deleted_on": "Smazáno {date}",
+    "trash_hint": "Omylem trvale smazáno?",
+    "trash_link": "Obnovit smazané položky",
+    "empty_hint": "Smazaná pošta se zde zobrazí jen tehdy, pokud správce v Stalwart zapnul archivaci smazaných položek.",
+    "restore_gone": "{count, plural, one {# zpráva už nebyla v archivu: byla obnovena jinde nebo ji server přestal uchovávat.} few {# zprávy už nebyly v archivu: byly obnoveny jinde nebo je server přestal uchovávat.} many {# zprávy už nebyly v archivu: byly obnoveny jinde nebo je server přestal uchovávat.} other {# zpráv už nebylo v archivu: byly obnoveny jinde nebo je server přestal uchovávat.}}",
+    "show_older": "Zobrazit starší"
+  },
   "calendar_event_notifications": {
     "someone": "Někdo",
     "invited": "{name} vás pozval(a) na „{title}“",
@@ -4134,6 +4259,89 @@
       "readWrite": "Čtení a zápis",
       "manager": "Správce",
       "custom": "Vlastní"
+    }
+  },
+  "delegates": {
+    "tab": "Sdílení",
+    "title": "Zástupci",
+    "description": "Dejte někomu jedním krokem přístup ke své poště, kalendářům a kontaktům a podívejte se, kdo má přístup k čemu.",
+    "give_access": "Dát přístup",
+    "who_has_access": "Kdo má přístup",
+    "nobody": "Nikdo nemá přístup k vaší poště, kalendářům, kontaktům ani souborům.",
+    "loading": "Načítání…",
+    "read_failed": "Část vašeho sdílení se nepodařilo načíst, proto Změnit a Odebrat přístup počkají, dokud to nepůjde.",
+    "change": "Změnit",
+    "remove": "Odebrat přístup",
+    "remove_title": "Odebrat přístup uživateli {name}?",
+    "remove_message": "{name} ztratí přístup ke všemu, co jste sdíleli ze svého účtu: poště, kalendářům, kontaktům a souborům.",
+    "removed": "Přístup odebrán",
+    "remove_partial": "Přístup stále trvá u: {items}",
+    "applied": "{name} má teď přístup",
+    "updated": "Přístup aktualizován",
+    "unknown_person": "Neznámá osoba",
+    "group": "Skupina",
+    "has_access": "Má přístup",
+    "summary": {
+      "mail_all": "Všechny poštovní složky",
+      "mail_inbox": "Doručené",
+      "mail_some": "{count, plural, one {# poštovní složka} few {# poštovní složky} many {# poštovní složky} other {# poštovních složek}}",
+      "calendars": "{count, plural, one {# kalendář} few {# kalendáře} many {# kalendáře} other {# kalendářů}}",
+      "address_books": "{count, plural, one {# adresář} few {# adresáře} many {# adresáře} other {# adresářů}}",
+      "files": "{count, plural, one {# soubor nebo složka} few {# soubory nebo složky} many {# souboru nebo složky} other {# souborů nebo složek}}"
+    },
+    "level": {
+      "read": "Čtení",
+      "write": "Čtení a zápis",
+      "mixed": "Různá oprávnění",
+      "none": "Pouze volno/zaneprázdněno"
+    },
+    "dialog_title_add": "Dát přístup",
+    "dialog_title_change": "Změnit přístup pro {name}",
+    "person": "Osoba",
+    "search_placeholder": "Jméno nebo e-mailová adresa",
+    "change_person": "Změnit",
+    "no_match": "Nikdo nenalezen.",
+    "use_address": "Použít {address}",
+    "looking_up": "Vyhledávání…",
+    "not_found": "Nikdo na tomto serveru nemá adresu {address}.",
+    "lookup_failed": "Tuto adresu se nepodařilo vyhledat.",
+    "is_you": "To jste vy.",
+    "known_only": "Zobrazují se jen vaše skupiny a lidé, kteří s vámi něco sdíleli.",
+    "directory_off_note": "Než budete moci přidat někoho nového, musí správce v Stalwart zapnout dotazy na adresář.",
+    "directory_failed": "Seznam osob a skupin se nepodařilo načíst.",
+    "what": "Co",
+    "mail": "Pošta",
+    "mail_all": "Všechny složky",
+    "mail_inbox": "Jen Doručené",
+    "calendars": "Kalendáře",
+    "calendars_default": "Výchozí kalendář",
+    "calendars_all": "Všechny kalendáře",
+    "address_books": "Kontakty",
+    "address_books_default": "Výchozí adresář",
+    "address_books_all": "Všechny adresáře",
+    "none": "Nic",
+    "keep": "Ponechat beze změny",
+    "empty_scope": "Vyberte poštu, kalendáře nebo kontakty.",
+    "nothing_to_change": "Není co měnit. Vyberte, co má tato osoba dostat, nebo použijte Odebrat přístup.",
+    "change_note": "Složky, kalendáře a adresáře, které vynecháte, přístup ztratí. Sdílené soubory zůstanou, jak jsou; Odebrat přístup odebere i je.",
+    "rights": "Oprávnění",
+    "rights_read": "Čtení",
+    "rights_read_hint": "Vidí vaši poštu, události a kontakty.",
+    "rights_read_hint_flags": "Vidí vaši poštu, události a kontakty. Tento server navíc umožňuje označovat poštu příznakem a jako přečtenou.",
+    "rights_write": "Čtení a zápis",
+    "rights_write_hint": "Navíc zakládá, označuje a maže poštu a mění události a kontakty.",
+    "rights_keep": "Ponechat beze změny",
+    "rights_keep_hint": "To, co už má, si ponechá svá oprávnění; nově přidané dostane oprávnění, jaká má zbytek téhož typu, jinak čtení.",
+    "send_note": "Zástupci mohou číst a třídit vaši poštu a kalendář. Stalwart jim nedovolí odesílat jako vy ani vaším jménem. Pokud má jednu adresu sdílet více lidí, požádejte správce o sdílenou schránku.",
+    "apply_add": "Dát přístup",
+    "apply_change": "Uložit",
+    "partial_title": "Tyto položky se nepodařilo změnit. Zbytek je hotový.",
+    "retry": "Zkusit znovu",
+    "kind": {
+      "mailbox": "Poštovní složka",
+      "calendar": "Kalendář",
+      "addressBook": "Adresář",
+      "file": "Soubor"
     }
   },
   "quote_header": {
@@ -4245,7 +4453,7 @@
       },
       "email_write": {
         "title": "Měnit a třídit vaši poštu",
-        "body": "Přidává nebo odebírá štítky, příznaky a další klíčová slova u vašich zpráv, přesouvá je mezi vašimi složkami a do archivu a ukládá koncepty."
+        "body": "Přidává nebo odebírá štítky, příznaky a další klíčová slova u vašich zpráv, přesouvá je mezi vašimi složkami a do archivu a ukládá koncepty. Může také uložit malou hodnotu, kterou může číst každý člen týmové schránky."
       },
       "email_send": {
         "title": "Měnit poštu před odesláním",
@@ -4361,7 +4569,11 @@
       },
       "account_read": {
         "title": "Vidět vaše účty",
-        "body": "Vidí účty, které jste přidali, včetně jejich adres a serverů."
+        "body": "Vidí účty, které jste přidali, včetně jejich adres a serverů, a které poštovní účty jsou týmové schránky."
+      },
+      "directory_read": {
+        "title": "Vyhledávat osoby",
+        "body": "Vyhledává osoby v adresáři vaší organizace."
       },
       "http_post": {
         "title": "Používat server webmailu vaším jménem",
@@ -4524,6 +4736,10 @@
       "error_server": "Zadejte adresu serveru, například https://cloud.example.com",
       "error_save": "Uložení se nezdařilo: {error}"
     }
+  },
+  "plugin_list": {
+    "filters": "Filtry",
+    "remove_filter": "Odebrat filtr {label}"
   },
   "global_search": {
     "title": "Hledat ve všem",

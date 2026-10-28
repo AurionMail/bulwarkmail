@@ -76,6 +76,20 @@
       "back_to_login": "Înapoi la autentificare"
     }
   },
+  "session_limits": {
+    "idle_title": "Mai sunteți aici?",
+    "idle_message": "Veți fi deconectat în {seconds, plural, one {# secundă} few {# secunde} other {# de secunde}}, deoarece nu a existat nicio activitate. Mesajele deschise sunt salvate ca ciorne.",
+    "stay": "Rămâneți conectat",
+    "sign_out_now": "Deconectare acum",
+    "max_title": "Sesiunea dvs. se încheie",
+    "max_message": "Organizația dvs. încheie sesiunile la {hours, plural, one {# oră} few {# ore} other {# de ore}} după autentificare. Veți fi deconectat în {seconds, plural, one {# secundă} few {# secunde} other {# de secunde}}. Mesajele deschise sunt salvate ca ciorne.",
+    "dismiss": "OK",
+    "signing_out": "Se salvează ciornele și se face deconectarea…",
+    "reason_idle": "Ați fost deconectat după {minutes, plural, one {# minut} few {# minute} other {# de minute}} fără activitate.",
+    "reason_max": "Ați fost deconectat deoarece sesiunea a atins durata maximă de {hours, plural, one {# oră} few {# ore} other {# de ore}}.",
+    "drafts_not_saved": "Unul sau mai multe mesaje deschise nu au putut fi salvate ca ciorne.",
+    "seconds_left": "{seconds, plural, one {A mai rămas # secundă} few {Au mai rămas # secunde} other {Au mai rămas # de secunde}}"
+  },
   "sidebar": {
     "close": "Închide",
     "compose": "Compune",
@@ -311,6 +325,34 @@
     "cancel_and_edit": "Anulează și editează",
     "cancel_and_compose_again": "Anulează și redactează din nou",
     "reschedule_prompt": "Introduceți o nouă dată/oră, de exemplu 2026-05-04T15:30"
+  },
+  "shared_tags": {
+    "title": "Etichete partajate",
+    "description": "Etichetele căsuțelor dvs. de grup. Toți membrii grupului văd aceleași nume și culori pe mesajele lui.",
+    "picker_heading": "Partajate cu toți cei din această căsuță",
+    "sidebar_heading": "Etichete",
+    "edit": "Editați etichetele partajate",
+    "edit_tag": "Editați {name}",
+    "delete_tag": "Ștergeți {name}",
+    "name_it": "Denumiți {name}",
+    "add": "Adăugați o etichetă partajată",
+    "name": "Nume",
+    "color": "Culoare",
+    "save": "Salvare",
+    "cancel": "Anulați",
+    "delete": "Ștergeți",
+    "delete_confirm": "Ștergeți pentru toți? Eticheta rămâne pe mesajele ei.",
+    "found_on_messages": "Pe mesaje, încă fără nume",
+    "empty": "Încă nu există etichete partajate.",
+    "exists": "Această căsuță are deja această etichetă.",
+    "too_long": "Acest nume este prea lung.",
+    "loading": "Se încarcă…",
+    "unsupported": "Acest server de e-mail nu poate păstra etichete partajate, așa că această căsuță afișează etichetele dvs. proprii.",
+    "unavailable": "Etichetele partajate ale acestei căsuțe nu au putut fi încărcate, așa că afișează etichetele dvs. proprii. Bulwark va încerca din nou mai târziu.",
+    "no_rights": "Puteți folosi aceste etichete, dar nu le puteți modifica în această căsuță.",
+    "too_many": "Există prea multe etichete partajate. Ștergeți câteva înainte de a adăuga altele.",
+    "save_failed": "Etichetele partajate nu au putut fi salvate. Bulwark va încerca din nou când serverul răspunde.",
+    "save_pending": "Încă nesalvat. Bulwark va încerca din nou când serverul răspunde."
   },
   "email_viewer": {
     "read_receipt": {
@@ -659,6 +701,18 @@
     "plugin_panel_hide": "Ascunde panoul pluginului",
     "copy": "Copiază"
   },
+  "external_mail": {
+    "sender_label": "Extern",
+    "sender_tooltip": "De la {domain}, din afara organizației dvs.",
+    "sender_tooltip_no_domain": "De la o adresă fără domeniu, din afara organizației dvs.",
+    "confirm_title": "Trimiteți în afara organizației dvs.?",
+    "confirm_message": "{count, plural, one {Acest destinatar este} few {Acești # destinatari sunt} other {Acești # de destinatari sunt}} în afara organizației dvs. Trimiteți doar dacă asta intenționați.",
+    "field_to": "Către",
+    "field_cc": "CC",
+    "field_bcc": "BCC",
+    "send_anyway": "Trimite oricum",
+    "back": "Înapoi"
+  },
   "email_composer": {
     "select_from_directory": "Selectează din director",
     "minimize": "Minimizează",
@@ -981,6 +1035,13 @@
     "rule_folder_failed": "Dosarul nu a putut fi creat",
     "vacation_filters_save_failed": "Setările de absență au fost salvate, dar redirecționarea și destinatarii răspunsului nu au putut fi salvați"
   },
+  "third_party": {
+    "push_needs_relay": "Notificările push au nevoie de un releu push administrat de organizația dvs., iar niciunul nu este configurat. E-mailurile noi apar în continuare cât timp aplicația este deschisă.",
+    "relay_desc": "Sunt oferite doar releele proprii ale organizației dvs., deoarece acest server nu contactează servicii externe.",
+    "relay_none": "Niciunul configurat",
+    "plugin_refused": "Nu a pornit: acest plugin se conectează la servicii externe, pe care organizația dvs. le-a dezactivat.",
+    "remote_content_blocked": "Organizația dvs. blochează conținutul de pe alte servere, așa că imaginile externe din acest mesaj nu sunt afișate."
+  },
   "date": {
     "today": "Astăzi",
     "yesterday": "Ieri",
@@ -1047,6 +1108,7 @@
   },
   "settings": {
     "title": "Setări",
+    "org_locked": "Setat de organizația dvs.",
     "back_to_mail": "Înapoi la Mail",
     "save_success": "Setările au fost salvate cu succes",
     "import_success": "Setările au fost importate cu succes",
@@ -2832,6 +2894,23 @@
     "delete_button": "Șterge",
     "delete_confirm_title": "Ștergeți identitatea"
   },
+  "org_signature": {
+    "disclaimer_added_on_send": "Se adaugă la trimitere",
+    "identity_signature_label": "Semnătură",
+    "identity_no_signature": "Fără semnătură",
+    "identity_default": "Lăsați ambele semnături goale pentru a trimite semnătura organizației dvs. de la această adresă.",
+    "details": {
+      "title": "Datele dvs.",
+      "description": "Semnătura organizației dvs. afișează aceste date. Completați-le o singură dată; fiecare adresă de la care trimiteți le folosește.",
+      "preview": "Semnătura dvs.",
+      "fields": {
+        "title": "Funcția",
+        "department": "Departament",
+        "phone": "Telefon",
+        "mobile": "Mobil"
+      }
+    }
+  },
   "templates": {
     "picker_title": "Alegeți un șablon",
     "search_placeholder": "Căutați șabloane...",
@@ -2858,6 +2937,26 @@
       "day_of_week": "Ziua săptămânii",
       "sender_name": "Numele dvs."
     }
+  },
+  "org_templates": {
+    "section_personal": "Șabloanele mele",
+    "section_organisation": "Organizație",
+    "sources_label": "Liste de șabloane",
+    "organisation_note": "De la organizația dvs. Nu le puteți modifica, dar puteți copia unul în șabloanele dvs.",
+    "copy_to_personal": "Copiați în șabloanele mele",
+    "duplicate": "Duplicare",
+    "save_failed": "Șablonul nu a putut fi salvat. Încercați din nou.",
+    "save_failed_forbidden": "Nu puteți modifica aceste șabloane.",
+    "save_failed_too_large": "Acest șablon depășește cei 8 KB pe care serverul îi păstrează pentru fiecare șablon. Scurtați-l și salvați din nou.",
+    "save_failed_no_room": "Căsuța nu mai are loc pentru alte șabloane. Ștergeți unul și încercați din nou.",
+    "local_only_too_large": "Doar în acest browser: depășește cei 8 KB pe care serverul îi păstrează pentru fiecare șablon.",
+    "local_only_no_room": "Doar în acest browser: contul dvs. nu mai are loc pentru alte șabloane.",
+    "personal_in_account": "Șabloanele dvs. sunt păstrate în cont, deci le aveți pe orice dispozitiv pe care vă autentificați. Oricine cu care partajați dosarul Primite le poate citi.",
+    "team_note": "Toți membrii {name} văd aceste șabloane și le pot modifica.",
+    "team_read_only": "Puteți folosi aceste șabloane, dar nu le puteți modifica.",
+    "save_failed_conflict": "Modificat de altcineva. Reîncărcați și încercați din nou.",
+    "preview_to": "Către: {list}",
+    "preview_cc": "CC: {list}"
   },
   "contacts": {
     "directory": {
@@ -3786,6 +3885,89 @@
       "custom": "Personalizat"
     }
   },
+  "delegates": {
+    "tab": "Partajare",
+    "title": "Delegați",
+    "description": "Oferiți cuiva acces la e-mailul, calendarele și contactele dvs. într-un singur pas și vedeți cine are acces la ce.",
+    "give_access": "Oferiți acces",
+    "who_has_access": "Cine are acces",
+    "nobody": "Nimeni nu are acces la e-mailul, calendarele, contactele sau fișierele dvs.",
+    "loading": "Se încarcă…",
+    "read_failed": "O parte din partajările dvs. nu au putut fi citite, așa că „Modificare” și „Eliminați accesul” așteaptă până când se poate.",
+    "change": "Modificare",
+    "remove": "Eliminați accesul",
+    "remove_title": "Eliminați accesul pentru {name}?",
+    "remove_message": "{name} pierde accesul la tot ce ați partajat din contul dvs.: e-mail, calendare, contacte și fișiere.",
+    "removed": "Accesul a fost eliminat",
+    "remove_partial": "Acestea au încă acces: {items}",
+    "applied": "{name} are acum acces",
+    "updated": "Acces actualizat",
+    "unknown_person": "Persoană necunoscută",
+    "group": "Grup",
+    "has_access": "Are acces",
+    "summary": {
+      "mail_all": "Toate dosarele de e-mail",
+      "mail_inbox": "Primite",
+      "mail_some": "{count, plural, one {# dosar de e-mail} few {# dosare de e-mail} other {# de dosare de e-mail}}",
+      "calendars": "{count, plural, one {# calendar} few {# calendare} other {# de calendare}}",
+      "address_books": "{count, plural, one {# agendă} few {# agende} other {# de agende}}",
+      "files": "{count, plural, one {# fișier sau dosar} few {# fișiere sau dosare} other {# de fișiere sau dosare}}"
+    },
+    "level": {
+      "read": "Citire",
+      "write": "Citire și scriere",
+      "mixed": "Drepturi diferite",
+      "none": "Doar disponibilitate"
+    },
+    "dialog_title_add": "Oferiți acces",
+    "dialog_title_change": "Modificați accesul pentru {name}",
+    "person": "Persoană",
+    "search_placeholder": "Nume sau adresă de e-mail",
+    "change_person": "Modificare",
+    "no_match": "Nu a fost găsit nimeni.",
+    "use_address": "Folosiți {address}",
+    "looking_up": "Se caută…",
+    "not_found": "Nimeni de pe acest server nu are adresa {address}.",
+    "lookup_failed": "Adresa nu a putut fi căutată.",
+    "is_you": "Sunteți dvs.",
+    "known_only": "Sunt afișate doar grupurile dvs. și persoanele care au partajat ceva cu dvs.",
+    "directory_off_note": "Administratorul trebuie să activeze interogările directorului în Stalwart înainte să puteți adăuga pe cineva nou.",
+    "directory_failed": "Lista de persoane și grupuri nu a putut fi încărcată.",
+    "what": "Ce",
+    "mail": "E-mail",
+    "mail_all": "Toate dosarele",
+    "mail_inbox": "Doar Primite",
+    "calendars": "Calendare",
+    "calendars_default": "Calendarul implicit",
+    "calendars_all": "Toate calendarele",
+    "address_books": "Contacte",
+    "address_books_default": "Agenda implicită",
+    "address_books_all": "Toate agendele",
+    "none": "Nimic",
+    "keep": "Lăsați cum este",
+    "empty_scope": "Alegeți e-mail, calendare sau contacte.",
+    "nothing_to_change": "Nimic de modificat. Alegeți ce ar trebui să primească persoana sau folosiți „Eliminați accesul”.",
+    "change_note": "Dosarele, calendarele și agendele pe care le lăsați deoparte pierd accesul. Fișierele partajate rămân cum sunt; „Eliminați accesul” le retrage și pe acestea.",
+    "rights": "Drepturi",
+    "rights_read": "Citire",
+    "rights_read_hint": "Vede e-mailul, evenimentele și contactele dvs.",
+    "rights_read_hint_flags": "Vede e-mailul, evenimentele și contactele dvs. Acest server permite și marcarea e-mailurilor cu stegulețe și ca citite.",
+    "rights_write": "Citire și scriere",
+    "rights_write_hint": "În plus, poate muta în dosare, marca și șterge e-mailuri și poate modifica evenimente și contacte.",
+    "rights_keep": "Lăsați cum este",
+    "rights_keep_hint": "Ce are deja își păstrează drepturile; ce se adaugă primește drepturile pe care le are restul de același tip sau citire.",
+    "send_note": "Delegații pot citi și organiza e-mailul și calendarul dvs. Stalwart nu le permite să trimită ca dvs. sau în numele dvs. Pentru a partaja o adresă între mai multe persoane, cereți administratorului o căsuță partajată.",
+    "apply_add": "Oferiți acces",
+    "apply_change": "Salvare",
+    "partial_title": "Acestea nu au putut fi modificate. Restul este gata.",
+    "retry": "Încercați din nou",
+    "kind": {
+      "mailbox": "Dosar de e-mail",
+      "calendar": "Calendar",
+      "addressBook": "Agendă",
+      "file": "Fișier"
+    }
+  },
   "advanced_search": {
     "title": "Căutare avansată",
     "from": "De la",
@@ -4136,6 +4318,32 @@
   "unified_mailbox": {
     "search_unavailable": "Funcția de căutare nu este disponibilă în vizualizarea unificată"
   },
+  "recover_deleted": {
+    "tab": "Recuperați elementele șterse",
+    "title": "Recuperați elementele șterse",
+    "description": "E-mailuri pe care le-ați șters definitiv, de exemplu golind Coșul de gunoi, și pe care serverul încă le păstrează. Selectați mesaje și restabiliți-le.",
+    "range_days": "Se afișează e-mailurile șterse {days, plural, one {în ultima zi} few {în ultimele # zile} other {în ultimele # de zile}}.",
+    "range_all": "Se afișează toate e-mailurile șterse pe care serverul încă le păstrează.",
+    "loading": "Se încarcă e-mailurile șterse…",
+    "load_failed": "E-mailurile șterse nu au putut fi încărcate.",
+    "retry": "Încercați din nou",
+    "empty": "Nu există e-mailuri șterse de recuperat.",
+    "select_all": "Selectează tot",
+    "selected": "{count} selectate",
+    "refresh": "Reîmprospătează",
+    "restore": "Restabilește",
+    "restored": "{count, plural, one {# mesaj revine} few {# mesaje revin} other {# de mesaje revin}} în dosarul Primite.",
+    "restore_partial": "{count, plural, one {# mesaj nu a putut fi restabilit. Rămâne selectat, ca să puteți încerca din nou.} few {# mesaje nu au putut fi restabilite. Rămân selectate, ca să puteți încerca din nou.} other {# de mesaje nu au putut fi restabilite. Rămân selectate, ca să puteți încerca din nou.}}",
+    "restore_hint": "E-mailurile restabilite revin în Primite ca necitite, ordonate după data inițială, deci pot fi mult mai jos în listă. Serverul le restabilește în fundal. Dacă acolo nu reușește, mesajul se pierde și Bulwark nu are cum să afle.",
+    "unknown_sender": "Expeditor necunoscut",
+    "no_subject": "(fără subiect)",
+    "deleted_on": "Șters pe {date}",
+    "trash_hint": "Șters definitiv din greșeală?",
+    "trash_link": "Recuperați elementele șterse",
+    "empty_hint": "E-mailurile șterse apar aici doar dacă administratorul a activat în Stalwart arhivarea elementelor șterse.",
+    "restore_gone": "{count, plural, one {# mesaj nu mai era în arhivă: a fost restabilit în altă parte sau serverul nu îl mai păstrează.} few {# mesaje nu mai erau în arhivă: au fost restabilite în altă parte sau serverul nu le mai păstrează.} other {# de mesaje nu mai erau în arhivă: au fost restabilite în altă parte sau serverul nu le mai păstrează.}}",
+    "show_older": "Afișați mai vechi"
+  },
   "quote_header": {
     "reply_line": "Pe {date}, {from} a scris:",
     "forwarded_separator": "---------- Mesaj redirecționat ----------",
@@ -4245,7 +4453,7 @@
       },
       "email_write": {
         "title": "Modificarea și organizarea e-mailurilor",
-        "body": "Adaugă sau elimină etichete, marcaje și alte cuvinte cheie din mesajele dvs., le mută între dosarele dvs. și în arhivă și salvează ciorne."
+        "body": "Adaugă sau elimină etichete, marcaje și alte cuvinte cheie din mesajele dvs., le mută între dosarele dvs. și în arhivă și salvează ciorne. Poate păstra și o valoare mică pe care o poate citi orice membru al unei căsuțe de echipă."
       },
       "email_send": {
         "title": "Modificarea e-mailurilor înainte de trimitere",
@@ -4361,7 +4569,11 @@
       },
       "account_read": {
         "title": "Vizualizarea conturilor",
-        "body": "Vede conturile pe care le-ați adăugat, cu adresele și serverele lor."
+        "body": "Vede conturile pe care le-ați adăugat, cu adresele și serverele lor, și care conturi de e-mail sunt căsuțe de echipă."
+      },
+      "directory_read": {
+        "title": "Căutarea persoanelor",
+        "body": "Caută persoane în directorul organizației dvs."
       },
       "http_post": {
         "title": "Folosirea serverului webmail în numele dvs.",
@@ -4524,6 +4736,10 @@
       "error_server": "Introduceți adresa serverului, de exemplu https://cloud.example.com",
       "error_save": "Nu s-a putut salva: {error}"
     }
+  },
+  "plugin_list": {
+    "filters": "Filtre",
+    "remove_filter": "Eliminați filtrul {label}"
   },
   "global_search": {
     "title": "Caută în tot",

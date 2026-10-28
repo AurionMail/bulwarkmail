@@ -76,6 +76,20 @@
       "back_to_login": "Terug naar inloggen"
     }
   },
+  "session_limits": {
+    "idle_title": "Ben je er nog?",
+    "idle_message": "Je wordt over {seconds, plural, one {# seconde} other {# seconden}} afgemeld omdat er geen activiteit was. Geopende berichten worden als concept opgeslagen.",
+    "stay": "Aangemeld blijven",
+    "sign_out_now": "Nu afmelden",
+    "max_title": "Je sessie loopt af",
+    "max_message": "Je organisatie beëindigt sessies {hours, plural, one {# uur} other {# uur}} na het aanmelden. Je wordt over {seconds, plural, one {# seconde} other {# seconden}} afgemeld. Geopende berichten worden als concept opgeslagen.",
+    "dismiss": "OK",
+    "signing_out": "Concepten opslaan en afmelden…",
+    "reason_idle": "Je bent afgemeld na {minutes, plural, one {# minuut} other {# minuten}} zonder activiteit.",
+    "reason_max": "Je bent afgemeld omdat je sessie de maximale duur van {hours, plural, one {# uur} other {# uur}} heeft bereikt.",
+    "drafts_not_saved": "Een of meer geopende berichten konden niet als concept worden opgeslagen.",
+    "seconds_left": "Nog {seconds, plural, one {# seconde} other {# seconden}}"
+  },
   "sidebar": {
     "close": "Sluiten",
     "compose": "Nieuw bericht",
@@ -311,6 +325,34 @@
     "cancel_and_edit": "Annuleren en bewerken",
     "cancel_and_compose_again": "Annuleren en opnieuw opstellen",
     "reschedule_prompt": "Voer een nieuwe datum/tijd in, bijv. 2026-05-04T15:30"
+  },
+  "shared_tags": {
+    "title": "Gedeelde labels",
+    "description": "Labels van je groepspostvakken. Iedereen in de groep ziet dezelfde namen en kleuren bij de e-mail ervan.",
+    "picker_heading": "Gedeeld met iedereen in dit postvak",
+    "sidebar_heading": "Labels",
+    "edit": "Gedeelde labels bewerken",
+    "edit_tag": "{name} bewerken",
+    "delete_tag": "{name} verwijderen",
+    "name_it": "{name} een naam geven",
+    "add": "Gedeeld label toevoegen",
+    "name": "Naam",
+    "color": "Kleur",
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "delete": "Verwijderen",
+    "delete_confirm": "Voor iedereen verwijderen? Het label blijft op de berichten staan.",
+    "found_on_messages": "Op berichten, nog zonder naam",
+    "empty": "Nog geen gedeelde labels.",
+    "exists": "Dit postvak heeft dit label al.",
+    "too_long": "Deze naam is te lang.",
+    "loading": "Laden…",
+    "unsupported": "Deze mailserver kan geen gedeelde labels bewaren, daarom toont dit postvak je eigen labels.",
+    "unavailable": "De gedeelde labels van dit postvak konden niet worden geladen, daarom toont het je eigen labels. Bulwark probeert het later opnieuw.",
+    "no_rights": "Je kunt deze labels gebruiken, maar je kunt ze in dit postvak niet wijzigen.",
+    "too_many": "Er zijn te veel gedeelde labels. Verwijder er een paar voordat je meer toevoegt.",
+    "save_failed": "De gedeelde labels konden niet worden opgeslagen. Bulwark probeert het opnieuw zodra de server antwoordt.",
+    "save_pending": "Nog niet opgeslagen. Bulwark probeert het opnieuw zodra de server antwoordt."
   },
   "email_viewer": {
     "read_receipt": {
@@ -659,6 +701,18 @@
     "plugin_panel_hide": "Plug-inpaneel verbergen",
     "copy": "Kopiëren"
   },
+  "external_mail": {
+    "sender_label": "Extern",
+    "sender_tooltip": "Van {domain}, buiten je organisatie",
+    "sender_tooltip_no_domain": "Van een adres zonder domein, buiten je organisatie",
+    "confirm_title": "Buiten je organisatie verzenden?",
+    "confirm_message": "{count, plural, one {Deze ontvanger valt} other {Deze # ontvangers vallen}} buiten je organisatie. Verzend alleen als dat de bedoeling is.",
+    "field_to": "Aan",
+    "field_cc": "CC",
+    "field_bcc": "BCC",
+    "send_anyway": "Toch verzenden",
+    "back": "Terug"
+  },
   "email_composer": {
     "select_from_directory": "Kiezen uit adresboek van de organisatie",
     "minimize": "Minimaliseren",
@@ -981,6 +1035,13 @@
     "rule_folder_failed": "De map kon niet worden gemaakt",
     "vacation_filters_save_failed": "Afwezigheidsinstellingen opgeslagen, maar het doorsturen en de ontvangers van het antwoord konden niet worden opgeslagen"
   },
+  "third_party": {
+    "push_needs_relay": "Pushmeldingen hebben een pushrelay van je organisatie nodig, en er is er geen ingesteld. Nieuwe e-mail wordt nog steeds getoond zolang de app open is.",
+    "relay_desc": "Alleen de eigen relays van je organisatie worden aangeboden, omdat deze server geen externe diensten benadert.",
+    "relay_none": "Geen ingesteld",
+    "plugin_refused": "Niet gestart: deze plug-in maakt verbinding met externe diensten, en die heeft je organisatie uitgeschakeld.",
+    "remote_content_blocked": "Je organisatie blokkeert inhoud van andere servers, daarom worden externe afbeeldingen in dit bericht niet getoond."
+  },
   "date": {
     "today": "Vandaag",
     "yesterday": "Gisteren",
@@ -1047,6 +1108,7 @@
   },
   "settings": {
     "title": "Instellingen",
+    "org_locked": "Ingesteld door je organisatie",
     "back_to_mail": "Terug naar Mail",
     "save_success": "Instellingen succesvol opgeslagen",
     "import_success": "Instellingen succesvol geïmporteerd",
@@ -2832,6 +2894,23 @@
     "delete_button": "Verwijderen",
     "delete_confirm_title": "Identiteit verwijderen"
   },
+  "org_signature": {
+    "disclaimer_added_on_send": "Wordt bij verzenden toegevoegd",
+    "identity_signature_label": "Handtekening",
+    "identity_no_signature": "Geen handtekening",
+    "identity_default": "Laat beide handtekeningen leeg om vanaf dit adres de handtekening van je organisatie te verzenden.",
+    "details": {
+      "title": "Je gegevens",
+      "description": "De handtekening van je organisatie toont deze gegevens. Vul ze één keer in; elk adres waarvan je verzendt gebruikt ze.",
+      "preview": "Je handtekening",
+      "fields": {
+        "title": "Functie",
+        "department": "Afdeling",
+        "phone": "Telefoon",
+        "mobile": "Mobiel"
+      }
+    }
+  },
   "templates": {
     "picker_title": "Kies een sjabloon",
     "search_placeholder": "Sjablonen zoeken...",
@@ -2858,6 +2937,26 @@
       "day_of_week": "Dag van de week",
       "sender_name": "Uw naam"
     }
+  },
+  "org_templates": {
+    "section_personal": "Mijn sjablonen",
+    "section_organisation": "Organisatie",
+    "sources_label": "Sjabloonlijsten",
+    "organisation_note": "Van je organisatie. Je kunt ze niet wijzigen, maar je kunt er een naar je eigen sjablonen kopiëren.",
+    "copy_to_personal": "Naar mijn sjablonen kopiëren",
+    "duplicate": "Dupliceren",
+    "save_failed": "Het sjabloon kon niet worden opgeslagen. Probeer het opnieuw.",
+    "save_failed_forbidden": "Je kunt deze sjablonen niet wijzigen.",
+    "save_failed_too_large": "Dit sjabloon is groter dan de 8 KB die de server per sjabloon bewaart. Maak het korter en sla het opnieuw op.",
+    "save_failed_no_room": "Het postvak heeft geen ruimte voor meer sjablonen. Verwijder er een en probeer het opnieuw.",
+    "local_only_too_large": "Alleen in deze browser: groter dan de 8 KB die de server per sjabloon bewaart.",
+    "local_only_no_room": "Alleen in deze browser: je account heeft geen ruimte voor meer sjablonen.",
+    "personal_in_account": "Je sjablonen worden in je account bewaard, dus je hebt ze op elk apparaat waarop je je aanmeldt. Iedereen met wie je je Postvak IN deelt, kan ze lezen.",
+    "team_note": "Iedereen in {name} ziet deze sjablonen en kan ze wijzigen.",
+    "team_read_only": "Je kunt deze sjablonen gebruiken, maar niet wijzigen.",
+    "save_failed_conflict": "Door iemand anders gewijzigd. Laad opnieuw en probeer het nog eens.",
+    "preview_to": "Aan: {list}",
+    "preview_cc": "CC: {list}"
   },
   "contacts": {
     "directory": {
@@ -4090,6 +4189,32 @@
   "unified_mailbox": {
     "search_unavailable": "Zoeken is niet beschikbaar in de gecombineerde weergave"
   },
+  "recover_deleted": {
+    "tab": "Verwijderde items herstellen",
+    "title": "Verwijderde items herstellen",
+    "description": "E-mail die je definitief hebt verwijderd, bijvoorbeeld door de prullenbak te legen, en die de server nog bewaart. Selecteer berichten en herstel ze.",
+    "range_days": "E-mail die {days, plural, one {de afgelopen dag} other {de afgelopen # dagen}} is verwijderd.",
+    "range_all": "Alle verwijderde e-mail die de server nog bewaart.",
+    "loading": "Verwijderde e-mail laden…",
+    "load_failed": "Verwijderde e-mail kon niet worden geladen.",
+    "retry": "Opnieuw proberen",
+    "empty": "Er is geen verwijderde e-mail om te herstellen.",
+    "select_all": "Alles selecteren",
+    "selected": "{count} geselecteerd",
+    "refresh": "Vernieuwen",
+    "restore": "Herstellen",
+    "restored": "{count, plural, one {# bericht gaat} other {# berichten gaan}} terug naar je Postvak IN.",
+    "restore_partial": "{count, plural, one {# bericht kon niet worden hersteld. Het blijft geselecteerd, zodat je het opnieuw kunt proberen.} other {# berichten konden niet worden hersteld. Ze blijven geselecteerd, zodat je het opnieuw kunt proberen.}}",
+    "restore_hint": "Herstelde e-mail komt ongelezen terug in je Postvak IN, gesorteerd op de oorspronkelijke datum, dus misschien ver onderaan de lijst. De server herstelt het op de achtergrond. Mislukt dat daar, dan is het bericht verloren en kan Bulwark dat niet zien.",
+    "unknown_sender": "Onbekende afzender",
+    "no_subject": "(geen onderwerp)",
+    "deleted_on": "Verwijderd op {date}",
+    "trash_hint": "Per ongeluk definitief verwijderd?",
+    "trash_link": "Verwijderde items herstellen",
+    "empty_hint": "Verwijderde e-mail verschijnt hier alleen als je beheerder in Stalwart het archiveren van verwijderde items heeft ingeschakeld.",
+    "restore_gone": "{count, plural, one {# bericht stond niet meer in het archief: het is elders hersteld of de server bewaart het niet meer.} other {# berichten stonden niet meer in het archief: ze zijn elders hersteld of de server bewaart ze niet meer.}}",
+    "show_older": "Oudere tonen"
+  },
   "calendar_event_notifications": {
     "someone": "Iemand",
     "invited": "{name} heeft je uitgenodigd voor \"{title}\"",
@@ -4134,6 +4259,89 @@
       "readWrite": "Lezen en schrijven",
       "manager": "Beheerder",
       "custom": "Aangepast"
+    }
+  },
+  "delegates": {
+    "tab": "Delen",
+    "title": "Gedelegeerden",
+    "description": "Geef iemand in één stap toegang tot je e-mail, agenda's en contacten, en zie wie waartoe toegang heeft.",
+    "give_access": "Toegang geven",
+    "who_has_access": "Wie heeft toegang",
+    "nobody": "Niemand heeft toegang tot je e-mail, agenda's, contacten of bestanden.",
+    "loading": "Laden…",
+    "read_failed": "Een deel van wat je deelt kon niet worden gelezen, daarom wachten Wijzigen en Toegang intrekken tot dat wel lukt.",
+    "change": "Wijzigen",
+    "remove": "Toegang intrekken",
+    "remove_title": "Toegang voor {name} intrekken?",
+    "remove_message": "{name} verliest de toegang tot alles wat je vanuit je eigen account hebt gedeeld: e-mail, agenda's, contacten en bestanden.",
+    "removed": "Toegang ingetrokken",
+    "remove_partial": "Hier is nog toegang: {items}",
+    "applied": "{name} heeft nu toegang",
+    "updated": "Toegang bijgewerkt",
+    "unknown_person": "Onbekende persoon",
+    "group": "Groep",
+    "has_access": "Heeft toegang",
+    "summary": {
+      "mail_all": "Alle e-mailmappen",
+      "mail_inbox": "Postvak IN",
+      "mail_some": "{count, plural, one {# e-mailmap} other {# e-mailmappen}}",
+      "calendars": "{count, plural, one {# agenda} other {# agenda's}}",
+      "address_books": "{count, plural, one {# adresboek} other {# adresboeken}}",
+      "files": "{count, plural, one {# bestand of map} other {# bestanden of mappen}}"
+    },
+    "level": {
+      "read": "Lezen",
+      "write": "Lezen en schrijven",
+      "mixed": "Verschillende rechten",
+      "none": "Alleen vrij/bezet"
+    },
+    "dialog_title_add": "Toegang geven",
+    "dialog_title_change": "Toegang voor {name} wijzigen",
+    "person": "Persoon",
+    "search_placeholder": "Naam of e-mailadres",
+    "change_person": "Wijzigen",
+    "no_match": "Niemand gevonden.",
+    "use_address": "{address} gebruiken",
+    "looking_up": "Zoeken…",
+    "not_found": "Niemand op deze server heeft het adres {address}.",
+    "lookup_failed": "Dit adres kon niet worden opgezocht.",
+    "is_you": "Dat ben jij.",
+    "known_only": "Alleen je groepen en personen die iets met je hebben gedeeld, worden getoond.",
+    "directory_off_note": "Je beheerder moet directoryquery's in Stalwart inschakelen voordat je iemand nieuw kunt toevoegen.",
+    "directory_failed": "De lijst met personen en groepen kon niet worden geladen.",
+    "what": "Wat",
+    "mail": "E-mail",
+    "mail_all": "Alle mappen",
+    "mail_inbox": "Alleen Postvak IN",
+    "calendars": "Agenda's",
+    "calendars_default": "Standaardagenda",
+    "calendars_all": "Alle agenda's",
+    "address_books": "Contacten",
+    "address_books_default": "Standaardadresboek",
+    "address_books_all": "Alle adresboeken",
+    "none": "Niets",
+    "keep": "Laten zoals het is",
+    "empty_scope": "Kies e-mail, agenda's of contacten.",
+    "nothing_to_change": "Niets te wijzigen. Kies wat deze persoon moet krijgen, of gebruik Toegang intrekken.",
+    "change_note": "Mappen, agenda's en adresboeken die je weglaat, verliezen de toegang. Gedeelde bestanden blijven zoals ze zijn; Toegang intrekken neemt die ook weg.",
+    "rights": "Rechten",
+    "rights_read": "Lezen",
+    "rights_read_hint": "Je e-mail, afspraken en contacten bekijken.",
+    "rights_read_hint_flags": "Je e-mail, afspraken en contacten bekijken. Op deze server kunnen ze e-mail ook een vlag geven en als gelezen markeren.",
+    "rights_write": "Lezen en schrijven",
+    "rights_write_hint": "Ook e-mail archiveren, markeren en verwijderen, en afspraken en contacten wijzigen.",
+    "rights_keep": "Laten zoals het is",
+    "rights_keep_hint": "Wat deze persoon al heeft, houdt zijn rechten; wat erbij komt, krijgt de rechten die de rest van dat soort heeft, anders lezen.",
+    "send_note": "Gedelegeerden kunnen je e-mail en agenda lezen en ordenen. Stalwart laat ze niet als jou of namens jou verzenden. Wil je één adres met meerdere mensen delen, vraag je beheerder dan om een gedeeld postvak.",
+    "apply_add": "Toegang geven",
+    "apply_change": "Opslaan",
+    "partial_title": "Deze konden niet worden gewijzigd. De rest is klaar.",
+    "retry": "Opnieuw proberen",
+    "kind": {
+      "mailbox": "E-mailmap",
+      "calendar": "Agenda",
+      "addressBook": "Adresboek",
+      "file": "Bestand"
     }
   },
   "quote_header": {
@@ -4245,7 +4453,7 @@
       },
       "email_write": {
         "title": "Je e-mail wijzigen en ordenen",
-        "body": "Labels, markeringen en andere trefwoorden aan je berichten toevoegen of ervan verwijderen, berichten tussen je mappen en naar het archief verplaatsen, en concepten opslaan."
+        "body": "Labels, markeringen en andere trefwoorden aan je berichten toevoegen of ervan verwijderen, berichten tussen je mappen en naar het archief verplaatsen, en concepten opslaan. Kan ook een kleine waarde opslaan die elk lid van een teampostvak kan lezen."
       },
       "email_send": {
         "title": "E-mail wijzigen voordat die wordt verzonden",
@@ -4361,7 +4569,11 @@
       },
       "account_read": {
         "title": "Je accounts zien",
-        "body": "De accounts zien die je hebt toegevoegd, met hun adressen en servers."
+        "body": "De accounts zien die je hebt toegevoegd, met hun adressen en servers, en welke e-mailaccounts teampostvakken zijn."
+      },
+      "directory_read": {
+        "title": "Personen opzoeken",
+        "body": "Personen opzoeken in de directory van je organisatie."
       },
       "http_post": {
         "title": "De webmailserver voor je gebruiken",
@@ -4524,6 +4736,10 @@
       "error_server": "Vul het adres van de server in, bijvoorbeeld https://cloud.example.com",
       "error_save": "Opslaan mislukt: {error}"
     }
+  },
+  "plugin_list": {
+    "filters": "Filters",
+    "remove_filter": "Filter {label} verwijderen"
   },
   "global_search": {
     "title": "Alles doorzoeken",

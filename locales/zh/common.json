@@ -76,6 +76,20 @@
       "back_to_login": "返回登录"
     }
   },
+  "session_limits": {
+    "idle_title": "您还在吗？",
+    "idle_message": "由于没有任何活动，您将在 {seconds, plural, other {# 秒}}后退出登录。打开的邮件会保存为草稿。",
+    "stay": "保持登录",
+    "sign_out_now": "立即退出登录",
+    "max_title": "您的会话即将结束",
+    "max_message": "您的组织会在登录 {hours, plural, other {# 小时}}后结束会话。您将在 {seconds, plural, other {# 秒}}后退出登录。打开的邮件会保存为草稿。",
+    "dismiss": "确定",
+    "signing_out": "正在保存草稿并退出登录…",
+    "reason_idle": "由于 {minutes, plural, other {# 分钟}}内没有活动，您已退出登录。",
+    "reason_max": "由于会话已达到 {hours, plural, other {# 小时}}的最长时限，您已退出登录。",
+    "drafts_not_saved": "有一封或多封打开的邮件未能保存为草稿。",
+    "seconds_left": "还剩 {seconds, plural, other {# 秒}}"
+  },
   "sidebar": {
     "close": "关闭",
     "compose": "撰写邮件",
@@ -311,6 +325,34 @@
     "cancel_and_edit": "取消并编辑",
     "cancel_and_compose_again": "取消并重新撰写",
     "reschedule_prompt": "输入新的日期/时间，例如 2026-05-04T15:30"
+  },
+  "shared_tags": {
+    "title": "共享标签",
+    "description": "您的群组邮箱的标签。群组中的每个人在其邮件上看到的名称和颜色都相同。",
+    "picker_heading": "与此邮箱中的所有人共享",
+    "sidebar_heading": "标签",
+    "edit": "编辑共享标签",
+    "edit_tag": "编辑 {name}",
+    "delete_tag": "删除 {name}",
+    "name_it": "为 {name} 命名",
+    "add": "添加共享标签",
+    "name": "名称",
+    "color": "颜色",
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "delete_confirm": "要为所有人删除吗？标签仍会保留在其邮件上。",
+    "found_on_messages": "已在邮件上，尚未命名",
+    "empty": "还没有共享标签。",
+    "exists": "此邮箱已有这个标签。",
+    "too_long": "名称太长。",
+    "loading": "加载中…",
+    "unsupported": "此邮件服务器无法保存共享标签，因此此邮箱显示的是您自己的标签。",
+    "unavailable": "无法加载此邮箱的共享标签，因此显示的是您自己的标签。Bulwark 稍后会重试。",
+    "no_rights": "您可以使用这些标签，但不能在此邮箱中更改它们。",
+    "too_many": "共享标签太多。请先删除一些再添加。",
+    "save_failed": "无法保存共享标签。服务器响应后 Bulwark 会重试。",
+    "save_pending": "尚未保存。服务器响应后 Bulwark 会重试。"
   },
   "email_viewer": {
     "read_receipt": {
@@ -659,6 +701,18 @@
     "plugin_panel_hide": "隐藏插件面板",
     "copy": "复制"
   },
+  "external_mail": {
+    "sender_label": "外部",
+    "sender_tooltip": "来自 {domain}，位于您的组织之外",
+    "sender_tooltip_no_domain": "来自没有域名的地址，位于您的组织之外",
+    "confirm_title": "要发送到组织外部吗？",
+    "confirm_message": "{count, plural, other {这 # 位收件人}}位于您的组织之外。请仅在确有此意时发送。",
+    "field_to": "收件人",
+    "field_cc": "抄送",
+    "field_bcc": "密送",
+    "send_anyway": "仍然发送",
+    "back": "返回"
+  },
   "email_composer": {
     "select_from_directory": "从目录中选择",
     "minimize": "最小化",
@@ -981,6 +1035,13 @@
     "rule_folder_failed": "无法创建文件夹",
     "vacation_filters_save_failed": "外出设置已保存，但转发和回复对象设置未能保存"
   },
+  "third_party": {
+    "push_needs_relay": "推送通知需要由您的组织运行的推送中继，但尚未设置。应用打开时，新邮件仍会显示。",
+    "relay_desc": "由于此服务器不连接外部服务，因此只提供您组织自己的中继。",
+    "relay_none": "未设置",
+    "plugin_refused": "未启动：此插件会连接外部服务，而您的组织已将其关闭。",
+    "remote_content_blocked": "您的组织会阻止来自其他服务器的内容，因此此邮件中的远程图片不会显示。"
+  },
   "date": {
     "today": "今天",
     "yesterday": "昨天",
@@ -1047,6 +1108,7 @@
   },
   "settings": {
     "title": "设置",
+    "org_locked": "由您的组织设置",
     "back_to_mail": "返回邮件",
     "save_success": "设置保存成功",
     "import_success": "设置导入成功",
@@ -2832,6 +2894,23 @@
     "delete_button": "删除",
     "delete_confirm_title": "删除身份"
   },
+  "org_signature": {
+    "disclaimer_added_on_send": "发送时添加",
+    "identity_signature_label": "签名",
+    "identity_no_signature": "无签名",
+    "identity_default": "将两个签名都留空，即可从此地址发送您组织的签名。",
+    "details": {
+      "title": "您的信息",
+      "description": "您组织的签名会显示这些信息。只需填写一次，您用于发送的每个地址都会使用它们。",
+      "preview": "您的签名",
+      "fields": {
+        "title": "职位",
+        "department": "部门",
+        "phone": "电话",
+        "mobile": "手机"
+      }
+    }
+  },
   "templates": {
     "picker_title": "选择一个模板",
     "search_placeholder": "搜索模板...",
@@ -2858,6 +2937,26 @@
       "day_of_week": "星期几",
       "sender_name": "你的名字"
     }
+  },
+  "org_templates": {
+    "section_personal": "我的模板",
+    "section_organisation": "组织",
+    "sources_label": "模板列表",
+    "organisation_note": "来自您的组织。您不能更改它们，但可以将其复制到您自己的模板中。",
+    "copy_to_personal": "复制到我的模板",
+    "duplicate": "创建副本",
+    "save_failed": "无法保存模板。请重试。",
+    "save_failed_forbidden": "您不能更改这些模板。",
+    "save_failed_too_large": "此模板超过了服务器为每个模板保存的 8 KB 上限。请缩短后重新保存。",
+    "save_failed_no_room": "邮箱中没有空间保存更多模板。请删除一个后重试。",
+    "local_only_too_large": "仅在此浏览器中：超过了服务器为每个模板保存的 8 KB 上限。",
+    "local_only_no_room": "仅在此浏览器中：您的账户没有空间保存更多模板。",
+    "personal_in_account": "您的模板保存在您的账户中，因此您登录的每台设备上都能使用。与您共享收件箱的任何人都可以阅读它们。",
+    "team_note": "{name} 中的所有人都能看到并更改这些模板。",
+    "team_read_only": "您可以使用这些模板，但不能更改它们。",
+    "save_failed_conflict": "已被其他人更改。请重新加载后重试。",
+    "preview_to": "收件人：{list}",
+    "preview_cc": "抄送：{list}"
   },
   "contacts": {
     "directory": {
@@ -4090,6 +4189,32 @@
   "unified_mailbox": {
     "search_unavailable": "统一视图中无法使用搜索"
   },
+  "recover_deleted": {
+    "tab": "恢复已删除项目",
+    "title": "恢复已删除项目",
+    "description": "您已永久删除（例如清空已删除文件夹）但服务器仍保留的邮件。选择邮件即可恢复。",
+    "range_days": "显示{days, plural, other {过去 # 天}}内删除的邮件。",
+    "range_all": "显示服务器仍保留的所有已删除邮件。",
+    "loading": "正在加载已删除的邮件…",
+    "load_failed": "无法加载已删除的邮件。",
+    "retry": "重试",
+    "empty": "没有可恢复的已删除邮件。",
+    "select_all": "全选",
+    "selected": "已选择 {count} 个",
+    "refresh": "刷新",
+    "restore": "还原",
+    "restored": "{count, plural, other {# 封邮件}}正在返回您的收件箱。",
+    "restore_partial": "{count, plural, other {# 封邮件无法还原。它们仍保持选中，您可以重试。}}",
+    "restore_hint": "还原的邮件会以未读状态返回收件箱，并按原始日期排序，因此可能位于列表很靠下的位置。服务器会在后台进行还原。如果服务器端还原失败，邮件将会丢失，而 Bulwark 无法得知。",
+    "unknown_sender": "未知发件人",
+    "no_subject": "（无主题）",
+    "deleted_on": "删除于 {date}",
+    "trash_hint": "误将邮件永久删除了？",
+    "trash_link": "恢复已删除项目",
+    "empty_hint": "只有当您的管理员在 Stalwart 中启用了已删除项目归档后，已删除的邮件才会显示在这里。",
+    "restore_gone": "{count, plural, other {# 封邮件已不在归档中：它们已在其他地方被还原，或服务器已不再保留。}}",
+    "show_older": "显示更早的邮件"
+  },
   "calendar_event_notifications": {
     "someone": "有人",
     "invited": "{name} 邀请您参加“{title}”",
@@ -4134,6 +4259,89 @@
       "readWrite": "读写",
       "manager": "管理员",
       "custom": "自定义"
+    }
+  },
+  "delegates": {
+    "tab": "共享",
+    "title": "代理人",
+    "description": "一步为他人授予对您的邮件、日历和联系人的访问权限，并查看谁可以访问什么。",
+    "give_access": "授予访问权限",
+    "who_has_access": "谁有访问权限",
+    "nobody": "没有人可以访问您的邮件、日历、联系人或文件。",
+    "loading": "加载中…",
+    "read_failed": "无法读取您的部分共享设置，因此“更改”和“取消访问”需等到可以读取时才能使用。",
+    "change": "更改",
+    "remove": "取消访问",
+    "remove_title": "要取消 {name} 的访问权限吗？",
+    "remove_message": "{name} 将无法再访问您从自己账户共享的所有内容：邮件、日历、联系人和文件。",
+    "removed": "已取消访问权限",
+    "remove_partial": "以下项目仍有访问权限：{items}",
+    "applied": "{name} 现在有访问权限了",
+    "updated": "已更新访问权限",
+    "unknown_person": "未知人员",
+    "group": "群组",
+    "has_access": "有访问权限",
+    "summary": {
+      "mail_all": "所有邮件文件夹",
+      "mail_inbox": "收件箱",
+      "mail_some": "{count, plural, other {# 个邮件文件夹}}",
+      "calendars": "{count, plural, other {# 个日历}}",
+      "address_books": "{count, plural, other {# 个地址簿}}",
+      "files": "{count, plural, other {# 个文件或文件夹}}"
+    },
+    "level": {
+      "read": "读取",
+      "write": "读写",
+      "mixed": "权限不同",
+      "none": "仅显示忙/闲"
+    },
+    "dialog_title_add": "授予访问权限",
+    "dialog_title_change": "更改 {name} 的访问权限",
+    "person": "人员",
+    "search_placeholder": "姓名或电子邮件地址",
+    "change_person": "更改",
+    "no_match": "未找到任何人。",
+    "use_address": "使用 {address}",
+    "looking_up": "正在查找…",
+    "not_found": "此服务器上没有人使用地址 {address}。",
+    "lookup_failed": "无法查找此地址。",
+    "is_you": "这是您自己。",
+    "known_only": "仅列出您所在的群组以及与您共享过内容的人员。",
+    "directory_off_note": "您的管理员需要先在 Stalwart 中启用目录查询，您才能添加新的人员。",
+    "directory_failed": "无法加载人员和群组列表。",
+    "what": "内容",
+    "mail": "邮件",
+    "mail_all": "所有文件夹",
+    "mail_inbox": "仅收件箱",
+    "calendars": "日历",
+    "calendars_default": "默认日历",
+    "calendars_all": "所有日历",
+    "address_books": "联系人",
+    "address_books_default": "默认地址簿",
+    "address_books_all": "所有地址簿",
+    "none": "无",
+    "keep": "保持不变",
+    "empty_scope": "请选择邮件、日历或联系人。",
+    "nothing_to_change": "没有需要更改的内容。请选择对方应获得的内容，或使用“取消访问”。",
+    "change_note": "您未选择的文件夹、日历和地址簿将失去访问权限。共享的文件保持不变；“取消访问”会将它们一并移除。",
+    "rights": "权限",
+    "rights_read": "读取",
+    "rights_read_hint": "查看您的邮件、日程和联系人。",
+    "rights_read_hint_flags": "查看您的邮件、日程和联系人。此服务器还允许对方为邮件加旗标并将其标记为已读。",
+    "rights_write": "读写",
+    "rights_write_hint": "还可以归类、标记和删除邮件，以及更改日程和联系人。",
+    "rights_keep": "保持不变",
+    "rights_keep_hint": "已有的内容保留其权限；新增的内容获得同类其他内容的权限，若没有则为读取。",
+    "send_note": "代理人可以阅读和整理您的邮件和日历。Stalwart 不允许他们以您的身份或代表您发送邮件。如需多人共用一个地址，请向管理员申请共享邮箱。",
+    "apply_add": "授予访问权限",
+    "apply_change": "保存",
+    "partial_title": "以下项目无法更改。其余已完成。",
+    "retry": "重试",
+    "kind": {
+      "mailbox": "邮件文件夹",
+      "calendar": "日历",
+      "addressBook": "地址簿",
+      "file": "文件"
     }
   },
   "quote_header": {
@@ -4245,7 +4453,7 @@
       },
       "email_write": {
         "title": "更改和整理您的邮件",
-        "body": "为您的邮件添加或移除标签、旗标和其他关键词，在您的文件夹之间移动邮件或将其移至归档，并保存草稿。"
+        "body": "为您的邮件添加或移除标签、旗标和其他关键词，在您的文件夹之间移动邮件或将其移至归档，并保存草稿。它还可以存储一小段数据，团队邮箱的每位成员都能读取。"
       },
       "email_send": {
         "title": "在发送前更改邮件",
@@ -4361,7 +4569,11 @@
       },
       "account_read": {
         "title": "查看您的账户",
-        "body": "查看您添加的账户及其地址和服务器。"
+        "body": "查看您添加的账户及其地址和服务器，以及哪些邮件账户是团队邮箱。"
+      },
+      "directory_read": {
+        "title": "查找人员",
+        "body": "在您组织的目录中查找人员。"
       },
       "http_post": {
         "title": "代表您使用网页邮箱服务器",
@@ -4524,6 +4736,10 @@
       "error_server": "请输入服务器地址，例如 https://cloud.example.com",
       "error_save": "无法保存：{error}"
     }
+  },
+  "plugin_list": {
+    "filters": "筛选",
+    "remove_filter": "移除筛选条件 {label}"
   },
   "global_search": {
     "title": "全局搜索",

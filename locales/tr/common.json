@@ -76,6 +76,20 @@
       "back_to_login": "Giriş sayfasına dön"
     }
   },
+  "session_limits": {
+    "idle_title": "Hâlâ orada mısınız?",
+    "idle_message": "Hiçbir etkinlik olmadığı için {seconds, plural, one {# saniye} other {# saniye}} içinde oturumunuz kapatılacak. Açık iletiler taslak olarak kaydedilir.",
+    "stay": "Oturumu açık tut",
+    "sign_out_now": "Şimdi çıkış yap",
+    "max_title": "Oturumunuz sona eriyor",
+    "max_message": "Kuruluşunuz oturumları girişten {hours, plural, one {# saat} other {# saat}} sonra sonlandırıyor. {seconds, plural, one {# saniye} other {# saniye}} içinde oturumunuz kapatılacak. Açık iletiler taslak olarak kaydedilir.",
+    "dismiss": "Tamam",
+    "signing_out": "Taslaklar kaydediliyor ve çıkış yapılıyor…",
+    "reason_idle": "{minutes, plural, one {# dakika} other {# dakika}} boyunca etkinlik olmadığı için oturumunuz kapatıldı.",
+    "reason_max": "Oturumunuz {hours, plural, one {# saatlik} other {# saatlik}} azami süreye ulaştığı için kapatıldı.",
+    "drafts_not_saved": "Açık iletilerden biri veya birkaçı taslak olarak kaydedilemedi.",
+    "seconds_left": "{seconds, plural, one {# saniye} other {# saniye}} kaldı"
+  },
   "sidebar": {
     "close": "Kapat",
     "compose": "Yeni E-posta",
@@ -311,6 +325,34 @@
     "cancel_and_edit": "İptal et ve düzenle",
     "cancel_and_compose_again": "İptal et ve yeniden yaz",
     "reschedule_prompt": "Yeni tarih/saat girin, ör. 2026-05-04T15:30"
+  },
+  "shared_tags": {
+    "title": "Paylaşılan etiketler",
+    "description": "Grup posta kutularınızın etiketleri. Gruptaki herkes iletilerinde aynı adları ve renkleri görür.",
+    "picker_heading": "Bu posta kutusundaki herkesle paylaşılır",
+    "sidebar_heading": "Etiketler",
+    "edit": "Paylaşılan etiketleri düzenle",
+    "edit_tag": "{name} etiketini düzenle",
+    "delete_tag": "{name} etiketini sil",
+    "name_it": "{name} için ad ver",
+    "add": "Paylaşılan etiket ekle",
+    "name": "Ad",
+    "color": "Renk",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "delete": "Sil",
+    "delete_confirm": "Herkes için silinsin mi? Etiket iletilerinde kalır.",
+    "found_on_messages": "İletilerde, henüz adı yok",
+    "empty": "Henüz paylaşılan etiket yok.",
+    "exists": "Bu posta kutusunda bu etiket zaten var.",
+    "too_long": "Bu ad çok uzun.",
+    "loading": "Yükleniyor…",
+    "unsupported": "Bu posta sunucusu paylaşılan etiketleri saklayamıyor, bu yüzden bu posta kutusu kendi etiketlerinizi gösteriyor.",
+    "unavailable": "Bu posta kutusunun paylaşılan etiketleri yüklenemedi, bu yüzden kendi etiketlerinizi gösteriyor. Bulwark daha sonra yeniden deneyecek.",
+    "no_rights": "Bu etiketleri kullanabilirsiniz, ancak bu posta kutusunda değiştiremezsiniz.",
+    "too_many": "Çok fazla paylaşılan etiket var. Yenilerini eklemeden önce bazılarını silin.",
+    "save_failed": "Paylaşılan etiketler kaydedilemedi. Bulwark, sunucu yanıt verdiğinde yeniden deneyecek.",
+    "save_pending": "Henüz kaydedilmedi. Bulwark, sunucu yanıt verdiğinde yeniden deneyecek."
   },
   "email_viewer": {
     "read_receipt": {
@@ -659,6 +701,18 @@
     "plugin_panel_hide": "Eklenti panelini gizle",
     "copy": "Kopyala"
   },
+  "external_mail": {
+    "sender_label": "Harici",
+    "sender_tooltip": "{domain} adresinden, kuruluşunuzun dışından",
+    "sender_tooltip_no_domain": "Alan adı olmayan bir adresten, kuruluşunuzun dışından",
+    "confirm_title": "Kuruluşunuzun dışına gönderilsin mi?",
+    "confirm_message": "{count, plural, one {Bu alıcı} other {Bu # alıcı}} kuruluşunuzun dışında. Yalnızca bilerek gönderiyorsanız gönderin.",
+    "field_to": "Kime",
+    "field_cc": "CC",
+    "field_bcc": "BCC",
+    "send_anyway": "Yine de gönder",
+    "back": "Geri"
+  },
   "email_composer": {
     "select_from_directory": "Dizinden seç",
     "minimize": "Simge durumuna küçült",
@@ -981,6 +1035,13 @@
     "rule_folder_failed": "Klasör oluşturulamadı",
     "vacation_filters_save_failed": "Ofis dışında ayarları kaydedildi, ancak iletme ve yanıt alıcıları kaydedilemedi"
   },
+  "third_party": {
+    "push_needs_relay": "Anlık bildirimler için kuruluşunuzun işlettiği bir push rölesi gerekir ve hiçbiri ayarlanmamış. Uygulama açıkken yeni postalar yine de görünür.",
+    "relay_desc": "Bu sunucu dış hizmetlerle bağlantı kurmadığı için yalnızca kuruluşunuzun kendi röleleri sunulur.",
+    "relay_none": "Hiçbiri ayarlanmamış",
+    "plugin_refused": "Başlatılmadı: bu eklenti, kuruluşunuzun kapattığı dış hizmetlere bağlanıyor.",
+    "remote_content_blocked": "Kuruluşunuz diğer sunuculardan gelen içeriği engelliyor, bu yüzden bu iletideki uzak resimler gösterilmiyor."
+  },
   "date": {
     "today": "Bugün",
     "yesterday": "Dün",
@@ -1047,6 +1108,7 @@
   },
   "settings": {
     "title": "Ayarlar",
+    "org_locked": "Kuruluşunuz tarafından ayarlandı",
     "back_to_mail": "Postaya Dön",
     "save_success": "Ayarlar başarıyla kaydedildi",
     "import_success": "Ayarlar başarıyla içe aktarıldı",
@@ -2832,6 +2894,23 @@
     "delete_button": "Sil",
     "delete_confirm_title": "Kimliği Sil"
   },
+  "org_signature": {
+    "disclaimer_added_on_send": "Gönderirken eklenir",
+    "identity_signature_label": "İmza",
+    "identity_no_signature": "İmza yok",
+    "identity_default": "Bu adresten kuruluşunuzun imzasını göndermek için iki imzayı da boş bırakın.",
+    "details": {
+      "title": "Bilgileriniz",
+      "description": "Kuruluşunuzun imzası bu bilgileri gösterir. Bunları bir kez doldurun; gönderim yaptığınız her adres bunları kullanır.",
+      "preview": "İmzanız",
+      "fields": {
+        "title": "İş unvanı",
+        "department": "Departman",
+        "phone": "Telefon",
+        "mobile": "Cep telefonu"
+      }
+    }
+  },
   "templates": {
     "picker_title": "Şablon Seçin",
     "search_placeholder": "Şablonlarda ara...",
@@ -2858,6 +2937,26 @@
       "day_of_week": "Haftanın günü",
       "sender_name": "Adınız"
     }
+  },
+  "org_templates": {
+    "section_personal": "Şablonlarım",
+    "section_organisation": "Kuruluş",
+    "sources_label": "Şablon listeleri",
+    "organisation_note": "Kuruluşunuzdan. Bunları değiştiremezsiniz, ancak birini kendi şablonlarınıza kopyalayabilirsiniz.",
+    "copy_to_personal": "Şablonlarıma kopyala",
+    "duplicate": "Çoğalt",
+    "save_failed": "Şablon kaydedilemedi. Yeniden deneyin.",
+    "save_failed_forbidden": "Bu şablonları değiştiremezsiniz.",
+    "save_failed_too_large": "Bu şablon, sunucunun şablon başına sakladığı 8 KB'tan büyük. Kısaltıp yeniden kaydedin.",
+    "save_failed_no_room": "Posta kutusunda daha fazla şablon için yer yok. Birini silip yeniden deneyin.",
+    "local_only_too_large": "Yalnızca bu tarayıcıda: sunucunun şablon başına sakladığı 8 KB'tan büyük.",
+    "local_only_no_room": "Yalnızca bu tarayıcıda: hesabınızda daha fazla şablon için yer yok.",
+    "personal_in_account": "Şablonlarınız hesabınızda saklanır, böylece oturum açtığınız her cihazda elinizin altındadır. Gelen Kutunuzu paylaştığınız herkes bunları okuyabilir.",
+    "team_note": "{name} içindeki herkes bu şablonları görür ve değiştirebilir.",
+    "team_read_only": "Bu şablonları kullanabilirsiniz, ancak değiştiremezsiniz.",
+    "save_failed_conflict": "Başka biri değiştirdi. Yeniden yükleyip tekrar deneyin.",
+    "preview_to": "Kime: {list}",
+    "preview_cc": "CC: {list}"
   },
   "contacts": {
     "directory": {
@@ -3786,6 +3885,89 @@
       "custom": "Özel"
     }
   },
+  "delegates": {
+    "tab": "Paylaşım",
+    "title": "Vekiller",
+    "description": "Birine tek adımda postalarınıza, takvimlerinize ve kişilerinize erişim verin ve kimin neye erişebildiğini görün.",
+    "give_access": "Erişim ver",
+    "who_has_access": "Kimin erişimi var",
+    "nobody": "Postalarınıza, takvimlerinize, kişilerinize veya dosyalarınıza kimsenin erişimi yok.",
+    "loading": "Yükleniyor…",
+    "read_failed": "Paylaşımlarınızın bir kısmı okunamadı, bu yüzden Değiştir ve Erişimi kaldır okunabilene kadar bekliyor.",
+    "change": "Değiştir",
+    "remove": "Erişimi kaldır",
+    "remove_title": "{name} için erişim kaldırılsın mı?",
+    "remove_message": "{name}, kendi hesabınızdan paylaştığınız her şeye erişimini kaybeder: postalar, takvimler, kişiler ve dosyalar.",
+    "removed": "Erişim kaldırıldı",
+    "remove_partial": "Bunlara hâlâ erişim var: {items}",
+    "applied": "{name} artık erişebiliyor",
+    "updated": "Erişim güncellendi",
+    "unknown_person": "Bilinmeyen kişi",
+    "group": "Grup",
+    "has_access": "Erişimi var",
+    "summary": {
+      "mail_all": "Tüm posta klasörleri",
+      "mail_inbox": "Gelen Kutusu",
+      "mail_some": "{count, plural, one {# posta klasörü} other {# posta klasörü}}",
+      "calendars": "{count, plural, one {# takvim} other {# takvim}}",
+      "address_books": "{count, plural, one {# adres defteri} other {# adres defteri}}",
+      "files": "{count, plural, one {# dosya veya klasör} other {# dosya veya klasör}}"
+    },
+    "level": {
+      "read": "Okuma",
+      "write": "Okuma ve yazma",
+      "mixed": "Farklı haklar",
+      "none": "Yalnızca müsait/meşgul"
+    },
+    "dialog_title_add": "Erişim ver",
+    "dialog_title_change": "{name} için erişimi değiştir",
+    "person": "Kişi",
+    "search_placeholder": "Ad veya e-posta adresi",
+    "change_person": "Değiştir",
+    "no_match": "Kimse bulunamadı.",
+    "use_address": "{address} kullan",
+    "looking_up": "Aranıyor…",
+    "not_found": "Bu sunucuda {address} adresine sahip kimse yok.",
+    "lookup_failed": "Bu adres aranamadı.",
+    "is_you": "Bu sizsiniz.",
+    "known_only": "Yalnızca gruplarınız ve sizinle bir şey paylaşmış kişiler listelenir.",
+    "directory_off_note": "Yeni birini ekleyebilmeniz için yöneticinizin Stalwart'ta dizin sorgularını açması gerekir.",
+    "directory_failed": "Kişi ve grup listesi yüklenemedi.",
+    "what": "Ne",
+    "mail": "Posta",
+    "mail_all": "Tüm klasörler",
+    "mail_inbox": "Yalnızca Gelen Kutusu",
+    "calendars": "Takvimler",
+    "calendars_default": "Varsayılan takvim",
+    "calendars_all": "Tüm takvimler",
+    "address_books": "Kişiler",
+    "address_books_default": "Varsayılan adres defteri",
+    "address_books_all": "Tüm adres defterleri",
+    "none": "Hiçbiri",
+    "keep": "Olduğu gibi bırak",
+    "empty_scope": "Posta, takvim veya kişileri seçin.",
+    "nothing_to_change": "Değiştirilecek bir şey yok. Kişinin ne alacağını seçin veya Erişimi kaldır'ı kullanın.",
+    "change_note": "Dışarıda bıraktığınız klasörler, takvimler ve adres defterleri erişimini kaybeder. Paylaşılan dosyalar olduğu gibi kalır; Erişimi kaldır bunları da kaldırır.",
+    "rights": "Haklar",
+    "rights_read": "Okuma",
+    "rights_read_hint": "Postalarınızı, etkinliklerinizi ve kişilerinizi görme.",
+    "rights_read_hint_flags": "Postalarınızı, etkinliklerinizi ve kişilerinizi görme. Bu sunucu ayrıca postaları bayraklamalarına ve okundu olarak işaretlemelerine izin verir.",
+    "rights_write": "Okuma ve yazma",
+    "rights_write_hint": "Ayrıca postaları klasörlere taşıma, bayraklama ve silme, etkinlikleri ve kişileri değiştirme.",
+    "rights_keep": "Olduğu gibi bırak",
+    "rights_keep_hint": "Mevcut öğeler haklarını korur; eklenenler aynı türdeki diğer öğelerin haklarını, yoksa okuma hakkını alır.",
+    "send_note": "Vekiller postalarınızı ve takviminizi okuyabilir ve düzenleyebilir. Stalwart, onların sizin olarak veya sizin adınıza göndermesine izin vermez. Bir adresi birkaç kişi arasında paylaşmak için yöneticinizden paylaşılan bir posta kutusu isteyin.",
+    "apply_add": "Erişim ver",
+    "apply_change": "Kaydet",
+    "partial_title": "Bunlar değiştirilemedi. Geri kalanı tamamlandı.",
+    "retry": "Tekrar dene",
+    "kind": {
+      "mailbox": "Posta klasörü",
+      "calendar": "Takvim",
+      "addressBook": "Adres defteri",
+      "file": "Dosya"
+    }
+  },
   "advanced_search": {
     "title": "Gelişmiş Arama",
     "from": "Kimden",
@@ -4136,6 +4318,32 @@
   "unified_mailbox": {
     "search_unavailable": "Birleşik görünümde arama kullanılamaz"
   },
+  "recover_deleted": {
+    "tab": "Silinen öğeleri kurtar",
+    "title": "Silinen öğeleri kurtar",
+    "description": "Örneğin Çöp Kutusu'nu boşaltarak kalıcı olarak sildiğiniz ama sunucunun hâlâ sakladığı postalar. İletileri seçip geri yükleyin.",
+    "range_days": "{days, plural, one {Son gün} other {Son # gün}} içinde silinen postalar gösteriliyor.",
+    "range_all": "Sunucunun hâlâ sakladığı tüm silinmiş postalar gösteriliyor.",
+    "loading": "Silinen postalar yükleniyor…",
+    "load_failed": "Silinen postalar yüklenemedi.",
+    "retry": "Tekrar dene",
+    "empty": "Kurtarılacak silinmiş posta yok.",
+    "select_all": "Tümünü seç",
+    "selected": "{count} seçildi",
+    "refresh": "Yenile",
+    "restore": "Geri yükle",
+    "restored": "{count, plural, one {# ileti} other {# ileti}} Gelen Kutunuza geri dönüyor.",
+    "restore_partial": "{count, plural, one {# ileti geri yüklenemedi. Yeniden deneyebilmeniz için seçili kalıyor.} other {# ileti geri yüklenemedi. Yeniden deneyebilmeniz için seçili kalıyorlar.}}",
+    "restore_hint": "Geri yüklenen postalar Gelen Kutunuza okunmamış olarak döner ve özgün tarihlerine göre sıralanır, bu yüzden listenin çok altında olabilir. Sunucu bunları arka planda geri yükler. Orada başarısız olursa ileti kaybolur ve Bulwark bunu anlayamaz.",
+    "unknown_sender": "Bilinmeyen gönderici",
+    "no_subject": "(konu yok)",
+    "deleted_on": "{date} tarihinde silindi",
+    "trash_hint": "Yanlışlıkla kalıcı olarak mı sildiniz?",
+    "trash_link": "Silinen öğeleri kurtar",
+    "empty_hint": "Silinen postalar burada yalnızca yöneticiniz Stalwart'ta silinen öğelerin arşivlenmesini açtıysa görünür.",
+    "restore_gone": "{count, plural, one {# ileti artık arşivde değildi: başka bir yerde geri yüklendi veya sunucu artık saklamıyor.} other {# ileti artık arşivde değildi: başka bir yerde geri yüklendiler veya sunucu artık saklamıyor.}}",
+    "show_older": "Daha eskileri göster"
+  },
   "quote_header": {
     "reply_line": "{date} tarihinde {from} şunu yazdı:",
     "forwarded_separator": "---------- İletilen mesaj ----------",
@@ -4245,7 +4453,7 @@
       },
       "email_write": {
         "title": "E-postalarınızı değiştirme ve düzenleme",
-        "body": "İletilerinize etiket, bayrak ve diğer anahtar sözcükleri ekleme veya kaldırma, iletileri klasörleriniz arasında ve arşive taşıma ve taslak kaydetme."
+        "body": "İletilerinize etiket, bayrak ve diğer anahtar sözcükleri ekleme veya kaldırma, iletileri klasörleriniz arasında ve arşive taşıma ve taslak kaydetme. Ayrıca bir ekip posta kutusunun her üyesinin okuyabileceği küçük bir değer saklayabilir."
       },
       "email_send": {
         "title": "Gönderilmeden önce iletileri değiştirme",
@@ -4361,7 +4569,11 @@
       },
       "account_read": {
         "title": "Hesaplarınızı görme",
-        "body": "Eklediğiniz hesapları adresleri ve sunucularıyla birlikte görme."
+        "body": "Eklediğiniz hesapları adresleri ve sunucularıyla birlikte ve hangi posta hesaplarının ekip posta kutusu olduğunu görme."
+      },
+      "directory_read": {
+        "title": "Kişi arama",
+        "body": "Kuruluşunuzun dizininde kişi arama."
       },
       "http_post": {
         "title": "Sizin adınıza webmail sunucusunu kullanma",
@@ -4524,6 +4736,10 @@
       "error_server": "Sunucunun adresini girin, örneğin https://cloud.example.com",
       "error_save": "Kaydedilemedi: {error}"
     }
+  },
+  "plugin_list": {
+    "filters": "Filtreler",
+    "remove_filter": "{label} filtresini kaldır"
   },
   "global_search": {
     "title": "Her yerde ara",

@@ -76,6 +76,20 @@
       "back_to_login": "Vissza a bejelentkezéshez"
     }
   },
+  "session_limits": {
+    "idle_title": "Itt vagy még?",
+    "idle_message": "{seconds, plural, one {# másodperc} other {# másodperc}} múlva kijelentkeztetünk, mert nem volt tevékenység. A megnyitott üzeneteket piszkozatként mentjük.",
+    "stay": "Bejelentkezve maradok",
+    "sign_out_now": "Kijelentkezés most",
+    "max_title": "A munkameneted hamarosan véget ér",
+    "max_message": "A szervezeted a bejelentkezés után {hours, plural, one {# órával} other {# órával}} lezárja a munkameneteket. {seconds, plural, one {# másodperc} other {# másodperc}} múlva kijelentkeztetünk. A megnyitott üzeneteket piszkozatként mentjük.",
+    "dismiss": "OK",
+    "signing_out": "Piszkozatok mentése és kijelentkezés…",
+    "reason_idle": "{minutes, plural, one {# perc} other {# perc}} tétlenség után kijelentkeztettünk.",
+    "reason_max": "Kijelentkeztettünk, mert a munkamenet elérte a legnagyobb hosszát, ami {hours, plural, one {# óra} other {# óra}}.",
+    "drafts_not_saved": "Egy vagy több megnyitott üzenetet nem sikerült piszkozatként menteni.",
+    "seconds_left": "Még {seconds, plural, one {# másodperc} other {# másodperc}}"
+  },
   "sidebar": {
     "close": "Bezárás",
     "compose": "Új levél",
@@ -311,6 +325,34 @@
     "cancel_and_edit": "Mégse és szerkesztés",
     "cancel_and_compose_again": "Mégse és újraírás",
     "reschedule_prompt": "Adj meg egy új dátumot/időpontot, pl. 2026-05-04T15:30"
+  },
+  "shared_tags": {
+    "title": "Megosztott címkék",
+    "description": "A csoportos postafiókjaid címkéi. A csoportban mindenki ugyanazokat a neveket és színeket látja a leveleken.",
+    "picker_heading": "Megosztva mindenkivel ebben a postafiókban",
+    "sidebar_heading": "Címkék",
+    "edit": "Megosztott címkék szerkesztése",
+    "edit_tag": "{name} szerkesztése",
+    "delete_tag": "{name} törlése",
+    "name_it": "{name} elnevezése",
+    "add": "Megosztott címke hozzáadása",
+    "name": "Név",
+    "color": "Szín",
+    "save": "Mentés",
+    "cancel": "Mégse",
+    "delete": "Törlés",
+    "delete_confirm": "Törlöd mindenkinél? A címke rajta marad az üzeneteken.",
+    "found_on_messages": "Üzeneteken, még név nélkül",
+    "empty": "Még nincsenek megosztott címkék.",
+    "exists": "Ebben a postafiókban már van ilyen címke.",
+    "too_long": "Ez a név túl hosszú.",
+    "loading": "Betöltés…",
+    "unsupported": "Ez a levelezőszerver nem tud megosztott címkéket tárolni, ezért ez a postafiók a saját címkéidet mutatja.",
+    "unavailable": "Nem sikerült betölteni a postafiók megosztott címkéit, ezért a saját címkéidet mutatja. A Bulwark később újra próbálkozik.",
+    "no_rights": "Használhatod ezeket a címkéket, de ebben a postafiókban nem módosíthatod őket.",
+    "too_many": "Túl sok a megosztott címke. Törölj néhányat, mielőtt újakat adsz hozzá.",
+    "save_failed": "Nem sikerült menteni a megosztott címkéket. A Bulwark újra próbálkozik, amikor a szerver válaszol.",
+    "save_pending": "Még nincs mentve. A Bulwark újra próbálkozik, amikor a szerver válaszol."
   },
   "email_viewer": {
     "read_receipt": {
@@ -659,6 +701,18 @@
     "plugin_panel_hide": "Bővítménypanel elrejtése",
     "copy": "Másolás"
   },
+  "external_mail": {
+    "sender_label": "Külső",
+    "sender_tooltip": "Innen: {domain}, a szervezeteden kívülről",
+    "sender_tooltip_no_domain": "Domain nélküli címről, a szervezeteden kívülről",
+    "confirm_title": "Elküldöd a szervezeteden kívülre?",
+    "confirm_message": "{count, plural, one {Ez a címzett} other {Ez a # címzett}} a szervezeteden kívül van. Csak akkor küldd el, ha ez a szándékod.",
+    "field_to": "Címzett",
+    "field_cc": "Másolat",
+    "field_bcc": "Titkos másolat",
+    "send_anyway": "Küldés így is",
+    "back": "Vissza"
+  },
   "email_composer": {
     "select_from_directory": "Kiválasztás a címtárból",
     "minimize": "Kis méret",
@@ -981,6 +1035,13 @@
     "rule_folder_failed": "Nem sikerült létrehozni a mappát",
     "vacation_filters_save_failed": "Távolléti beállítások elmentve, de a továbbítást és a válasz címzettjeit nem sikerült menteni"
   },
+  "third_party": {
+    "push_needs_relay": "A push-értesítésekhez a szervezeted által üzemeltetett push relé kell, és nincs beállítva egy sem. Az új levelek továbbra is megjelennek, amíg az alkalmazás nyitva van.",
+    "relay_desc": "Csak a szervezeted saját reléi választhatók, mert ez a szerver nem kapcsolódik külső szolgáltatásokhoz.",
+    "relay_none": "Nincs beállítva",
+    "plugin_refused": "Nem indult el: ez a bővítmény külső szolgáltatásokhoz kapcsolódik, amelyeket a szervezeted kikapcsolt.",
+    "remote_content_blocked": "A szervezeted letiltja a más szerverekről származó tartalmat, ezért az üzenet távoli képei nem jelennek meg."
+  },
   "date": {
     "today": "Ma",
     "yesterday": "Tegnap",
@@ -1047,6 +1108,7 @@
   },
   "settings": {
     "title": "Beállítások",
+    "org_locked": "A szervezeted állította be",
     "back_to_mail": "Vissza a levelekhez",
     "save_success": "Beállítások sikeresen elmentve",
     "import_success": "Beállítások sikeresen importálva",
@@ -2832,6 +2894,23 @@
     "delete_button": "Törlés",
     "delete_confirm_title": "Azonosság törlése"
   },
+  "org_signature": {
+    "disclaimer_added_on_send": "Küldéskor kerül hozzá",
+    "identity_signature_label": "Aláírás",
+    "identity_no_signature": "Nincs aláírás",
+    "identity_default": "Hagyd üresen mindkét aláírást, hogy erről a címről a szervezeted aláírása menjen ki.",
+    "details": {
+      "title": "Az adataid",
+      "description": "A szervezeted aláírása ezeket az adatokat mutatja. Egyszer kell kitöltened; minden cím, amelyről küldesz, ezeket használja.",
+      "preview": "Az aláírásod",
+      "fields": {
+        "title": "Beosztás",
+        "department": "Részleg",
+        "phone": "Telefon",
+        "mobile": "Mobil"
+      }
+    }
+  },
   "templates": {
     "picker_title": "Sablon kiválasztása",
     "search_placeholder": "Sablonok keresése...",
@@ -2858,6 +2937,26 @@
       "day_of_week": "A hét napja",
       "sender_name": "A te neved"
     }
+  },
+  "org_templates": {
+    "section_personal": "Saját sablonok",
+    "section_organisation": "Szervezet",
+    "sources_label": "Sablonlisták",
+    "organisation_note": "A szervezetedtől. Nem módosíthatod őket, de bármelyiket átmásolhatod a saját sablonjaid közé.",
+    "copy_to_personal": "Másolás a saját sablonjaim közé",
+    "duplicate": "Duplikálás",
+    "save_failed": "Nem sikerült menteni a sablont. Próbáld újra.",
+    "save_failed_forbidden": "Ezeket a sablonokat nem módosíthatod.",
+    "save_failed_too_large": "Ez a sablon nagyobb annál a 8 KB-nál, amennyit a szerver sablononként tárol. Rövidítsd le, és mentsd újra.",
+    "save_failed_no_room": "A postafiókban nincs hely több sablonnak. Törölj egyet, és próbáld újra.",
+    "local_only_too_large": "Csak ebben a böngészőben: nagyobb annál a 8 KB-nál, amennyit a szerver sablononként tárol.",
+    "local_only_no_room": "Csak ebben a böngészőben: a fiókodban nincs hely több sablonnak.",
+    "personal_in_account": "A sablonjaidat a fiókod tárolja, így minden eszközön megvannak, ahol bejelentkezel. Bárki elolvashatja őket, akivel megosztod a Beérkező leveleket.",
+    "team_note": "A(z) {name} minden tagja látja ezeket a sablonokat, és módosíthatja őket.",
+    "team_read_only": "Használhatod ezeket a sablonokat, de nem módosíthatod őket.",
+    "save_failed_conflict": "Valaki más módosította. Töltsd újra, és próbáld újra.",
+    "preview_to": "Címzett: {list}",
+    "preview_cc": "Másolat: {list}"
   },
   "contacts": {
     "directory": {
@@ -3786,6 +3885,89 @@
       "custom": "Egyéni"
     }
   },
+  "delegates": {
+    "tab": "Megosztás",
+    "title": "Meghatalmazottak",
+    "description": "Adj valakinek egy lépésben hozzáférést a leveleidhez, naptáraidhoz és névjegyeidhez, és nézd meg, kinek mihez van hozzáférése.",
+    "give_access": "Hozzáférés adása",
+    "who_has_access": "Kinek van hozzáférése",
+    "nobody": "Senkinek nincs hozzáférése a leveleidhez, naptáraidhoz, névjegyeidhez vagy fájljaidhoz.",
+    "loading": "Betöltés…",
+    "read_failed": "A megosztásaid egy részét nem sikerült beolvasni, ezért a Módosítás és a Hozzáférés eltávolítása addig vár, amíg ez nem sikerül.",
+    "change": "Módosítás",
+    "remove": "Hozzáférés eltávolítása",
+    "remove_title": "Eltávolítod {name} hozzáférését?",
+    "remove_message": "{name} elveszíti a hozzáférést mindenhez, amit a saját fiókodból megosztottál: levelekhez, naptárakhoz, névjegyekhez és fájlokhoz.",
+    "removed": "Hozzáférés eltávolítva",
+    "remove_partial": "Ezekhez még van hozzáférés: {items}",
+    "applied": "{name} most már hozzáfér",
+    "updated": "Hozzáférés frissítve",
+    "unknown_person": "Ismeretlen személy",
+    "group": "Csoport",
+    "has_access": "Van hozzáférése",
+    "summary": {
+      "mail_all": "Minden levélmappa",
+      "mail_inbox": "Beérkező levelek",
+      "mail_some": "{count, plural, one {# levélmappa} other {# levélmappa}}",
+      "calendars": "{count, plural, one {# naptár} other {# naptár}}",
+      "address_books": "{count, plural, one {# címjegyzék} other {# címjegyzék}}",
+      "files": "{count, plural, one {# fájl vagy mappa} other {# fájl vagy mappa}}"
+    },
+    "level": {
+      "read": "Olvasás",
+      "write": "Olvasás és írás",
+      "mixed": "Eltérő jogok",
+      "none": "Csak szabad/elfoglalt"
+    },
+    "dialog_title_add": "Hozzáférés adása",
+    "dialog_title_change": "{name} hozzáférésének módosítása",
+    "person": "Személy",
+    "search_placeholder": "Név vagy e-mail-cím",
+    "change_person": "Módosítás",
+    "no_match": "Nincs találat.",
+    "use_address": "{address} használata",
+    "looking_up": "Keresés…",
+    "not_found": "Ezen a szerveren senkinek nincs {address} címe.",
+    "lookup_failed": "Nem sikerült megkeresni ezt a címet.",
+    "is_you": "Ez te vagy.",
+    "known_only": "Csak a csoportjaid és azok jelennek meg, akik megosztottak veled valamit.",
+    "directory_off_note": "Ahhoz, hogy új személyt adhass hozzá, a rendszergazdának be kell kapcsolnia a címtár-lekérdezéseket a Stalwartban.",
+    "directory_failed": "Nem sikerült betölteni a személyek és csoportok listáját.",
+    "what": "Mit",
+    "mail": "Levelek",
+    "mail_all": "Minden mappa",
+    "mail_inbox": "Csak a Beérkező levelek",
+    "calendars": "Naptárak",
+    "calendars_default": "Alapértelmezett naptár",
+    "calendars_all": "Minden naptár",
+    "address_books": "Névjegyek",
+    "address_books_default": "Alapértelmezett címjegyzék",
+    "address_books_all": "Minden címjegyzék",
+    "none": "Semmit",
+    "keep": "Maradjon így",
+    "empty_scope": "Válassz leveleket, naptárakat vagy névjegyeket.",
+    "nothing_to_change": "Nincs mit módosítani. Válaszd ki, mit kapjon a személy, vagy használd a Hozzáférés eltávolítása lehetőséget.",
+    "change_note": "Azok a mappák, naptárak és címjegyzékek, amelyeket kihagysz, elveszítik a hozzáférést. A megosztott fájlok maradnak, ahogy vannak; a Hozzáférés eltávolítása azokat is elveszi.",
+    "rights": "Jogok",
+    "rights_read": "Olvasás",
+    "rights_read_hint": "Látja a leveleidet, eseményeidet és névjegyeidet.",
+    "rights_read_hint_flags": "Látja a leveleidet, eseményeidet és névjegyeidet. Ezen a szerveren a leveleket meg is jelölheti, és olvasottnak jelölheti.",
+    "rights_write": "Olvasás és írás",
+    "rights_write_hint": "Leveleket mappába is rendezhet, megjelölhet és törölhet, továbbá eseményeket és névjegyeket módosíthat.",
+    "rights_keep": "Maradjon így",
+    "rights_keep_hint": "Ami már megvan, megtartja a jogait; az új elemek azokat a jogokat kapják, amelyek az azonos típusú többi elemnek vannak, egyébként olvasást.",
+    "send_note": "A meghatalmazottak olvashatják és rendezhetik a leveleidet és a naptáradat. A Stalwart nem engedi, hogy a nevedben vagy helyetted küldjenek. Ha egy címet több embernek kell használnia, kérj a rendszergazdától megosztott postafiókot.",
+    "apply_add": "Hozzáférés adása",
+    "apply_change": "Mentés",
+    "partial_title": "Ezeket nem sikerült módosítani. A többi kész.",
+    "retry": "Próbáld újra",
+    "kind": {
+      "mailbox": "Levélmappa",
+      "calendar": "Naptár",
+      "addressBook": "Címjegyzék",
+      "file": "Fájl"
+    }
+  },
   "advanced_search": {
     "title": "Speciális keresés",
     "from": "Feladó",
@@ -4136,6 +4318,32 @@
   "unified_mailbox": {
     "search_unavailable": "A keresés nem érhető el az egységes nézetben"
   },
+  "recover_deleted": {
+    "tab": "Törölt elemek visszaállítása",
+    "title": "Törölt elemek visszaállítása",
+    "description": "Véglegesen törölt levelek, például a Kuka ürítése után, amelyeket a szerver még megőriz. Jelölj ki üzeneteket, és állítsd vissza őket.",
+    "range_days": "Az {days, plural, one {elmúlt napban} other {elmúlt # napban}} törölt levelek láthatók.",
+    "range_all": "Minden törölt levél látható, amelyet a szerver még megőriz.",
+    "loading": "Törölt levelek betöltése…",
+    "load_failed": "Nem sikerült betölteni a törölt leveleket.",
+    "retry": "Próbáld újra",
+    "empty": "Nincs visszaállítható törölt levél.",
+    "select_all": "Összes kijelölése",
+    "selected": "{count} kijelölve",
+    "refresh": "Frissítés",
+    "restore": "Visszaállítás",
+    "restored": "{count, plural, one {# üzenet} other {# üzenet}} úton van vissza a Beérkező levelekbe.",
+    "restore_partial": "{count, plural, one {# üzenetet nem sikerült visszaállítani. Kijelölve marad, így újra megpróbálhatod.} other {# üzenetet nem sikerült visszaállítani. Kijelölve maradnak, így újra megpróbálhatod.}}",
+    "restore_hint": "A visszaállított levelek olvasatlanként kerülnek vissza a Beérkező levelek közé, az eredeti dátumuk szerint rendezve, így messze lent is lehetnek a listában. A szerver a háttérben állítja vissza őket. Ha ez ott nem sikerül, az üzenet elvész, és a Bulwark ezt nem tudja észlelni.",
+    "unknown_sender": "Ismeretlen feladó",
+    "no_subject": "(nincs tárgy)",
+    "deleted_on": "Törölve: {date}",
+    "trash_hint": "Véletlenül véglegesen törölted?",
+    "trash_link": "Törölt elemek visszaállítása",
+    "empty_hint": "A törölt levelek csak akkor jelennek meg itt, ha a rendszergazda bekapcsolta a Stalwartban a törölt elemek archiválását.",
+    "restore_gone": "{count, plural, one {# üzenet már nem volt az archívumban: máshol visszaállították, vagy a szerver már nem őrzi.} other {# üzenet már nem volt az archívumban: máshol visszaállították őket, vagy a szerver már nem őrzi őket.}}",
+    "show_older": "Régebbiek megjelenítése"
+  },
   "quote_header": {
     "reply_line": "{from} ezt írta ({date}):",
     "forwarded_separator": "---------- Továbbított üzenet ----------",
@@ -4245,7 +4453,7 @@
       },
       "email_write": {
         "title": "Leveleid módosítása és rendezése",
-        "body": "Címkéket, jelölőket és más kulcsszavakat ad hozzá az üzeneteidhez, vagy eltávolítja őket, áthelyezi az üzeneteket a mappáid között és az archívumba, és piszkozatokat ment."
+        "body": "Címkéket, jelölőket és más kulcsszavakat ad hozzá az üzeneteidhez, vagy eltávolítja őket, áthelyezi az üzeneteket a mappáid között és az archívumba, és piszkozatokat ment. Egy kis értéket is tárolhat, amelyet egy csapat-postafiók minden tagja olvashat."
       },
       "email_send": {
         "title": "Levelek módosítása küldés előtt",
@@ -4361,7 +4569,11 @@
       },
       "account_read": {
         "title": "Fiókjaid megtekintése",
-        "body": "Látja a hozzáadott fiókjaidat a címükkel és szerverükkel együtt."
+        "body": "Látja a hozzáadott fiókjaidat a címükkel és szerverükkel együtt, és azt, hogy mely levelezőfiókok csapat-postafiókok."
+      },
+      "directory_read": {
+        "title": "Személyek keresése",
+        "body": "Személyeket keres a szervezeted címtárában."
       },
       "http_post": {
         "title": "A webmail szerverének használata a nevedben",
@@ -4524,6 +4736,10 @@
       "error_server": "Add meg a szerver címét, például https://cloud.example.com",
       "error_save": "Nem sikerült menteni: {error}"
     }
+  },
+  "plugin_list": {
+    "filters": "Szűrők",
+    "remove_filter": "{label} szűrő eltávolítása"
   },
   "global_search": {
     "title": "Keresés mindenben",

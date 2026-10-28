@@ -76,6 +76,20 @@
       "back_to_login": "ログインに戻る"
     }
   },
+  "session_limits": {
+    "idle_title": "まだ使用中ですか？",
+    "idle_message": "操作がなかったため、{seconds, plural, other {#秒}}後にサインアウトします。開いているメッセージは下書きとして保存されます。",
+    "stay": "サインインしたままにする",
+    "sign_out_now": "今すぐサインアウト",
+    "max_title": "セッションがまもなく終了します",
+    "max_message": "組織の設定により、セッションはサインインから{hours, plural, other {#時間}}で終了します。{seconds, plural, other {#秒}}後にサインアウトします。開いているメッセージは下書きとして保存されます。",
+    "dismiss": "OK",
+    "signing_out": "下書きを保存してサインアウトしています…",
+    "reason_idle": "{minutes, plural, other {#分}}間操作がなかったため、サインアウトしました。",
+    "reason_max": "セッションが最大時間の{hours, plural, other {#時間}}に達したため、サインアウトしました。",
+    "drafts_not_saved": "開いているメッセージの一部を下書きとして保存できませんでした。",
+    "seconds_left": "残り{seconds, plural, other {#秒}}"
+  },
   "sidebar": {
     "close": "閉じる",
     "compose": "作成",
@@ -311,6 +325,34 @@
     "cancel_and_edit": "キャンセルして編集",
     "cancel_and_compose_again": "キャンセルして新規作成",
     "reschedule_prompt": "新しい日時を入力してください。例: 2026-05-04T15:30"
+  },
+  "shared_tags": {
+    "title": "共有タグ",
+    "description": "グループメールボックスのタグです。グループの全員が、そのメールに同じ名前と色のタグを見ることができます。",
+    "picker_heading": "このメールボックスの全員と共有",
+    "sidebar_heading": "タグ",
+    "edit": "共有タグを編集",
+    "edit_tag": "{name}を編集",
+    "delete_tag": "{name}を削除",
+    "name_it": "{name}に名前を付ける",
+    "add": "共有タグを追加",
+    "name": "名前",
+    "color": "色",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "delete_confirm": "全員から削除しますか？タグはメッセージに付いたまま残ります。",
+    "found_on_messages": "メッセージに付いているが、まだ名前がないもの",
+    "empty": "共有タグはまだありません。",
+    "exists": "このメールボックスにはすでにこのタグがあります。",
+    "too_long": "名前が長すぎます。",
+    "loading": "読み込み中…",
+    "unsupported": "このメールサーバーは共有タグを保存できないため、このメールボックスには自分のタグが表示されます。",
+    "unavailable": "このメールボックスの共有タグを読み込めなかったため、自分のタグを表示しています。Bulwark が後でもう一度試します。",
+    "no_rights": "これらのタグは使えますが、このメールボックスでは変更できません。",
+    "too_many": "共有タグが多すぎます。追加する前にいくつか削除してください。",
+    "save_failed": "共有タグを保存できませんでした。サーバーが応答したら Bulwark がもう一度試します。",
+    "save_pending": "まだ保存されていません。サーバーが応答したら Bulwark がもう一度試します。"
   },
   "email_viewer": {
     "read_receipt": {
@@ -659,6 +701,18 @@
     "plugin_panel_hide": "プラグインパネルを隠す",
     "copy": "コピー"
   },
+  "external_mail": {
+    "sender_label": "外部",
+    "sender_tooltip": "{domain} から（組織外）",
+    "sender_tooltip_no_domain": "ドメインのないアドレスから（組織外）",
+    "confirm_title": "組織外に送信しますか？",
+    "confirm_message": "{count, plural, other {#人の宛先}}が組織外です。意図した送信の場合のみ送信してください。",
+    "field_to": "宛先",
+    "field_cc": "CC",
+    "field_bcc": "BCC",
+    "send_anyway": "そのまま送信",
+    "back": "戻る"
+  },
   "email_composer": {
     "select_from_directory": "ディレクトリから選択",
     "minimize": "最小化",
@@ -981,6 +1035,13 @@
     "rule_folder_failed": "フォルダを作成できませんでした",
     "vacation_filters_save_failed": "不在の設定を保存しましたが、転送と返信する相手の保存に失敗しました"
   },
+  "third_party": {
+    "push_needs_relay": "プッシュ通知には組織が運用するプッシュリレーが必要ですが、設定されていません。アプリを開いている間は、新着メールが引き続き表示されます。",
+    "relay_desc": "このサーバーは外部サービスに接続しないため、組織独自のリレーのみが表示されます。",
+    "relay_none": "設定されていません",
+    "plugin_refused": "起動していません：このプラグインは外部サービスに接続しますが、組織によって無効にされています。",
+    "remote_content_blocked": "組織が他のサーバーからのコンテンツをブロックしているため、このメッセージ内の外部画像は表示されません。"
+  },
   "date": {
     "today": "今日",
     "yesterday": "昨日",
@@ -1047,6 +1108,7 @@
   },
   "settings": {
     "title": "設定",
+    "org_locked": "組織によって設定されています",
     "back_to_mail": "メールに戻る",
     "save_success": "設定を保存しました",
     "import_success": "設定をインポートしました",
@@ -2832,6 +2894,23 @@
     "delete_button": "削除",
     "delete_confirm_title": "IDの削除"
   },
+  "org_signature": {
+    "disclaimer_added_on_send": "送信時に追加されます",
+    "identity_signature_label": "署名",
+    "identity_no_signature": "署名なし",
+    "identity_default": "このアドレスから組織の署名を送信するには、両方の署名を空のままにしてください。",
+    "details": {
+      "title": "あなたの情報",
+      "description": "組織の署名にはこれらの情報が表示されます。一度入力すれば、送信に使うすべてのアドレスで使われます。",
+      "preview": "あなたの署名",
+      "fields": {
+        "title": "役職",
+        "department": "部署",
+        "phone": "電話",
+        "mobile": "携帯"
+      }
+    }
+  },
   "templates": {
     "picker_title": "テンプレートを選択",
     "search_placeholder": "テンプレートを検索...",
@@ -2858,6 +2937,26 @@
       "day_of_week": "曜日",
       "sender_name": "あなたの名前"
     }
+  },
+  "org_templates": {
+    "section_personal": "マイテンプレート",
+    "section_organisation": "組織",
+    "sources_label": "テンプレート一覧",
+    "organisation_note": "組織が提供するテンプレートです。変更はできませんが、自分のテンプレートにコピーできます。",
+    "copy_to_personal": "マイテンプレートにコピー",
+    "duplicate": "複製",
+    "save_failed": "テンプレートを保存できませんでした。もう一度お試しください。",
+    "save_failed_forbidden": "これらのテンプレートは変更できません。",
+    "save_failed_too_large": "このテンプレートは、サーバーがテンプレートごとに保存できる 8 KB を超えています。短くしてもう一度保存してください。",
+    "save_failed_no_room": "メールボックスにこれ以上テンプレートを保存する空きがありません。1 つ削除してもう一度お試しください。",
+    "local_only_too_large": "このブラウザーのみ：サーバーがテンプレートごとに保存できる 8 KB を超えています。",
+    "local_only_no_room": "このブラウザーのみ：アカウントにこれ以上テンプレートを保存する空きがありません。",
+    "personal_in_account": "テンプレートはアカウントに保存されるため、サインインするどのデバイスでも使えます。受信トレイを共有している相手は誰でも読むことができます。",
+    "team_note": "{name} の全員がこれらのテンプレートを見て、変更できます。",
+    "team_read_only": "これらのテンプレートは使えますが、変更はできません。",
+    "save_failed_conflict": "他の人が変更しました。再読み込みしてもう一度お試しください。",
+    "preview_to": "宛先：{list}",
+    "preview_cc": "CC：{list}"
   },
   "contacts": {
     "directory": {
@@ -4090,6 +4189,32 @@
   "unified_mailbox": {
     "search_unavailable": "統合ビューでは検索を利用できません"
   },
+  "recover_deleted": {
+    "tab": "削除済みアイテムの復元",
+    "title": "削除済みアイテムの復元",
+    "description": "ゴミ箱を空にするなどして完全に削除したものの、サーバーにまだ残っているメールです。メッセージを選んで復元してください。",
+    "range_days": "{days, plural, other {過去#日間}}に削除されたメールを表示しています。",
+    "range_all": "サーバーにまだ残っている削除済みメールをすべて表示しています。",
+    "loading": "削除済みメールを読み込み中…",
+    "load_failed": "削除済みメールを読み込めませんでした。",
+    "retry": "再試行",
+    "empty": "復元できる削除済みメールはありません。",
+    "select_all": "すべて選択",
+    "selected": "{count} 件選択",
+    "refresh": "更新",
+    "restore": "復元",
+    "restored": "{count, plural, other {#件のメッセージ}}を受信トレイに戻しています。",
+    "restore_partial": "{count, plural, other {#件のメッセージを復元できませんでした。もう一度試せるよう、選択されたままになっています。}}",
+    "restore_hint": "復元したメールは未読として受信トレイに戻り、元の日付順に並ぶため、一覧のかなり下にある場合があります。復元はサーバーがバックグラウンドで行います。そこで失敗した場合、メッセージは失われ、Bulwark はそれを検知できません。",
+    "unknown_sender": "不明な差出人",
+    "no_subject": "（件名なし）",
+    "deleted_on": "{date} に削除",
+    "trash_hint": "誤って完全に削除しましたか？",
+    "trash_link": "削除済みアイテムの復元",
+    "empty_hint": "削除済みメールがここに表示されるのは、管理者が Stalwart で削除済みアイテムのアーカイブを有効にしている場合のみです。",
+    "restore_gone": "{count, plural, other {#件のメッセージはアーカイブにありませんでした。別の場所で復元されたか、サーバーで保存されなくなっています。}}",
+    "show_older": "古いメールを表示"
+  },
   "calendar_event_notifications": {
     "someone": "誰か",
     "invited": "{name} さんが「{title}」に招待しました",
@@ -4134,6 +4259,89 @@
       "readWrite": "読み取り・書き込み",
       "manager": "管理者",
       "custom": "カスタム"
+    }
+  },
+  "delegates": {
+    "tab": "共有",
+    "title": "代理人",
+    "description": "メール、カレンダー、連絡先へのアクセス権を一度にまとめて付与し、誰が何にアクセスできるかを確認できます。",
+    "give_access": "アクセス権を付与",
+    "who_has_access": "アクセスできるユーザー",
+    "nobody": "あなたのメール、カレンダー、連絡先、ファイルにアクセスできる人はいません。",
+    "loading": "読み込み中…",
+    "read_failed": "共有設定の一部を読み取れなかったため、「変更」と「アクセス権を削除」は読み取れるようになるまで待機します。",
+    "change": "変更",
+    "remove": "アクセス権を削除",
+    "remove_title": "{name} のアクセス権を削除しますか？",
+    "remove_message": "{name} は、あなたが自分のアカウントから共有したすべてのもの（メール、カレンダー、連絡先、ファイル）にアクセスできなくなります。",
+    "removed": "アクセス権を削除しました",
+    "remove_partial": "次の項目にはまだアクセス権があります：{items}",
+    "applied": "{name} がアクセスできるようになりました",
+    "updated": "アクセス権を更新しました",
+    "unknown_person": "不明なユーザー",
+    "group": "グループ",
+    "has_access": "アクセス権あり",
+    "summary": {
+      "mail_all": "すべてのメールフォルダ",
+      "mail_inbox": "受信トレイ",
+      "mail_some": "{count, plural, other {#個のメールフォルダ}}",
+      "calendars": "{count, plural, other {#個のカレンダー}}",
+      "address_books": "{count, plural, other {#個のアドレス帳}}",
+      "files": "{count, plural, other {#個のファイルまたはフォルダ}}"
+    },
+    "level": {
+      "read": "読み取り",
+      "write": "読み取り・書き込み",
+      "mixed": "異なる権限",
+      "none": "空き時間情報のみ"
+    },
+    "dialog_title_add": "アクセス権を付与",
+    "dialog_title_change": "{name} のアクセス権を変更",
+    "person": "ユーザー",
+    "search_placeholder": "名前またはメールアドレス",
+    "change_person": "変更",
+    "no_match": "見つかりませんでした。",
+    "use_address": "{address} を使用",
+    "looking_up": "検索中…",
+    "not_found": "このサーバーには {address} というアドレスのユーザーはいません。",
+    "lookup_failed": "このアドレスを検索できませんでした。",
+    "is_you": "これはあなた自身です。",
+    "known_only": "表示されるのは、所属グループと、あなたと何かを共有したことのあるユーザーだけです。",
+    "directory_off_note": "新しいユーザーを追加するには、管理者が Stalwart でディレクトリ検索を有効にする必要があります。",
+    "directory_failed": "ユーザーとグループの一覧を読み込めませんでした。",
+    "what": "対象",
+    "mail": "メール",
+    "mail_all": "すべてのフォルダ",
+    "mail_inbox": "受信トレイのみ",
+    "calendars": "カレンダー",
+    "calendars_default": "デフォルトのカレンダー",
+    "calendars_all": "すべてのカレンダー",
+    "address_books": "連絡先",
+    "address_books_default": "デフォルトのアドレス帳",
+    "address_books_all": "すべてのアドレス帳",
+    "none": "なし",
+    "keep": "変更しない",
+    "empty_scope": "メール、カレンダー、連絡先のいずれかを選んでください。",
+    "nothing_to_change": "変更する項目がありません。相手に付与するものを選ぶか、「アクセス権を削除」を使ってください。",
+    "change_note": "選ばなかったフォルダ、カレンダー、アドレス帳はアクセスできなくなります。共有ファイルはそのまま残ります。「アクセス権を削除」を使うとそれらも削除されます。",
+    "rights": "権限",
+    "rights_read": "読み取り",
+    "rights_read_hint": "メール、予定、連絡先を閲覧できます。",
+    "rights_read_hint_flags": "メール、予定、連絡先を閲覧できます。このサーバーでは、メールへのフラグ付けや既読にすることもできます。",
+    "rights_write": "読み取り・書き込み",
+    "rights_write_hint": "さらに、メールの整理、フラグ付け、削除、予定や連絡先の変更もできます。",
+    "rights_keep": "変更しない",
+    "rights_keep_hint": "既存のものは現在の権限を維持します。追加したものには同じ種類の他の項目と同じ権限、またはそれがなければ読み取り権限が付与されます。",
+    "send_note": "代理人はあなたのメールとカレンダーを読んだり整理したりできます。Stalwart では、代理人があなたとして、またはあなたの代わりに送信することはできません。1 つのアドレスを複数の人で使うには、管理者に共有メールボックスを依頼してください。",
+    "apply_add": "アクセス権を付与",
+    "apply_change": "保存",
+    "partial_title": "次の項目は変更できませんでした。それ以外は完了しました。",
+    "retry": "再試行",
+    "kind": {
+      "mailbox": "メールフォルダ",
+      "calendar": "カレンダー",
+      "addressBook": "アドレス帳",
+      "file": "ファイル"
     }
   },
   "quote_header": {
@@ -4245,7 +4453,7 @@
       },
       "email_write": {
         "title": "メールの変更と整理",
-        "body": "メッセージにタグ、フラグ、その他のキーワードを追加したり削除したり、フォルダ間やアーカイブへ移動したり、下書きを保存したりできます。"
+        "body": "メッセージにタグ、フラグ、その他のキーワードを追加したり削除したり、フォルダ間やアーカイブへ移動したり、下書きを保存したりできます。また、チームメールボックスのメンバー全員が読める小さな値を保存することもできます。"
       },
       "email_send": {
         "title": "送信前のメールを変更",
@@ -4361,7 +4569,11 @@
       },
       "account_read": {
         "title": "アカウントを見る",
-        "body": "追加したアカウントと、そのアドレスとサーバーを見ることができます。"
+        "body": "追加したアカウントと、そのアドレスとサーバー、およびどのメールアカウントがチームメールボックスかを見ることができます。"
+      },
+      "directory_read": {
+        "title": "ユーザーを検索",
+        "body": "組織のディレクトリでユーザーを検索できます。"
       },
       "http_post": {
         "title": "あなたの代わりにウェブメールサーバーを使う",
@@ -4524,6 +4736,10 @@
       "error_server": "サーバーのアドレスを入力してください (例: https://cloud.example.com)",
       "error_save": "保存できませんでした: {error}"
     }
+  },
+  "plugin_list": {
+    "filters": "フィルター",
+    "remove_filter": "フィルター「{label}」を解除"
   },
   "global_search": {
     "title": "すべてを検索",

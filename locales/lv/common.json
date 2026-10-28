@@ -76,6 +76,20 @@
       "back_to_login": "Atgriezties pie pierakstīšanās"
     }
   },
+  "session_limits": {
+    "idle_title": "Vai jūs vēl esat šeit?",
+    "idle_message": "Jūs tiksiet izrakstīts pēc {seconds, plural, zero {# sekundēm} one {# sekundes} other {# sekundēm}}, jo nebija nekādu darbību. Atvērtās vēstules tiek saglabātas kā melnraksti.",
+    "stay": "Palikt pierakstītam",
+    "sign_out_now": "Izrakstīties tagad",
+    "max_title": "Jūsu sesija beidzas",
+    "max_message": "Jūsu organizācija beidz sesijas {hours, plural, zero {# stundas} one {# stundu} other {# stundas}} pēc pierakstīšanās. Jūs tiksiet izrakstīts pēc {seconds, plural, zero {# sekundēm} one {# sekundes} other {# sekundēm}}. Atvērtās vēstules tiek saglabātas kā melnraksti.",
+    "dismiss": "Labi",
+    "signing_out": "Saglabā melnrakstus un izraksta…",
+    "reason_idle": "Jūs tikāt izrakstīts pēc {minutes, plural, zero {# minūtēm} one {# minūtes} other {# minūtēm}} bez darbībām.",
+    "reason_max": "Jūs tikāt izrakstīts, jo sesija sasniedza maksimālo ilgumu – {hours, plural, zero {# stundas} one {# stundu} other {# stundas}}.",
+    "drafts_not_saved": "Vienu vai vairākas atvērtās vēstules neizdevās saglabāt kā melnrakstus.",
+    "seconds_left": "{seconds, plural, zero {Atlikušas # sekundes} one {Atlikusi # sekunde} other {Atlikušas # sekundes}}"
+  },
   "sidebar": {
     "close": "Aizvērt",
     "compose": "Rakstīt",
@@ -311,6 +325,34 @@
     "cancel_and_edit": "Atcelt un rediģēt",
     "cancel_and_compose_again": "Atcelt un rakstīt no jauna",
     "reschedule_prompt": "Ievadiet jaunu datumu/laiku, piem. 2026-05-04T15:30"
+  },
+  "shared_tags": {
+    "title": "Kopīgotie tagi",
+    "description": "Jūsu grupu pastkastu tagi. Visi grupā redz vienādus nosaukumus un krāsas pie tās vēstulēm.",
+    "picker_heading": "Kopīgoti ar visiem šajā pastkastē",
+    "sidebar_heading": "Tagi",
+    "edit": "Rediģēt kopīgotos tagus",
+    "edit_tag": "Rediģēt {name}",
+    "delete_tag": "Dzēst {name}",
+    "name_it": "Nosaukt {name}",
+    "add": "Pievienot kopīgotu tagu",
+    "name": "Nosaukums",
+    "color": "Krāsa",
+    "save": "Saglabāt",
+    "cancel": "Atcelt",
+    "delete": "Dzēst",
+    "delete_confirm": "Dzēst visiem? Tags paliek pie savām vēstulēm.",
+    "found_on_messages": "Pie vēstulēm, vēl bez nosaukuma",
+    "empty": "Vēl nav kopīgotu tagu.",
+    "exists": "Šai pastkastei jau ir šis tags.",
+    "too_long": "Šis nosaukums ir pārāk garš.",
+    "loading": "Ielādē…",
+    "unsupported": "Šis pasta serveris nevar glabāt kopīgotus tagus, tāpēc šī pastkaste rāda jūsu pašu tagus.",
+    "unavailable": "Neizdevās ielādēt šīs pastkastes kopīgotos tagus, tāpēc tā rāda jūsu pašu tagus. Bulwark mēģinās vēlreiz vēlāk.",
+    "no_rights": "Jūs varat izmantot šos tagus, bet šajā pastkastē tos mainīt nevarat.",
+    "too_many": "Kopīgoto tagu ir par daudz. Pirms pievienojat jaunus, izdzēsiet dažus.",
+    "save_failed": "Neizdevās saglabāt kopīgotos tagus. Bulwark mēģinās vēlreiz, kad serveris atbildēs.",
+    "save_pending": "Vēl nav saglabāts. Bulwark mēģinās vēlreiz, kad serveris atbildēs."
   },
   "email_viewer": {
     "read_receipt": {
@@ -659,6 +701,18 @@
     "plugin_panel_hide": "Slēpt spraudņa paneli",
     "copy": "Kopēt"
   },
+  "external_mail": {
+    "sender_label": "Ārējs",
+    "sender_tooltip": "No {domain}, ārpus jūsu organizācijas",
+    "sender_tooltip_no_domain": "No adreses bez domēna, ārpus jūsu organizācijas",
+    "confirm_title": "Sūtīt ārpus jūsu organizācijas?",
+    "confirm_message": "{count, plural, zero {Šie # adresāti ir} one {Šis adresāts ir} other {Šie # adresāti ir}} ārpus jūsu organizācijas. Sūtiet tikai tad, ja tā ir iecerēts.",
+    "field_to": "Kam",
+    "field_cc": "Kopija",
+    "field_bcc": "Slepenā kopija",
+    "send_anyway": "Sūtīt tik un tā",
+    "back": "Atpakaļ"
+  },
   "email_composer": {
     "select_from_directory": "Izvēlēties no kataloga",
     "minimize": "Minimizēt",
@@ -981,6 +1035,13 @@
     "rule_folder_failed": "Neizdevās izveidot mapi",
     "vacation_filters_save_failed": "Prombūtnes iestatījumi saglabāti, taču pārsūtīšanu un atbildes saņēmējus neizdevās saglabāt"
   },
+  "third_party": {
+    "push_needs_relay": "Push paziņojumiem vajadzīgs jūsu organizācijas uzturēts push relejs, un neviens nav iestatīts. Jauns pasts joprojām tiek rādīts, kamēr lietotne ir atvērta.",
+    "relay_desc": "Tiek piedāvāti tikai jūsu organizācijas pašas releji, jo šis serveris nesazinās ar ārējiem pakalpojumiem.",
+    "relay_none": "Neviens nav iestatīts",
+    "plugin_refused": "Nav palaists: šis spraudnis savienojas ar ārējiem pakalpojumiem, kurus jūsu organizācija ir izslēgusi.",
+    "remote_content_blocked": "Jūsu organizācija bloķē saturu no citiem serveriem, tāpēc attālie attēli šajā vēstulē netiek rādīti."
+  },
   "date": {
     "today": "Šodien",
     "yesterday": "Vakar",
@@ -1047,6 +1108,7 @@
   },
   "settings": {
     "title": "Iestatījumi",
+    "org_locked": "Iestatījusi jūsu organizācija",
     "back_to_mail": "Atgriezties pie pasta",
     "save_success": "Iestatījumi veiksmīgi saglabāti",
     "import_success": "Iestatījumi veiksmīgi importēti",
@@ -2832,6 +2894,23 @@
     "delete_button": "Dzēst",
     "delete_confirm_title": "Dzēst identitāti"
   },
+  "org_signature": {
+    "disclaimer_added_on_send": "Tiek pievienots, kad sūtāt",
+    "identity_signature_label": "Paraksts",
+    "identity_no_signature": "Bez paraksta",
+    "identity_default": "Atstājiet abus parakstus tukšus, lai no šīs adreses sūtītu jūsu organizācijas parakstu.",
+    "details": {
+      "title": "Jūsu dati",
+      "description": "Jūsu organizācijas paraksts rāda šos datus. Aizpildiet tos vienreiz; tos izmanto visas adreses, no kurām sūtāt.",
+      "preview": "Jūsu paraksts",
+      "fields": {
+        "title": "Amats",
+        "department": "Nodaļa",
+        "phone": "Tālrunis",
+        "mobile": "Mobilais"
+      }
+    }
+  },
   "templates": {
     "picker_title": "Izvēlēties veidni",
     "search_placeholder": "Meklēt veidnes...",
@@ -2858,6 +2937,26 @@
       "day_of_week": "Nedēļas diena",
       "sender_name": "Jūsu vārds"
     }
+  },
+  "org_templates": {
+    "section_personal": "Manas veidnes",
+    "section_organisation": "Organizācija",
+    "sources_label": "Veidņu saraksti",
+    "organisation_note": "No jūsu organizācijas. Jūs tās nevarat mainīt, bet varat kādu nokopēt savās veidnēs.",
+    "copy_to_personal": "Kopēt manās veidnēs",
+    "duplicate": "Dublēt",
+    "save_failed": "Veidni neizdevās saglabāt. Mēģiniet vēlreiz.",
+    "save_failed_forbidden": "Jūs nevarat mainīt šīs veidnes.",
+    "save_failed_too_large": "Šī veidne ir lielāka par 8 KB, ko serveris glabā vienai veidnei. Saīsiniet to un saglabājiet vēlreiz.",
+    "save_failed_no_room": "Pastkastē nav vietas jaunām veidnēm. Izdzēsiet vienu un mēģiniet vēlreiz.",
+    "local_only_too_large": "Tikai šajā pārlūkā: lielāka par 8 KB, ko serveris glabā vienai veidnei.",
+    "local_only_no_room": "Tikai šajā pārlūkā: jūsu kontā nav vietas jaunām veidnēm.",
+    "personal_in_account": "Jūsu veidnes tiek glabātas jūsu kontā, tāpēc tās ir pieejamas katrā ierīcē, kurā pierakstāties. Tās var lasīt ikviens, ar kuru kopīgojat savu Iesūtni.",
+    "team_note": "Visi grupā {name} redz šīs veidnes un var tās mainīt.",
+    "team_read_only": "Jūs varat izmantot šīs veidnes, bet ne mainīt.",
+    "save_failed_conflict": "To mainīja kāds cits. Pārlādējiet un mēģiniet vēlreiz.",
+    "preview_to": "Kam: {list}",
+    "preview_cc": "Kopija: {list}"
   },
   "contacts": {
     "directory": {
@@ -4090,6 +4189,32 @@
   "unified_mailbox": {
     "search_unavailable": "Meklēšana nav pieejama apvienotajā skatā"
   },
+  "recover_deleted": {
+    "tab": "Atjaunot dzēstos vienumus",
+    "title": "Atjaunot dzēstos vienumus",
+    "description": "Vēstules, kuras esat neatgriezeniski izdzēsis, piemēram, iztīrot Atkritni, bet serveris tās vēl glabā. Atlasiet vēstules un atjaunojiet tās.",
+    "range_days": "Rādītas vēstules, kas dzēstas {days, plural, zero {pēdējo # dienu laikā} one {pēdējās dienas laikā} other {pēdējo # dienu laikā}}.",
+    "range_all": "Rādītas visas dzēstās vēstules, kuras serveris vēl glabā.",
+    "loading": "Ielādē dzēstās vēstules…",
+    "load_failed": "Dzēstās vēstules neizdevās ielādēt.",
+    "retry": "Mēģināt vēlreiz",
+    "empty": "Nav dzēstu vēstuļu, ko atjaunot.",
+    "select_all": "Atlasīt visas",
+    "selected": "Atlasīti: {count}",
+    "refresh": "Atsvaidzināt",
+    "restore": "Atjaunot",
+    "restored": "{count, plural, zero {# vēstules atgriežas} one {# vēstule atgriežas} other {# vēstules atgriežas}} jūsu Iesūtnē.",
+    "restore_partial": "{count, plural, zero {# vēstules neizdevās atjaunot. Tās paliek atlasītas, lai varat mēģināt vēlreiz.} one {# vēstuli neizdevās atjaunot. Tā paliek atlasīta, lai varat mēģināt vēlreiz.} other {# vēstules neizdevās atjaunot. Tās paliek atlasītas, lai varat mēģināt vēlreiz.}}",
+    "restore_hint": "Atjaunotās vēstules atgriežas Iesūtnē kā nelasītas un sakārtotas pēc sākotnējā datuma, tāpēc tās var būt tālu lejā sarakstā. Serveris tās atjauno fonā. Ja tur tas neizdodas, vēstule tiek zaudēta, un Bulwark to nevar uzzināt.",
+    "unknown_sender": "Nezināms sūtītājs",
+    "no_subject": "(bez temata)",
+    "deleted_on": "Dzēsts {date}",
+    "trash_hint": "Kļūdas pēc neatgriezeniski izdzēsts?",
+    "trash_link": "Atjaunot dzēstos vienumus",
+    "empty_hint": "Dzēstās vēstules šeit parādās tikai tad, ja administrators Stalwart ir ieslēdzis dzēsto vienumu arhivēšanu.",
+    "restore_gone": "{count, plural, zero {# vēstules vairs nebija arhīvā: tās atjaunotas citur vai serveris tās vairs neglabā.} one {# vēstule vairs nebija arhīvā: tā atjaunota citur vai serveris to vairs neglabā.} other {# vēstules vairs nebija arhīvā: tās atjaunotas citur vai serveris tās vairs neglabā.}}",
+    "show_older": "Rādīt vecākas"
+  },
   "calendar_event_notifications": {
     "someone": "Kāds",
     "invited": "{name} uzaicināja jūs uz “{title}”",
@@ -4134,6 +4259,89 @@
       "readWrite": "Lasīšana un rakstīšana",
       "manager": "Pārvaldnieks",
       "custom": "Pielāgots"
+    }
+  },
+  "delegates": {
+    "tab": "Kopīgošana",
+    "title": "Pilnvarotie",
+    "description": "Vienā solī piešķiriet kādam piekļuvi savam pastam, kalendāriem un kontaktiem, un redziet, kam ir piekļuve kam.",
+    "give_access": "Piešķirt piekļuvi",
+    "who_has_access": "Kam ir piekļuve",
+    "nobody": "Nevienam nav piekļuves jūsu pastam, kalendāriem, kontaktiem vai failiem.",
+    "loading": "Ielādē…",
+    "read_failed": "Daļu jūsu kopīgojumu neizdevās nolasīt, tāpēc “Mainīt” un “Noņemt piekļuvi” gaida, līdz tas būs iespējams.",
+    "change": "Mainīt",
+    "remove": "Noņemt piekļuvi",
+    "remove_title": "Noņemt piekļuvi lietotājam {name}?",
+    "remove_message": "{name} zaudē piekļuvi visam, ko esat kopīgojis no sava konta: pastam, kalendāriem, kontaktiem un failiem.",
+    "removed": "Piekļuve noņemta",
+    "remove_partial": "Piekļuve joprojām ir: {items}",
+    "applied": "{name} tagad ir piekļuve",
+    "updated": "Piekļuve atjaunināta",
+    "unknown_person": "Nezināma persona",
+    "group": "Grupa",
+    "has_access": "Ir piekļuve",
+    "summary": {
+      "mail_all": "Visas pasta mapes",
+      "mail_inbox": "Iesūtne",
+      "mail_some": "{count, plural, zero {# pasta mapes} one {# pasta mape} other {# pasta mapes}}",
+      "calendars": "{count, plural, zero {# kalendāri} one {# kalendārs} other {# kalendāri}}",
+      "address_books": "{count, plural, zero {# adrešu grāmatas} one {# adrešu grāmata} other {# adrešu grāmatas}}",
+      "files": "{count, plural, zero {# faili vai mapes} one {# fails vai mape} other {# faili vai mapes}}"
+    },
+    "level": {
+      "read": "Lasīšana",
+      "write": "Lasīšana un rakstīšana",
+      "mixed": "Dažādas tiesības",
+      "none": "Tikai brīvs/aizņemts"
+    },
+    "dialog_title_add": "Piešķirt piekļuvi",
+    "dialog_title_change": "Mainīt piekļuvi lietotājam {name}",
+    "person": "Persona",
+    "search_placeholder": "Vārds vai e-pasta adrese",
+    "change_person": "Mainīt",
+    "no_match": "Neviens netika atrasts.",
+    "use_address": "Izmantot {address}",
+    "looking_up": "Meklē…",
+    "not_found": "Nevienam šajā serverī nav adreses {address}.",
+    "lookup_failed": "Šo adresi neizdevās atrast.",
+    "is_you": "Tas esat jūs.",
+    "known_only": "Tiek rādītas tikai jūsu grupas un personas, kas ar jums kaut ko kopīgojušas.",
+    "directory_off_note": "Lai jūs varētu pievienot kādu jaunu, administratoram Stalwart jāieslēdz direktorija vaicājumi.",
+    "directory_failed": "Neizdevās ielādēt personu un grupu sarakstu.",
+    "what": "Ko",
+    "mail": "Pasts",
+    "mail_all": "Visas mapes",
+    "mail_inbox": "Tikai Iesūtne",
+    "calendars": "Kalendāri",
+    "calendars_default": "Noklusējuma kalendārs",
+    "calendars_all": "Visi kalendāri",
+    "address_books": "Kontakti",
+    "address_books_default": "Noklusējuma adrešu grāmata",
+    "address_books_all": "Visas adrešu grāmatas",
+    "none": "Neko",
+    "keep": "Atstāt, kā ir",
+    "empty_scope": "Izvēlieties pastu, kalendārus vai kontaktus.",
+    "nothing_to_change": "Nav ko mainīt. Izvēlieties, ko personai piešķirt, vai izmantojiet “Noņemt piekļuvi”.",
+    "change_note": "Mapes, kalendāri un adrešu grāmatas, kuras neizvēlaties, zaudē piekļuvi. Kopīgotie faili paliek, kā ir; “Noņemt piekļuvi” noņem arī tos.",
+    "rights": "Tiesības",
+    "rights_read": "Lasīšana",
+    "rights_read_hint": "Redzēt jūsu pastu, notikumus un kontaktus.",
+    "rights_read_hint_flags": "Redzēt jūsu pastu, notikumus un kontaktus. Šis serveris ļauj arī atzīmēt vēstules ar karodziņu un kā izlasītas.",
+    "rights_write": "Lasīšana un rakstīšana",
+    "rights_write_hint": "Arī kārtot mapēs, atzīmēt un dzēst vēstules, kā arī mainīt notikumus un kontaktus.",
+    "rights_keep": "Atstāt, kā ir",
+    "rights_keep_hint": "Tam, kas jau ir, saglabājas tiesības; jaunais saņem tādas tiesības kā pārējie šāda veida vienumi, citādi lasīšanu.",
+    "send_note": "Pilnvarotie var lasīt un kārtot jūsu pastu un kalendāru. Stalwart neļauj viņiem sūtīt jūsu vārdā vai jūsu uzdevumā. Lai vienu adresi koplietotu vairākas personas, palūdziet administratoram koplietotu pastkasti.",
+    "apply_add": "Piešķirt piekļuvi",
+    "apply_change": "Saglabāt",
+    "partial_title": "Šos vienumus neizdevās mainīt. Pārējais ir izdarīts.",
+    "retry": "Mēģināt vēlreiz",
+    "kind": {
+      "mailbox": "Pasta mape",
+      "calendar": "Kalendārs",
+      "addressBook": "Adrešu grāmata",
+      "file": "Fails"
     }
   },
   "quote_header": {
@@ -4245,7 +4453,7 @@
       },
       "email_write": {
         "title": "Mainīt un kārtot jūsu pastu",
-        "body": "Pievienot vai noņemt tagus, karodziņus un citus atslēgvārdus jūsu vēstulēm, pārvietot tās starp jūsu mapēm un uz arhīvu un saglabāt melnrakstus."
+        "body": "Pievienot vai noņemt tagus, karodziņus un citus atslēgvārdus jūsu vēstulēm, pārvietot tās starp jūsu mapēm un uz arhīvu un saglabāt melnrakstus. Tas var arī saglabāt nelielu vērtību, ko var lasīt katrs komandas pastkastes dalībnieks."
       },
       "email_send": {
         "title": "Mainīt vēstules pirms nosūtīšanas",
@@ -4361,7 +4569,11 @@
       },
       "account_read": {
         "title": "Redzēt jūsu kontus",
-        "body": "Redzēt jūsu pievienotos kontus ar to adresēm un serveriem."
+        "body": "Redzēt jūsu pievienotos kontus ar to adresēm un serveriem, kā arī to, kuri pasta konti ir komandu pastkastes."
+      },
+      "directory_read": {
+        "title": "Meklēt personas",
+        "body": "Meklēt personas jūsu organizācijas direktorijā."
       },
       "http_post": {
         "title": "Izmantot webmail serveri jūsu vārdā",
@@ -4524,6 +4736,10 @@
       "error_server": "Ievadiet servera adresi, piemēram, https://cloud.example.com",
       "error_save": "Neizdevās saglabāt: {error}"
     }
+  },
+  "plugin_list": {
+    "filters": "Filtri",
+    "remove_filter": "Noņemt filtru {label}"
   },
   "global_search": {
     "title": "Meklēt visā",

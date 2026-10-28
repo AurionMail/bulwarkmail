@@ -76,6 +76,20 @@
       "back_to_login": "Tilbage til login"
     }
   },
+  "session_limits": {
+    "idle_title": "Er du der stadig?",
+    "idle_message": "Du bliver logget ud om {seconds, plural, one {# sekund} other {# sekunder}}, fordi der ikke har været nogen aktivitet. Åbne beskeder gemmes som kladder.",
+    "stay": "Forbliv logget ind",
+    "sign_out_now": "Log ud nu",
+    "max_title": "Din session slutter",
+    "max_message": "Din organisation afslutter sessioner {hours, plural, one {# time} other {# timer}} efter login. Du bliver logget ud om {seconds, plural, one {# sekund} other {# sekunder}}. Åbne beskeder gemmes som kladder.",
+    "dismiss": "OK",
+    "signing_out": "Gemmer kladder og logger ud…",
+    "reason_idle": "Du blev logget ud efter {minutes, plural, one {# minut} other {# minutter}} uden aktivitet.",
+    "reason_max": "Du blev logget ud, fordi din session nåede sin maksimale længde på {hours, plural, one {# time} other {# timer}}.",
+    "drafts_not_saved": "En eller flere åbne beskeder kunne ikke gemmes som kladder.",
+    "seconds_left": "{seconds, plural, one {# sekund} other {# sekunder}} tilbage"
+  },
   "sidebar": {
     "close": "Luk",
     "compose": "Ny besked",
@@ -311,6 +325,34 @@
     "cancel_and_edit": "Annuller og redigér",
     "cancel_and_compose_again": "Annuller og skriv igen",
     "reschedule_prompt": "Indtast en ny dato/tid, f.eks. 2026-05-04T15:30"
+  },
+  "shared_tags": {
+    "title": "Delte tags",
+    "description": "Tags i dine gruppepostkasser. Alle i gruppen ser de samme navne og farver på dens mail.",
+    "picker_heading": "Delt med alle i denne postkasse",
+    "sidebar_heading": "Tags",
+    "edit": "Rediger delte tags",
+    "edit_tag": "Rediger {name}",
+    "delete_tag": "Slet {name}",
+    "name_it": "Navngiv {name}",
+    "add": "Tilføj delt tag",
+    "name": "Navn",
+    "color": "Farve",
+    "save": "Gem",
+    "cancel": "Annuller",
+    "delete": "Slet",
+    "delete_confirm": "Slet for alle? Tagget bliver på sine beskeder.",
+    "found_on_messages": "På beskeder, endnu uden navn",
+    "empty": "Ingen delte tags endnu.",
+    "exists": "Denne postkasse har allerede dette tag.",
+    "too_long": "Navnet er for langt.",
+    "loading": "Indlæser…",
+    "unsupported": "Denne mailserver kan ikke gemme delte tags, så denne postkasse viser dine egne tags.",
+    "unavailable": "De delte tags i denne postkasse kunne ikke indlæses, så den viser dine egne tags. Bulwark prøver igen senere.",
+    "no_rights": "Du kan bruge disse tags, men du kan ikke ændre dem i denne postkasse.",
+    "too_many": "Der er for mange delte tags. Slet nogle, før du tilføjer flere.",
+    "save_failed": "De delte tags kunne ikke gemmes. Bulwark prøver igen, når serveren svarer.",
+    "save_pending": "Ikke gemt endnu. Bulwark prøver igen, når serveren svarer."
   },
   "email_viewer": {
     "read_receipt": {
@@ -659,6 +701,18 @@
     "plugin_panel_hide": "Skjul pluginpanel",
     "copy": "Kopiér"
   },
+  "external_mail": {
+    "sender_label": "Ekstern",
+    "sender_tooltip": "Fra {domain}, uden for din organisation",
+    "sender_tooltip_no_domain": "Fra en adresse uden domæne, uden for din organisation",
+    "confirm_title": "Send uden for din organisation?",
+    "confirm_message": "{count, plural, one {Denne modtager er} other {Disse # modtagere er}} uden for din organisation. Send kun, hvis det er meningen.",
+    "field_to": "Til",
+    "field_cc": "CC",
+    "field_bcc": "BCC",
+    "send_anyway": "Send alligevel",
+    "back": "Tilbage"
+  },
   "email_composer": {
     "select_from_directory": "Vælg fra adressefortegnelse",
     "minimize": "Minimer",
@@ -981,6 +1035,13 @@
     "rule_folder_failed": "Mappen kunne ikke oprettes",
     "vacation_filters_save_failed": "Fraværsindstillinger gemt, men videresendelse og svarmodtagere kunne ikke gemmes"
   },
+  "third_party": {
+    "push_needs_relay": "Push-notifikationer kræver et push-relæ, som din organisation driver, og der er ikke sat noget op. Ny mail vises stadig, mens appen er åben.",
+    "relay_desc": "Kun din organisations egne relæer tilbydes, fordi denne server ikke kontakter eksterne tjenester.",
+    "relay_none": "Intet sat op",
+    "plugin_refused": "Ikke startet: dette plugin forbinder til eksterne tjenester, som din organisation har slået fra.",
+    "remote_content_blocked": "Din organisation blokerer indhold fra andre servere, så eksterne billeder i denne besked vises ikke."
+  },
   "date": {
     "today": "I dag",
     "yesterday": "I går",
@@ -1047,6 +1108,7 @@
   },
   "settings": {
     "title": "Indstillinger",
+    "org_locked": "Fastsat af din organisation",
     "back_to_mail": "Tilbage til mail",
     "save_success": "Indstillinger gemt succesfuldt",
     "import_success": "Indstillinger importeret succesfuldt",
@@ -2832,6 +2894,23 @@
     "delete_button": "Slet",
     "delete_confirm_title": "Slet identitet"
   },
+  "org_signature": {
+    "disclaimer_added_on_send": "Tilføjes, når du sender",
+    "identity_signature_label": "Signatur",
+    "identity_no_signature": "Ingen signatur",
+    "identity_default": "Lad begge signaturer være tomme for at sende din organisations signatur fra denne adresse.",
+    "details": {
+      "title": "Dine oplysninger",
+      "description": "Din organisations signatur viser disse oplysninger. Udfyld dem én gang; alle adresser, du sender fra, bruger dem.",
+      "preview": "Din signatur",
+      "fields": {
+        "title": "Jobtitel",
+        "department": "Afdeling",
+        "phone": "Telefon",
+        "mobile": "Mobil"
+      }
+    }
+  },
   "templates": {
     "picker_title": "Vælg en skabelon",
     "search_placeholder": "Søg efter skabeloner...",
@@ -2858,6 +2937,26 @@
       "day_of_week": "Ugedag",
       "sender_name": "Dit navn"
     }
+  },
+  "org_templates": {
+    "section_personal": "Mine skabeloner",
+    "section_organisation": "Organisation",
+    "sources_label": "Skabelonlister",
+    "organisation_note": "Fra din organisation. Du kan ikke ændre dem, men du kan kopiere en til dine egne skabeloner.",
+    "copy_to_personal": "Kopiér til mine skabeloner",
+    "duplicate": "Duplikér",
+    "save_failed": "Skabelonen kunne ikke gemmes. Prøv igen.",
+    "save_failed_forbidden": "Du kan ikke ændre disse skabeloner.",
+    "save_failed_too_large": "Denne skabelon er større end de 8 KB, serveren gemmer pr. skabelon. Gør den kortere, og gem igen.",
+    "save_failed_no_room": "Postkassen har ikke plads til flere skabeloner. Slet en, og prøv igen.",
+    "local_only_too_large": "Kun i denne browser: større end de 8 KB, serveren gemmer pr. skabelon.",
+    "local_only_no_room": "Kun i denne browser: din konto har ikke plads til flere skabeloner.",
+    "personal_in_account": "Dine skabeloner gemmes på din konto, så du har dem på alle enheder, du logger ind på. Alle, du deler din indbakke med, kan læse dem.",
+    "team_note": "Alle i {name} ser disse skabeloner og kan ændre dem.",
+    "team_read_only": "Du kan bruge disse skabeloner, men ikke ændre dem.",
+    "save_failed_conflict": "Ændret af en anden. Genindlæs, og prøv igen.",
+    "preview_to": "Til: {list}",
+    "preview_cc": "CC: {list}"
   },
   "contacts": {
     "directory": {
@@ -3786,6 +3885,89 @@
       "custom": "Brugerdefineret"
     }
   },
+  "delegates": {
+    "tab": "Deling",
+    "title": "Stedfortrædere",
+    "description": "Giv en person adgang til din mail, dine kalendere og kontakter i ét trin, og se, hvem der har adgang til hvad.",
+    "give_access": "Giv adgang",
+    "who_has_access": "Hvem har adgang",
+    "nobody": "Ingen har adgang til din mail, dine kalendere, kontakter eller filer.",
+    "loading": "Indlæser…",
+    "read_failed": "Noget af det, du deler, kunne ikke læses, så Skift og Fjern adgang venter, til det kan.",
+    "change": "Skift",
+    "remove": "Fjern adgang",
+    "remove_title": "Fjern adgang for {name}?",
+    "remove_message": "{name} mister adgangen til alt, hvad du har delt fra din egen konto: mail, kalendere, kontakter og filer.",
+    "removed": "Adgang fjernet",
+    "remove_partial": "Disse har stadig adgang: {items}",
+    "applied": "{name} har nu adgang",
+    "updated": "Adgang opdateret",
+    "unknown_person": "Ukendt person",
+    "group": "Gruppe",
+    "has_access": "Har adgang",
+    "summary": {
+      "mail_all": "Alle mailmapper",
+      "mail_inbox": "Indbakke",
+      "mail_some": "{count, plural, one {# mailmappe} other {# mailmapper}}",
+      "calendars": "{count, plural, one {# kalender} other {# kalendere}}",
+      "address_books": "{count, plural, one {# adressebog} other {# adressebøger}}",
+      "files": "{count, plural, one {# fil eller mappe} other {# filer eller mapper}}"
+    },
+    "level": {
+      "read": "Læse",
+      "write": "Læse og skrive",
+      "mixed": "Forskellige rettigheder",
+      "none": "Kun ledig/optaget"
+    },
+    "dialog_title_add": "Giv adgang",
+    "dialog_title_change": "Skift adgang for {name}",
+    "person": "Person",
+    "search_placeholder": "Navn eller e-mailadresse",
+    "change_person": "Skift",
+    "no_match": "Ingen fundet.",
+    "use_address": "Brug {address}",
+    "looking_up": "Slår op…",
+    "not_found": "Ingen på denne server har adressen {address}.",
+    "lookup_failed": "Adressen kunne ikke slås op.",
+    "is_you": "Det er dig.",
+    "known_only": "Kun dine grupper og personer, der har delt noget med dig, vises.",
+    "directory_off_note": "Din administrator skal slå katalogopslag til i Stalwart, før du kan tilføje en ny person.",
+    "directory_failed": "Listen over personer og grupper kunne ikke indlæses.",
+    "what": "Hvad",
+    "mail": "Mail",
+    "mail_all": "Alle mapper",
+    "mail_inbox": "Kun indbakke",
+    "calendars": "Kalendere",
+    "calendars_default": "Standardkalender",
+    "calendars_all": "Alle kalendere",
+    "address_books": "Kontakter",
+    "address_books_default": "Standardadressebog",
+    "address_books_all": "Alle adressebøger",
+    "none": "Intet",
+    "keep": "Lad være som det er",
+    "empty_scope": "Vælg mail, kalendere eller kontakter.",
+    "nothing_to_change": "Intet at ændre. Vælg, hvad personen skal have, eller brug Fjern adgang.",
+    "change_note": "Mapper, kalendere og adressebøger, du udelader, mister adgangen. Delte filer forbliver, som de er; Fjern adgang fjerner også dem.",
+    "rights": "Rettigheder",
+    "rights_read": "Læse",
+    "rights_read_hint": "Se din mail, dine begivenheder og kontakter.",
+    "rights_read_hint_flags": "Se din mail, dine begivenheder og kontakter. Denne server lader dem også markere mail med flag og som læst.",
+    "rights_write": "Læse og skrive",
+    "rights_write_hint": "Også arkivere, markere og slette mail samt ændre begivenheder og kontakter.",
+    "rights_keep": "Lad være som det er",
+    "rights_keep_hint": "Det, personen har, beholder sine rettigheder; nyt får de rettigheder, resten af samme type har, ellers læse.",
+    "send_note": "Stedfortrædere kan læse og organisere din mail og din kalender. Stalwart lader dem ikke sende som dig eller på dine vegne. Hvis flere personer skal dele én adresse, så bed din administrator om en delt postkasse.",
+    "apply_add": "Giv adgang",
+    "apply_change": "Gem",
+    "partial_title": "Disse kunne ikke ændres. Resten er gjort.",
+    "retry": "Prøv igen",
+    "kind": {
+      "mailbox": "Mailmappe",
+      "calendar": "Kalender",
+      "addressBook": "Adressebog",
+      "file": "Fil"
+    }
+  },
   "advanced_search": {
     "title": "Avanceret søgning",
     "from": "Fra",
@@ -4136,6 +4318,32 @@
   "unified_mailbox": {
     "search_unavailable": "Søgning er ikke tilgængelig i den samlede visning"
   },
+  "recover_deleted": {
+    "tab": "Gendan slettede elementer",
+    "title": "Gendan slettede elementer",
+    "description": "Mail, du har slettet permanent, for eksempel ved at tømme papirkurven, og som serveren stadig gemmer. Vælg beskeder, og gendan dem.",
+    "range_days": "Viser mail slettet {days, plural, one {inden for den seneste dag} other {inden for de seneste # dage}}.",
+    "range_all": "Viser al slettet mail, som serveren stadig gemmer.",
+    "loading": "Indlæser slettet mail…",
+    "load_failed": "Slettet mail kunne ikke indlæses.",
+    "retry": "Prøv igen",
+    "empty": "Der er ingen slettet mail at gendanne.",
+    "select_all": "Vælg alle",
+    "selected": "{count} valgt",
+    "refresh": "Opdater",
+    "restore": "Gendan",
+    "restored": "{count, plural, one {# besked er} other {# beskeder er}} på vej tilbage til din indbakke.",
+    "restore_partial": "{count, plural, one {# besked kunne ikke gendannes. Den forbliver valgt, så du kan prøve igen.} other {# beskeder kunne ikke gendannes. De forbliver valgt, så du kan prøve igen.}}",
+    "restore_hint": "Gendannet mail kommer tilbage i din indbakke som ulæst og sorteret efter den oprindelige dato, så den kan ligge langt nede på listen. Serveren gendanner den i baggrunden. Hvis det mislykkes der, er beskeden tabt, og Bulwark kan ikke se det.",
+    "unknown_sender": "Ukendt afsender",
+    "no_subject": "(intet emne)",
+    "deleted_on": "Slettet {date}",
+    "trash_hint": "Slettet permanent ved en fejl?",
+    "trash_link": "Gendan slettede elementer",
+    "empty_hint": "Slettet mail vises kun her, hvis din administrator har slået arkivering af slettede elementer til i Stalwart.",
+    "restore_gone": "{count, plural, one {# besked var ikke længere i arkivet: den er gendannet et andet sted, eller serveren gemmer den ikke længere.} other {# beskeder var ikke længere i arkivet: de er gendannet et andet sted, eller serveren gemmer dem ikke længere.}}",
+    "show_older": "Vis ældre"
+  },
   "quote_header": {
     "reply_line": "Den {date} skrev {from}:",
     "forwarded_separator": "---------- Videresendt besked ----------",
@@ -4245,7 +4453,7 @@
       },
       "email_write": {
         "title": "Ændre og organisere dine e-mails",
-        "body": "Tilføje eller fjerne tags, markeringer og andre nøgleord på dine beskeder, flytte dem mellem dine mapper og til arkivet og gemme kladder."
+        "body": "Tilføje eller fjerne tags, markeringer og andre nøgleord på dine beskeder, flytte dem mellem dine mapper og til arkivet og gemme kladder. Det kan også gemme en lille værdi, som alle medlemmer af en teampostkasse kan læse."
       },
       "email_send": {
         "title": "Ændre e-mails, før de sendes",
@@ -4361,7 +4569,11 @@
       },
       "account_read": {
         "title": "Se dine konti",
-        "body": "Se de konti, du har tilføjet, med deres adresser og servere."
+        "body": "Se de konti, du har tilføjet, med deres adresser og servere, og hvilke mailkonti der er teampostkasser."
+      },
+      "directory_read": {
+        "title": "Slå personer op",
+        "body": "Slå personer op i din organisations katalog."
       },
       "http_post": {
         "title": "Bruge webmail-serveren for dig",
@@ -4524,6 +4736,10 @@
       "error_server": "Angiv serverens adresse, for eksempel https://cloud.example.com",
       "error_save": "Kunne ikke gemme: {error}"
     }
+  },
+  "plugin_list": {
+    "filters": "Filtre",
+    "remove_filter": "Fjern filteret {label}"
   },
   "global_search": {
     "title": "Søg i alt",
