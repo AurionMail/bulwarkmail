@@ -81,9 +81,9 @@ export const OUTGOING_HOSTS: readonly OutgoingHost[] = [
     id: 'connector',
     host: 'connector.bulwarkmail.org',
     side: 'server',
-    usedBy: 'Links in the docs and the directory that open this instance; the connector asks /api/connector/capabilities.',
+    usedBy: 'Links in the docs and the directory that open this instance; the connector asks this server what it can open.',
     off: 'CONNECTOR_ENABLED=false.',
-    inMode: '/api/connector/capabilities answers 404.',
+    inMode: 'The capabilities endpoint the connector asks answers 404.',
     lite: false,
   },
   {
