@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Upload, Check, RefreshCw, Globe } from "@/components/icons";
 import { Dialog } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
-import { format } from "date-fns";
 import type { CalendarEvent, Calendar } from "@/lib/jmap/types";
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import { getEventStartDate } from "@/lib/calendar-utils";
@@ -212,10 +211,15 @@ export function ICalImportModal({ calendars, client, onClose, initialUrl }: ICal
     if (!event.start) return "";
     try {
       const date = getEventStartDate(event as CalendarEvent);
-      const timeFmt = timeFormat === "12h" ? "h:mm a" : "HH:mm";
-      return event.showWithoutTime
-        ? format(date, "MMM d, yyyy")
-        : format(date, `MMM d, yyyy ${timeFmt}`);
+      // The locale's own order and month names, not an English pattern.
+      return date.toLocaleString(locale === "en" ? "en-US" : locale, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        ...(event.showWithoutTime ? {} : timeFormat === "12h"
+          ? { hour: "numeric", minute: "2-digit", hour12: true }
+          : { hour: "2-digit", minute: "2-digit", hour12: false }),
+      });
     } catch {
       return event.start;
     }
