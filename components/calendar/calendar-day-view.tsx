@@ -532,25 +532,25 @@ export function CalendarDayView({
                           {!clip.clippedStart && (
                           <div
                             data-resize-handle
-                            className="absolute top-0 left-1 right-1 h-3 cursor-n-resize z-20 flex items-start justify-center opacity-0 group-hover/event:opacity-100 transition-opacity"
+                            className="absolute top-0 inset-x-1 h-1 cursor-n-resize z-20 flex items-start justify-center opacity-0 group-hover/event:opacity-100 transition-opacity"
                             aria-label={t("events.resize")}
                             onPointerDown={(e) => handleResizePointerDown(ev.id, "top", startMinutes, durMin, e)}
                             onPointerMove={handleResizePointerMove}
                             onPointerUp={handleResizePointerUp}
                           >
-                            <div className="w-8 h-1 rounded-full bg-foreground/30 mt-0.5" />
+                            <div className="w-8 h-0.5 rounded-full bg-foreground/30" />
                           </div>
                           )}
                           {!clip.clippedEnd && (
                           <div
                             data-resize-handle
-                            className="absolute bottom-0 left-1 right-1 h-3 cursor-s-resize z-20 flex items-end justify-center opacity-0 group-hover/event:opacity-100 transition-opacity"
+                            className="absolute bottom-0 inset-x-1 h-1 cursor-s-resize z-20 flex items-end justify-center opacity-0 group-hover/event:opacity-100 transition-opacity"
                             aria-label={t("events.resize")}
                             onPointerDown={(e) => handleResizePointerDown(ev.id, "bottom", startMinutes, durMin, e)}
                             onPointerMove={handleResizePointerMove}
                             onPointerUp={handleResizePointerUp}
                           >
-                            <div className="w-8 h-1 rounded-full bg-foreground/30 mb-0.5" />
+                            <div className="w-8 h-0.5 rounded-full bg-foreground/30" />
                           </div>
                           )}
                         </div>
