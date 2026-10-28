@@ -22,117 +22,262 @@ export type SettingsSearchTab =
 
 type Tab = SettingsSearchTab;
 
-// Translation paths per tab. Tabs that share a namespace (email_behavior,
-// appearance) explicitly list the subkeys they actually render so sub-results
-// are attributed to the correct tab. Tabs with their own namespace just point
-// at the namespace root.
-export const tabSearchPaths: Record<Tab, string[]> = {
-  account: [
-    'settings.account.name_label',
-    'settings.security.display_name',
-    'settings.account.username_label',
-    'settings.account.account_type_label',
-    'settings.account.auth_method_label',
-    'settings.account.email',
-    'settings.account.server',
-    'settings.account.storage',
-    'settings.identities',
-    'settings.email_behavior.sub_address_delimiter',
-    'settings.account.accounts',
-    'settings.account.backup',
-    'settings.appearance.unified_mailbox',
-    'settings.appearance.cross_unread',
-    'settings.appearance.cross_starred',
-    'settings.appearance.cross_all',
-    'settings.appearance.all_mail',
-    'settings.appearance.account_marker',
-    'settings.appearance.show_shared_mail_accounts',
-    'settings.account.shared_accounts',
+/** A row a settings page draws only in some situations. */
+export type SettingsSearchCondition =
+  /** A touch screen (pointer: coarse), e.g. the swipe actions. */
+  | 'touch'
+  /** The Mountain View interface layout. */
+  | 'mountainView'
+  /** More than one account signed in. */
+  | 'multiAccount';
+
+export interface SettingsSearchEntry {
+  /**
+   * Translation key of the label the page draws for the setting. The page
+   * marks that row with the same text in `data-search-label`, so a result
+   * always lands on its row (a test renders every page and checks).
+   */
+  label: string;
+  /** The row is hidden until the Advanced switch is on. */
+  advanced?: true;
+  /** The page draws the row only then. */
+  when?: SettingsSearchCondition;
+}
+
+// The settings each page draws, as the search lists them. Only labels a page
+// renders belong here: settings-search-anchors.test.tsx renders every page
+// and fails for an entry without its row. A description is found next to
+// the label (see descriptionKeyFor) and searched too.
+export const tabSearchEntries: Record<Tab, SettingsSearchEntry[]> = {
+  account: [
+    { label: 'settings.account.name_label' },
+    { label: 'settings.account.email.label' },
+    { label: 'settings.account.auth_method_label' },
+    { label: 'settings.account.server.label', advanced: true },
+    { label: 'settings.account.sections.addresses' },
+    { label: 'settings.identities.identities_count.label' },
+    { label: 'settings.identities.sub_addressing.label' },
+    { label: 'settings.email_behavior.sub_address_delimiter.label', advanced: true },
+    { label: 'settings.account.accounts.title', when: 'multiAccount' },
+  ],
+  general: [
+    { label: 'settings.language_region.title' },
+    { label: 'settings.language_region.language.label' },
+    { label: 'settings.language_region.date_format.label' },
+    { label: 'settings.language_region.date_locale.label', advanced: true },
+    { label: 'settings.language_region.time_format.label' },
+    { label: 'settings.language_region.time_zone.label' },
+    { label: 'settings.language_region.first_day.label' },
+    { label: 'protocol_handlers.title' },
+    { label: 'protocol_handlers.mailto_label' },
+    { label: 'protocol_handlers.webcal_label' },
+    { label: 'protocol_handlers.protocol_open_mode_label', advanced: true },
+    { label: 'tour.settings_section' },
+    { label: 'tour.restart_title' },
+    { label: 'tour.show_on_new_devices_title', advanced: true },
+  ],
+  notifications: [
+    { label: 'settings.notifications.email.title' },
+    { label: 'settings.notifications.email.enabled' },
+    { label: 'settings.notifications.email.sound' },
+    { label: 'settings.appearance.favicon_unread_badge.label' },
+    { label: 'settings.notifications.calendar.title' },
+    { label: 'settings.notifications.calendar.enabled' },
+    { label: 'settings.notifications.sound_selection.title' },
+    { label: 'settings.notifications.sound_selection.choose' },
+    { label: 'settings.notifications.push.title' },
+    { label: 'settings.notifications.push.relay_label', advanced: true },
+    { label: 'settings.notifications.push.devices_title', advanced: true },
+  ],
+  appearance: [
+    { label: 'settings.appearance.theme.label' },
+    { label: 'settings.themes.title' },
+    { label: 'settings.appearance.sections.text' },
+    { label: 'settings.appearance.font_size.label' },
+    { label: 'settings.appearance.list_density.label' },
+    { label: 'settings.appearance.animations.label' },
+    { label: 'settings.appearance.sections.layout' },
+    { label: 'settings.appearance.interface_layout.label' },
+    { label: 'settings.email_behavior.mail_layout.label' },
+    { label: 'settings.appearance.toolbar_position.label' },
+    { label: 'settings.appearance.toolbar_labels.label' },
+    { label: 'settings.appearance.sections.sidebar' },
+    { label: 'settings.appearance.colorful_sidebar_icons.label' },
+    { label: 'settings.appearance.show_folder_total_count.label' },
+    { label: 'settings.appearance.sections.experimental', advanced: true },
+    { label: 'settings.appearance.pro_interface.label', advanced: true },
+    { label: 'settings.appearance.hide_account_switcher.label', when: 'multiAccount' },
+    { label: 'settings.appearance.show_rail_account_list.label', when: 'multiAccount' },
+  ],
+  message_list: [
+    { label: 'settings.email_behavior.group_conversations.label' },
+    { label: 'settings.email_behavior.show_preview.label' },
+    { label: 'settings.appearance.message_list_order.label' },
+    { label: 'settings.appearance.message_list_order.scope.label' },
+    { label: 'settings.appearance.tint_list_rows.label' },
+    { label: 'settings.email_behavior.show_verification_codes.label' },
+    { label: 'settings.message_list.sections.senders' },
+    { label: 'settings.advanced.sender_favicons.label' },
+    { label: 'settings.advanced.sender_favicons.refresh_label' },
+    { label: 'settings.advanced.show_avatars_in_junk.label', advanced: true },
+    { label: 'settings.message_list.sections.actions' },
+    { label: 'settings.email_behavior.hover_actions.label' },
+    { label: 'settings.message_list.sections.delete' },
+    { label: 'settings.email_behavior.delete_action.label' },
+    { label: 'settings.email_behavior.archive_mode.label' },
+    { label: 'settings.email_behavior.confirm_bulk_delete.label' },
+    { label: 'settings.email_behavior.permanently_delete_junk.label', advanced: true },
+    { label: 'settings.message_list.sections.loading', advanced: true },
+    { label: 'settings.email_behavior.emails_per_page.label', advanced: true },
+    { label: 'settings.email_behavior.clear_search_on_folder_change.label', advanced: true },
+    { label: 'settings.email_behavior.swipe_right_action.label', when: 'touch' },
+    { label: 'settings.email_behavior.swipe_left_action.label', when: 'touch' },
+    { label: 'settings.email_behavior.inbox_type.label', when: 'mountainView' },
+  ],
+  reading: [
+    { label: 'settings.email_behavior.mark_read.label' },
+    { label: 'settings.email_behavior.return_to_list_after_action.label' },
+    { label: 'settings.reading_page.sections.display' },
+    { label: 'settings.email_behavior.message_spacing.label' },
+    { label: 'settings.email_behavior.plain_text_font.label' },
+    { label: 'settings.email_behavior.always_light_mode.label' },
+    { label: 'settings.reading_page.sections.images' },
+    { label: 'settings.email_behavior.external_content.label' },
+    { label: 'settings.email_behavior.trusted_senders.label' },
+    { label: 'settings.email_behavior.trusted_senders.use_address_book_label' },
+    { label: 'settings.reading_page.sections.attachments' },
+    { label: 'settings.email_behavior.attachment_position.label' },
+    { label: 'settings.email_behavior.attachment_click_action.label' },
+    { label: 'settings.email_behavior.attachment_image_previews.label' },
+    { label: 'settings.email_behavior.hide_inline_image_attachments.label' },
+    { label: 'settings.downloads.title', advanced: true },
+    { label: 'settings.downloads.email_template.label', advanced: true },
+    { label: 'settings.downloads.attachment_template.label', advanced: true },
+    { label: 'settings.downloads.bundle_template.label', advanced: true },
+    { label: 'settings.downloads.spaces.label', advanced: true },
+    { label: 'settings.downloads.lowercase.label', advanced: true },
+    { label: 'settings.downloads.strip_diacritics.label', advanced: true },
+    { label: 'settings.downloads.collapse_separators.label', advanced: true },
+    { label: 'settings.downloads.after_export.label', advanced: true },
+  ],
+  composing: [
+    { label: 'settings.email_behavior.plain_text_mode.label' },
+    { label: 'settings.email_behavior.recipient_mentions.label' },
+    { label: 'settings.email_behavior.mention_adds_recipient.label' },
+    { label: 'settings.email_behavior.rtl_editing.label', advanced: true },
+    { label: 'settings.composing_page.sections.replying' },
+    { label: 'settings.email_behavior.quick_reply.label' },
+    { label: 'settings.email_behavior.auto_select_reply_identity.label' },
+    { label: 'settings.email_behavior.signature_position.label' },
+    { label: 'settings.email_behavior.signature_separator.label', advanced: true },
+    { label: 'settings.composing_page.sections.sending' },
+    { label: 'settings.email_behavior.send_delay.label' },
+    { label: 'settings.email_behavior.attachment_reminder.label' },
+    { label: 'settings.email_behavior.empty_subject_warning.label' },
+    { label: 'settings.email_behavior.placeholder_warning.label' },
+    { label: 'settings.composing_page.sections.receipts' },
+    { label: 'settings.email_behavior.request_read_receipt.label' },
+    { label: 'settings.email_behavior.read_receipt_response.label' },
+    { label: 'settings.templates.title' },
+    { label: 'settings.templates.export_import', advanced: true },
+    { label: 'settings.email_behavior.signatures_link.label' },
+  ],
+  vacation: [
+    { label: 'settings.vacation.date_range.start' },
+    { label: 'settings.vacation.date_range.end' },
+    { label: 'settings.vacation.auto_reply.title' },
+    { label: 'settings.vacation.status.label' },
+    { label: 'settings.vacation.message.subject_label' },
+    { label: 'settings.vacation.message.html_label' },
+    { label: 'settings.vacation.forward.title' },
+    { label: 'settings.vacation.forward.enabled_label' },
+  ],
+  filters: [
+    { label: 'settings.filters.title' },
+    { label: 'settings.filters.add_rule' },
+    { label: 'settings.filters.raw_editor' },
+  ],
+  organize: [
+    { label: 'settings.folders.folder_list' },
+    { label: 'settings.folders.standard_roles', advanced: true },
+    { label: 'settings.folders.role_inbox', advanced: true },
+    { label: 'settings.folders.role_drafts', advanced: true },
+    { label: 'settings.folders.role_sent', advanced: true },
+    { label: 'settings.folders.role_trash', advanced: true },
+    { label: 'settings.folders.role_junk', advanced: true },
+    { label: 'settings.folders.role_archive', advanced: true },
+    { label: 'settings.keywords.title' },
+    { label: 'settings.keywords.nesting.label' },
+  ],
+  security: [
+    { label: 'settings.security.title' },
+    { label: 'settings.security.totp.label' },
+    { label: 'settings.security.sections.devices' },
+    { label: 'settings.security.sections.encryption', advanced: true },
+    { label: 'settings.security.password.title' },
+    { label: 'settings.security.totp.section_title' },
+    { label: 'settings.security.app_passwords.title' },
+    { label: 'settings.security.api_keys.title', advanced: true },
+    { label: 'settings.security.encryption.section_title', advanced: true },
+    { label: 'settings.security.email_client.title' },
+    { label: 'settings.security.link_device.title' },
+  ],
+  calendar: [
+    { label: 'calendar.settings.title' },
+    { label: 'calendar.settings.default_view' },
+    { label: 'calendar.settings.invitation_parsing' },
+    { label: 'calendar.settings.show_time_in_month_view' },
+    { label: 'calendar.settings.show_week_numbers' },
+    { label: 'calendar.settings.limit_hours' },
+    { label: 'calendar.settings.visible_hours' },
+    { label: 'calendar.settings.hide_non_working_days' },
+    { label: 'calendar.settings.calendar_free_scroll' },
+    { label: 'calendar.settings.hover_preview' },
+    { label: 'calendar.settings.show_birthday_calendar' },
+    { label: 'calendar.settings.enable_tasks' },
+    { label: 'calendar.management.title' },
+    { label: 'calendar.import.title' },
+    { label: 'calendar.subscription.title' },
+  ],
+  contacts: [
+    { label: 'settings.contacts.group_by_letter_label' },
+    { label: 'settings.contacts.sort_by_last_name_label' },
+    { label: 'settings.contacts.import_label' },
+    { label: 'settings.contacts.export_label' },
+    { label: 'settings.contacts.manage_title' },
+    { label: 'settings.contacts.categories_title' },
+  ],
+  files: [
+    { label: 'settings.files.display.title' },
+    { label: 'settings.files.default_view.label' },
+    { label: 'settings.files.default_sort.label' },
+    { label: 'settings.files.sort_direction.label' },
+    { label: 'settings.files.icons.title' },
+    { label: 'settings.files.show_icons.label' },
+    { label: 'settings.files.colored_icons.label' },
+    { label: 'settings.files.show_thumbnails.label' },
+    { label: 'settings.files.behavior.title', advanced: true },
+    { label: 'settings.files.show_hidden.label', advanced: true },
+  ],
+  addons: [
+    { label: 'settings.sidebar_apps.title' },
+    { label: 'settings.sidebar_apps.keep_loaded', advanced: true },
+  ],
+  backup: [
+    { label: 'settings.advanced.sections.backup' },
+    { label: 'settings.advanced.export_settings.label' },
+    { label: 'settings.advanced.import_settings.label' },
+    { label: 'settings.advanced.sections.fix' },
+    { label: 'settings.advanced.refresh_cache.label' },
+    { label: 'settings.advanced.reset_settings.label' },
+    { label: 'settings.advanced.debug_mode.label', advanced: true },
   ],
-  general: ['settings.language_region', 'protocol_handlers', 'tour.restart_title', 'tour.show_on_new_devices_title'],
-  notifications: ['settings.notifications', 'settings.appearance.favicon_unread_badge'],
-  appearance: [
-    'settings.appearance.theme',
-    'settings.themes',
-    'settings.appearance.font_size',
-    'settings.appearance.list_density',
-    'settings.appearance.animations',
-    'settings.appearance.interface_layout',
-    'settings.email_behavior.mail_layout',
-    'settings.appearance.toolbar_position',
-    'settings.appearance.toolbar_labels',
-    'settings.appearance.colorful_sidebar_icons',
-    'settings.appearance.show_folder_total_count',
-    'settings.appearance.hide_account_switcher',
-    'settings.appearance.show_rail_account_list',
-    'settings.appearance.pro_interface',
-  ],
-  message_list: [
-    'settings.email_behavior.group_conversations',
-    'settings.email_behavior.show_preview',
-    'settings.email_behavior.list_columns',
-    'settings.appearance.message_list_order',
-    'settings.appearance.tint_list_rows',
-    'settings.email_behavior.show_verification_codes',
-    'settings.advanced.sender_favicons',
-    'settings.advanced.show_avatars_in_junk',
-    'settings.email_behavior.hover_actions',
-    'settings.email_behavior.swipe_right_action',
-    'settings.email_behavior.swipe_left_action',
-    'settings.email_behavior.delete_action',
-    'settings.email_behavior.archive_mode',
-    'settings.email_behavior.confirm_bulk_delete',
-    'settings.email_behavior.permanently_delete_junk',
-    'settings.email_behavior.emails_per_page',
-    'settings.email_behavior.clear_search_on_folder_change',
-  ],
-  reading: [
-    'settings.email_behavior.mark_read',
-    'settings.email_behavior.return_to_list_after_action',
-    'settings.email_behavior.message_spacing',
-    'settings.email_behavior.plain_text_font',
-    'settings.email_behavior.always_light_mode',
-    'settings.email_behavior.external_content',
-    'settings.email_behavior.trusted_senders',
-    'settings.email_behavior.attachment_position',
-    'settings.email_behavior.attachment_click_action',
-    'settings.email_behavior.attachment_image_previews',
-    'settings.email_behavior.hide_inline_image_attachments',
-    'settings.downloads',
-  ],
-  composing: [
-    'settings.templates',
-    'settings.email_behavior.signatures_link',
-    'settings.email_behavior.attachment_reminder',
-    'settings.email_behavior.quick_reply',
-    'settings.email_behavior.auto_select_reply_identity',
-    'settings.email_behavior.reply_identity_match',
-    'settings.email_behavior.plain_text_mode',
-    'settings.email_behavior.rtl_editing',
-    'settings.email_behavior.default_mail_program',
-    'settings.email_behavior.empty_subject_warning',
-    'settings.email_behavior.placeholder_warning',
-    'settings.email_behavior.send_delay',
-    'settings.email_behavior.signature_position',
-    'settings.email_behavior.signature_separator',
-    'settings.email_behavior.request_read_receipt',
-    'settings.email_behavior.read_receipt_response',
-  ],
-  vacation: ['settings.vacation'],
-  filters: ['settings.filters'],
-  organize: ['settings.folders', 'settings.keywords'],
-  security: ['settings.security'],
-  calendar: ['calendar.settings', 'calendar.management'],
-  contacts: ['settings.contacts', 'contacts'],
-  files: ['settings.files'],
-  addons: ['settings.sidebar_apps', 'sidebar_apps', 'plugins.settings'],
-  backup: ['settings.advanced'],
 };
 
 // Extra English keywords per tab so common search terms hit even when the
 // translation doesn't contain the literal word.
 /** Settings shown only while the admin has the Archive action on (#1257). */
-export const archiveActionSearchPaths: ReadonlySet<string> = new Set(['settings.email_behavior.archive_mode']);
+export const archiveActionSearchPaths: ReadonlySet<string> = new Set(['settings.email_behavior.archive_mode.label']);
 
 export const tabKeywords: Record<Tab, string> = {
   account: 'profile email user signin signout reorder rearrange drag dropdown switcher multi-account identities from address signature plus addressing unified mailbox shared group',
@@ -165,64 +310,63 @@ export function withAppName(node: unknown, appName: string): unknown {
   return node;
 }
 
-export function flattenStrings(node: unknown, sink: string[]): void {
-  if (typeof node === 'string') {
-    sink.push(node);
-    return;
-  }
-  if (Array.isArray(node)) {
-    for (const item of node) flattenStrings(item, sink);
-    return;
-  }
-  if (node && typeof node === 'object') {
-    for (const value of Object.values(node)) flattenStrings(value, sink);
-  }
-}
-
 export interface SubResult {
   label: string;
   description?: string;
   // For plugin setting fields: the id of the plugin whose card needs to be
   // expanded before the field becomes visible in the DOM.
   pluginId?: string;
+  /** The row is hidden until the Advanced switch is on. */
+  advanced?: boolean;
 }
 
-// Walk a translation subtree and emit sub-results for renderable settings.
-// Picks up:
-//   - bare string leaves (when a tab path points directly at a flat label)
-//   - objects with a `label` or `title` field (the standard pattern)
-//   - flat `*_label` string keys at any object level (e.g. `name_label`)
-//   - flat `foo` / `foo_desc` string pairs (the calendar.settings pattern)
-export function collectSubResults(node: unknown, sink: SubResult[]): void {
-  if (typeof node === 'string') {
-    sink.push({ label: node });
-    return;
-  }
-  if (!node || typeof node !== 'object' || Array.isArray(node)) return;
-  const obj = node as Record<string, unknown>;
-  const label = typeof obj.label === 'string' ? obj.label : (typeof obj.title === 'string' ? obj.title : undefined);
-  if (label) {
-    sink.push({
-      label,
-      description: typeof obj.description === 'string' ? obj.description : undefined,
+/**
+ * The key of the text a page shows under a label: `x.label` and `x.title`
+ * have `x.description`, `x_label` has `x_description`, and a flat `x` (the
+ * calendar settings) has `x_desc`.
+ */
+export function descriptionKeyFor(label: string, messages: unknown): string | undefined {
+  const candidates = [
+    label.replace(/\.(label|title)$/, '.description'),
+    label.replace(/_(label|title)$/, '_description'),
+    `${label}_desc`,
+    `${label}_description`,
+  ].filter((key) => key !== label);
+  return candidates.find((key) => typeof getByPath(messages, key) === 'string');
+}
+
+/**
+ * The search results a page offers, in the language of `messages`:
+ * each entry's label and description, with the app's name filled in.
+ * `shown` leaves out entries the page doesn't draw right now.
+ */
+export function settingsSubResults(
+  messages: unknown,
+  tab: SettingsSearchTab,
+  appName: string,
+  shown: (entry: SettingsSearchEntry) => boolean = () => true,
+): SubResult[] {
+  const list: SubResult[] = [];
+  for (const entry of tabSearchEntries[tab]) {
+    if (!shown(entry)) continue;
+    const label = getByPath(messages, entry.label);
+    if (typeof label !== 'string') continue;
+    const descriptionKey = descriptionKeyFor(entry.label, messages);
+    const description = descriptionKey ? (getByPath(messages, descriptionKey) as string) : undefined;
+    list.push({
+      label: withAppName(label, appName) as string,
+      ...(description ? { description: withAppName(description, appName) as string } : {}),
+      ...(entry.advanced ? { advanced: true } : {}),
     });
   }
-  for (const [key, value] of Object.entries(obj)) {
-    if (typeof value !== 'string' || key === 'label' || key === 'title') continue;
-    if (key.endsWith('_label')) {
-      sink.push({ label: value });
-      continue;
-    }
-    const desc = obj[`${key}_desc`];
-    if (typeof desc === 'string') {
-      sink.push({ label: value, description: desc });
-    }
-  }
-  for (const value of Object.values(obj)) {
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      collectSubResults(value, sink);
-    }
-  }
+  return list;
+}
+
+/** Every word of the query is somewhere in the text, in any order. */
+export function matchesAllWords(text: string, query: string): boolean {
+  const haystack = text.toLowerCase();
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  return words.length > 0 && words.every((word) => haystack.includes(word));
 }
 
 export function getByPath(obj: unknown, path: string): unknown {

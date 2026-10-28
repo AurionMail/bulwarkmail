@@ -798,6 +798,7 @@ export function CalendarManagementSettings() {
             </button>
             <button
               type="button"
+              data-search-label={tImport('title')}
               onClick={() => setShowImportModal(true)}
               className="flex items-center gap-2 py-2.5 px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md border border-dashed border-border transition-colors"
             >
@@ -808,6 +809,7 @@ export function CalendarManagementSettings() {
             {!IS_LITE && (
               <button
                 type="button"
+                data-search-label={tSub('title')}
                 onClick={() => setShowSubscriptionModal(true)}
                 className="flex items-center gap-2 py-2.5 px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md border border-dashed border-border transition-colors"
               >

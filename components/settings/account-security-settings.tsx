@@ -64,7 +64,7 @@ function PasswordChangeSection() {
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-2">
         <Key className="w-4 h-4 text-muted-foreground" />
-        <h4 className="text-sm font-medium text-foreground">{t('password.title')}</h4>
+        <h4 data-search-label={t('password.title')} className="text-sm font-medium text-foreground">{t('password.title')}</h4>
       </div>
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
@@ -503,7 +503,7 @@ function CredentialSection({ icon: Icon, i18nNamespace, entries, onCreate, onRem
       <div className="space-y-2">
         <div className="flex items-center gap-2 mb-2">
           <Icon className="w-4 h-4 text-muted-foreground" />
-          <h4 className="text-sm font-medium text-foreground">{tk('title')}</h4>
+          <h4 data-search-label={tk('title')} className="text-sm font-medium text-foreground">{tk('title')}</h4>
         </div>
         <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
       </div>
@@ -515,7 +515,7 @@ function CredentialSection({ icon: Icon, i18nNamespace, entries, onCreate, onRem
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Icon className="w-4 h-4 text-muted-foreground" />
-          <h4 className="text-sm font-medium text-foreground">{tk('title')}</h4>
+          <h4 data-search-label={tk('title')} className="text-sm font-medium text-foreground">{tk('title')}</h4>
         </div>
         <Button variant="outline" size="sm" onClick={() => setShowAdd(!showAdd)}>
           <Plus className="w-3 h-3 me-1" />
@@ -731,7 +731,7 @@ function PublicKeysSection() {
       <div className="space-y-2">
         <div className="flex items-center gap-2 mb-2">
           <Lock className="w-4 h-4 text-muted-foreground" />
-          <h4 className="text-sm font-medium text-foreground">{tk('title')}</h4>
+          <h4 data-search-label={tk('title')} className="text-sm font-medium text-foreground">{tk('title')}</h4>
         </div>
         <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
       </div>
@@ -743,7 +743,7 @@ function PublicKeysSection() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Lock className="w-4 h-4 text-muted-foreground" />
-          <h4 className="text-sm font-medium text-foreground">{t('encryption.section_title')}</h4>
+          <h4 data-search-label={t('encryption.section_title')} className="text-sm font-medium text-foreground">{t('encryption.section_title')}</h4>
         </div>
         <Button variant="outline" size="sm" onClick={() => setShowAdd(!showAdd)}>
           <Plus className="w-3 h-3 me-1" />
@@ -924,7 +924,7 @@ function EmailClientSection() {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Monitor className="w-4 h-4 text-muted-foreground" />
-        <h4 className="text-sm font-medium text-foreground">{t('email_client.title')}</h4>
+        <h4 data-search-label={t('email_client.title')} className="text-sm font-medium text-foreground">{t('email_client.title')}</h4>
       </div>
       <p className="text-xs text-muted-foreground">{t('email_client.description')}</p>
       <div className="p-3 bg-muted/70 dark:bg-muted/40 rounded-md space-y-2">
@@ -1322,7 +1322,7 @@ export function LinkDeviceSection() {
       <p className="sr-only" aria-live="polite">{announcement}</p>
       <div className="flex items-center gap-2">
         <QrCode className="w-4 h-4 text-muted-foreground" />
-        <h4 className="text-sm font-medium text-foreground">{t('link_device.title')}</h4>
+        <h4 data-search-label={t('link_device.title')} className="text-sm font-medium text-foreground">{t('link_device.title')}</h4>
       </div>
       <p className="text-xs text-muted-foreground">{t('link_device.description')}</p>
 
@@ -1551,7 +1551,7 @@ export function AccountSecuritySettings() {
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Shield className="w-4 h-4 text-muted-foreground" />
-                <h4 className="text-sm font-medium text-foreground">{t('totp.section_title')}</h4>
+                <h4 data-search-label={t('totp.section_title')} className="text-sm font-medium text-foreground">{t('totp.section_title')}</h4>
               </div>
               <TotpSection />
             </div>

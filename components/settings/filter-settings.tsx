@@ -721,6 +721,7 @@ export function FilterSettings() {
             <Button
               variant="outline"
               size="sm"
+              data-search-label={t("add_rule")}
               onClick={() => {
                 setEditingRule(undefined);
                 setShowRuleModal(true);
@@ -733,6 +734,7 @@ export function FilterSettings() {
           <Button
             variant="outline"
             size="sm"
+            data-search-label={t("raw_editor")}
             onClick={() => setShowSieveEditor(true)}
           >
             <Code className="w-4 h-4 me-1" />

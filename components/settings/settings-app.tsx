@@ -75,16 +75,18 @@ import { productName } from '@/lib/product-name';
 import { usePolicyStore } from '@/stores/policy-store';
 import { cn } from '@/lib/utils';
 import {
+  type SettingsSearchEntry,
   type SettingsSearchTab,
   type SubResult,
-  collectSubResults,
-  flattenStrings,
-  withAppName,
   getByPath,
+  matchesAllWords,
+  settingsSubResults,
   tabKeywords,
-  tabSearchPaths,
+  tabSearchEntries,
   archiveActionSearchPaths,
 } from '@/lib/settings-search';
+import { useAccountStore } from '@/stores/account-store';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import { useLiteLinkSegments } from '@/hooks/use-lite-link-segments';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { MvTopBar } from "@/components/layout/mv-top-bar";
@@ -328,7 +330,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     });
   }, [isEmbedded, goTo]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [pendingHighlight, setPendingHighlight] = useState<{ tab: SettingsTabId; label: string; pluginId?: string } | null>(null);
+  const [pendingHighlight, setPendingHighlight] = useState<{ tab: SettingsTabId; label: string; pluginId?: string; advanced?: boolean } | null>(null);
   const isDesktop = useIsDesktop();
 
   const messages = useMessages() as Record<string, unknown>;
@@ -345,30 +347,39 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   const clearManagedAccount = useManagedAccountStore((s) => s.clear);
 
   // Build a per-tab haystack for fulltext search and a list of sub-results
-  // (individual settings) per tab. Sub-results come from translation entries
-  // that have a `label`/`title` field, plus dynamic content (installed
+  // (individual settings) per tab: the rows each page draws (see
+  // lib/settings-search.ts), plus dynamic content (installed
   // plugins/themes/sidebar apps).
+  const touchScreen = useMediaQuery('(pointer: coarse)');
+  const mountainViewLayout = useSettingsStore((s) => s.interfaceLayout === 'mountain-view');
+  const multiAccount = useAccountStore((s) => s.accounts.length > 0);
   const { tabSearchHaystacks, tabSubResults } = useMemo(() => {
     const haystacks: Partial<Record<Tab, string>> = {};
     const subs: Partial<Record<Tab, SubResult[]>> = {};
-    const tabIds = Object.keys(tabSearchPaths) as Tab[];
-    for (const tabId of tabIds) {
-      const strings: string[] = [tabId.replace(/_/g, ' '), tabKeywords[tabId] ?? ''];
-      const list: SubResult[] = [];
-      for (const path of tabSearchPaths[tabId]) {
-        if (!archiveActionEnabled && archiveActionSearchPaths.has(path)) continue;
-        const node = withAppName(getByPath(messages, path), appName);
-        flattenStrings(node, strings);
-        collectSubResults(node, list);
-      }
-      // Dedupe sub-results by label
+    // Only rows the page draws right now, so every result lands on one.
+    const shown = (entry: SettingsSearchEntry) => {
+      if (!archiveActionEnabled && archiveActionSearchPaths.has(entry.label)) return false;
+      if (entry.when === 'touch') return touchScreen;
+      if (entry.when === 'mountainView') return mountainViewLayout;
+      if (entry.when === 'multiAccount') return multiAccount;
+      return true;
+    };
+    for (const tabId of Object.keys(tabSearchEntries) as Tab[]) {
+      const tabName = getByPath(messages, `settings.tabs.${tabId}`);
+      const list = settingsSubResults(messages, tabId, appName, shown)
+        // A section titled like its page is the page itself.
+        .filter((r) => r.label !== tabName);
       const seen = new Set<string>();
       subs[tabId] = list.filter((r) => {
         if (seen.has(r.label)) return false;
         seen.add(r.label);
         return true;
       });
-      haystacks[tabId] = strings.join(' ').toLowerCase();
+      haystacks[tabId] = [
+        tabId.replace(/_/g, ' '),
+        tabKeywords[tabId] ?? '',
+        ...list.flatMap((r) => [r.label, r.description ?? '']),
+      ].join(' ').toLowerCase();
     }
     if (installedPlugins.length) {
       const haystackText = installedPlugins.map((p) => {
@@ -413,7 +424,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       ];
     }
     return { tabSearchHaystacks: haystacks, tabSubResults: subs };
-  }, [messages, installedPlugins, installedThemes, sidebarAppsList, archiveActionEnabled, appName]);
+  }, [messages, installedPlugins, installedThemes, sidebarAppsList, archiveActionEnabled, appName, touchScreen, mountainViewLayout, multiAccount]);
 
   // Sidebar resize state
   const [settingsSidebarWidth, setSettingsSidebarWidth] = useState(() => {
@@ -556,8 +567,9 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       if (cancelled) return;
       const el = document.querySelector<HTMLElement>(selector);
       if (!el) {
-        // The row may be an advanced one the switch hides: reveal, then keep looking.
-        if (Date.now() > deadline - 1600 && !useSettingsStore.getState().showAdvancedSettings) {
+        // An advanced row the switch hides: reveal it, then keep looking.
+        // Only for a row known to be advanced; any other stays as it is.
+        if (pendingHighlight.advanced && !useSettingsStore.getState().showAdvancedSettings) {
           useSettingsStore.getState().updateSetting('showAdvancedSettings', true);
         }
         if (Date.now() < deadline) {
@@ -720,21 +732,21 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     }))
     .filter((g) => g.items.length > 0);
 
+  // Every word of the query counts, in any order, like the admin search.
   const trimmedQuery = searchQuery.trim().toLowerCase();
   const matchesQuery = (tab: TabDef) => {
     if (!trimmedQuery) return true;
-    if (tab.label.toLowerCase().includes(trimmedQuery)) return true;
-    return tabSearchHaystacks[tab.id as Tab]?.includes(trimmedQuery) ?? false;
+    return matchesAllWords(`${tab.label} ${tabSearchHaystacks[tab.id as Tab] ?? ''}`, trimmedQuery);
   };
 
   const subResultsForTab = (tabId: SettingsTabId): SubResult[] => {
     if (!trimmedQuery) return [];
     const list = tabSubResults[tabId as Tab] ?? [];
+    // Rows whose name matches come before rows matched by their description.
+    const byName = (r: SubResult) => (matchesAllWords(r.label, trimmedQuery) ? 0 : 1);
     return list
-      .filter((r) =>
-        r.label.toLowerCase().includes(trimmedQuery) ||
-        (r.description?.toLowerCase().includes(trimmedQuery) ?? false)
-      )
+      .filter((r) => matchesAllWords(`${r.label} ${r.description ?? ''}`, trimmedQuery))
+      .sort((a, b) => byName(a) - byName(b))
       .slice(0, 6);
   };
 
@@ -769,7 +781,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
 
   const handleSubResultSelect = (tabId: SettingsTabId, sub: SubResult) => {
     handleTabSelect(tabId);
-    setPendingHighlight({ tab: tabId, label: sub.label, pluginId: sub.pluginId });
+    setPendingHighlight({ tab: tabId, label: sub.label, pluginId: sub.pluginId, advanced: sub.advanced });
   };
 
   const activeTabLabel = visibleTabs.find((tab) => tab.id === effectiveActiveTab)?.label ?? '';
