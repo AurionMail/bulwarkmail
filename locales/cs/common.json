@@ -2936,6 +2936,7 @@
     },
     "address_books": {
       "create": "Nový adresář",
+      "create_confirm": "Vytvořit",
       "created": "Adresář vytvořen",
       "create_failed": "Nepodařilo se vytvořit adresář",
       "title": "Moje adresáře",

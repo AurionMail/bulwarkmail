@@ -2937,6 +2937,7 @@
     },
     "address_books": {
       "create": "Llibreta d'adreces nova",
+      "create_confirm": "Crea",
       "created": "Llibreta d'adreces creada",
       "create_failed": "No s'ha pogut crear la llibreta d'adreces",
       "title": "Les meves llibretes d'adreces",

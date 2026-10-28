@@ -2936,6 +2936,7 @@
     },
     "address_books": {
       "create": "새 주소록",
+      "create_confirm": "만들기",
       "created": "주소록이 생성되었습니다",
       "create_failed": "주소록을 만들지 못했습니다",
       "title": "내 주소록",

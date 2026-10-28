@@ -2937,6 +2937,7 @@
     },
     "address_books": {
       "create": "Agendă nouă",
+      "create_confirm": "Creați",
       "created": "Agendă creată",
       "create_failed": "Nu s-a putut crea agenda",
       "title": "Agendele mele de adrese",

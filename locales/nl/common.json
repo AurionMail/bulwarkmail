@@ -2936,6 +2936,7 @@
     },
     "address_books": {
       "create": "Nieuw adresboek",
+      "create_confirm": "Aanmaken",
       "created": "Adresboek aangemaakt",
       "create_failed": "Kan adresboek niet aanmaken",
       "title": "Mijn Adresboeken",

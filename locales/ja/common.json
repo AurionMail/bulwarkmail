@@ -2936,6 +2936,7 @@
     },
     "address_books": {
       "create": "新しいアドレス帳",
+      "create_confirm": "作成",
       "created": "アドレス帳を作成しました",
       "create_failed": "アドレス帳の作成に失敗しました",
       "title": "マイアドレス帳",

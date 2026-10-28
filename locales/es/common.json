@@ -2936,6 +2936,7 @@
     },
     "address_books": {
       "create": "Nueva libreta de direcciones",
+      "create_confirm": "Crear",
       "created": "Libreta de direcciones creada",
       "create_failed": "No se pudo crear la libreta de direcciones",
       "title": "Mis Libretas de Direcciones",

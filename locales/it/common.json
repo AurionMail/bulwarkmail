@@ -2936,6 +2936,7 @@
     },
     "address_books": {
       "create": "Nuova rubrica",
+      "create_confirm": "Crea",
       "created": "Rubrica creata",
       "create_failed": "Impossibile creare la rubrica",
       "title": "Le mie Rubriche",

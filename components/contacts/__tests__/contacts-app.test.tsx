@@ -141,4 +141,14 @@ describe('ContactsApp', () => {
     fireEvent.click(screen.getByText('bulk.new_group'));
     expect(screen.getByText('groups.members_label (1)')).toBeInTheDocument();
   });
+
+  it('imports in a real dialog that Escape closes', () => {
+    renderContacts();
+    fireEvent.click(screen.getAllByRole('button', { name: 'open_categories' })[0]);
+    fireEvent.click(within(drawer()).getAllByRole('button')[0]);
+    fireEvent.click(within(drawer()).getByText('import.title'));
+    const dialog = screen.getByRole('dialog', { name: 'import.title' });
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'import.title' })).toBeNull();
+  });
 });

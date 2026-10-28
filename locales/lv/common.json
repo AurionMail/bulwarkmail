@@ -2932,6 +2932,7 @@
     },
     "address_books": {
       "create": "Jauna adrešu grāmata",
+      "create_confirm": "Izveidot",
       "created": "Adrešu grāmata izveidota",
       "create_failed": "Neizdevās izveidot adrešu grāmatu",
       "title": "Manas adrešu grāmatas",

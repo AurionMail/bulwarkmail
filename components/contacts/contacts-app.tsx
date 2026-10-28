@@ -17,7 +17,7 @@ import { ContactsSidebar, type ContactCategory } from "@/components/contacts/con
 import { ContactImportDialog } from "@/components/contacts/contact-import-dialog";
 import { DirectoryBrowser, directoryKey } from "@/components/contacts/directory-browser";
 import { DirectoryEntryDetail } from "@/components/contacts/directory-entry-detail";
-import { RenameDialog } from "@/components/files/rename-dialog";
+import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { exportContacts } from "@/components/contacts/contact-export";
 import { AppTopBannerSlot } from "@/components/plugins/app-top-banner-slot";
 import { useContactStore, getContactDisplayName, getContactPrimaryEmail, type DirectoryEntry } from "@/stores/contact-store";
@@ -463,7 +463,6 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
       await createAddressBook(client, name);
       await refreshAddressBooks();
       toast.success(t("address_books.created"));
-      setCreatingAddressBook(false);
     } catch (error) {
       console.error('Failed to create address book:', error);
       toast.error(t("address_books.create_failed"));
@@ -1280,65 +1279,68 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
 
       <SidebarAppsModal isOpen={showAppsModal} onClose={closeAppsModal} />
       <ConfirmDialog {...confirmDialogProps} />
-      {renamingKeyword !== null && (
-        <RenameDialog
-          currentName={renamingKeyword}
-          title={t("rename_category")}
-          label={t("category_name_label")}
-          onCancel={() => setRenamingKeyword(null)}
-          onConfirm={async (newName) => {
+      <PromptDialog
+        isOpen={renamingKeyword !== null}
+        onClose={() => setRenamingKeyword(null)}
+        title={t("rename_category")}
+        placeholder={t("category_name_label")}
+        defaultValue={renamingKeyword ?? ""}
+        confirmText={t("form.save")}
+        cancelText={t("form.cancel")}
+        onSubmit={(newName) => {
+          const keyword = renamingKeyword;
+          if (keyword === null || newName === keyword) return;
+          void (async () => {
             try {
-              await renameKeyword(supportsSync && client ? client : null, renamingKeyword, newName);
+              await renameKeyword(supportsSync && client ? client : null, keyword, newName);
               toast.success(t("category_renamed"));
-              if (typeof activeCategory === "object" && "keyword" in activeCategory && activeCategory.keyword === renamingKeyword) {
-                setActiveCategory({ keyword: newName.trim() });
+              if (typeof activeCategory === "object" && "keyword" in activeCategory && activeCategory.keyword === keyword) {
+                setActiveCategory({ keyword: newName });
               }
-              setRenamingKeyword(null);
             } catch (err) {
               console.error("Failed to rename category:", err);
               toast.error(t("category_rename_failed"));
             }
-          }}
-        />
-      )}
-      {creatingAddressBook && (
-        <RenameDialog
-          currentName=""
-          title={t("address_books.create")}
-          label={t("address_books.name_label")}
-          onCancel={() => setCreatingAddressBook(false)}
-          onConfirm={handleCreateAddressBook}
-        />
-      )}
-      {renamingAddressBook && (
-        <RenameDialog
-          currentName={renamingAddressBook.name}
-          title={t("address_books.rename")}
-          label={t("address_books.name_label")}
-          onCancel={() => setRenamingAddressBook(null)}
-          onConfirm={async (newName) => {
-            if (!client) return;
+          })();
+        }}
+      />
+      <PromptDialog
+        isOpen={creatingAddressBook}
+        onClose={() => setCreatingAddressBook(false)}
+        title={t("address_books.create")}
+        placeholder={t("address_books.name_label")}
+        confirmText={t("address_books.create_confirm")}
+        cancelText={t("form.cancel")}
+        onSubmit={(name) => void handleCreateAddressBook(name)}
+      />
+      <PromptDialog
+        isOpen={renamingAddressBook !== null}
+        onClose={() => setRenamingAddressBook(null)}
+        title={t("address_books.rename")}
+        placeholder={t("address_books.name_label")}
+        defaultValue={renamingAddressBook?.name ?? ""}
+        confirmText={t("form.save")}
+        cancelText={t("form.cancel")}
+        onSubmit={(newName) => {
+          const book = renamingAddressBook;
+          if (!client || !book || newName === book.name) return;
+          void (async () => {
             try {
-              await renameAddressBook(client, renamingAddressBook, newName);
+              await renameAddressBook(client, book, newName);
               toast.success(t("address_books.renamed"));
-              setRenamingAddressBook(null);
             } catch (err) {
               console.error("Failed to rename address book:", err);
               toast.error(t("address_books.rename_failed"));
             }
-          }}
-        />
-      )}
+          })();
+        }}
+      />
       {showImportDialog && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-lg border border-border shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
-            <ContactImportDialog
-              existingContacts={contacts}
-              onImport={handleImportContacts}
-              onClose={() => setShowImportDialog(false)}
-            />
-          </div>
-        </div>
+        <ContactImportDialog
+          existingContacts={contacts}
+          onImport={handleImportContacts}
+          onClose={() => setShowImportDialog(false)}
+        />
       )}
       {sharingAddressBookId && client && (() => {
         const book = addressBooks.find((b) => b.id === sharingAddressBookId);

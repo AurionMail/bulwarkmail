@@ -13,8 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { NewFolderDialog } from "@/components/files/new-folder-dialog";
-import { RenameDialog } from "@/components/files/rename-dialog";
+import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { fileNameProblem } from "@/lib/file-name-rules";
 import { EmptyFolder, NoSearchResults } from "@/components/files/file-empty-state";
 import { isAudioFile, isImageFile, isPdfFile, isTextFile, isVideoFile } from "@/components/files/file-icons";
@@ -1213,54 +1212,59 @@ export function FileBrowser({
         )}
       </ContextMenu>
 
-      {showNewFolder && (
-        <NewFolderDialog
-          onConfirm={async (name: string) => {
-            await onCreateFolder(name);
-            setShowNewFolder(false);
-          }}
-          onCancel={() => setShowNewFolder(false)}
-          validate={validateFileName}
-        />
-      )}
+      <PromptDialog
+        isOpen={showNewFolder}
+        onClose={() => setShowNewFolder(false)}
+        title={t("new_folder")}
+        placeholder={t("new_folder_name")}
+        confirmText={t("create")}
+        cancelText={t("cancel")}
+        validate={validateFileName}
+        onSubmit={(name) => void onCreateFolder(name)}
+      />
 
-      {showNewTextFile && (
-        <RenameDialog
-          currentName="new-file.txt"
-          title={t("new_text_file")}
-          label={t("file_name")}
-          onConfirm={async (name: string) => {
-            await onCreateTextFile(name);
-            setShowNewTextFile(false);
-          }}
-          onCancel={() => setShowNewTextFile(false)}
-          validate={validateFileName}
-        />
-      )}
+      <PromptDialog
+        isOpen={showNewTextFile}
+        onClose={() => setShowNewTextFile(false)}
+        title={t("new_text_file")}
+        placeholder={t("file_name")}
+        defaultValue="new-file.txt"
+        selectBaseName
+        confirmText={t("create")}
+        cancelText={t("cancel")}
+        validate={validateFileName}
+        onSubmit={(name) => void onCreateTextFile(name)}
+      />
 
-      {renameTarget && (
-        <RenameDialog
-          currentName={renameTarget}
-          onConfirm={async (newName: string) => {
-            await onRename(renameTarget, newName);
-            setRenameTarget(null);
-          }}
-          onCancel={() => setRenameTarget(null)}
-          validate={validateFileName}
-        />
-      )}
+      <PromptDialog
+        isOpen={renameTarget !== null}
+        onClose={() => setRenameTarget(null)}
+        title={t("rename_title")}
+        placeholder={t("new_name")}
+        defaultValue={renameTarget ?? ""}
+        // A file keeps its extension unless the user means to change it.
+        selectBaseName={!resources.find((r) => r.name === renameTarget)?.isDirectory}
+        confirmText={t("save")}
+        cancelText={t("cancel")}
+        validate={validateFileName}
+        onSubmit={(newName) => {
+          if (renameTarget !== null && newName !== renameTarget) void onRename(renameTarget, newName);
+        }}
+      />
 
-      {renameFolder && (
-        <RenameDialog
-          currentName={renameFolder.name}
-          onConfirm={async (newName: string) => {
-            await onRenameNode(renameFolder.id, newName);
-            setRenameFolder(null);
-          }}
-          onCancel={() => setRenameFolder(null)}
-          validate={validateFileName}
-        />
-      )}
+      <PromptDialog
+        isOpen={renameFolder !== null}
+        onClose={() => setRenameFolder(null)}
+        title={t("rename_title")}
+        placeholder={t("new_name")}
+        defaultValue={renameFolder?.name ?? ""}
+        confirmText={t("save")}
+        cancelText={t("cancel")}
+        validate={validateFileName}
+        onSubmit={(newName) => {
+          if (renameFolder && newName !== renameFolder.name) void onRenameNode(renameFolder.id, newName);
+        }}
+      />
 
       {shareTarget && client && onShare && (
         <ShareCollectionDialog

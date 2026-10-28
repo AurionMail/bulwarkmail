@@ -2937,6 +2937,7 @@
     },
     "address_books": {
       "create": "新增通訊錄",
+      "create_confirm": "建立",
       "created": "通訊錄已建立",
       "create_failed": "建立通訊錄失敗",
       "title": "我的通訊錄",

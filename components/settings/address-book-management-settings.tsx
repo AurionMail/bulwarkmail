@@ -11,7 +11,7 @@ import { SettingsSection } from "./settings-section";
 import { cn } from "@/lib/utils";
 import type { AddressBook, AddressBookRights } from "@/lib/jmap/types";
 import { ShareCollectionDialog } from "./share-collection-dialog";
-import { RenameDialog } from "@/components/files/rename-dialog";
+import { PromptDialog } from "@/components/ui/prompt-dialog";
 
 function AddressBookEditRow({
   initial,
@@ -93,7 +93,6 @@ export function AddressBookManagementSettings() {
     try {
       await createAddressBook(client, name);
       await fetchAddressBooks(client);
-      setCreating(false);
       toast.success(t("created"));
     } catch {
       toast.error(t("create_failed"));
@@ -335,15 +334,14 @@ export function AddressBookManagementSettings() {
     </div>
     )}
 
-    {creating && (
-      <RenameDialog
-        currentName=""
-        title={t("create")}
-        label={t("name_label")}
-        onCancel={() => setCreating(false)}
-        onConfirm={handleCreate}
-      />
-    )}
+    <PromptDialog
+      isOpen={creating}
+      onClose={() => setCreating(false)}
+      title={t("create")}
+      placeholder={t("name_label")}
+      confirmText={t("create_confirm")}
+      onSubmit={(name) => void handleCreate(name)}
+    />
 
     {sharingId && client && (() => {
       const book = addressBooks.find((b) => b.id === sharingId);

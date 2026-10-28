@@ -2937,6 +2937,7 @@
     },
     "address_books": {
       "create": "New address book",
+      "create_confirm": "Create",
       "created": "Address book created",
       "create_failed": "Failed to create address book",
       "title": "My Address Books",

@@ -2936,6 +2936,7 @@
     },
     "address_books": {
       "create": "Ny adressebog",
+      "create_confirm": "Opret",
       "created": "Adressebog oprettet",
       "create_failed": "Kunne ikke oprette adressebog",
       "title": "Mine adressebøger",

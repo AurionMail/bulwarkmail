@@ -2936,6 +2936,7 @@
     },
     "address_books": {
       "create": "Novo livro de endereços",
+      "create_confirm": "Criar",
       "created": "Livro de endereços criado",
       "create_failed": "Falha ao criar o livro de endereços",
       "title": "Meus Catálogos de Endereços",

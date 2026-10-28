@@ -2937,6 +2937,7 @@
     },
     "address_books": {
       "create": "Uus aadressiraamat",
+      "create_confirm": "Loo",
       "created": "Aadressiraamat loodud",
       "create_failed": "Aadressiraamatu loomine ebaõnnestus",
       "title": "Minu aadressiraamatud",

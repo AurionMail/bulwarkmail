@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { FileBrowser } from '../file-browser';
 import { useFileStore, type FileResource } from '@/stores/file-store';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
@@ -342,5 +342,16 @@ describe('FileBrowser', () => {
     expect(drawer.className).toContain('invisible');
     tree();
     expect(drawer).not.toHaveAttribute('inert');
+  });
+
+  it("renames in a dialog that selects the name without its extension and closes on Escape", async () => {
+    renderBrowser({ props: { selectedResources: new Set(['notes.txt']) } });
+    fireEvent.keyDown(window, { key: 'F2' });
+    const dialog = screen.getByRole('dialog', { name: 'rename_title' });
+    const input = within(dialog).getByRole('textbox') as HTMLInputElement;
+    await waitFor(() => expect([input.selectionStart, input.selectionEnd]).toEqual([0, 5]));
+
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'rename_title' })).toBeNull();
   });
 });

@@ -2936,6 +2936,7 @@
     },
     "address_books": {
       "create": "Neues Adressbuch",
+      "create_confirm": "Erstellen",
       "created": "Adressbuch erstellt",
       "create_failed": "Adressbuch konnte nicht erstellt werden",
       "title": "Meine Adressbücher",

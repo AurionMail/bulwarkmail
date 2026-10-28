@@ -2936,6 +2936,7 @@
     },
     "address_books": {
       "create": "Yeni adres defteri",
+      "create_confirm": "Oluştur",
       "created": "Adres defteri oluşturuldu",
       "create_failed": "Adres defteri oluşturulamadı",
       "title": "Adres Defterlerim",

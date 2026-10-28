@@ -2937,6 +2937,7 @@
     },
     "address_books": {
       "create": "Új címjegyzék",
+      "create_confirm": "Létrehozás",
       "created": "Címjegyzék létrehozva",
       "create_failed": "Nem sikerült létrehozni a címjegyzéket",
       "title": "Címjegyzékeim",

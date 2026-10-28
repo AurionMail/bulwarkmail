@@ -2936,6 +2936,7 @@
     },
     "address_books": {
       "create": "Nouveau carnet d'adresses",
+      "create_confirm": "Créer",
       "created": "Carnet d'adresses créé",
       "create_failed": "Échec de la création du carnet d'adresses",
       "title": "Mes Carnets d'adresses",

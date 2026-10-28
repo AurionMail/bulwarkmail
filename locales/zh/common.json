@@ -2936,6 +2936,7 @@
     },
     "address_books": {
       "create": "新建通讯录",
+      "create_confirm": "创建",
       "created": "通讯录已创建",
       "create_failed": "创建通讯录失败",
       "title": "我的地址簿",

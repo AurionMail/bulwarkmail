@@ -2936,6 +2936,7 @@
     },
     "address_books": {
       "create": "Nowa książka adresowa",
+      "create_confirm": "Utwórz",
       "created": "Utworzono książkę adresową",
       "create_failed": "Nie udało się utworzyć książki adresowej",
       "title": "Moje książki adresowe",
