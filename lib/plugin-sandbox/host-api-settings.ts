@@ -1,5 +1,6 @@
 // Host side of api.templates, api.identities and api.vacation: the message
-// templates (kept in the browser and synced with the settings), the sender
+// templates (the active account's own: in the account on Stalwart 1.0, in the
+// browser and synced with the settings elsewhere), the sender
 // identities and the out-of-office reply. Changes go through the same stores
 // and the same HTML sanitising as Settings, so what a plugin saves is held to
 // the rules a user's own edit is.
@@ -8,7 +9,8 @@ import type {
   IdentityView, TemplateInput, VacationInput, VacationView, TemplateView,
 } from '../plugin-types';
 import type { EmailAddress, Identity } from '../jmap/types';
-import { useTemplateStore } from '@/stores/template-store';
+import { personalTemplatesFor } from '@/lib/templates/personal-templates';
+import { usePolicyStore } from '@/stores/policy-store';
 import { updateIdentityWithHooks, useIdentityStore } from '@/stores/identity-store';
 import { useVacationStore } from '@/stores/vacation-store';
 import { identityToView, templateToView, vacationToView } from '../plugin-projection';
@@ -29,13 +31,27 @@ const MAX_TEMPLATE_SUBJECT = 998;
 const MAX_TEMPLATE_BODY = 100_000;
 const TEMPLATE_FIELDS = ['name', 'subject', 'body', 'isHTML', 'category'] as const;
 
+// The active account's own templates: kept in the account on Stalwart 1.0,
+// in the browser's list otherwise (lib/templates/personal-templates.ts).
+const personal = () => personalTemplatesFor();
+
+// The admin hid personal templates for the active account
+// (`personalTemplates`): plugins see none and can't make any either.
+const personalHidden = () => usePolicyStore.getState().policy.restrictions?.personalTemplates?.hidden === true;
+
+function refuseIfHidden(method: string): void {
+  if (personalHidden()) throw new Error(`${method}: the administrator turned personal templates off`);
+}
+
 export function doTemplatesList(): TemplateView[] {
-  return useTemplateStore.getState().templates.map(templateToView);
+  if (personalHidden()) return [];
+  return personal().templates().map(templateToView);
 }
 
 export function doTemplatesGet(id: unknown): TemplateView | null {
   const templateId = readId(id, 'templates.get');
-  const template = useTemplateStore.getState().templates.find((t) => t.id === templateId);
+  if (personalHidden()) return null;
+  const template = personal().templates().find((t) => t.id === templateId);
   return template ? templateToView(template) : null;
 }
 
@@ -59,13 +75,14 @@ export function doTemplatesCreate(input: unknown): TemplateView {
   const method = 'templates.create';
   const data = readObject(input, method, 'template', TEMPLATE_FIELDS) as TemplateInput & Record<string, unknown>;
   if (data.name === undefined) throw new Error(`${method}: name is required`);
-  const store = useTemplateStore.getState();
-  if (store.templates.length >= MAX_PLUGIN_TEMPLATES) {
+  refuseIfHidden(method);
+  const store = personal();
+  if (store.templates().length >= MAX_PLUGIN_TEMPLATES) {
     throw new Error(`${method}: there are already ${MAX_PLUGIN_TEMPLATES} templates`);
   }
   const isHTML = data.isHTML === undefined ? false : readBoolean(data.isHTML, method, 'isHTML');
   const fields = templateFields(method, data, isHTML);
-  const created = store.addTemplate({
+  const created = store.add({
     name: fields.name!,
     subject: fields.subject ?? '',
     body: fields.body ?? '',
@@ -81,23 +98,27 @@ export function doTemplatesUpdate(id: unknown, patch: unknown): TemplateView {
   const templateId = readId(id, method);
   const data = readObject(patch, method, 'patch', TEMPLATE_FIELDS);
   if (Object.keys(data).length === 0) throw new Error(`${method}: patch is empty`);
-  const existing = useTemplateStore.getState().templates.find((t) => t.id === templateId);
+  refuseIfHidden(method);
+  const store = personal();
+  const existing = store.templates().find((t) => t.id === templateId);
   if (!existing) throw new Error(`${method}: no template with id "${templateId}"`);
   const isHTML = data.isHTML === undefined ? !!existing.isHTML : readBoolean(data.isHTML, method, 'isHTML');
   const fields = templateFields(method, data, isHTML);
   // Turning an existing body into HTML must not let unsanitised text through.
   if (isHTML && !existing.isHTML && fields.body === undefined) fields.body = sanitizePluginBodyHtml(existing.body || '');
-  useTemplateStore.getState().updateTemplate(templateId, fields);
-  return templateToView(useTemplateStore.getState().templates.find((t) => t.id === templateId)!);
+  store.update(templateId, fields);
+  return templateToView(store.templates().find((t) => t.id === templateId)!);
 }
 
 export function doTemplatesDelete(id: unknown): void {
   const method = 'templates.delete';
   const templateId = readId(id, method);
-  if (!useTemplateStore.getState().templates.some((t) => t.id === templateId)) {
+  refuseIfHidden(method);
+  const store = personal();
+  if (!store.templates().some((t) => t.id === templateId)) {
     throw new Error(`${method}: no template with id "${templateId}"`);
   }
-  useTemplateStore.getState().deleteTemplate(templateId);
+  store.remove(templateId);
 }
 
 // ─── Identities ───────────────────────────────────────────────

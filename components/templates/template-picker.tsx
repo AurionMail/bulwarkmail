@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { X, Search, Star, FileText } from '@/components/icons';
 import { cn } from '@/lib/utils';
@@ -8,10 +8,15 @@ import { Input } from '@/components/ui/input';
 import { useTemplateStore } from '@/stores/template-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useFocusTrap } from '@/hooks/use-focus-trap';
+import { useTemplateSources } from '@/hooks/use-template-sources';
 import {
+  filterTemplates,
   getPlaceholdersFromTemplate,
   getAutoFilledPlaceholders,
 } from '@/lib/template-utils';
+import type { TemplateSource } from '@/lib/templates/template-sources';
+import { refreshAccountTemplates, resolveAccountId } from '@/lib/templates/personal-templates';
+import { refreshTeamTemplates } from '@/lib/templates/team-templates';
 import { PlaceholderFillModal } from './placeholder-fill-modal';
 import type { EmailTemplate } from '@/lib/template-types';
 
@@ -19,19 +24,35 @@ interface TemplatePickerProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (template: EmailTemplate, filledValues: Record<string, string>) => void;
+  /**
+   * The signed-in account the message is written from: its own templates,
+   * its team templates and its organisation library. The active one when
+   * left out.
+   */
+  accountId?: string | null;
 }
 
-export function TemplatePicker({ isOpen, onClose, onSelect }: TemplatePickerProps) {
+export function TemplatePicker({ isOpen, onClose, onSelect, accountId }: TemplatePickerProps) {
   const t = useTranslations('templates');
+  const tOrg = useTranslations('org_templates');
   const locale = useLocale();
 
-  const { templates, getFavorites, getRecent, getTemplatesByCategory, searchTemplates, recordUsage } =
-    useTemplateStore();
+  const recordUsage = useTemplateStore((s) => s.recordUsage);
+  const recentTemplateIds = useTemplateStore((s) => s.recentTemplateIds);
   const { primaryIdentity } = useAuthStore();
+  const { sources } = useTemplateSources(accountId);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
   const [showFillModal, setShowFillModal] = useState(false);
+
+  // What another device or a team member changed shows up when the picker opens.
+  useEffect(() => {
+    if (!isOpen) return;
+    refreshAccountTemplates(accountId);
+    const id = resolveAccountId(accountId);
+    if (id) refreshTeamTemplates(id);
+  }, [isOpen, accountId]);
 
   const modalRef = useFocusTrap({
     isActive: isOpen && !showFillModal,
@@ -39,14 +60,10 @@ export function TemplatePicker({ isOpen, onClose, onSelect }: TemplatePickerProp
     restoreFocus: true,
   });
 
-  const favorites = getFavorites();
-  const recent = getRecent();
-  const byCategory = getTemplatesByCategory();
-  const filtered = searchQuery ? searchTemplates(searchQuery) : null;
-
-  const handleSelectTemplate = (template: EmailTemplate) => {
+  const handleSelectTemplate = (template: EmailTemplate, source: TemplateSource) => {
     const placeholders = getPlaceholdersFromTemplate(template);
-    recordUsage(template.id);
+    // Recently used lists the user's own templates only.
+    if (source.kind === 'personal') recordUsage(template.id);
 
     if (placeholders.length > 0) {
       setSelectedTemplate(template);
@@ -71,22 +88,22 @@ export function TemplatePicker({ isOpen, onClose, onSelect }: TemplatePickerProp
     locale,
   });
 
-  const renderTemplateItem = (template: EmailTemplate) => (
+  const renderTemplateItem = (template: EmailTemplate, source: TemplateSource) => (
     <button
-      key={template.id}
+      key={`${source.key}:${template.id}`}
       type="button"
-      onClick={() => handleSelectTemplate(template)}
+      onClick={() => handleSelectTemplate(template, source)}
       className="w-full text-start p-3 rounded-md hover:bg-muted transition-colors group"
     >
-      <div className="flex items-center gap-2">
-        {template.isFavorite && (
+      <div className="flex items-center gap-2 min-w-0">
+        {source.kind === 'personal' && template.isFavorite && (
           <Star className="w-3 h-3 fill-amber-400 text-amber-400 flex-shrink-0" />
         )}
         <span className="text-sm font-medium text-foreground truncate">
           {template.name}
         </span>
         {template.category && (
-          <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium flex-shrink-0">
+          <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium flex-shrink-0 max-w-[40%] truncate">
             {template.category}
           </span>
         )}
@@ -96,33 +113,89 @@ export function TemplatePicker({ isOpen, onClose, onSelect }: TemplatePickerProp
           {template.subject}
         </p>
       )}
+      {/* Who the template addresses, before it is put into the message. */}
+      {(template.defaultRecipients?.to?.length || template.defaultRecipients?.cc?.length) ? (
+        <p className="text-xs text-muted-foreground truncate mt-1" data-testid="template-recipients">
+          {[
+            template.defaultRecipients?.to?.length ? tOrg('preview_to', { list: template.defaultRecipients.to.join(', ') }) : null,
+            template.defaultRecipients?.cc?.length ? tOrg('preview_cc', { list: template.defaultRecipients.cc.join(', ') }) : null,
+          ].filter(Boolean).join(' · ')}
+        </p>
+      ) : null}
     </button>
   );
 
-  const renderSection = (title: string, items: EmailTemplate[]) => {
+  const renderSection = (title: string, items: EmailTemplate[], source: TemplateSource) => {
     if (items.length === 0) return null;
     return (
-      <div className="mb-4">
+      <div className="mb-4" key={`${source.key}:${title}`}>
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-3">
           {title}
         </h3>
-        <div className="space-y-0.5">{items.map(renderTemplateItem)}</div>
+        <div className="space-y-0.5">{items.map((item) => renderTemplateItem(item, source))}</div>
       </div>
     );
   };
 
-  const categorizedEntries = Object.entries(byCategory).filter(
-    ([cat]) => cat !== ''
-  );
-  const favoriteIds = new Set(favorites.map((f) => f.id));
-  const recentFiltered = recent.filter((r) => !favoriteIds.has(r.id));
-  const shownIds = new Set([
-    ...favoriteIds,
-    ...recentFiltered.map((r) => r.id),
-  ]);
-  const uncategorizedFiltered = (byCategory[''] || []).filter(
-    (i) => !shownIds.has(i.id)
-  );
+  const sourceTitle = (source: TemplateSource) =>
+    source.kind === 'organisation' ? tOrg('section_organisation')
+      : source.kind === 'team' ? (source.name ?? '')
+        : tOrg('section_personal');
+
+  // The user's own templates keep their favourites, recently used and
+  // categories. With team or organisation templates next to them, the
+  // whole block gets a heading of its own.
+  const renderPersonal = (source: TemplateSource, withHeading: boolean) => {
+    const templates = source.templates;
+    const favorites = templates.filter((tpl) => tpl.isFavorite);
+    const favoriteIds = new Set(favorites.map((f) => f.id));
+    const recent = recentTemplateIds
+      .map((id) => templates.find((tpl) => tpl.id === id))
+      .filter((tpl): tpl is EmailTemplate => !!tpl && !favoriteIds.has(tpl.id));
+    const shownIds = new Set([...favoriteIds, ...recent.map((r) => r.id)]);
+    const byCategory: Record<string, EmailTemplate[]> = {};
+    for (const tpl of templates) {
+      if (shownIds.has(tpl.id)) continue;
+      (byCategory[tpl.category || ''] ??= []).push(tpl);
+    }
+    const body = (
+      <>
+        {renderSection(t('section_favorites'), favorites, source)}
+        {renderSection(t('section_recent'), recent, source)}
+        {Object.entries(byCategory)
+          .filter(([cat]) => cat !== '')
+          .map(([cat, items]) => renderSection(cat, items, source))}
+        {renderSection(t('section_uncategorized'), byCategory[''] ?? [], source)}
+      </>
+    );
+    if (!withHeading) return <div key={source.key}>{body}</div>;
+    if (templates.length === 0) return null;
+    return (
+      <section key={source.key} data-testid="template-source-personal" aria-label={sourceTitle(source)} className="mb-2">
+        <h2 className="text-sm font-semibold text-foreground px-3 pt-1 pb-2">{sourceTitle(source)}</h2>
+        {body}
+      </section>
+    );
+  };
+
+  const renderShared = (source: TemplateSource, items: EmailTemplate[]) => {
+    if (items.length === 0) return null;
+    return (
+      <section key={source.key} data-testid={`template-source-${source.kind}`} aria-label={sourceTitle(source)} className="mb-2">
+        <h2 className="text-sm font-semibold text-foreground px-3 pt-1 pb-2 truncate">{sourceTitle(source)}</h2>
+        <div className="space-y-0.5 mb-4">{items.map((item) => renderTemplateItem(item, source))}</div>
+      </section>
+    );
+  };
+
+  const total = sources.reduce((n, source) => n + source.templates.length, 0);
+  // Only the user's own templates: the picker looks as it always did.
+  const onlyPersonal = sources.every((source) => source.kind === 'personal' || source.templates.length === 0);
+
+  const results = searchQuery
+    ? sources.map((source) => ({ source, items: filterTemplates(source.templates, searchQuery) }))
+    : null;
+  const resultCount = results?.reduce((n, r) => n + r.items.length, 0) ?? 0;
 
   return (
     <>
@@ -132,6 +205,8 @@ export function TemplatePicker({ isOpen, onClose, onSelect }: TemplatePickerProp
           role="dialog"
           aria-modal="true"
           aria-labelledby="template-picker-title"
+          // The mail shortcuts behind the dialog must not see its keys.
+          onKeyDown={(e) => e.stopPropagation()}
           className={cn(
             'bg-background border border-border rounded-lg shadow-xl',
             'w-full max-w-md max-h-[70vh] overflow-hidden',
@@ -141,6 +216,7 @@ export function TemplatePicker({ isOpen, onClose, onSelect }: TemplatePickerProp
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h2 id="template-picker-title" className="text-sm font-semibold text-foreground">{t('picker_title')}</h2>
             <button
+              type="button"
               onClick={onClose}
               className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
             >
@@ -162,35 +238,31 @@ export function TemplatePicker({ isOpen, onClose, onSelect }: TemplatePickerProp
           </div>
 
           <div className="overflow-y-auto max-h-[calc(70vh-120px)] p-2">
-            {templates.length === 0 && (
+            {total === 0 && (
               <div className="flex flex-col items-center py-8 text-muted-foreground">
                 <FileText className="w-8 h-8 mb-2 opacity-40" />
                 <p className="text-sm">{t('no_templates')}</p>
               </div>
             )}
 
-            {filtered ? (
-              filtered.length > 0 ? (
-                <div className="space-y-0.5">
-                  {filtered.map(renderTemplateItem)}
-                </div>
+            {results ? (
+              resultCount > 0 ? (
+                onlyPersonal ? (
+                  <div className="space-y-0.5">
+                    {results.flatMap(({ source, items }) => items.map((item) => renderTemplateItem(item, source)))}
+                  </div>
+                ) : (
+                  results.map(({ source, items }) => renderShared(source, items))
+                )
               ) : (
                 <div className="py-6 text-center text-sm text-muted-foreground">
                   {t('no_results')}
                 </div>
               )
             ) : (
-              <>
-                {renderSection(t('section_favorites'), favorites)}
-                {renderSection(t('section_recent'), recentFiltered)}
-                {categorizedEntries.map(([cat, items]) =>
-                  renderSection(
-                    cat,
-                    items.filter((i) => !shownIds.has(i.id))
-                  )
-                )}
-                {renderSection(t('section_uncategorized'), uncategorizedFiltered)}
-              </>
+              sources.map((source) => source.kind === 'personal'
+                ? renderPersonal(source, !onlyPersonal)
+                : renderShared(source, source.templates))
             )}
           </div>
         </div>

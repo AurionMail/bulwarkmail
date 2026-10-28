@@ -83,7 +83,9 @@ import type { DirectoryEntry } from "@/stores/contact-store";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import type { FileNode } from "@/lib/jmap/types";
 import { useContactStore, getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
-import { useTemplateStore, renderTemplateWithPlugins, notifyTemplateApplied } from "@/stores/template-store";
+import { renderTemplateWithPlugins, notifyTemplateApplied } from "@/stores/template-store";
+import { useTemplateSources } from "@/hooks/use-template-sources";
+import { personalTemplatesFor } from "@/lib/templates/personal-templates";
 import { notifyIdentitySelected } from "@/stores/identity-store";
 import { usePluginSignature } from "@/hooks/use-plugin-signature";
 import { useOrgSignature, useOrgSignatureIdentity } from "@/hooks/use-org-signature";
@@ -1553,7 +1555,15 @@ export function EmailComposer({
   const addToTrustedSendersBook = useContactStore((s) => s.addToTrustedSendersBook);
   const addTrustedSender = useSettingsStore((s) => s.addTrustedSender);
   const trustedSendersAddressBook = useSettingsStore((s) => s.trustedSendersAddressBook);
-  const addTemplate = useTemplateStore((s) => s.addTemplate);
+  // "Save as template" keeps it with the account the message is written from.
+  const addTemplate = useCallback(
+    (data: Parameters<ReturnType<typeof personalTemplatesFor>['add']>[0]) => personalTemplatesFor(composingAccountId).add(data),
+    [composingAccountId],
+  );
+  // The admin may leave users only organisation and team templates.
+  const composingTemplates = useTemplateSources(composingAccountId);
+  const personalTemplatesHidden = composingTemplates.personalHidden;
+  const composingPersonalTemplates = composingTemplates.sources.find((source) => source.kind === 'personal')?.templates;
   // Sign/encrypt is provided by crypto plugins (S/MIME, PGP) via the
   // composer-toolbar slot + the onComposeSend hook — the host stays
   // crypto-agnostic.
@@ -4676,9 +4686,11 @@ export function EmailComposer({
                   <ComposerToolbarMenuItem icon={FileText} onSelect={() => { close(); setShowTemplatePicker(true); }}>
                     {t('insert_template')}
                   </ComposerToolbarMenuItem>
-                  <ComposerToolbarMenuItem icon={BookmarkPlus} onSelect={() => { close(); setShowSaveAsTemplate(true); }}>
-                    {t('save_as_template')}
-                  </ComposerToolbarMenuItem>
+                  {!personalTemplatesHidden && (
+                    <ComposerToolbarMenuItem icon={BookmarkPlus} onSelect={() => { close(); setShowSaveAsTemplate(true); }}>
+                      {t('save_as_template')}
+                    </ComposerToolbarMenuItem>
+                  )}
                 </>}
               </ComposerToolbarMenu>
             )}
@@ -4833,6 +4845,7 @@ export function EmailComposer({
           isOpen={showTemplatePicker}
           onClose={() => setShowTemplatePicker(false)}
           onSelect={handleTemplateSelect}
+          accountId={composingAccountId}
         />
       )}
 
@@ -4862,6 +4875,7 @@ export function EmailComposer({
           >
             <h3 className="text-lg font-semibold text-foreground mb-4">{t('save_as_template')}</h3>
             <TemplateForm
+              categorySource={composingPersonalTemplates}
               initialData={{
                 subject,
                 body,
