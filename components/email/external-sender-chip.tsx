@@ -4,24 +4,56 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Building } from '@/components/icons';
 import { cn } from '@/lib/utils';
-import { externalSenders, internalDomains, type ExternalSender } from '@/lib/external-mail';
+import {
+  externalMailContextFor,
+  externalSenders,
+  internalDomains,
+  isOtherAccount,
+  type ExternalMailContext,
+  type ExternalSender,
+} from '@/lib/external-mail';
 import { usePolicyStore } from '@/stores/policy-store';
 import { useAuthStore } from '@/stores/auth-store';
 
 type FromList = readonly { email?: string | null }[] | null | undefined;
 
 /**
- * The From addresses outside the organisation when the admin turned the
- * "External" label on (lib/external-mail.ts); empty otherwise.
+ * The context of the account a message belongs to: the active one from the
+ * stores, another signed-in one (the unified inbox) resolved for that
+ * account, so its own scopes and identities decide.
  */
-export function useExternalSenders(from: FromList): ExternalSender[] {
+function useAccountContext(accountId: string | null | undefined): ExternalMailContext | null {
   const externalMail = usePolicyStore((s) => s.policy.organisation?.externalMail);
+  const rawPolicy = usePolicyStore((s) => s.rawPolicy);
   const identities = useAuthStore((s) => s.identities);
+  const other = useAuthStore(() => isOtherAccount(accountId));
+  const [otherContext, setOtherContext] = useState<{ accountId: string; context: ExternalMailContext } | null>(null);
+  useEffect(() => {
+    if (!other || !accountId) return;
+    let cancelled = false;
+    void externalMailContextFor(accountId).then((context) => {
+      if (!cancelled) setOtherContext({ accountId, context });
+    });
+    return () => { cancelled = true; };
+  }, [other, accountId, rawPolicy]);
   return useMemo(() => {
-    if (!externalMail?.senderLabel) return [];
-    const internal = internalDomains((identities ?? []).map((identity) => identity.email), externalMail.domains);
-    return externalSenders(from, internal);
-  }, [externalMail, identities, from]);
+    if (other) return otherContext && otherContext.accountId === accountId ? otherContext.context : null;
+    if (!externalMail) return null;
+    return { policy: externalMail, identityEmails: (identities ?? []).map((identity) => identity.email) };
+  }, [other, otherContext, accountId, externalMail, identities]);
+}
+
+/**
+ * The From addresses outside the organisation when the admin turned the
+ * "External" label on for the message's account (lib/external-mail.ts);
+ * empty otherwise.
+ */
+export function useExternalSenders(from: FromList, accountId?: string | null): ExternalSender[] {
+  const context = useAccountContext(accountId);
+  return useMemo(() => {
+    if (!context?.policy.senderLabel) return [];
+    return externalSenders(from, internalDomains(context.identityEmails, context.policy.domains));
+  }, [context, from]);
 }
 
 /**
@@ -33,9 +65,15 @@ export function useExternalSenders(from: FromList): ExternalSender[] {
  * the domain. Inside another button (a conversation card's header) it can't
  * be one, so `interactive={false}` keeps it a label with a tooltip.
  */
-export function ExternalSenderChip({ from, className, interactive = true }: { from: FromList; className?: string; interactive?: boolean }) {
+export function ExternalSenderChip({ from, accountId, className, interactive = true }: {
+  from: FromList;
+  /** The signed-in account the message belongs to (Email.sourceClientAccountId); the active one when not set. */
+  accountId?: string | null;
+  className?: string;
+  interactive?: boolean;
+}) {
   const t = useTranslations('external_mail');
-  const senders = useExternalSenders(from);
+  const senders = useExternalSenders(from, accountId);
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLSpanElement>(null);
   const popoverId = useId();

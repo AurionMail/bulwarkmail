@@ -183,3 +183,42 @@ describe('contacts that are not loaded yet', () => {
     expect((await result).map((r) => r.address)).toEqual(['org-dave@org-two.test']);
   });
 });
+
+describe('sending through another signed-in account', () => {
+  function signInDave(daveScope: Record<string, unknown> | null) {
+    usePolicyStore.setState({
+      rawPolicy: {
+        ...DEFAULT_POLICY,
+        organisation: { ...DEFAULT_ORGANISATION_POLICY, externalMail: { ...DEFAULT_ORGANISATION_POLICY.externalMail, recipientWarning: true } },
+        scopes: daveScope ? [{ id: 'two', label: 'Two', match: { domains: ['org-two.test'] }, policy: { organisation: { externalMail: daveScope } } }] : [],
+      },
+    });
+    const daveClient = {
+      getUsername: () => 'org-dave@org-two.test',
+      getSharedAccounts: () => [],
+      getAccountInfo: () => null,
+      getPrincipalTypes: async () => ({}),
+      getIdentities: async () => [{ id: 'd1', name: 'Dave', email: 'org-dave@org-two.test' }],
+    };
+    useAuthStore.setState({
+      activeAccountId: 'acc-alice',
+      getClientForAccount: (id: string) => (id === 'acc-dave' ? daveClient : undefined),
+    } as never);
+  }
+  const asDave = (to: string[]): OutgoingContext => ({
+    ...context(to), fromEmail: 'org-dave@org-two.test', identityEmail: 'org-dave@org-two.test', localAccountId: 'acc-dave',
+  });
+
+  it("uses that account's identities: its domain is internal, the active account's is not", async () => {
+    signInDave(null);
+    expect(await recipientsToConfirm(asDave(['colleague@org-two.test']))).toEqual([]);
+    expect((await recipientsToConfirm(asDave(['org-bob@example.org']))).map((r) => r.address)).toEqual(['org-bob@example.org']);
+  });
+
+  it("uses that account's policy: a scope that turns the warning off for it applies", async () => {
+    signInDave({ recipientWarning: false });
+    expect(await recipientsToConfirm(asDave(['someone@elsewhere.example']))).toEqual([]);
+    // The active account still asks.
+    expect((await recipientsToConfirm(context(['someone@elsewhere.example']))).map((r) => r.address)).toEqual(['someone@elsewhere.example']);
+  });
+});

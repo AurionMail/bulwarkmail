@@ -3,8 +3,9 @@ import {
   addressDomain,
   addressKey,
   contactAddresses,
-  coreExternalWarningsOn,
-  currentInternalDomains,
+  activeExternalMailContext,
+  contextInternalDomains,
+  externalMailContextFor,
   domainMatches,
   externalRecipients,
   externalSenders,
@@ -139,22 +140,49 @@ describe('externalSenders', () => {
 describe('the active account', () => {
   beforeEach(() => {
     setExternalMail({});
-    useAuthStore.setState({ identities: [] });
+    useAuthStore.setState({ identities: [], activeAccountId: 'acc-alice' });
     useContactStore.setState({ contacts: [], addressBooks: [], trustedSendersBookId: null });
   });
 
   it('reads the switches from the effective policy', () => {
-    expect(coreExternalWarningsOn()).toBe(false);
+    expect(activeExternalMailContext().policy.senderLabel).toBe(false);
     setExternalMail({ senderLabel: true });
-    expect(coreExternalWarningsOn()).toBe(true);
-    setExternalMail({ recipientWarning: true });
-    expect(coreExternalWarningsOn()).toBe(true);
+    expect(activeExternalMailContext().policy.senderLabel).toBe(true);
   });
 
   it('combines the policy domains with the identity domains', () => {
     setExternalMail({ domains: ['partner.com'] });
     useAuthStore.setState({ identities: [identity('org-alice@example.org')] });
-    expect(currentInternalDomains()).toEqual(['example.org', 'partner.com']);
+    expect(contextInternalDomains(activeExternalMailContext())).toEqual(['example.org', 'partner.com']);
+  });
+
+  it('resolves another signed-in account with its own scopes and identities', async () => {
+    // The raw policy: the label on for everyone, off for org-two.test.
+    usePolicyStore.setState({
+      rawPolicy: {
+        ...DEFAULT_POLICY,
+        organisation: { ...DEFAULT_ORGANISATION_POLICY, externalMail: { ...DEFAULT_ORGANISATION_POLICY.externalMail, senderLabel: true } },
+        scopes: [{ id: 'two', label: 'Two', match: { domains: ['org-two.test'] }, policy: { organisation: { externalMail: { senderLabel: false } } } }],
+      },
+    });
+    setExternalMail({ senderLabel: true });
+    const daveClient = {
+      getUsername: () => 'org-dave@org-two.test',
+      getSharedAccounts: () => [],
+      getAccountInfo: () => null,
+      getPrincipalTypes: async () => ({}),
+      getIdentities: async () => [identity('org-dave@org-two.test')],
+    };
+    useAuthStore.setState({
+      identities: [identity('org-alice@example.org')],
+      getClientForAccount: (id: string) => (id === 'acc-dave' ? daveClient : undefined),
+    } as never);
+    const dave = await externalMailContextFor('acc-dave');
+    expect(dave.policy.senderLabel).toBe(false);
+    expect(dave.identityEmails).toEqual(['org-dave@org-two.test']);
+    // The active account, and an unknown one, read the stores.
+    expect((await externalMailContextFor('acc-alice')).identityEmails).toEqual(['org-alice@example.org']);
+    expect((await externalMailContextFor(undefined)).policy.senderLabel).toBe(true);
   });
 
   it('collects the addresses of every contact', () => {

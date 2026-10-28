@@ -1,4 +1,4 @@
-import { render, fireEvent, cleanup, screen } from '@testing-library/react';
+import { render, fireEvent, cleanup, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { Identity } from '@/lib/jmap/types';
 import { DEFAULT_ORGANISATION_POLICY } from '@/lib/admin/organisation-policy';
@@ -60,5 +60,47 @@ describe('External chip on phones and keyboards', () => {
     const { container } = render(<button type="button"><ExternalSenderChip from={[{ email: 'dave@org-two.test' }]} interactive={false} /></button>);
     expect(container.querySelectorAll('button')).toHaveLength(1);
     expect(container.querySelector('[data-external-sender-chip]')?.getAttribute('title')).toBe('sender_tooltip(org-two.test)');
+  });
+});
+
+describe('a message of another signed-in account (unified inbox)', () => {
+  function signInDave(daveScope: Record<string, unknown> | null) {
+    usePolicyStore.setState({
+      rawPolicy: {
+        ...DEFAULT_POLICY,
+        organisation: { ...DEFAULT_ORGANISATION_POLICY, externalMail: { ...DEFAULT_ORGANISATION_POLICY.externalMail, senderLabel: true } },
+        scopes: daveScope ? [{ id: 'two', label: 'Two', match: { domains: ['org-two.test'] }, policy: { organisation: { externalMail: daveScope } } }] : [],
+      },
+    });
+    const daveClient = {
+      getUsername: () => 'org-dave@org-two.test',
+      getSharedAccounts: () => [],
+      getAccountInfo: () => null,
+      getPrincipalTypes: async () => ({}),
+      getIdentities: async () => [{ id: 'd1', name: 'Dave', email: 'org-dave@org-two.test' }],
+    };
+    useAuthStore.setState({
+      activeAccountId: 'acc-alice',
+      getClientForAccount: (id: string) => (id === 'acc-dave' ? daveClient : undefined),
+    } as never);
+  }
+
+  it("is judged with that account's identities", async () => {
+    signInDave(null);
+    // For dave, a colleague at org-two.test is internal and alice is not.
+    const colleague = render(<ExternalSenderChip from={[{ email: 'colleague@org-two.test' }]} accountId="acc-dave" />);
+    const alice = render(<ExternalSenderChip from={[{ email: 'alice@example.org' }]} accountId="acc-dave" />);
+    await waitFor(() => expect(alice.container.querySelector('[data-external-sender-chip]')).not.toBeNull());
+    expect(colleague.container.querySelector('[data-external-sender-chip]')).toBeNull();
+  });
+
+  it("follows that account's scope, not the active one's", async () => {
+    signInDave({ senderLabel: false });
+    const { container } = render(<ExternalSenderChip from={[{ email: 'someone@elsewhere.example' }]} accountId="acc-dave" />);
+    // The active account has the label on; dave's scope turns it off.
+    await new Promise((r) => setTimeout(r, 20));
+    expect(container.querySelector('[data-external-sender-chip]')).toBeNull();
+    const active = render(<ExternalSenderChip from={[{ email: 'someone@elsewhere.example' }]} />);
+    expect(active.container.querySelector('[data-external-sender-chip]')).not.toBeNull();
   });
 });

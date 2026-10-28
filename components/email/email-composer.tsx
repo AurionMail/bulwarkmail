@@ -3292,6 +3292,7 @@ export function EmailComposer({
       fromEmail: (fromOverrideEnabled && fromOverrideEmail.trim()) || currentIdentity?.email || undefined,
       identityId: currentIdentity?.id,
       identityEmail: currentIdentity?.email || undefined,
+      localAccountId: currentIdentityParts.localAccountId ?? undefined,
       mode,
       plainText: plainTextMode,
     };

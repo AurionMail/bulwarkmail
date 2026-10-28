@@ -10,8 +10,8 @@
  * Domains are compared in ASCII (punycode) form on both sides, so an IDN
  * the admin typed in Unicode matches the xn-- form a server delivers.
  *
- * The pure functions take everything as arguments; the `current*` helpers
- * read the active account's effective policy and identities.
+ * The pure functions take everything as arguments; the context helpers
+ * read one signed-in account's effective policy and identities.
  */
 
 import { DEFAULT_ORGANISATION_POLICY, normalizeDomainList, type OrganisationPolicy } from '@/lib/admin/organisation-policy';
@@ -19,6 +19,9 @@ import { toAsciiDomain, toAsciiEmail } from '@/lib/idn';
 import { usePolicyStore } from '@/stores/policy-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { TRUSTED_SENDERS_BOOK_NAME, useContactStore } from '@/stores/contact-store';
+import { policySubjectForClient } from '@/lib/admin/policy-subject';
+import type { PolicySubject } from '@/lib/admin/policy-scopes';
+import { cachedIdentitiesForAccount } from '@/hooks/use-pro-multi-account-identities';
 
 export type ExternalMailPolicy = OrganisationPolicy['externalMail'];
 
@@ -128,22 +131,66 @@ export function externalSenders(
   return out;
 }
 
-// ─── The active account ──────────────────────────────────────
+// ─── Per account ─────────────────────────────────────────────
 
-/** The externalMail settings of the active account's effective policy. */
-export function currentExternalMailPolicy(): ExternalMailPolicy {
-  return usePolicyStore.getState().getOrganisation().externalMail ?? DEFAULT_ORGANISATION_POLICY.externalMail;
+/** What decides who is external for one signed-in account. */
+export interface ExternalMailContext {
+  /** That account's effective externalMail policy (its domain and group scopes applied). */
+  policy: ExternalMailPolicy;
+  /** That account's identities' addresses. */
+  identityEmails: string[];
 }
 
-/** Either core switch is on: the label or the recipient warning. */
-export function coreExternalWarningsOn(policy: ExternalMailPolicy = currentExternalMailPolicy()): boolean {
-  return policy.senderLabel || policy.recipientWarning;
+/** The active account: the effective policy and the identities in the stores. */
+export function activeExternalMailContext(): ExternalMailContext {
+  return {
+    policy: usePolicyStore.getState().getOrganisation().externalMail ?? DEFAULT_ORGANISATION_POLICY.externalMail,
+    identityEmails: (useAuthStore.getState().identities ?? []).map((identity) => identity.email),
+  };
 }
 
-/** The internal domains for the active account. */
-export function currentInternalDomains(policy: ExternalMailPolicy = currentExternalMailPolicy()): string[] {
-  const identities = useAuthStore.getState().identities ?? [];
-  return internalDomains(identities.map((identity) => identity.email), policy.domains);
+/** The internal domains of a context. */
+export function contextInternalDomains(context: ExternalMailContext): string[] {
+  return internalDomains(context.identityEmails, context.policy.domains);
+}
+
+type AccountClient = NonNullable<ReturnType<ReturnType<typeof useAuthStore.getState>['getClientForAccount']>>;
+const subjects = new WeakMap<AccountClient, Promise<PolicySubject | null>>();
+const identityLists = new WeakMap<AccountClient, Promise<string[]>>();
+
+/** Whether `localAccountId` names another signed-in account than the active one. */
+export function isOtherAccount(localAccountId: string | null | undefined): localAccountId is string {
+  const auth = useAuthStore.getState();
+  return !!localAccountId && localAccountId !== auth.activeAccountId && !!auth.getClientForAccount(localAccountId);
+}
+
+/**
+ * The context of a signed-in account by its login id (AccountEntry id): a
+ * message's own account in the unified inbox, or the account a message is
+ * sent from. Its policy is resolved for its own subject, so a domain or
+ * group scope of that account applies, and its own identities count. The
+ * active account (or none given) reads the stores directly.
+ */
+export async function externalMailContextFor(localAccountId?: string | null): Promise<ExternalMailContext> {
+  if (!isOtherAccount(localAccountId)) return activeExternalMailContext();
+  const client = useAuthStore.getState().getClientForAccount(localAccountId)!;
+  let subject = subjects.get(client);
+  if (!subject) {
+    subject = policySubjectForClient(client).catch(() => null);
+    subjects.set(client, subject);
+  }
+  let identities = identityLists.get(client);
+  if (!identities) {
+    const cached = cachedIdentitiesForAccount(localAccountId);
+    identities = cached
+      ? Promise.resolve(cached.map((identity) => identity.email))
+      : client.getIdentities().then((list) => list.map((identity) => identity.email)).catch(() => []);
+    identityLists.set(client, identities);
+  }
+  const [resolvedSubject, identityEmails] = await Promise.all([subject, identities]);
+  const policy = usePolicyStore.getState().resolveFor(resolvedSubject).organisation?.externalMail
+    ?? DEFAULT_ORGANISATION_POLICY.externalMail;
+  return { policy, identityEmails };
 }
 
 /**

@@ -9,8 +9,8 @@
 import {
   addressDomain,
   contactAddresses,
-  currentExternalMailPolicy,
-  currentInternalDomains,
+  contextInternalDomains,
+  externalMailContextFor,
   externalRecipients,
   type ExternalRecipient,
 } from '@/lib/external-mail';
@@ -51,12 +51,15 @@ export async function ensureContactsLoaded(waitMs = CONTACTS_WAIT_MS): Promise<v
 
 /** The recipients the user is asked about; empty when the check doesn't apply. */
 export async function recipientsToConfirm(context: OutgoingContext): Promise<ExternalRecipient[]> {
-  const policy = currentExternalMailPolicy();
+  // The sending account's policy and identities: an identity of another
+  // signed-in account sends under that account's domain or group scopes.
+  const account = await externalMailContextFor(context.localAccountId);
+  const { policy } = account;
   if (!policy.recipientWarning) return [];
   // The chosen identity's own address is internal. A From typed over it in
   // the composer is not: anyone can type any domain there.
   const identityDomain = addressDomain(context.identityEmail);
-  const internal = currentInternalDomains(policy);
+  const internal = contextInternalDomains(account);
   if (identityDomain && !internal.includes(identityDomain)) internal.push(identityDomain);
   let trusted: ((address: string) => boolean) | undefined;
   if (policy.trustContacts) {
