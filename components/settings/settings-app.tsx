@@ -1019,8 +1019,8 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
           </div>
 
           <div className="border-t border-border px-2 py-2">
-            <AdvancedSettingsSwitch />
             {showAdvanced && <AboutFooter />}
+            <AdvancedSettingsSwitch />
           </div>
           <div className="border-t border-border px-5 py-3">
             <button
@@ -1173,8 +1173,8 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
           </div>
         </div>
         <div className="border-t border-border px-1 py-1">
-          <AdvancedSettingsSwitch />
           {showAdvanced && <AboutFooter />}
+          <AdvancedSettingsSwitch />
         </div>
       </div>
 
