@@ -49,13 +49,15 @@ describe('plugin UI kit components', () => {
     // copy must still be there, word for word.
     const copies: [string, string][] = [
       ['components/settings/settings-section.tsx', 'px-3 py-1.5 text-sm rounded-md bg-muted border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-150'],
-      ['components/settings/settings-section.tsx', 'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-150'],
-      ['components/settings/settings-section.tsx', 'inline-block h-4 w-4 transform rounded-full bg-background transition-transform duration-150'],
+      ['components/settings/settings-section.tsx', 'inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-150'],
+      ['components/settings/settings-section.tsx', 'bg-muted ring-1 ring-inset ring-muted-foreground'],
+      ['components/settings/settings-section.tsx', 'inline-block h-4 w-4 transform rounded-full transition-transform duration-150'],
+      ['components/settings/settings-section.tsx', 'bg-muted-foreground ltr:translate-x-1 rtl:-translate-x-1'],
       ['components/settings/settings-section.tsx', 'flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4 py-3 border-b border-border last:border-0'],
       ['components/settings/settings-section.tsx', 'px-3 py-1.5 text-xs rounded-md transition-colors duration-150'],
       ['components/email/composer-toolbar-menu.tsx', 'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border'],
       ['components/calendar/ical-import-modal.tsx', 'flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors'],
-      ['components/files/file-empty-state.tsx', 'w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4'],
+      ['components/ui/empty-state.tsx', 'w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4'],
       ['components/files/file-views.tsx', 'border-b border-border/60'],
       ['components/files/files-header.tsx', 'px-1.5 py-1 rounded-md transition-colors truncate max-w-[16rem]'],
       ['components/email/email-viewer.tsx', 'w-10 h-10 rounded-full'],

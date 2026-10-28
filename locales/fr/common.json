@@ -4148,10 +4148,22 @@
       "actions": "Actions",
       "previous": "Jour, semaine ou mois précédent",
       "next": "Jour, semaine ou mois suivant",
-      "new_item": "Nouvel événement, ou une nouvelle tâche dans Tâches"
+      "new_item": "Nouvel événement, ou une nouvelle tâche dans Tâches",
+      "move_in_grid": "Se déplacer entre les jours et les heures dans la grille"
     },
     "other_calendars": "Autres agendas",
-    "calendar_options": "Options de {name}"
+    "calendar_options": "Options de {name}",
+    "search": {
+      "title": "Rechercher des événements",
+      "clear": "Effacer la recherche",
+      "close": "Fermer la recherche",
+      "upcoming": "À venir",
+      "past": "Passés",
+      "no_results": "Aucun événement ne correspond à « {query} »",
+      "no_results_hint": "La recherche porte sur les titres, lieux, descriptions et invités.",
+      "repeats": "Se répète",
+      "results": "{count, plural, one {# événement trouvé} other {# événements trouvés}}"
+    }
   },
   "advanced_search": {
     "title": "Recherche avancée",

@@ -4148,10 +4148,22 @@
       "actions": "Aktionen",
       "previous": "Zurück um einen Tag, eine Woche oder einen Monat",
       "next": "Weiter um einen Tag, eine Woche oder einen Monat",
-      "new_item": "Neuer Termin, in Aufgaben eine neue Aufgabe"
+      "new_item": "Neuer Termin, in Aufgaben eine neue Aufgabe",
+      "move_in_grid": "Im Raster zwischen Tagen und Stunden wechseln"
     },
     "other_calendars": "Weitere Kalender",
-    "calendar_options": "Optionen für {name}"
+    "calendar_options": "Optionen für {name}",
+    "search": {
+      "title": "Termine durchsuchen",
+      "clear": "Suche löschen",
+      "close": "Suche schließen",
+      "upcoming": "Demnächst",
+      "past": "Vergangen",
+      "no_results": "Keine Termine zu „{query}“",
+      "no_results_hint": "Gesucht wird in Titeln, Orten, Beschreibungen und Gästen.",
+      "repeats": "Wiederholt sich",
+      "results": "{count, plural, one {# Termin gefunden} other {# Termine gefunden}}"
+    }
   },
   "advanced_search": {
     "title": "Erweiterte Suche",

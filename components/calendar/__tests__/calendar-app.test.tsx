@@ -222,6 +222,15 @@ describe('CalendarApp unsaved editor changes', () => {
     await waitFor(() => expect(screen.queryByPlaceholderText('form.title')).toBeNull());
   });
 
+  it('opens the editor on n without typing the n into its title', async () => {
+    renderApp();
+    const press = new KeyboardEvent('keydown', { key: 'n', code: 'KeyN', bubbles: true, cancelable: true });
+    document.body.dispatchEvent(press);
+    // A key whose keydown is not cancelled goes on to type its character
+    expect(press.defaultPrevented).toBe(true);
+    expect(await screen.findByPlaceholderText('form.title')).toHaveValue('');
+  });
+
   it('closes an untouched editor without asking', () => {
     renderApp();
     fireEvent.keyDown(document.body, { key: 'n', code: 'KeyN' });
@@ -251,6 +260,90 @@ describe('CalendarApp unsaved editor changes', () => {
     const ask = await screen.findByRole('alertdialog', { name: 'discard.title' });
     fireEvent.click(within(ask).getByRole('button', { name: 'discard.confirm' }));
     await waitFor(() => expect(screen.queryByPlaceholderText('tasks.title_placeholder')).toBeNull());
+  });
+});
+
+describe('CalendarApp browser Back with an editor open (R5)', () => {
+  const backEntry = () => (window.history.state as Record<string, unknown> | null)?.__closeOnBack;
+  // Earlier tests leave history behind: wait for this editor's own entry.
+  const openEditorEntry = async () => {
+    const before = backEntry();
+    fireEvent.keyDown(document.body, { key: 'n', code: 'KeyN' });
+    await waitFor(() => expect(backEntry()).toBeTruthy());
+    await waitFor(() => expect(backEntry()).not.toBe(before));
+  };
+
+  it('closes an untouched editor instead of leaving the calendar', async () => {
+    renderApp();
+    await openEditorEntry();
+    window.history.back();
+    await waitFor(() => expect(screen.queryByPlaceholderText('form.title')).toBeNull());
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(backEntry()).toBeUndefined();
+  });
+
+  it('asks before Back drops changes, and asks again after Keep editing', async () => {
+    renderApp();
+    await openEditorEntry();
+    fireEvent.change(screen.getByPlaceholderText('form.title'), { target: { value: 'Lunch' } });
+    window.history.back();
+    const ask = await screen.findByRole('alertdialog', { name: 'discard.title' });
+    fireEvent.click(within(ask).getByRole('button', { name: 'discard.keep' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(screen.getByPlaceholderText('form.title')).toHaveValue('Lunch');
+    // The entry is back, so the next Back asks again
+    expect(backEntry()).toBeTruthy();
+
+    window.history.back();
+    const again = await screen.findByRole('alertdialog', { name: 'discard.title' });
+    fireEvent.click(within(again).getByRole('button', { name: 'discard.confirm' }));
+    await waitFor(() => expect(screen.queryByPlaceholderText('form.title')).toBeNull());
+    await waitFor(() => expect(backEntry()).toBeUndefined());
+  });
+
+  it('takes its history entry back off when the editor closes another way', async () => {
+    renderApp();
+    await openEditorEntry();
+    fireEvent.click(screen.getByText('form.cancel'));
+    await waitFor(() => expect(backEntry()).toBeUndefined());
+  });
+});
+
+describe('CalendarApp event search (CAL-16)', () => {
+  it('focuses the search on / and shows matching events in place of the grid', async () => {
+    setUp([makeEvent(), makeEvent({ id: 'e2', uid: 'u2', title: 'Dentist', start: '2026-10-13T08:00:00' })]);
+    renderApp();
+    fireEvent.keyDown(document.body, { key: '/', code: 'Slash' });
+    const box = screen.getByRole('searchbox', { name: 'search.title' });
+    expect(document.activeElement).toBe(box);
+
+    fireEvent.change(box, { target: { value: 'dent' } });
+    const results = await screen.findByTestId('calendar-search-results');
+    expect(within(results).getByText('Dentist')).toBeInTheDocument();
+    expect(within(results).queryByText('Standup')).toBeNull();
+    expect(screen.queryByRole('grid')).toBeNull();
+
+    // A result opens like an event in the grid
+    fireEvent.click(within(results).getByText('Dentist'));
+    expect(await screen.findByRole('dialog', { name: 'Dentist' })).toBeInTheDocument();
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+
+    // Escape in the box goes back to the grid
+    fireEvent.keyDown(box, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByTestId('calendar-search-results')).toBeNull());
+    expect(screen.getByRole('grid')).toBeInTheDocument();
+  });
+
+  it('says so when nothing matches', async () => {
+    renderApp();
+    fireEvent.change(screen.getByRole('searchbox', { name: 'search.title' }), { target: { value: 'zzz' } });
+    expect(await screen.findByText('search.no_results', {}, { timeout: 3000 })).toBeInTheDocument();
+  });
+
+  it('is in the command palette', () => {
+    render(<><CalendarApp /><PaletteGroups /></>);
+    const items = screen.getByTestId('palette').textContent ?? '';
+    expect(items).toContain('calendar: search.title');
   });
 });
 

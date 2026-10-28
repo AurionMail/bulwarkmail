@@ -4148,10 +4148,22 @@
       "actions": "اقدامات",
       "previous": "روز، هفته یا ماه قبلی",
       "next": "روز، هفته یا ماه بعدی",
-      "new_item": "رویداد جدید، یا وظیفه جدید در وظایف"
+      "new_item": "رویداد جدید، یا وظیفه جدید در وظایف",
+      "move_in_grid": "جابه‌جایی بین روزها و ساعت‌ها در جدول"
     },
     "other_calendars": "تقویم‌های دیگر",
-    "calendar_options": "گزینه‌های {name}"
+    "calendar_options": "گزینه‌های {name}",
+    "search": {
+      "title": "جستجوی رویدادها",
+      "clear": "پاک کردن جستجو",
+      "close": "بستن جستجو",
+      "upcoming": "پیش رو",
+      "past": "گذشته",
+      "no_results": "هیچ رویدادی با «{query}» مطابقت ندارد",
+      "no_results_hint": "جستجو در عنوان‌ها، مکان‌ها، توضیحات و مهمان‌ها انجام می‌شود.",
+      "repeats": "تکرار می‌شود",
+      "results": "{count, plural, one {# رویداد پیدا شد} other {# رویداد پیدا شد}}"
+    }
   },
   "calendar_event_notifications": {
     "someone": "کسی",

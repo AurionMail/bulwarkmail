@@ -4148,10 +4148,22 @@
       "actions": "Accions",
       "previous": "Dia, setmana o mes anterior",
       "next": "Dia, setmana o mes següent",
-      "new_item": "Esdeveniment nou, o una tasca nova a Tasques"
+      "new_item": "Esdeveniment nou, o una tasca nova a Tasques",
+      "move_in_grid": "Moure's entre dies i hores a la quadrícula"
     },
     "other_calendars": "Altres calendaris",
-    "calendar_options": "Opcions de {name}"
+    "calendar_options": "Opcions de {name}",
+    "search": {
+      "title": "Cerca esdeveniments",
+      "clear": "Esborra la cerca",
+      "close": "Tanca la cerca",
+      "upcoming": "Propers",
+      "past": "Passats",
+      "no_results": "Cap esdeveniment coincideix amb «{query}»",
+      "no_results_hint": "La cerca mira títols, llocs, descripcions i convidats.",
+      "repeats": "Es repeteix",
+      "results": "{count, plural, one {# esdeveniment trobat} other {# esdeveniments trobats}}"
+    }
   },
   "calendar_event_notifications": {
     "someone": "Algú",

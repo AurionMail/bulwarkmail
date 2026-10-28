@@ -8,7 +8,7 @@ export const CONTACTS_SECTIONS: readonly ShortcutSection[] = [
     entries: [
       { key: "↓ / ↑", description: "contacts.shortcuts.move" },
       { key: "Home / End", description: "contacts.shortcuts.first_last" },
-      { key: "Shift + ↓ / ↑", description: "contacts.shortcuts.extend" },
+      { key: "Shift + ↓ / Shift + ↑", description: "contacts.shortcuts.extend" },
       { key: "Enter", description: "contacts.shortcuts.open" },
       { key: "Space", description: "contacts.shortcuts.toggle" },
       { key: "Mod + A", description: "contacts.shortcuts.select_all" },

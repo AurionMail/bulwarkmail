@@ -32,6 +32,9 @@ describe('Calendar keyboard shortcuts', () => {
     }
     expect(calendarShortcutAction(pressed('t', 'KeyT'))).toBe('today');
     expect(calendarShortcutAction(pressed('n', 'KeyN'))).toBe('new');
+    expect(calendarShortcutAction(pressed('/', 'Slash'))).toBe('search');
+    // Shift + / is ?, the shell's help
+    expect(calendarShortcutAction({ ...pressed('?', 'Slash'), shiftKey: true })).toBeNull();
   });
 
   it('ignores letters held with a modifier', () => {

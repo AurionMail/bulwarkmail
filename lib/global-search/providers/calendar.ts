@@ -5,7 +5,8 @@ import { textConditions } from '@/lib/jmap/search-utils';
 import type { Calendar, CalendarEvent, CalendarEventFilter } from '@/lib/jmap/types';
 import { useCalendarStore } from '@/stores/calendar-store';
 
-function eventFields(event: CalendarEvent): string[] {
+/** The text an event is found by: title, description, places and participants. */
+export function eventFields(event: CalendarEvent): string[] {
   const fields: string[] = [event.title, event.description];
   for (const location of Object.values(event.locations ?? {})) if (location?.name) fields.push(location.name);
   for (const participant of Object.values(event.participants ?? {})) {

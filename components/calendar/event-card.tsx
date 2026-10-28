@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import type { CalendarEvent, Calendar } from "@/lib/jmap/types";
 import { format } from "date-fns";
-import { Users } from "@/components/icons";
+import { ChevronDown, ChevronUp, Users } from "@/components/icons";
 import { getParticipantCount, isDeclinedByUser } from "@/lib/calendar-participants";
 import { getEventEndDate, getEventStartDate } from "@/lib/calendar-utils";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -22,7 +22,12 @@ interface EventCardProps {
   onContextMenu?: (e: React.MouseEvent, event: CalendarEvent) => void;
   isSelected?: boolean;
   draggable?: boolean;
+  /**
+   * The event goes on before what is drawn: before the first day of a span,
+   * above the first visible hour of a block.
+   */
   continuesBefore?: boolean;
+  /** The event goes on after what is drawn: past the last day or hour. */
   continuesAfter?: boolean;
   className?: string;
   style?: CSSProperties;
@@ -234,14 +239,25 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
       aria-label={ariaLabel}
       {...dragProps}
       data-calendar-event
+      data-continues-before={continuesBefore || undefined}
+      data-continues-after={continuesAfter || undefined}
       className={cn(
-        "w-full h-full text-start rounded-xs px-1.5 py-0.5 text-xs overflow-hidden",
+        // A block box: an inline one hangs its line's descent below the
+        // grid's last hour and makes the filled pane scroll.
+        "relative block w-full h-full text-start rounded-xs px-1.5 py-0.5 text-xs overflow-hidden",
         "hover:opacity-90 transition-opacity cursor-pointer",
+        // Cut at the edge of the visible hours: a square edge and an arrow
+        // say the event runs on past it.
+        continuesBefore && "rounded-t-none",
+        continuesAfter && "rounded-b-none",
+        continuesBefore && "pe-4",
         isBeingDragged && "opacity-50",
         className
       )}
       style={{ ...eventFillStyle(color, { inactive: isInactive, separated: true, selected: isSelected }), ...style }}
     >
+      {continuesBefore && <ChevronUp aria-hidden="true" className="absolute top-0.5 end-0.5 w-3 h-3 opacity-85" />}
+      {continuesAfter && <ChevronDown aria-hidden="true" className="absolute bottom-0.5 end-0.5 w-3 h-3 opacity-85" />}
       {/* Shorter blocks have no room for a second line at the 60px hour, so
           their start time follows the title on the same line, when the
           block is wide enough to keep the title readable. */}

@@ -4148,10 +4148,22 @@
       "actions": "Akcie",
       "previous": "Predchádzajúci deň, týždeň alebo mesiac",
       "next": "Nasledujúci deň, týždeň alebo mesiac",
-      "new_item": "Nová udalosť, v Úlohách nová úloha"
+      "new_item": "Nová udalosť, v Úlohách nová úloha",
+      "move_in_grid": "Presun medzi dňami a hodinami v mriežke"
     },
     "other_calendars": "Ďalšie kalendáre",
-    "calendar_options": "Možnosti pre {name}"
+    "calendar_options": "Možnosti pre {name}",
+    "search": {
+      "title": "Hľadať udalosti",
+      "clear": "Vymazať hľadanie",
+      "close": "Zavrieť hľadanie",
+      "upcoming": "Nadchádzajúce",
+      "past": "Minulé",
+      "no_results": "Hľadaniu „{query}“ nezodpovedá žiadna udalosť",
+      "no_results_hint": "Hľadá sa v názvoch, miestach, popisoch a hosťoch.",
+      "repeats": "Opakuje sa",
+      "results": "{count, plural, one {Nájdená # udalosť} few {Nájdené # udalosti} many {Nájdenej # udalosti} other {Nájdených # udalostí}}"
+    }
   },
   "calendar_event_notifications": {
     "someone": "Niekto",

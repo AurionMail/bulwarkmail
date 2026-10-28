@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
-import { ChevronLeft, ChevronRight, Plus, Upload, CalendarDays, Globe, ChevronDown, ArrowLeft, Menu, MoreVertical, RefreshCw } from "@/components/icons";
+import { ChevronLeft, ChevronRight, Plus, Upload, CalendarDays, Globe, ChevronDown, ArrowLeft, Menu, MoreVertical, RefreshCw, Search } from "@/components/icons";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { startOfWeek } from "date-fns";
@@ -49,6 +49,14 @@ interface CalendarToolbarProps {
    * at the top of the sidebar, so this is only needed while it is hidden.
    */
   showCreateButton?: boolean;
+  /** The search box, shown before the ⋮ on wider screens. */
+  searchField?: ReactNode;
+  /** Phones: opens the search row in place of the date row. */
+  onOpenSearch?: () => void;
+  /** Phones: the open search row's field; null while it is closed. */
+  mobileSearchField?: ReactNode;
+  /** Phones: closes the search row. */
+  onCloseSearch?: () => void;
 }
 
 // Shortcut keys handled by the calendar app (see its keydown handler).
@@ -84,6 +92,10 @@ export function CalendarToolbar({
   sidebarOpen,
   menuTogglesSidebar,
   showCreateButton,
+  searchField,
+  onOpenSearch,
+  mobileSearchField,
+  onCloseSearch,
 }: CalendarToolbarProps) {
   const t = useTranslations("calendar");
   const tCommon = useTranslations("common");
@@ -204,7 +216,16 @@ export function CalendarToolbar({
         {/* ── MOBILE TOOLBAR ── */}
         {isMobile && (
           <div className="flex flex-col gap-1 px-2 py-2">
-            {/* Row 1: Back / Date nav / Today */}
+            {/* Row 1 while searching: the search box with a way back. */}
+            {mobileSearchField ? (
+              <div className="flex items-center gap-1">
+                <IconButton size="icon-lg" label={t("search.close")} onClick={onCloseSearch} className="-ms-1 touch-manipulation">
+                  <ArrowLeft />
+                </IconButton>
+                <div className="flex-1 min-w-0">{mobileSearchField}</div>
+              </div>
+            ) : (
+            /* Row 1: Back / Date nav / Today */
             <div className="flex items-center gap-1">
               {onMenuClick && (
                 <IconButton size="icon-lg" label={t("nav_open_menu")} onClick={onMenuClick} className="-ms-1 touch-manipulation">
@@ -237,6 +258,7 @@ export function CalendarToolbar({
               {/* The shell's phone ⋮ (notifications, palette, account) with the calendar's own entries on top. */}
               <PhoneHeaderActions below="md" menuItems={phoneMenuItems} />
             </div>
+            )}
 
             {/* Row 2: View switcher pills + calendar toggle */}
             <div className="flex items-center gap-1.5">
@@ -257,6 +279,12 @@ export function CalendarToolbar({
                 ))}
               </div>
 
+              {/* Beside the calendar filter: the date row has no room left. */}
+              {onOpenSearch && (
+                <IconButton size="icon-lg" variant="outline" label={t("search.title")} onClick={onOpenSearch} className="touch-manipulation">
+                  <Search />
+                </IconButton>
+              )}
               {calendars && selectedCalendarIds && onToggleVisibility && (
                 <div className="relative" ref={dropdownRef}>
                   <IconButton
@@ -418,6 +446,8 @@ export function CalendarToolbar({
       </h1>
 
       <div className="flex-1" />
+
+      {searchField}
 
       {moreButton}
 

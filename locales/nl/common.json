@@ -4148,10 +4148,22 @@
       "actions": "Acties",
       "previous": "Vorige dag, week of maand",
       "next": "Volgende dag, week of maand",
-      "new_item": "Nieuwe afspraak, of een nieuwe taak in Taken"
+      "new_item": "Nieuwe afspraak, of een nieuwe taak in Taken",
+      "move_in_grid": "Tussen dagen en uren in het raster bewegen"
     },
     "other_calendars": "Andere agenda's",
-    "calendar_options": "Opties voor {name}"
+    "calendar_options": "Opties voor {name}",
+    "search": {
+      "title": "Afspraken zoeken",
+      "clear": "Zoekopdracht wissen",
+      "close": "Zoeken sluiten",
+      "upcoming": "Komend",
+      "past": "Voorbij",
+      "no_results": "Geen afspraken gevonden voor ‘{query}’",
+      "no_results_hint": "Er wordt gezocht in titels, locaties, beschrijvingen en gasten.",
+      "repeats": "Herhaalt",
+      "results": "{count, plural, one {# afspraak gevonden} other {# afspraken gevonden}}"
+    }
   },
   "advanced_search": {
     "title": "Geavanceerd zoeken",

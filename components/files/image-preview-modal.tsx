@@ -27,7 +27,7 @@ export function ImagePreviewModal({ name, onClose, onDownload, getImageUrl, file
   const [error, setError] = useState(false);
 
   // Back closes the preview instead of leaving Files, as for every other preview.
-  useCloseOnBack(onClose);
+  useCloseOnBack({ onBack: onClose });
 
   useEffect(() => {
     let revoke: string | null = null;

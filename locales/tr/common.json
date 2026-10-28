@@ -4148,10 +4148,22 @@
       "actions": "Eylemler",
       "previous": "Önceki gün, hafta veya ay",
       "next": "Sonraki gün, hafta veya ay",
-      "new_item": "Yeni etkinlik, Görevler'de yeni görev"
+      "new_item": "Yeni etkinlik, Görevler'de yeni görev",
+      "move_in_grid": "Izgarada günler ve saatler arasında gezin"
     },
     "other_calendars": "Diğer takvimler",
-    "calendar_options": "{name} seçenekleri"
+    "calendar_options": "{name} seçenekleri",
+    "search": {
+      "title": "Etkinlik ara",
+      "clear": "Aramayı temizle",
+      "close": "Aramayı kapat",
+      "upcoming": "Yaklaşan",
+      "past": "Geçmiş",
+      "no_results": "“{query}” ile eşleşen etkinlik yok",
+      "no_results_hint": "Arama başlıklarda, yerlerde, açıklamalarda ve davetlilerde yapılır.",
+      "repeats": "Tekrarlanıyor",
+      "results": "{count, plural, one {# etkinlik bulundu} other {# etkinlik bulundu}}"
+    }
   },
   "calendar_event_notifications": {
     "someone": "Birisi",

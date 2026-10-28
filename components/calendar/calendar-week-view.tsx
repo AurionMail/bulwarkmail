@@ -18,6 +18,7 @@ import { displayNow, isDisplayToday } from "@/lib/timezone";
 import type { CalendarEvent, Calendar, CalendarTask } from "@/lib/jmap/types";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useDisplayHours, type RevealTime } from "@/hooks/use-display-hours";
+import { useTimeGridFocus } from "@/hooks/use-time-grid-focus";
 import { useTimeGridInteractions, type MoveEventHandler } from "@/hooks/use-time-grid-interactions";
 import { useScrollWindow, getScrollStart, setScrollStart, scrollToStart } from "@/hooks/use-scroll-window";
 import { dayKey, type ScrollWindowViewProps } from "@/lib/calendar-scroll-window";
@@ -66,7 +67,7 @@ interface CalendarWeekViewProps extends ScrollWindowViewProps {
   revealAt?: RevealTime | null;
 }
 
-const HOUR_HEIGHT = 60;
+const MIN_HOUR_HEIGHT = 60;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MOBILE_COL_WIDTH = 120;
 const MIN_COL_WIDTH = 80;
@@ -114,6 +115,8 @@ export function CalendarWeekView({
   // the hours scroll down, and the sticky header rows and hour gutter stay
   // put. (A nested vertical scroller would capture the gutter's stickiness.)
   const rootRef = useRef<HTMLDivElement>(null);
+  // The sticky date header (and all-day row): the hour rows fill what is left.
+  const headerRef = useRef<HTMLDivElement>(null);
   const startSentinelRef = useRef<HTMLDivElement>(null);
   const endSentinelRef = useRef<HTMLDivElement>(null);
   const weekStart = (firstDayOfWeek === 0 ? 0 : firstDayOfWeek === 6 ? 6 : 1) as 0 | 1 | 6;
@@ -211,11 +214,11 @@ export function CalendarWeekView({
   }, [events]);
 
   const {
-    hours, canToggle: canToggleHours, configured: configuredHours, showAllHours, toggleAllHours, revealMinutes,
-  } = useDisplayHours({ scrollRef: rootRef, hourHeight: HOUR_HEIGHT, revealAt });
+    hours, hourHeight, canToggle: canToggleHours, configured: configuredHours, showAllHours, toggleAllHours, revealMinutes,
+  } = useDisplayHours({ scrollRef: rootRef, headerRef, minHourHeight: MIN_HOUR_HEIGHT, revealAt });
   const firstHour = hours.startMinutes / 60;
   const visibleHours = HOURS.slice(firstHour, hours.endMinutes / 60);
-  const gridHeight = visibleHours.length * HOUR_HEIGHT;
+  const gridHeight = visibleHours.length * hourHeight;
 
   // Column layouts are the costly part of a render; with months of columns
   // they must not be redone on every scroll-driven re-render.
@@ -374,7 +377,7 @@ export function CalendarWeekView({
     quickCreate, handleSlotClick, handleSlotDoubleClick, handleQuickCreateSubmit, handleQuickCreateCancel,
     dropTarget, handleColumnDragOver, handleColumnDragLeave, handleColumnDrop,
   } = useTimeGridInteractions({
-    hourHeight: HOUR_HEIGHT,
+    hourHeight,
     gridStartMinutes: hours.startMinutes,
     gridEndMinutes: hours.endMinutes,
     calendars,
@@ -391,6 +394,16 @@ export function CalendarWeekView({
     onMoveEvent,
   });
 
+  const { slotProps, tabStopDayKey } = useTimeGridFocus({
+    rootRef,
+    headerRef,
+    gutterWidth,
+    days,
+    hours,
+    selectedDate,
+    onCreate: onCreateAtTime,
+  });
+
   const formatHour = (h: number): string => {
     if (timeFormat === "12h") {
       const d = new Date(2000, 0, 1, h);
@@ -398,6 +411,8 @@ export function CalendarWeekView({
     }
     return format(new Date(2000, 0, 1, h), "HH:mm");
   };
+  // A slot is read out with its whole date: "Wednesday, October 28, 10:00".
+  const slotDateLabel = (day: Date) => intlFormatter.dateTime(day, { weekday: "long", month: "long", day: "numeric" });
 
   // Above every in-column overlay (events z-10, handles z-20, drag z-30) so
   // columns scrolled past the start do not show through the gutter.
@@ -414,7 +429,7 @@ export function CalendarWeekView({
       <div className="relative flex flex-col" style={{ width: stripWidth, minWidth: stripWidth }}>
       <div ref={startSentinelRef} data-testid="week-start-sentinel" className="absolute inset-y-0 start-0 w-px pointer-events-none" />
       <div ref={endSentinelRef} data-testid="week-end-sentinel" className="absolute inset-y-0 end-0 w-px pointer-events-none" />
-      <div className="sticky top-0 z-50 bg-background">
+      <div ref={headerRef} className="sticky top-0 z-50 bg-background">
       <div className="flex border-b border-border" role="row">
         <div className={cn(gutterClass, "flex items-end justify-center pb-1")}>
           {canToggleHours && (
@@ -449,6 +464,8 @@ export function CalendarWeekView({
                 <button
                   type="button"
                   onClick={() => (onOpenDay ?? onSelectDate)(day)}
+                  // One date in the tab order, not every loaded day's.
+                  tabIndex={dayKey(day) === tabStopDayKey ? 0 : -1}
                   aria-label={fullLabel}
                   aria-current={todayCol ? "date" : undefined}
                   className={cn(
@@ -608,7 +625,7 @@ export function CalendarWeekView({
               <div
                 key={h}
                 className="relative text-muted-foreground text-end pe-2"
-                style={{ height: HOUR_HEIGHT }}
+                style={{ height: hourHeight }}
               >
                 {/* Midnight goes unlabelled; a later first hour is labelled
                     inside its row, where the header cannot cover it. */}
@@ -649,12 +666,13 @@ export function CalendarWeekView({
                     <div
                       key={h}
                       role="gridcell"
-                      aria-label={`${intlFormatter.dateTime(day, { weekday: "short" })} ${formatHour(h)}`}
+                      aria-label={`${slotDateLabel(day)}, ${formatHour(h)}`}
+                      {...slotProps(day, h, !isMobile)}
                       onClick={() => handleSlotClick(day, h)}
                       onDoubleClick={() => handleSlotDoubleClick(day, h)}
                       onContextMenu={onContextMenuEmpty ? (e) => onContextMenuEmpty(e, day, h, false) : undefined}
-                      className="border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors"
-                      style={{ height: HOUR_HEIGHT }}
+                      className="border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                      style={{ height: hourHeight }}
                     />
                   ))}
 
@@ -676,10 +694,10 @@ export function CalendarWeekView({
                   {layouted.map(({ event: ev, column, totalColumns, startMinutes, endMinutes }) => {
                     const durMin = Math.max(15, endMinutes - startMinutes);
                     const clip = clipToDisplayHours(startMinutes, endMinutes, hours);
-                    const baseHeight = Math.max(20, (Math.max(15, clip.endMinutes - clip.startMinutes) / 60) * HOUR_HEIGHT);
+                    const baseHeight = Math.max(20, (Math.max(15, clip.endMinutes - clip.startMinutes) / 60) * hourHeight);
                     // Short events at the bottom edge stay inside the grid.
                     const baseTop = Math.max(0, Math.min(
-                      ((clip.startMinutes - hours.startMinutes) / 60) * HOUR_HEIGHT,
+                      ((clip.startMinutes - hours.startMinutes) / 60) * hourHeight,
                       gridHeight - baseHeight,
                     ));
                     const isResizing = resizeVisual?.eventId === ev.id;
@@ -708,6 +726,8 @@ export function CalendarWeekView({
                           onContextMenu={onContextMenuEvent}
                           currentUserEmails={currentUserEmails}
                           draggable={editable}
+                          continuesBefore={clip.clippedStart}
+                          continuesAfter={clip.clippedEnd}
                         />
                         {/* An edge beyond the visible hours has nothing to grab. */}
                         {editable && !clip.clippedStart && (
@@ -741,7 +761,7 @@ export function CalendarWeekView({
                   {todayCol && nowMinutes >= hours.startMinutes && nowMinutes <= hours.endMinutes && (
                     <div
                       className="absolute left-0 right-0 z-20 pointer-events-none"
-                      style={{ top: ((nowMinutes - hours.startMinutes) / 60) * HOUR_HEIGHT }}
+                      style={{ top: ((nowMinutes - hours.startMinutes) / 60) * hourHeight }}
                     >
                       <div className="flex items-center -translate-y-1/2">
                         <div className="w-3 h-3 rounded-full bg-destructive -ms-1.5 flex-shrink-0" />
@@ -762,8 +782,8 @@ export function CalendarWeekView({
                     <div
                       className="absolute left-1 right-1 z-30 rounded-md pointer-events-none bg-primary/15 border-2 border-primary/30 border-dashed"
                       style={{
-                        top: ((dragCreate.startMinutes - hours.startMinutes) / 60) * HOUR_HEIGHT,
-                        height: ((dragCreate.endMinutes - dragCreate.startMinutes) / 60) * HOUR_HEIGHT,
+                        top: ((dragCreate.startMinutes - hours.startMinutes) / 60) * hourHeight,
+                        height: ((dragCreate.endMinutes - dragCreate.startMinutes) / 60) * hourHeight,
                       }}
                     >
                       <div className="text-[10px] font-medium text-primary px-1.5 py-0.5">
@@ -775,7 +795,7 @@ export function CalendarWeekView({
                   {dropTarget?.dayKey === key && (
                     <div
                       className="absolute left-0 right-0 z-30 pointer-events-none"
-                      style={{ top: ((dropTarget.minutes - hours.startMinutes) / 60) * HOUR_HEIGHT }}
+                      style={{ top: ((dropTarget.minutes - hours.startMinutes) / 60) * hourHeight }}
                     >
                       <div className="flex items-center">
                         <div className="w-2 h-2 rounded-full bg-primary -ms-1" />
@@ -804,8 +824,8 @@ export function CalendarWeekView({
                           data-pending-preview
                           className="absolute left-0.5 right-0.5 z-30 rounded-xs pointer-events-none overflow-hidden px-1.5 py-0.5 text-xs shadow-md"
                           style={{
-                            top: ((clip.startMinutes - hours.startMinutes) / 60) * HOUR_HEIGHT,
-                            height: Math.max(20, ((clip.endMinutes - clip.startMinutes) / 60) * HOUR_HEIGHT),
+                            top: ((clip.startMinutes - hours.startMinutes) / 60) * hourHeight,
+                            height: Math.max(20, ((clip.endMinutes - clip.startMinutes) / 60) * hourHeight),
                             backgroundColor: color,
                             color: readableTextOn(color),
                           }}

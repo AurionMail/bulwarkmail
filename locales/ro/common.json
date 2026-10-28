@@ -4148,10 +4148,22 @@
       "actions": "Acțiuni",
       "previous": "Ziua, săptămâna sau luna anterioară",
       "next": "Ziua, săptămâna sau luna următoare",
-      "new_item": "Eveniment nou sau, în Sarcini, o sarcină nouă"
+      "new_item": "Eveniment nou sau, în Sarcini, o sarcină nouă",
+      "move_in_grid": "Deplasare între zile și ore în grilă"
     },
     "other_calendars": "Alte calendare",
-    "calendar_options": "Opțiuni pentru {name}"
+    "calendar_options": "Opțiuni pentru {name}",
+    "search": {
+      "title": "Caută evenimente",
+      "clear": "Șterge căutarea",
+      "close": "Închide căutarea",
+      "upcoming": "Viitoare",
+      "past": "Trecute",
+      "no_results": "Niciun eveniment nu corespunde cu „{query}”",
+      "no_results_hint": "Căutarea se uită la titluri, locuri, descrieri și invitați.",
+      "repeats": "Se repetă",
+      "results": "{count, plural, one {# eveniment găsit} few {# evenimente găsite} other {# de evenimente găsite}}"
+    }
   },
   "calendar_event_notifications": {
     "someone": "Cineva",

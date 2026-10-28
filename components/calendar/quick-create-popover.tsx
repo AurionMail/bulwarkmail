@@ -88,6 +88,18 @@ export function QuickCreatePopover({
     return () => cancelAnimationFrame(frame);
   }, [startKey, endKey]);
 
+  // Focus goes back where it came from (the slot a keyboard user created
+  // from) when the popover closes, unless something else has taken it.
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const popover = ref.current;
+    return () => {
+      const active = document.activeElement;
+      const lost = !active || active === document.body || (popover?.contains(active) ?? false);
+      if (lost && opener?.isConnected) opener.focus({ preventScroll: true });
+    };
+  }, []);
+
   // Focus once placed. Chrome sometimes refuses the first focus() right
   // after the slot click that opened the popover, so try again briefly.
   const placed = position !== null;

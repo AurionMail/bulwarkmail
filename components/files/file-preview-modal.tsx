@@ -183,7 +183,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
   }, []);
 
   // Back closes the preview instead of leaving Files.
-  useCloseOnBack(onClose);
+  useCloseOnBack({ onBack: onClose });
 
   const fileType = resolvedFileType;
 

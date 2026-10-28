@@ -4148,10 +4148,22 @@
       "actions": "Darbības",
       "previous": "Iepriekšējā diena, nedēļa vai mēnesis",
       "next": "Nākamā diena, nedēļa vai mēnesis",
-      "new_item": "Jauns notikums vai, sadaļā Uzdevumi, jauns uzdevums"
+      "new_item": "Jauns notikums vai, sadaļā Uzdevumi, jauns uzdevums",
+      "move_in_grid": "Pārvietoties starp dienām un stundām režģī"
     },
     "other_calendars": "Citi kalendāri",
-    "calendar_options": "{name} opcijas"
+    "calendar_options": "{name} opcijas",
+    "search": {
+      "title": "Meklēt notikumus",
+      "clear": "Notīrīt meklēšanu",
+      "close": "Aizvērt meklēšanu",
+      "upcoming": "Gaidāmie",
+      "past": "Pagājušie",
+      "no_results": "Neviens notikums neatbilst “{query}”",
+      "no_results_hint": "Meklē nosaukumos, vietās, aprakstos un viesos.",
+      "repeats": "Atkārtojas",
+      "results": "{count, plural, zero {Atrasti # notikumi} one {Atrasts # notikums} other {Atrasti # notikumi}}"
+    }
   },
   "advanced_search": {
     "title": "Izvērstā meklēšana",

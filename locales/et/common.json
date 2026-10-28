@@ -4148,10 +4148,22 @@
       "actions": "Toimingud",
       "previous": "Eelmine päev, nädal või kuu",
       "next": "Järgmine päev, nädal või kuu",
-      "new_item": "Uus sündmus, ülesannetes uus ülesanne"
+      "new_item": "Uus sündmus, ülesannetes uus ülesanne",
+      "move_in_grid": "Liigu ruudustikus päevade ja tundide vahel"
     },
     "other_calendars": "Muud kalendrid",
-    "calendar_options": "Kalendri {name} valikud"
+    "calendar_options": "Kalendri {name} valikud",
+    "search": {
+      "title": "Otsi sündmusi",
+      "clear": "Tühjenda otsing",
+      "close": "Sulge otsing",
+      "upcoming": "Tulevased",
+      "past": "Möödunud",
+      "no_results": "Päringule „{query}“ ei vasta ükski sündmus",
+      "no_results_hint": "Otsitakse pealkirjadest, kohtadest, kirjeldustest ja külalistest.",
+      "repeats": "Kordub",
+      "results": "{count, plural, one {Leiti # sündmus} other {Leiti # sündmust}}"
+    }
   },
   "calendar_event_notifications": {
     "someone": "Keegi",
