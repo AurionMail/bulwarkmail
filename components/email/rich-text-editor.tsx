@@ -861,7 +861,7 @@ export function RichTextEditor({
                   <div className="h-px bg-border my-1" />
                   <button
                     type="button"
-                    className="flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-start text-red-600 dark:text-red-400"
+                    className="flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-start text-destructive"
                     onClick={() => { editor.chain().focus().deleteTable().run(); setTableMenuOpen(false); }}
                   >
                     <Trash2 className="w-4 h-4" /> {tToolbar("delete_table")}

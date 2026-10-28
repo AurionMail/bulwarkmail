@@ -25,3 +25,13 @@ describe('row quick actions', () => {
     expect(screen.getByRole('button', { name: 'delete' })).toBeTruthy();
   });
 });
+
+describe('row quick action colours', () => {
+  it('take the theme colours, Delete the destructive one', () => {
+    render(<EmailHoverActions email={email} onMarkAsRead={vi.fn()} onToggleStar={vi.fn()} onMarkAsSpam={vi.fn()} onDelete={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'delete' }).className).toContain('hover:text-destructive');
+    for (const name of ['mark_unread', 'unstar', 'mark_as_spam']) {
+      expect(screen.getByRole('button', { name }).className).not.toMatch(/(blue|green|purple|orange|amber)-\d00/);
+    }
+  });
+});

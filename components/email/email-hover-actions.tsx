@@ -41,32 +41,32 @@ const ACTION_CONFIG: Record<HoverAction, {
   delete: {
     icon: Trash2,
     titleKey: "delete",
-    className: "hover:text-red-600 dark:hover:text-red-400",
+    className: "hover:text-destructive",
   },
   star: {
     icon: Star,
     titleKey: "star",
-    className: "hover:text-amber-500 dark:hover:text-amber-400",
+    className: "hover:text-foreground",
   },
   markRead: {
     icon: Mail,
     titleKey: "mark_read",
-    className: "hover:text-blue-600 dark:hover:text-blue-400",
+    className: "hover:text-foreground",
   },
   archive: {
     icon: Archive,
     titleKey: "archive",
-    className: "hover:text-green-600 dark:hover:text-green-400",
+    className: "hover:text-foreground",
   },
   tag: {
     icon: Tag,
     titleKey: "tag",
-    className: "hover:text-purple-600 dark:hover:text-purple-400",
+    className: "hover:text-foreground",
   },
   spam: {
     icon: ShieldAlert,
     titleKey: "spam",
-    className: "hover:text-orange-600 dark:hover:text-orange-400",
+    className: "hover:text-foreground",
   },
 };
 
@@ -240,7 +240,7 @@ export function EmailHoverActions({
       : actionId === "spam" ? t("mark_as_spam")
       : t(config.titleKey);
     const className = isNotSpam
-      ? "hover:text-green-600 dark:hover:text-green-400"
+      ? "hover:text-foreground"
       : config.className;
 
     return (

@@ -544,7 +544,7 @@ export function MvListToolbar({
             label={tBatch("delete")}
             onClick={handleDelete}
             disabled={isProcessing}
-            className="hover:text-red-600 dark:hover:text-red-400"
+            className="hover:text-destructive"
           />
           {/* Gmail's order: what to do with it, how it reads, where it goes. */}
           <div className="w-px h-6 bg-border mx-1 shrink-0" />

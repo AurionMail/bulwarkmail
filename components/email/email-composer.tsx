@@ -3877,13 +3877,13 @@ export function EmailComposer({
               </div>
             )}
             {saveStatus === 'saved' && (
-              <div className="flex items-center gap-1 text-xs text-green-600">
+              <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
                 <Check className="w-3 h-3" />
                 <span className="hidden md:inline">{t('draft_saved')}</span>
               </div>
             )}
             {saveStatus === 'error' && (
-              <div className="flex items-center gap-1 text-xs text-red-600">
+              <div className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400">
                 <X className="w-3 h-3" />
                 <span className="hidden md:inline">{t('save_failed')}</span>
               </div>
@@ -4415,7 +4415,7 @@ export function EmailComposer({
                     )}
                     <button
                       onClick={() => removeAttachment(index)}
-                      className="ms-1 hover:text-red-500 min-w-[20px] min-h-[20px] flex items-center justify-center"
+                      className="ms-1 hover:text-destructive min-w-[20px] min-h-[20px] flex items-center justify-center"
                       title={att.uploading ? t('upload_cancel') : undefined}
                     >
                       <X className="w-3 h-3" />
@@ -4611,7 +4611,7 @@ export function EmailComposer({
               data-mv-discard={mvWindow ? "" : undefined}
               className={cn(
                 "text-sm text-muted-foreground transition-colors",
-                mvWindow ? "grid h-9 w-9 place-items-center rounded-full hover:bg-muted hover:text-foreground" : "hover:text-red-500 px-2 py-1 max-md:min-h-11 max-md:px-3",
+                mvWindow ? "grid h-9 w-9 place-items-center rounded-full hover:bg-muted hover:text-foreground" : "hover:text-destructive px-2 py-1 max-md:min-h-11 max-md:px-3",
               )}
               title={mvWindow ? t('discard') : undefined}
               aria-label={mvWindow ? t('discard') : undefined}
