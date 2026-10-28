@@ -2703,6 +2703,7 @@
   "shortcuts": {
     "title": "Scorciatoie da tastiera",
     "tip": "Premi ? in qualsiasi momento per mostrare questo aiuto",
+    "or": "o",
     "sections": {
       "navigation": "Navigazione",
       "actions": "Azioni sui messaggi",

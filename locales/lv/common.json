@@ -2703,6 +2703,7 @@
   "shortcuts": {
     "title": "Īsinājumtaustiņi",
     "tip": "Nospiediet ? jebkurā laikā, lai skatītu palīdzību",
+    "or": "vai",
     "sections": {
       "navigation": "Navigācija",
       "actions": "Vēstules darbības",

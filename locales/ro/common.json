@@ -2703,6 +2703,7 @@
   "shortcuts": {
     "title": "Comenzi rapide de la tastatură",
     "tip": "Apăsați ? oricând pentru a afișa acest ajutor",
+    "or": "sau",
     "sections": {
       "navigation": "Navigare",
       "actions": "Acțiuni de e-mail",

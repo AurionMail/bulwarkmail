@@ -29,8 +29,9 @@ import { useThemeStore } from "@/stores/theme-store";
 import { usePluginActions } from "@/components/plugins/plugin-actions";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
 import { GlobalSearchPalette } from "@/components/global-search/global-search-palette";
+import { isContextMenuOpen } from "@/components/ui/context-menu";
 import { runAction } from "@/lib/plugin-sandbox/actions";
-import { COMMAND_PALETTE_OPEN_EVENT, parkAppCommand, requestAppCommand, type AppCommand } from "@/lib/app-commands";
+import { COMMAND_PALETTE_OPEN_EVENT, KEYBOARD_SHORTCUTS_OPEN_EVENT, parkAppCommand, requestAppCommand, type AppCommand } from "@/lib/app-commands";
 import { commandMatches, useRegisteredCommandGroups } from "@/lib/command-registry";
 import { shortcutAlternatives } from "@/lib/shortcut-keys";
 import { toUnicodeEmail } from "@/lib/idn";
@@ -93,6 +94,30 @@ export function CommandPaletteHost() {
   useEffect(() => {
     if (!enabled) setOpen(false);
   }, [enabled]);
+
+  // `?` opens the keyboard shortcuts in every app (R8), on the app's own
+  // section. Captured before the apps' own key handlers, so Mail's doesn't
+  // open a second copy.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      const question = event.key === "?" || (event.code === "Slash" && event.shiftKey);
+      if (!question || isEditableEventTarget(event) || isContextMenuOpen()) return;
+      // Another dialog is open: the key belongs to it.
+      if (document.querySelector('[aria-modal="true"]')) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setShowShortcuts(true);
+    };
+    const onOpen = () => setShowShortcuts(true);
+    window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener(KEYBOARD_SHORTCUTS_OPEN_EVENT, onOpen);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener(KEYBOARD_SHORTCUTS_OPEN_EVENT, onOpen);
+    };
+  }, [isAuthenticated]);
 
   return (
     <>

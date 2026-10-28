@@ -2703,6 +2703,7 @@
   "shortcuts": {
     "title": "Keyboard Shortcuts",
     "tip": "Press ? anytime to show this help",
+    "or": "or",
     "sections": {
       "navigation": "Navigation",
       "actions": "Email Actions",

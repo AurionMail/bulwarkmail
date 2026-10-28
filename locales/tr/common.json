@@ -2703,6 +2703,7 @@
   "shortcuts": {
     "title": "Klavye Kısayolları",
     "tip": "Bu yardımı görmek için istediğiniz zaman ? tuşuna basın",
+    "or": "veya",
     "sections": {
       "navigation": "Gezinme",
       "actions": "E-posta İşlemleri",

@@ -2703,6 +2703,7 @@
   "shortcuts": {
     "title": "Tastaturkürzel",
     "tip": "Drücken Sie ? jederzeit, um diese Hilfe anzuzeigen",
+    "or": "oder",
     "sections": {
       "navigation": "Navigation",
       "actions": "E-Mail-Aktionen",

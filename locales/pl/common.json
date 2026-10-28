@@ -2703,6 +2703,7 @@
   "shortcuts": {
     "title": "Skróty klawiszowe",
     "tip": "Naciśnij ? w dowolnym momencie, aby wyświetlić tę pomoc",
+    "or": "lub",
     "sections": {
       "navigation": "Nawigacja",
       "actions": "Akcje wiadomości",

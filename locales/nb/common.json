@@ -2703,6 +2703,7 @@
   "shortcuts": {
     "title": "Tastatursnarveier",
     "tip": "Trykk på ? når som helst for å vise denne hjelpen",
+    "or": "eller",
     "sections": {
       "navigation": "Navigasjon",
       "actions": "E-posthandlinger",

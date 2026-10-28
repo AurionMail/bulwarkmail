@@ -2703,6 +2703,7 @@
   "shortcuts": {
     "title": "键盘快捷键",
     "tip": "按？随时显示此帮助",
+    "or": "或",
     "sections": {
       "navigation": "导航",
       "actions": "邮件操作",

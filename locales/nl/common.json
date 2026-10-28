@@ -2703,6 +2703,7 @@
   "shortcuts": {
     "title": "Sneltoetsen",
     "tip": "Druk op ? om deze hulp te tonen",
+    "or": "of",
     "sections": {
       "navigation": "Navigatie",
       "actions": "E-mailacties",

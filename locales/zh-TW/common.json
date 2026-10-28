@@ -2703,6 +2703,7 @@
   "shortcuts": {
     "title": "鍵盤快速鍵",
     "tip": "隨時按下 ? 即可顯示此說明",
+    "or": "或",
     "sections": {
       "navigation": "導覽",
       "actions": "郵件動作",

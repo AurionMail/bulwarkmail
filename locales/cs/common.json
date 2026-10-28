@@ -2703,6 +2703,7 @@
   "shortcuts": {
     "title": "Klávesové zkratky",
     "tip": "Kdykoli stiskněte ? pro zobrazení této nápovědy",
+    "or": "nebo",
     "sections": {
       "navigation": "Navigace",
       "actions": "Akce zprávy",

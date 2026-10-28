@@ -2703,6 +2703,7 @@
   "shortcuts": {
     "title": "Billentyűparancsok",
     "tip": "Nyomd meg a ? gombot bármikor a súgó megjelenítéséhez",
+    "or": "vagy",
     "sections": {
       "navigation": "Navigáció",
       "actions": "E-mail műveletek",

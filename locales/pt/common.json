@@ -2703,6 +2703,7 @@
   "shortcuts": {
     "title": "Atalhos de Teclado",
     "tip": "Pressione ? a qualquer momento para mostrar esta ajuda",
+    "or": "ou",
     "sections": {
       "navigation": "Navegação",
       "actions": "Ações de E-mail",

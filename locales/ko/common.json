@@ -2703,6 +2703,7 @@
   "shortcuts": {
     "title": "단축키",
     "tip": "언제든 ? 키를 누르면 이 도움말을 볼 수 있어요",
+    "or": "또는",
     "sections": {
       "navigation": "이동",
       "actions": "메일 작업",

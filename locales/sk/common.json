@@ -2703,6 +2703,7 @@
   "shortcuts": {
     "title": "Klávesové skratky",
     "tip": "Kedykoľvek stlačte ? na zobrazenie tejto nápovedy",
+    "or": "alebo",
     "sections": {
       "navigation": "Navigácia",
       "actions": "Akcie správy",

@@ -2703,6 +2703,7 @@
   "shortcuts": {
     "title": "Tastaturgenveje",
     "tip": "Tryk ? når som helst for at se denne hjælp",
+    "or": "eller",
     "sections": {
       "navigation": "Navigation",
       "actions": "E-mail-handlinger",

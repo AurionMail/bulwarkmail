@@ -4,8 +4,6 @@ import { useEffect, useCallback, useRef } from "react";
 import { Email } from "@/lib/jmap/types";
 import { isEditableEventTarget } from "@/lib/keyboard";
 import { keyboardHooks } from "@/lib/plugin-hooks";
-import type { InterfaceLayout } from "@/stores/settings-store";
-import type { FeatureGates } from "@/lib/admin/types";
 
 export interface KeyboardShortcutHandlers {
   // Navigation
@@ -379,58 +377,7 @@ export function useKeyboardShortcuts({
   return { getAdjacentEmailIndex };
 }
 
-/**
- * One row of the help modal. `layout` limits a row to one interface layout:
- * Mountain View adds the `g` sequences and gives `x` to selection.
- */
-export interface ShortcutEntry {
-  readonly key: string;
-  readonly description: string;
-  readonly layout?: InterfaceLayout;
-  /** Listed only in the Pro shell, or only outside it. */
-  readonly shell?: "pro" | "standard";
-  /** Listed only while this admin policy feature gate is on. */
-  readonly feature?: keyof FeatureGates;
-}
-
-// Shortcut definitions for the help modal
-export const KEYBOARD_SHORTCUTS = {
-  navigation: [
-    { key: "j / ↓", description: "shortcuts.navigation.next_email" },
-    { key: "k / ↑", description: "shortcuts.navigation.previous_email" },
-    { key: "Enter / o", description: "shortcuts.navigation.open_email" },
-    { key: "Esc", description: "shortcuts.navigation.close_email" },
-    { key: "n", description: "shortcuts.navigation.next_unread" },
-    { key: "g → i / s / t / d / a", description: "shortcuts.navigation.go_to_folder", layout: "mountain-view" },
-  ],
-  actions: [
-    { key: "r", description: "shortcuts.actions.reply" },
-    { key: "R / a", description: "shortcuts.actions.reply_all" },
-    { key: "f", description: "shortcuts.actions.forward" },
-    { key: "s", description: "shortcuts.actions.star" },
-    { key: "e", description: "shortcuts.actions.archive", feature: "archiveActionEnabled" },
-    { key: "# / Del", description: "shortcuts.actions.delete" },
-    { key: "u", description: "shortcuts.actions.mark_unread" },
-    { key: "Shift + I", description: "shortcuts.actions.mark_read" },
-    { key: "!", description: "shortcuts.actions.toggle_spam" },
-  ],
-  global: [
-    { key: "c", description: "shortcuts.global.compose" },
-    { key: "/", description: "shortcuts.global.search" },
-    { key: "Ctrl/⌘ + K", description: "shortcuts.global.global_search", shell: "pro" },
-    { key: "Ctrl/⌘ + K", description: "command_palette.open", shell: "standard" },
-    { key: "?", description: "shortcuts.global.help" },
-    { key: "Shift + G", description: "shortcuts.global.refresh" },
-    { key: "Ctrl + A", description: "shortcuts.global.select_all" },
-    { key: "Shift + ↓ / ↑", description: "shortcuts.global.extend_selection" },
-  ],
-  threads: [
-    { key: "x", description: "shortcuts.threads.expand_collapse", layout: "default" },
-    { key: "x", description: "shortcuts.threads.select_mountain_view", layout: "mountain-view" },
-  ],
-  composer: [
-    { key: "Ctrl/Cmd + Enter", description: "shortcuts.composer.send" },
-    { key: "Ctrl/Cmd + Shift + Enter", description: "shortcuts.composer.schedule_send" },
-    { key: "t", description: "shortcuts.composer.template_picker" },
-  ],
-} as const;
+// The help modal's rows live per app in lib/keyboard-shortcuts; Mail's are
+// re-exported here under their old names.
+export type { ShortcutEntry } from "@/lib/keyboard-shortcuts";
+export { MAIL_SHORTCUTS as KEYBOARD_SHORTCUTS } from "@/lib/keyboard-shortcuts";

@@ -17,6 +17,13 @@ export function openCommandPalette(): void {
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(COMMAND_PALETTE_OPEN_EVENT));
 }
 
+export const KEYBOARD_SHORTCUTS_OPEN_EVENT = 'bulwark:keyboard-shortcuts';
+
+/** Open the keyboard shortcuts help, on the current app's section, like `?` does. */
+export function openKeyboardShortcuts(): void {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(KEYBOARD_SHORTCUTS_OPEN_EVENT));
+}
+
 const EVENT = 'bulwark:app-command';
 let pending: AppCommand | null = null;
 

@@ -2703,6 +2703,7 @@
   "shortcuts": {
     "title": "Kiirklahvid",
     "tip": "Selle abi nägemiseks vajuta igal ajal ?",
+    "or": "või",
     "sections": {
       "navigation": "Navigeerimine",
       "actions": "E-kirja toimingud",

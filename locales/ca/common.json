@@ -2703,6 +2703,7 @@
   "shortcuts": {
     "title": "Dreceres de teclat",
     "tip": "Premeu ? en qualsevol moment per mostrar aquesta ajuda",
+    "or": "o",
     "sections": {
       "navigation": "Navegació",
       "actions": "Accions de correu",
