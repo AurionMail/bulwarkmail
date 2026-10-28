@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { JMAPClient } from '../jmap/client';
 import { jmapErrorType } from '../jmap/jmap-error';
-import { ACCOUNT, ARCHIVED_FILE, LICENSE_REFUSAL, archivedEmail } from '../recovery/__tests__/fixtures';
+import { ACCOUNT, LICENSE_REFUSAL, archivedEmail, bigArchive, fakeArchiveServer } from '../recovery/__tests__/fixtures';
 
 type Call = [string, Record<string, unknown>, string];
 type Body = { using: string[]; methodCalls: Call[] };
@@ -33,6 +33,7 @@ function respondWith(handler: (body: Body) => unknown) {
 }
 
 const bodies = (spy: ReturnType<typeof respondWith>) => spy.mock.calls.map(([, init]) => JSON.parse((init as RequestInit).body as string) as Body);
+const queries = (spy: ReturnType<typeof respondWith>) => bodies(spy).flatMap((b) => b.methodCalls).filter(([m]) => m === 'x:ArchivedItem/query');
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -42,12 +43,41 @@ describe('JMAPClient archived items', () => {
     expect(client({}, false).advertisesArchivedItems()).toBe(false);
   });
 
-  it('asks x:ArchivedItem/query alone, with the Stalwart capability', async () => {
-    const spy = respondWith(() => ({ methodResponses: [['x:ArchivedItem/query', { ids: ['a', 'b'], total: 2 }, 'q']] }));
-    await expect(client().queryArchivedItemIds()).resolves.toEqual(['a', 'b']);
-    const [body] = bodies(spy);
-    expect(body.methodCalls).toEqual([['x:ArchivedItem/query', { accountId: ACCOUNT }, 'q']]);
-    expect(body.using).toEqual(['urn:ietf:params:jmap:core', 'urn:stalwart:jmap']);
+  it('asks the account filter first and, once refused, never again for that account', async () => {
+    const server = fakeArchiveServer([archivedEmail('a')]);
+    const spy = respondWith(server.answer);
+    const c = client();
+    await expect(c.queryArchivedItemIds(undefined, { limit: 1 })).resolves.toEqual({ ids: ['a'], total: null });
+    await c.queryArchivedItemIds(undefined, { limit: 1 });
+    expect(queries(spy).map(([, args]) => args)).toEqual([
+      { accountId: ACCOUNT, limit: 1, filter: { accountId: ACCOUNT } },
+      { accountId: ACCOUNT, limit: 1 },
+      { accountId: ACCOUNT, limit: 1 },
+    ]);
+    expect(bodies(spy)[0].using).toEqual(['urn:ietf:params:jmap:core', 'urn:stalwart:jmap']);
+  });
+
+  it("keeps an admin's answer to the account through the filter, and drops other accounts' items anyway", async () => {
+    const server = fakeArchiveServer([
+      archivedEmail('i3'),
+      archivedEmail('i2', { accountId: 'cz' }),
+      archivedEmail('i1', { accountId: undefined }),
+    ], { impersonate: true });
+    const spy = respondWith(server.answer);
+    const result = await client().listArchivedEmails(undefined, { days: 0 });
+    expect(result.items.map((i) => i.id)).toEqual(['i3']);
+    expect(queries(spy).every(([, args]) => (args.filter as { accountId?: string })?.accountId === ACCOUNT)).toBe(true);
+  });
+
+  it('drops the other accounts in an unfiltered mixed answer', async () => {
+    // A server that ignores the filter and answers with every account.
+    respondWith((body) => ({
+      methodResponses: body.methodCalls.map(([method, , id]) => method === 'x:ArchivedItem/query'
+        ? [method, { ids: ['a', 'z', 'n'], total: 3 }, id]
+        : [method, { list: [archivedEmail('a'), archivedEmail('z', { accountId: 'cz' }), archivedEmail('n', { accountId: undefined })] }, id]),
+    }));
+    const result = await client().listArchivedEmails(undefined, { days: 0 });
+    expect(result.items.map((i) => i.id)).toEqual(['a']);
   });
 
   it('throws the refusal with its type when the server has no license', async () => {
@@ -56,46 +86,34 @@ describe('JMAPClient archived items', () => {
     expect(jmapErrorType(error)).toBe('forbidden');
   });
 
-  it('reads the items in gets of at most maxObjectsInGet, keeping only messages', async () => {
-    const spy = respondWith((body) => {
-      const [method, args, id] = body.methodCalls[0];
-      if (method === 'x:ArchivedItem/query') return { methodResponses: [['x:ArchivedItem/query', { ids: ['a', 'b', 'f1'] }, id]] };
-      return {
-        methodResponses: body.methodCalls.map(([, a, callId]) => [
-          'x:ArchivedItem/get',
-          { accountId: args.accountId, list: (a.ids as string[]).map((i) => (i === 'f1' ? ARCHIVED_FILE : archivedEmail(i))), notFound: [] },
-          callId,
-        ]),
-      };
-    });
-    const items = await client({ maxObjectsInGet: 2 }).listArchivedEmails();
-    expect(items.map((i) => i.id)).toEqual(['a', 'b']);
-    const sent = bodies(spy);
-    expect(sent).toHaveLength(2);
-    expect(sent[1].methodCalls).toEqual([
-      ['x:ArchivedItem/get', { accountId: ACCOUNT, ids: ['a', 'b'] }, 'g0'],
-      ['x:ArchivedItem/get', { accountId: ACCOUNT, ids: ['f1'] }, 'g1'],
-    ]);
+  it('pages with calculateTotal, so the newest of more than 5000 items comes first', async () => {
+    const now = Date.now();
+    const server = fakeArchiveServer(bigArchive(6000, now));
+    const spy = respondWith(server.answer);
+    const first = await client().listArchivedEmails(undefined, { days: 0 });
+    expect(first.items[0].id).toBe('i006000');
+    expect(first.nextPosition).toBe(2000);
+    const pages = queries(spy).filter(([, args]) => args.calculateTotal && !args.filter);
+    expect(pages.map(([, args]) => [args.position ?? 0, args.limit])).toEqual([[0, 500], [500, 500], [1000, 500], [1500, 500]]);
+    const gets = bodies(spy).flatMap((b) => b.methodCalls).filter(([m]) => m === 'x:ArchivedItem/get');
+    expect(gets.every(([, args]) => (args.ids as string[]).length <= 500)).toBe(true);
+    const older = await client().listArchivedEmails(undefined, { days: 0, startPosition: 2000 });
+    expect(older.items[0].id).toBe('i004000');
   });
 
-  it('sends no get when the archive is empty', async () => {
-    const spy = respondWith(() => ({ methodResponses: [['x:ArchivedItem/query', { ids: [] }, 'q']] }));
-    await expect(client().listArchivedEmails()).resolves.toEqual([]);
-    expect(spy).toHaveBeenCalledTimes(1);
+  it('checks for the Trash link with one-item pages and stops at the first message', async () => {
+    const now = Date.now();
+    const server = fakeArchiveServer(bigArchive(30, now));
+    const spy = respondWith(server.answer);
+    await expect(client().hasArchivedEmail(undefined, { days: 7 })).resolves.toBe(true);
+    expect(queries(spy).filter(([, args]) => args.calculateTotal && !args.filter).map(([, args]) => args.limit)).toEqual([1]);
   });
 
-  it('restores with requestRestore and reports a partial failure per item', async () => {
-    const spy = respondWith((body) => ({
-      methodResponses: body.methodCalls.map(([, args, id]) => {
-        const ids = Object.keys(args.update as object);
-        return ['x:ArchivedItem/set', {
-          updated: Object.fromEntries(ids.filter((i) => i !== 'b').map((i) => [i, null])),
-          notUpdated: ids.includes('b') ? { b: { type: 'notFound' } } : {},
-        }, id];
-      }),
-    }));
+  it('restores with requestRestore and reports notFound and failures per item', async () => {
+    const server = fakeArchiveServer([archivedEmail('a')]);
+    const spy = respondWith(server.answer);
     const results = await client().restoreArchivedItems(['a', 'b']);
-    expect(results).toEqual([{ id: 'a', ok: true }, { id: 'b', ok: false, error: 'notFound' }]);
+    expect(results).toEqual([{ id: 'a', ok: true }, { id: 'b', ok: false, error: 'notFound', type: 'notFound' }]);
     expect(bodies(spy)[0].methodCalls).toEqual([
       ['x:ArchivedItem/set', { accountId: ACCOUNT, update: { a: { status: 'requestRestore' }, b: { status: 'requestRestore' } } }, 'r0'],
     ]);

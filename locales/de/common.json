@@ -4156,13 +4156,16 @@
     "refresh": "Aktualisieren",
     "restore": "Wiederherstellen",
     "restored": "{count, plural, one {# Nachricht wird} other {# Nachrichten werden}} in Ihren Posteingang zurückgelegt.",
-    "restore_partial": "{count, plural, one {# Nachricht konnte} other {# Nachrichten konnten}} nicht wiederhergestellt werden. Sie bleiben ausgewählt, damit Sie es erneut versuchen können.",
-    "restore_hint": "Wiederhergestellte E-Mails kommen ungelesen in Ihren Posteingang. Der Server erledigt das im Hintergrund, es kann also einen Moment dauern, bis sie erscheinen.",
+    "restore_partial": "{count, plural, one {# Nachricht konnte nicht wiederhergestellt werden. Sie bleibt ausgewählt, damit Sie es erneut versuchen können.} other {# Nachrichten konnten nicht wiederhergestellt werden. Sie bleiben ausgewählt, damit Sie es erneut versuchen können.}}",
+    "restore_hint": "Wiederhergestellte E-Mails kommen ungelesen in Ihren Posteingang und stehen dort nach ihrem ursprünglichen Datum, also möglicherweise weit unten. Der Server stellt sie im Hintergrund wieder her. Schlägt das dort fehl, ist die Nachricht verloren, und Bulwark kann das nicht erkennen.",
     "unknown_sender": "Unbekannter Absender",
     "no_subject": "(kein Betreff)",
     "deleted_on": "Gelöscht am {date}",
     "trash_hint": "Versehentlich endgültig gelöscht?",
-    "trash_link": "Gelöschte Elemente wiederherstellen"
+    "trash_link": "Gelöschte Elemente wiederherstellen",
+    "empty_hint": "Gelöschte E-Mails erscheinen hier nur, wenn Ihre Administration in Stalwart die Archivierung gelöschter Elemente eingeschaltet hat.",
+    "restore_gone": "{count, plural, one {# Nachricht war nicht mehr im Archiv: Sie wurde anderswo wiederhergestellt oder der Server bewahrt sie nicht mehr auf.} other {# Nachrichten waren nicht mehr im Archiv: Sie wurden anderswo wiederhergestellt oder der Server bewahrt sie nicht mehr auf.}}",
+    "show_older": "Ältere anzeigen"
   },
   "calendar_event_notifications": {
     "someone": "Jemand",

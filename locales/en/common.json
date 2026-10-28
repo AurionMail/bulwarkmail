@@ -4285,13 +4285,16 @@
     "refresh": "Refresh",
     "restore": "Restore",
     "restored": "{count, plural, one {# message is} other {# messages are}} on the way back to your Inbox.",
-    "restore_partial": "{count, plural, one {# message} other {# messages}} couldn't be restored. They stay selected, so you can try again.",
-    "restore_hint": "Restored mail goes back to your Inbox as unread. The server does this in the background, so it can take a moment to show up.",
+    "restore_partial": "{count, plural, one {# message couldn't be restored. It stays selected, so you can try again.} other {# messages couldn't be restored. They stay selected, so you can try again.}}",
+    "restore_hint": "Restored mail goes back to your Inbox as unread, sorted by its original date, so it may be far down the list. The server restores it in the background. If that fails there, the message is lost and Bulwark can't tell.",
     "unknown_sender": "Unknown sender",
     "no_subject": "(no subject)",
     "deleted_on": "Deleted {date}",
     "trash_hint": "Deleted for good by mistake?",
-    "trash_link": "Recover deleted items"
+    "trash_link": "Recover deleted items",
+    "empty_hint": "Deleted mail only shows up here if your administrator turned on archiving of deleted items in Stalwart.",
+    "restore_gone": "{count, plural, one {# message was no longer in the archive: it was restored elsewhere or the server stopped keeping it.} other {# messages were no longer in the archive: they were restored elsewhere or the server stopped keeping them.}}",
+    "show_older": "Show older"
   },
   "quote_header": {
     "reply_line": "On {date}, {from} wrote:",

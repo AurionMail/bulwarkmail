@@ -5,6 +5,7 @@ import { JMAPClient } from '@/lib/jmap/client';
 import { useEmailStore } from '@/stores/email-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useRecoveryStore } from '@/stores/recovery-store';
+import { usePolicyStore } from '@/stores/policy-store';
 import type { Email, Mailbox } from '@/lib/jmap/types';
 import { EmailList } from '../email-list';
 
@@ -14,10 +15,11 @@ import { EmailList } from '../email-list';
 vi.mock('@/components/plugins/plugin-slot', () => ({ PluginSlot: () => null }));
 vi.mock('@/hooks/use-email-drag', () => ({ useEmailDrag: () => ({ dragHandlers: {}, isDragging: false }) }));
 vi.mock('@/components/ui/avatar', () => ({ Avatar: () => null }));
-vi.mock('@/hooks/use-config', () => ({ useConfig: () => ({ stalwartFeaturesEnabled: true }) }));
+vi.mock('@/hooks/use-config', () => ({ useConfig: () => ({ stalwartFeaturesEnabled: true, isLoading: false }) }));
 
 const initialEmail = useEmailStore.getState();
 const initialAuth = useAuthStore.getState();
+const initialPolicy = usePolicyStore.getState();
 
 function mailbox(id: string, role: string): Mailbox {
   return { id, name: id, role, accountId: 'c', totalEmails: 1, unreadEmails: 0, totalThreads: 1, unreadThreads: 0,
@@ -37,12 +39,17 @@ beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ methodResponses: [] }))));
   useAuthStore.setState({ activeAccountId: 'acc-alice', client, getClientForAccount: () => client } as never);
   useEmailStore.setState(initialEmail, true);
-  // Detection already answered for this account.
-  useRecoveryStore.setState({ checks: { 'acc-alice|c': { supported: true, retryAt: null } } });
+  usePolicyStore.setState({ loaded: true, subject: { email: client.getUsername().toLowerCase(), groups: [] } });
+  // Detection and the look for a recent message already answered for this account.
+  useRecoveryStore.setState({
+    checks: { 'acc-alice|c': { supported: true, retryAt: null } },
+    recent: { 'acc-alice|c': { has: true, days: 0, checkedAt: Date.now() } },
+  });
 });
 
 afterEach(() => {
   useRecoveryStore.getState().reset();
+  usePolicyStore.setState(initialPolicy, true);
   useAuthStore.setState(initialAuth, true);
   vi.unstubAllGlobals();
 });

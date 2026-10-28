@@ -26,7 +26,7 @@ import { isServerSetKeyword } from "./server-keywords";
 import { PrincipalsRequestError } from "./principals-error";
 import { buildShareSetCalls, failAll, parseShareTargets, readShareSetResults, SET_METHOD, type ShareChange, type ShareChangeResult, type ShareTarget } from "./share-batch";
 import type { ShareKind } from "./share-rights";
-import { ARCHIVED_ITEM_USING, STALWART_CAPABILITY, buildRestoreCalls, parseArchivedItems, readRestoreResults, type ArchivedEmail, type RestoreResult } from "@/lib/recovery/archived-items";
+import { ARCHIVED_ITEM_USING, STALWART_CAPABILITY, buildRestoreCalls, hasArchivedEmail, listArchivedEmailsPaged, readRestoreResults, type ArchiveIo, type ArchiveListResult, type ArchiveQueryPage, type RestoreResult } from "@/lib/recovery/archived-items";
 import { RescheduleRestoredError } from "./reschedule-error";
 
 export { SchedulingDeniedError, RescheduleRestoredError };
@@ -11946,40 +11946,75 @@ export class JMAPClient implements IJMAPClient {
     return this.hasAccountCapability(STALWART_CAPABILITY, accountId || this.accountId);
   }
 
+  /** Accounts whose server refused the `accountId` filter (every user without Impersonate). */
+  private archiveFilterRefused = new Set<string>();
+
   /**
-   * The ids of the account's archived items. A request of its own: without
-   * an Enterprise license Stalwart refuses it (`forbidden`), and that must
-   * not take other calls down with it.
+   * One page of the account's archived item ids, newest first. A request of
+   * its own: without an Enterprise license Stalwart refuses it (`forbidden`),
+   * and that must not take other calls down with it. The `accountId` filter
+   * keeps an admin's answer to this account; a normal user is refused it
+   * (`unsupportedFilter`) and asked again without it, once per account.
    */
-  async queryArchivedItemIds(accountId?: string): Promise<string[]> {
+  async queryArchivedItemIds(accountId?: string, options: { position?: number; limit?: number; calculateTotal?: boolean } = {}): Promise<ArchiveQueryPage> {
     const id = accountId || this.accountId;
-    const response = await this.request([["x:ArchivedItem/query", { accountId: id }, "q"]], ARCHIVED_ITEM_USING);
-    const [method, result] = response.methodResponses?.[0] ?? [];
+    const args: Record<string, unknown> = { accountId: id };
+    if (options.position) args.position = options.position;
+    if (options.limit) args.limit = options.limit;
+    if (options.calculateTotal) args.calculateTotal = true;
+    const ask = async (filtered: boolean) => {
+      const response = await this.request([["x:ArchivedItem/query", filtered ? { ...args, filter: { accountId: id } } : args, "q"]], ARCHIVED_ITEM_USING);
+      return response.methodResponses?.[0] ?? [];
+    };
+    let [method, result] = await ask(!this.archiveFilterRefused.has(id));
+    if (method === "error" && (result as JmapErrorInfo | undefined)?.type === "unsupportedFilter" && !this.archiveFilterRefused.has(id)) {
+      this.archiveFilterRefused.add(id);
+      [method, result] = await ask(false);
+    }
     if (method !== "x:ArchivedItem/query") {
       const error = result as JmapErrorInfo | undefined;
       throw jmapError(error?.description || "Failed to list deleted items", error);
     }
-    const ids = (result as { ids?: unknown }).ids;
-    return Array.isArray(ids) ? ids.filter((v): v is string => typeof v === "string") : [];
+    const { ids, total } = result as { ids?: unknown; total?: unknown };
+    return {
+      ids: Array.isArray(ids) ? ids.filter((v): v is string => typeof v === "string") : [],
+      total: typeof total === "number" ? total : null,
+    };
   }
 
-  async listArchivedEmails(accountId?: string): Promise<ArchivedEmail[]> {
-    const id = accountId || this.accountId;
-    const ids = await this.queryArchivedItemIds(id);
-    const calls: JMAPMethodCall[] = batched(ids, this.getMaxObjectsInGet())
-      .map((batch, i): JMAPMethodCall => ["x:ArchivedItem/get", { accountId: id, ids: batch }, `g${i}`]);
-    const items: ArchivedEmail[] = [];
-    for (const group of batched(calls, this.getMaxCallsInRequest())) {
-      const response = await this.request(group, ARCHIVED_ITEM_USING);
-      for (const [method, result] of response.methodResponses ?? []) {
-        if (method !== "x:ArchivedItem/get") {
-          const error = result as JmapErrorInfo | undefined;
-          throw jmapError(error?.description || "Failed to read deleted items", error);
+  private archiveIo(accountId: string): ArchiveIo {
+    return {
+      query: (position, limit) => this.queryArchivedItemIds(accountId, { position, limit, calculateTotal: true }),
+      get: async (ids) => {
+        const calls: JMAPMethodCall[] = batched(ids, this.getMaxObjectsInGet())
+          .map((batch, i): JMAPMethodCall => ["x:ArchivedItem/get", { accountId, ids: batch }, `g${i}`]);
+        const list: unknown[] = [];
+        for (const group of batched(calls, this.getMaxCallsInRequest())) {
+          const response = await this.request(group, ARCHIVED_ITEM_USING);
+          for (const [method, result] of response.methodResponses ?? []) {
+            if (method !== "x:ArchivedItem/get") {
+              const error = result as JmapErrorInfo | undefined;
+              throw jmapError(error?.description || "Failed to read deleted items", error);
+            }
+            const items = (result as { list?: unknown }).list;
+            if (Array.isArray(items)) list.push(...items);
+          }
         }
-        items.push(...parseArchivedItems((result as { list?: unknown }).list, id));
-      }
-    }
-    return items;
+        return list;
+      },
+    };
+  }
+
+  /** The account's deleted messages inside the days window, newest first, in pages (see listArchivedEmailsPaged). */
+  async listArchivedEmails(accountId?: string, options: { days?: number; startPosition?: number } = {}): Promise<ArchiveListResult> {
+    const id = accountId || this.accountId;
+    return listArchivedEmailsPaged(this.archiveIo(id), id, { days: options.days ?? 0, startPosition: options.startPosition });
+  }
+
+  /** Whether at least one deleted message of the account is inside the days window. */
+  async hasArchivedEmail(accountId?: string, options: { days?: number } = {}): Promise<boolean> {
+    const id = accountId || this.accountId;
+    return hasArchivedEmail(this.archiveIo(id), id, { days: options.days ?? 0 });
   }
 
   async restoreArchivedItems(ids: string[], accountId?: string): Promise<RestoreResult[]> {
