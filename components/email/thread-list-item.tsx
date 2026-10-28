@@ -23,6 +23,7 @@ import { useEmailStore, isUnscopedSearchActive } from "@/stores/email-store";
 import { useAccountStore, type AccountEntry } from "@/stores/account-store";
 import { emailKeyFor, getThreadTagIds, getEmailTagIds } from "@/lib/thread-utils";
 import { useKeywordFormat } from "@/hooks/use-keyword-format";
+import { useEmailTagScope } from "@/hooks/use-account-tags";
 import { useTagDisplay } from "@/hooks/use-tag-display";
 import { TagBadge, TAG_GROUP_CLASS, TAG_LOZENGE_CLASS } from "./tag-badge";
 import { useEmailDrag } from "@/hooks/use-email-drag";
@@ -388,7 +389,8 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
       subject: email.subject || t('no_subject'),
     });
     const formatAddress = useOwnDomainAddress();
-    const { sortTagIds, tagColor } = useKeywordFormat();
+    const tagScope = useEmailTagScope(email);
+    const { sortTagIds, tagColor } = useKeywordFormat(tagScope);
     const { variant: tagVariant, placement: tagPlacement } = useTagDisplay();
     const tintListRowsByTag = useSettingsStore((state) => state.tintListRowsByTag);
     const tintListRowsByAccount = useSettingsStore((state) => state.tintListRowsByAccount);
@@ -703,7 +705,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                     {tagIds.length > 0 && (
                       <span className={cn(TAG_GROUP_CLASS, mvRow && "me-2")}>
                         {tagIds.map((id) => (
-                          <TagBadge key={id} tagId={id} variant={tagVariant} />
+                          <TagBadge key={id} tagId={id} variant={tagVariant} scope={tagScope} />
                         ))}
                       </span>
                     )}
@@ -784,7 +786,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                     {tagPlacement === 'sender' && tagIds.length > 0 && (
                       <span className={TAG_GROUP_CLASS}>
                         {tagIds.map((id) => (
-                          <TagBadge key={id} tagId={id} variant={tagVariant} />
+                          <TagBadge key={id} tagId={id} variant={tagVariant} scope={tagScope} />
                         ))}
                       </span>
                   )}
@@ -846,7 +848,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                   {tagPlacement === 'subject' && tagIds.length > 0 && (
                       <span className={TAG_GROUP_CLASS}>
                         {tagIds.map((id) => (
-                          <TagBadge key={id} tagId={id} variant={tagVariant} />
+                          <TagBadge key={id} tagId={id} variant={tagVariant} scope={tagScope} />
                         ))}
                       </span>
                   )}
@@ -1064,7 +1066,8 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
         }
       : threadLongPressHandlers;
 
-    const { sortTagIds, tagColor } = useKeywordFormat();
+    const tagScope = useEmailTagScope(latestEmail);
+    const { sortTagIds, tagColor } = useKeywordFormat(tagScope);
     const { variant: tagVariant, placement: tagPlacement } = useTagDisplay();
     const tintListRowsByTag = useSettingsStore((state) => state.tintListRowsByTag);
     const tintListRowsByAccount = useSettingsStore((state) => state.tintListRowsByAccount);
@@ -1418,7 +1421,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                           />
                         )}
                         {tagIds.map((id) => (
-                          <TagBadge key={id} tagId={id} variant={tagVariant} />
+                          <TagBadge key={id} tagId={id} variant={tagVariant} scope={tagScope} />
                         ))}
                       </span>
                       )}
@@ -1507,7 +1510,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                           title={t('messages_tooltip', { count: emailCount })}
                         />
                         {tagPlacement === 'sender' && tagIds.map((id) => (
-                          <TagBadge key={id} tagId={id} variant={tagVariant} />
+                          <TagBadge key={id} tagId={id} variant={tagVariant} scope={tagScope} />
                         ))}
                       </span>
                       <div className="flex items-center gap-1.5">
@@ -1568,7 +1571,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                     {tagPlacement === 'subject' && tagIds.length > 0 && (
                         <span className={TAG_GROUP_CLASS}>
                           {tagIds.map((id) => (
-                            <TagBadge key={id} tagId={id} variant={tagVariant} />
+                            <TagBadge key={id} tagId={id} variant={tagVariant} scope={tagScope} />
                           ))}
                         </span>
                     )}

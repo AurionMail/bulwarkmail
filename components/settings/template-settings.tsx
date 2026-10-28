@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl';
 import { SettingsSection } from './settings-section';
 import { Button } from '@/components/ui/button';
 import { TemplateManagerModal } from '@/components/templates/template-manager-modal';
-import { useTemplateStore } from '@/stores/template-store';
+import { personalTemplatesFor } from '@/lib/templates/personal-templates';
+import { useTemplateSources } from '@/hooks/use-template-sources';
 import { toast } from '@/stores/toast-store';
 import { debug } from '@/lib/debug';
 import {
@@ -20,13 +21,15 @@ export function TemplateSettings() {
   const t = useTranslations('settings.templates');
   const tNotif = useTranslations('notifications');
 
-  const { templates, exportAllTemplates, importTemplates: storeImport } = useTemplateStore();
+  const { sources, personalHidden } = useTemplateSources();
+  const personal = sources.find((source) => source.kind === 'personal')?.templates ?? [];
+  const total = sources.reduce((n, source) => n + source.templates.length, 0);
 
   const [showManager, setShowManager] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = () => {
-    const json = exportAllTemplates();
+    const json = personalTemplatesFor().exportAll();
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -56,7 +59,7 @@ export function TemplateSettings() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
-      const result = storeImport(content);
+      const result = personalTemplatesFor().importJson(content);
 
       if (result.errors.length > 0) {
         toast.error(tNotif('templates_import_errors'));
@@ -83,7 +86,7 @@ export function TemplateSettings() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <FileText className="w-4 h-4" />
             <span>
-              {t('count', { count: templates.length })}
+              {t('count', { count: total })}
             </span>
           </div>
           <Button
@@ -96,13 +99,13 @@ export function TemplateSettings() {
         </div>
       </SettingsSection>
 
-      <SettingsSection id="templates-export" advanced title={t('export_import')} description={t('export_import_description')}>
+      {!personalHidden && <SettingsSection id="templates-export" advanced title={t('export_import')} description={t('export_import_description')}>
         <div className="flex items-center gap-3 py-3">
           <Button
             variant="outline"
             size="sm"
             onClick={handleExport}
-            disabled={templates.length === 0}
+            disabled={personal.length === 0}
           >
             <Download className="w-4 h-4 me-1" />
             {t('export')}
@@ -125,7 +128,7 @@ export function TemplateSettings() {
             </Button>
           </div>
         </div>
-      </SettingsSection>
+      </SettingsSection>}
 
       {showManager && (
         <TemplateManagerModal

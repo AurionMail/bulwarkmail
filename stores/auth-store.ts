@@ -19,10 +19,14 @@ import { replaceWindowLocation, getPathPrefix, getLocaleFromPath, apiFetch } fro
 import { isEmbedded, notifyParent } from '@/lib/iframe-bridge';
 import { snapshotAccount, restoreAccount, clearAllStores, evictAccount, evictAll, forgetAccountRows } from '@/lib/account-state-manager';
 import { clearAllPluginStorage, clearPluginStorageForAccount } from '@/lib/plugin-sandbox/storage-scope';
-import { broadcastSignOut, onSignedOutElsewhere, purgeSignedOutData } from '@/lib/sign-out-cleanup';
+import { broadcastSignOut, onSignedOutElsewhere, purgeSignedOutData, runBeforeSignOut } from '@/lib/sign-out-cleanup';
+import { forgetPrincipals } from '@/lib/delegation/known-principals';
 import { useSearchHistoryStore } from './search-history-store';
 import { useCalendarNotificationStore } from './calendar-notification-store';
 import { usePolicyStore } from './policy-store';
+import { policySubjectForClient } from '@/lib/admin/policy-subject';
+import { clearSessionEnd, rememberSessionEnd } from '@/lib/session-policy/sign-out-reason';
+import { SESSION_TOO_OLD } from '@/lib/session-policy/constants';
 import type { Identity } from '@/lib/jmap/types';
 import { authHooks } from '@/lib/plugin-hooks';
 import { IS_LITE, IS_LITE_STALWART } from '@/lib/lite';
@@ -107,9 +111,10 @@ interface AuthState {
   logout: (options?: LogoutOptions) => Promise<void>;
   /**
    * Sign out of every account. Ends at most one identity provider session:
-   * see {@link pickEndSessionSlot}.
+   * see {@link pickEndSessionSlot}; none with `endProviderSession: false`
+   * (the organisation's session limits, which sign out without asking).
    */
-  logoutAll: () => Promise<void>;
+  logoutAll: (options?: LogoutOptions) => Promise<void>;
   removeAccount: (accountId: string) => void;
   switchAccount: (accountId: string) => Promise<void>;
   checkAuth: () => Promise<void>;
@@ -417,7 +422,7 @@ async function exchangePasswordForTokens(params: {
       // server_id isn't passed - the route looks up the server entry by
       // serverUrl, so per-server OAuth still applies for password+TOTP.
       body: JSON.stringify({ serverUrl, username, password, totp, slot, redirectUri, rememberMe }),
-    });
+    }).then((res) => noteSessionAnswer(res, slot));
   }
   try {
     const tokens = await liteTokenLogin({ serverUrl, username, password, totp, redirectUri });
@@ -457,7 +462,7 @@ async function exchangeOAuthCode(params: {
         slot,
         ...(serverId ? { server_id: serverId } : {}),
       }),
-    });
+    }).then((res) => noteSessionAnswer(res, slot));
   }
   // The login page parked where and as whom to redeem the code
   // (lib/auth/lite-oauth.ts); without it this is not a flow we started. A
@@ -527,11 +532,58 @@ async function persistSession(slot: number, session: RememberedSession): Promise
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...session, slot }),
       signal,
-    }));
+    })).then((answer) => noteSessionAnswer(answer, slot));
     if (!res.ok) debug.error('Failed to store session: server returned', res.status);
   } catch (err) {
     debug.error('Failed to store session:', err);
   }
+}
+
+/**
+ * When the server says each cookie slot signed in, from the sign-in and
+ * restore answers. The organisation's maximum session length counts from
+ * the server's time in the browser too, so the server never refuses a
+ * session before the browser warned (lib/auth/session-age.ts).
+ */
+const serverSignedInAt = new Map<number, number>();
+
+/**
+ * The server's sign-in time for a sign-in to `slot` that just happened, or
+ * the browser's clock. An older answer belongs to an earlier sign-in.
+ */
+export function signedInAtForSlot(slot: number | undefined): number {
+  const now = Date.now();
+  const server = slot !== undefined ? serverSignedInAt.get(slot) : undefined;
+  return server !== undefined && Math.abs(now - server) < 10 * 60 * 1000 ? server : now;
+}
+
+/**
+ * Reads what a sign-in, restore or renewal answer says about the session:
+ * the server's sign-in time, or that it refused the session because it
+ * reached the organisation's maximum length. The login page says so only
+ * when no other account stays signed in here; a later successful restore
+ * takes the reason back.
+ */
+async function noteSessionAnswer(res: Response, slot: number | undefined): Promise<Response> {
+  if (typeof res.clone !== 'function' || (!res.ok && res.status !== 401)) return res;
+  try {
+    const data = await res.clone().json() as { error?: unknown; maxHours?: unknown; signedInAt?: unknown; signed_in_at?: unknown };
+    if (res.ok) {
+      clearSessionEnd();
+      const at = typeof data?.signedInAt === 'number' ? data.signedInAt : data?.signed_in_at;
+      if (typeof at === 'number' && Number.isFinite(at) && slot !== undefined) {
+        serverSignedInAt.set(slot, at);
+        const account = useAccountStore.getState().accounts.find((a) => a.cookieSlot === slot);
+        if (account && account.signedInAt !== at) useAccountStore.getState().updateAccount(account.id, { signedInAt: at });
+      }
+    } else if (data?.error === SESSION_TOO_OLD && typeof data.maxHours === 'number') {
+      const othersSignedIn = useAccountStore.getState().accounts.some((a) => a.cookieSlot !== slot && a.isConnected);
+      if (!othersSignedIn) rememberSessionEnd({ kind: 'max', hours: data.maxHours });
+    }
+  } catch {
+    /* not JSON */
+  }
+  return res;
 }
 
 /** PUT /api/auth/token?slot=N - renew (or, unless `force`, reuse) the slot's access token. */
@@ -539,7 +591,8 @@ async function fetchSlotAccessToken(slot: number, opts: { force?: boolean } = {}
   // Renewing would write the tokens of a slot being signed out back.
   if (closingSlots.has(slot)) return jsonResponse({ error: 'signed_out' }, 401);
   if (!IS_LITE) {
-    return trackSessionWrite(slot, (signal) => apiFetch(`/api/auth/token?slot=${slot}${opts.force ? '&force=true' : ''}`, { method: 'PUT', signal }));
+    return trackSessionWrite(slot, (signal) => apiFetch(`/api/auth/token?slot=${slot}${opts.force ? '&force=true' : ''}`, { method: 'PUT', signal }))
+      .then((res) => noteSessionAnswer(res, slot));
   }
   // Like the route's cookie cache: a restore resumes with the token it had,
   // since a renewal before the refresh token's `nbf` is refused (#552).
@@ -561,7 +614,8 @@ async function fetchSlotAccessToken(slot: number, opts: { force?: boolean } = {}
 /** PUT /api/auth/session[?slot=N] - the slot's remembered password or access token. */
 async function fetchSlotSession(slot?: number): Promise<Response> {
   if (!IS_LITE) {
-    return apiFetch(slot === undefined ? '/api/auth/session' : `/api/auth/session?slot=${slot}`, { method: 'PUT' });
+    return apiFetch(slot === undefined ? '/api/auth/session' : `/api/auth/session?slot=${slot}`, { method: 'PUT' })
+      .then((res) => noteSessionAnswer(res, slot ?? 0));
   }
   const stored = readLiteBasicSession(slot ?? 0);
   return stored ? jsonResponse(stored) : jsonResponse({ error: 'no_session' }, 401);
@@ -1266,12 +1320,16 @@ export const LOGOUT_HOOK_BUDGET_MS = 2000;
 
 function notifySignedIn(state: { activeAccountId: string | null; username: string | null }): void {
   if (!state.activeAccountId) return;
+  // The organisation's maximum session length counts from a sign-in, never
+  // from a restore, and from the server's time when it said.
+  const slot = useAccountStore.getState().getAccountById(state.activeAccountId)?.cookieSlot;
+  useAccountStore.getState().updateAccount(state.activeAccountId, { signedInAt: signedInAtForSlot(slot) });
   void authHooks.onLogin.emit({ accountId: state.activeAccountId, username: state.username ?? '' });
 }
 
 function beforeLogoutHooks(accountId: string): Promise<void> {
   return Promise.race([
-    authHooks.onBeforeLogout.emit({ accountId }),
+    Promise.all([authHooks.onBeforeLogout.emit({ accountId }), runBeforeSignOut(accountId)]).then(() => {}),
     new Promise<void>((resolve) => setTimeout(resolve, LOGOUT_HOOK_BUDGET_MS)),
   ]);
 }
@@ -1914,7 +1972,7 @@ export const useAuthStore = create<AuthState>()(
               headers: { 'Content-Type': 'application/json' },
               credentials: 'include',
               body: JSON.stringify({ code, state, slot }),
-            }),
+            }).then((res) => noteSessionAnswer(res, slot)),
             fetchConfig(),
           ]);
 
@@ -2173,6 +2231,7 @@ export const useAuthStore = create<AuthState>()(
           clients.delete(accountId);
           evictAccount(accountId);
           accountStore.removeAccount(accountId);
+          forgetPrincipals(accountId);
           if (!wasDemoMode) clearPluginStorageForAccount(accountId);
         }
 
@@ -2311,15 +2370,18 @@ export const useAuthStore = create<AuthState>()(
         evictAccount(accountId);
         forgetAccountRows(accountId, get().client);
         accountStore.removeAccount(accountId);
+        forgetPrincipals(accountId);
         clearPluginStorageForAccount(accountId);
       },
 
-      logoutAll: async () => {
+      logoutAll: async (options) => {
         await beforeLogoutHooks('all');
 
         const accountStore = useAccountStore.getState();
         const allAccounts = [...accountStore.accounts];
-        const endSessionSlot = get().isDemoMode ? null : pickEndSessionSlot(allAccounts, get().activeAccountId);
+        // `options` can be a click event when the action is wired straight to onClick.
+        const endProviderSession = options?.endProviderSession !== false;
+        const endSessionSlot = get().isDemoMode || !endProviderSession ? null : pickEndSessionSlot(allAccounts, get().activeAccountId);
 
         // Starts by marking every slot closing, so nothing renews a session
         // while the clients are torn down.
@@ -3091,7 +3153,7 @@ export const useAuthStore = create<AuthState>()(
         bindClientStatusHandlers(client, set, get, accountId);
         accountStore.updateAccount(accountId, {
           awaitingSignIn: false, isConnected: true, hasError: false, errorMessage: undefined,
-          rememberMe, lastLoginAt: Date.now(),
+          rememberMe, lastLoginAt: Date.now(), signedInAt: signedInAtForSlot(cookieSlot),
         });
         void syncAccountDisplayName(accountId, client);
         set((state) => ({ connectedAccountsRevision: state.connectedAccountsRevision + 1 }));
@@ -3158,6 +3220,33 @@ setClientLookup((accountId) => useAuthStore.getState().getClientForAccount(accou
 // policy; fetch the rest once a session exists.
 useAuthStore.subscribe((state, prev) => {
   if (state.isAuthenticated && !prev.isAuthenticated) void usePolicyStore.getState().refreshIfPartial();
+});
+
+// Domain and group scopes follow the active account. setPolicySubject skips
+// the work when the account's address and groups stayed the same.
+let policySubjectRequest = 0;
+useAuthStore.subscribe((state, prev) => {
+  if (
+    state.client === prev.client
+    && state.activeAccountId === prev.activeAccountId
+    && state.isAuthenticated === prev.isAuthenticated
+    && state.connectedAccountsRevision === prev.connectedAccountsRevision
+  ) return;
+  const request = ++policySubjectRequest;
+  if (!state.isAuthenticated || !state.client) {
+    usePolicyStore.getState().setPolicySubject(null);
+    return;
+  }
+  void policySubjectForClient(state.client).then(async (subject) => {
+    if (request !== policySubjectRequest) return;
+    // The server sends only the scopes of the domains signed in when the
+    // policy was fetched; an account of another domain may have its own.
+    if (subject && !usePolicyStore.getState().coversAddress(subject.email)) {
+      await usePolicyStore.getState().fetchPolicy();
+      if (request !== policySubjectRequest) return;
+    }
+    usePolicyStore.getState().setPolicySubject(subject);
+  });
 });
 
 // See canEnterLoginInPlace.

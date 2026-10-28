@@ -38,6 +38,7 @@ import { getEmailTagIds } from "@/lib/thread-utils";
 import { cn, type MailboxNode } from "@/lib/utils";
 import { PluginActions } from "@/components/plugins/plugin-actions";
 import { useUnreadFirstSection } from "@/hooks/use-unread-first-section";
+import { commonTagScope } from "@/hooks/use-account-tags";
 
 interface MvListToolbarProps {
   /** Loaded conversation count, for the right-hand range readout. */
@@ -583,7 +584,7 @@ export function MvListToolbar({
             </button>
             <ContextMenu ref={tagMenu.menuRef} isOpen={tagOpen} position={tagMenu.contextMenu.position} onClose={closeTag}>
               <div className="w-64">
-                <TagPicker selectedIds={appliedTags} partialIds={partialTags} onToggle={handleToggleTag} />
+                <TagPicker selectedIds={appliedTags} partialIds={partialTags} onToggle={handleToggleTag} scope={commonTagScope(selectedEmails)} />
               </div>
             </ContextMenu>
           </div>

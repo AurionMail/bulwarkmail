@@ -24,6 +24,8 @@ const SIGNED_OUT_STORAGE_KEYS = [
   'files-recent-files',
   'files-last-parent-id',
   'files-path-stack',
+  // Names of the people the user gave access to (Settings > Sharing).
+  'bulwark-delegate-names',
 ];
 
 const SIGNED_OUT_SIGNAL = 'bulwark:signed-out';
@@ -34,6 +36,21 @@ const signedOutCleanups = new Set<() => void>();
 /** Run `cleanup` when everyone signs out in this tab. */
 export function onFullSignOut(cleanup: () => void): void {
   signedOutCleanups.add(cleanup);
+}
+
+// Work that has to reach the server before an account signs out (changes
+// still queued for it). The auth store waits for it within its sign-out
+// budget, next to the plugins' onBeforeLogout.
+const beforeSignOutTasks = new Set<(accountId: string) => Promise<void>>();
+
+/** Run `task` before an account signs out; `accountId` is 'all' when every account does. */
+export function onBeforeSignOut(task: (accountId: string) => Promise<void>): () => void {
+  beforeSignOutTasks.add(task);
+  return () => beforeSignOutTasks.delete(task);
+}
+
+export async function runBeforeSignOut(accountId: string): Promise<void> {
+  await Promise.all([...beforeSignOutTasks].map((task) => task(accountId).catch(() => {})));
 }
 
 /** Remove the accounts' leftovers from browser storage. */

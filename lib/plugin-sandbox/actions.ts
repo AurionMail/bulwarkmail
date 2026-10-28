@@ -5,6 +5,7 @@
 
 import { slotSpec } from '../plugin-slot-catalog';
 import { isAllowedPluginCombo } from './shortcuts';
+import { MAIL_ACCOUNT_KINDS, type MailAccountKind } from './account-kind';
 
 export interface PluginAction {
   id: string;
@@ -17,6 +18,20 @@ export interface PluginAction {
   mailboxRoles?: string[];
   /** Show only for attachments or files of these MIME types (prefix match, "image/"). */
   mimeTypes?: string[];
+  /**
+   * Show only for messages in these kinds of mail account (message surfaces):
+   * the user's own, a group account (a team mailbox) or a mailbox someone
+   * shared. Where the host can't tell the account, the action is hidden.
+   */
+  accounts?: MailAccountKind[];
+  /**
+   * Show only when the message has this keyword (message surfaces). A
+   * trailing `*` matches any keyword that starts with the rest
+   * (`"$assigned:*"`). Hidden where there is no single message.
+   */
+  hasKeyword?: string;
+  /** Show only when the message lacks this keyword; `*` as in hasKeyword. */
+  notKeyword?: string;
   /** A danger action is drawn in red. */
   danger?: boolean;
   /**
@@ -47,9 +62,12 @@ export interface RegisteredAction extends PluginAction {
 
 export const MAX_ACTIONS_PER_SURFACE = 8;
 const ID_RE = /^[a-z0-9][a-z0-9-_.]{0,39}$/i;
-const ICON_RE = /^[A-Za-z0-9-]{1,40}$/;
+/** A host icon name, the one rule for plugin actions, list filters and row badges. */
+export const PLUGIN_ICON_RE = /^[A-Za-z0-9-]{1,40}$/;
 const ROLE_RE = /^[a-z]{1,20}$/;
 const MIME_RE = /^[a-z0-9.+-]+\/[a-z0-9.+*-]*$/i;
+// A JMAP keyword as plugins may set one (host-api.ts), or its start and `*`.
+const KEYWORD_PATTERN_RE = /^[a-z0-9$][a-z0-9$_.:-]{0,127}\*?$/i;
 
 /** Surfaces that take actions, from the slot catalogue. */
 export function isActionSurface(surface: string): boolean {
@@ -70,7 +88,7 @@ export function checkActions(value: unknown): PluginAction[] {
     if (typeof a.label !== 'string' || !a.label.trim() || a.label.length > 60) throw new Error(`actions[${i}].label is required (max 60 characters)`);
     const out: PluginAction = { id: a.id, label: a.label.trim() };
     if (a.icon !== undefined) {
-      if (typeof a.icon !== 'string' || !ICON_RE.test(a.icon)) throw new Error(`actions[${i}].icon is invalid`);
+      if (typeof a.icon !== 'string' || !PLUGIN_ICON_RE.test(a.icon)) throw new Error(`actions[${i}].icon is invalid`);
       out.icon = a.icon;
     }
     if (a.order !== undefined) {
@@ -88,6 +106,19 @@ export function checkActions(value: unknown): PluginAction[] {
         throw new Error(`actions[${i}].mimeTypes must be a list of MIME types`);
       }
       out.mimeTypes = (a.mimeTypes as string[]).map((m) => m.toLowerCase());
+    }
+    if (a.accounts !== undefined) {
+      if (!Array.isArray(a.accounts) || a.accounts.length === 0 || !a.accounts.every((k) => (MAIL_ACCOUNT_KINDS as readonly unknown[]).includes(k))) {
+        throw new Error(`actions[${i}].accounts must be a list of "personal", "group" and "shared"`);
+      }
+      out.accounts = [...new Set(a.accounts as MailAccountKind[])];
+    }
+    for (const field of ['hasKeyword', 'notKeyword'] as const) {
+      if (a[field] === undefined) continue;
+      if (typeof a[field] !== 'string' || !KEYWORD_PATTERN_RE.test(a[field] as string)) {
+        throw new Error(`actions[${i}].${field} must be a keyword, optionally ending in *`);
+      }
+      out[field] = (a[field] as string).toLowerCase();
     }
     if (a.danger !== undefined) out.danger = a.danger === true;
     if (a.checked !== undefined) {
@@ -164,9 +195,39 @@ export function badgeText(count: number): string {
   return count > 99 ? '99+' : String(count);
 }
 
-/** Whether an action applies to a folder role and/or a MIME type. */
-export function actionApplies(action: PluginAction, ctx: { mailboxRole?: string | null; mimeType?: string | null }): boolean {
+/**
+ * What an action's conditions are checked against. A missing folder role or
+ * MIME type isn't checked; a missing account kind or keyword list hides the
+ * actions that name one, since the surface is not about one message.
+ */
+export interface ActionFilter {
+  mailboxRole?: string | null;
+  mimeType?: string | null;
+  /** The account kind of the message (or of the open folder, for the selection toolbar). */
+  accountKind?: MailAccountKind | null;
+  /** The message's keywords. */
+  keywords?: readonly string[] | null;
+}
+
+/** Whether `keywords` holds `pattern` (exact, or a prefix ending in `*`), case-insensitively. */
+export function keywordMatches(keywords: readonly string[], pattern: string): boolean {
+  const p = pattern.toLowerCase();
+  if (p.endsWith('*')) {
+    const prefix = p.slice(0, -1);
+    return keywords.some((k) => k.toLowerCase().startsWith(prefix));
+  }
+  return keywords.some((k) => k.toLowerCase() === p);
+}
+
+/** Whether an action applies to a folder role, a MIME type, a message's account and keywords. */
+export function actionApplies(action: PluginAction, ctx: ActionFilter): boolean {
   if (action.mailboxRoles && ctx.mailboxRole !== undefined && !action.mailboxRoles.includes(ctx.mailboxRole ?? '')) return false;
+  if (action.accounts && (!ctx.accountKind || !action.accounts.includes(ctx.accountKind))) return false;
+  if (action.hasKeyword || action.notKeyword) {
+    if (!ctx.keywords) return false;
+    if (action.hasKeyword && !keywordMatches(ctx.keywords, action.hasKeyword)) return false;
+    if (action.notKeyword && keywordMatches(ctx.keywords, action.notKeyword)) return false;
+  }
   if (action.mimeTypes && ctx.mimeType !== undefined) {
     const type = (ctx.mimeType ?? '').toLowerCase();
     if (!action.mimeTypes.some((m) => (m.endsWith('/') || m.endsWith('/*') ? type.startsWith(m.replace(/\*$/, '')) : type === m))) return false;

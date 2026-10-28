@@ -102,6 +102,25 @@ function lastStatus() {
   return statuses[statuses.length - 1];
 }
 
+describe('loadSandboxedPlugin in the no-third-party mode (#903)', () => {
+  it('refuses a plugin that declares network access and runs one that does not', async () => {
+    const { setNoThirdPartyTraffic } = await import('../third-party-mode');
+    mocks.getCode.mockResolvedValue(CODE);
+    setNoThirdPartyTraffic(true);
+    try {
+      await loadSandboxedPlugin(plugin({ permissions: ['http:fetch'], httpOrigins: ['https://api.vendor.example'] }));
+      expect(lastStatus()).toMatchObject({ id: 'managed-plugin', status: 'error', error: 'third-party-off' });
+      expect(mocks.createBackgroundInstance).not.toHaveBeenCalled();
+      expect(getActive('managed-plugin')).toBeUndefined();
+
+      await loadSandboxedPlugin(plugin({ permissions: ['email:read'] }));
+      expect(lastStatus()).toMatchObject({ id: 'managed-plugin', status: 'running' });
+    } finally {
+      setNoThirdPartyTraffic(false);
+    }
+  });
+});
+
 describe('loadSandboxedPlugin bundle sourcing', () => {
   it('runs a managed plugin from IndexedDB when the cached copy verifies', async () => {
     mocks.getCode.mockResolvedValue(CODE);

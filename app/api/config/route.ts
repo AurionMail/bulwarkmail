@@ -11,6 +11,7 @@ import {
   pickRequestHost,
   type BrandingOverrideKey,
 } from '@/lib/admin/domain-branding';
+import { isNoThirdPartyTrafficOn } from '@/lib/admin/third-party-mode';
 
 /**
  * Runtime configuration endpoint
@@ -98,6 +99,8 @@ export async function GET(request: NextRequest) {
       embeddedMode: !!allowedFrameAncestors && allowedFrameAncestors !== "'none'",
       parentOrigin: configManager.get<string>('parentOrigin', ''),
       sourceCodeUrl: httpUrlOrEmpty(configManager.get<string>('sourceCodeUrl', '')),
+      // Browser-side switches of lib/outgoing-hosts.ts read this (#903).
+      noThirdPartyTraffic: await isNoThirdPartyTrafficOn(),
     },
     {
       // Runtime settings can change without new asset URLs. Prevent stale

@@ -10,6 +10,7 @@ import { ProtocolLaunchHandlerProvider } from "@/components/protocol/protocol-la
 import { ProInterfaceRedirect } from "@/components/pro/pro-interface-redirect";
 import { ImpersonationReconciler } from "@/components/impersonation/impersonation-reconciler";
 import { PluginDialogHost } from "@/components/plugins/plugin-dialog-host";
+import { ExternalRecipientConfirmHost } from "@/components/email/external-recipient-confirm";
 import { CommandPaletteHost } from "@/components/command-palette/command-palette";
 import { TotpReauthDialog } from "@/components/totp-reauth-dialog";
 import { PluginConnectDialog } from "@/components/plugins/plugin-connect-dialog";
@@ -20,6 +21,8 @@ import { PluginOAuthCallbackListener } from "@/components/providers/plugin-oauth
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { PushNotificationPrompt } from "@/components/push-notification-prompt";
 import { AccountArchiveRestorePrompt } from "@/components/account-archive-prompt";
+import { SessionTimeoutGuard } from "@/components/session/session-timeout-guard";
+import { AccountTemplateSync } from "@/components/templates/account-template-sync";
 import { IS_LITE } from "@/lib/lite";
 import { setRequestLocale } from "next-intl/server";
 import { locales } from "@/i18n/routing";
@@ -62,8 +65,11 @@ export default async function LocaleLayout({
                   <ProInterfaceRedirect />
                   <ImpersonationReconciler />
                   <PushBindingsHost />
+                  <SessionTimeoutGuard />
+                  <AccountTemplateSync />
                   {children}
                   <PluginDialogHost />
+                  <ExternalRecipientConfirmHost />
                   <CommandPaletteHost />
                   <TotpReauthDialog />
                   <PluginConnectDialog />

@@ -81,6 +81,12 @@ jobs:
           LITE_DEMO_MODE: ${{ inputs.demo }}
         run: npm run build:lite
 
+      # Every host literal in the bundle must be a placeholder, the configured
+      # JMAP server, a built-in host the no-third-party switch turns off, or a
+      # string listed as never requested (#903).
+      - name: Scan the bundle for outside hosts
+        run: node scripts/lite/scan-hosts.mjs out
+
       - name: Package zip
         env:
           REF_NAME: ${{ github.ref_name }}

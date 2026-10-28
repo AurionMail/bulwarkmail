@@ -2,6 +2,7 @@
 
 import { FolderSettings } from './folder-settings';
 import { KeywordSettings } from './keyword-settings';
+import { SharedTagSettings } from './shared-tag-settings';
 import { usePolicyStore } from '@/stores/policy-store';
 
 /**
@@ -14,6 +15,7 @@ export function OrganizeSettings() {
     <div className="space-y-8">
       <FolderSettings />
       {tagsEnabled && <KeywordSettings />}
+      {tagsEnabled && <SharedTagSettings />}
     </div>
   );
 }

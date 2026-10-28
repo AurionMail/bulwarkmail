@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isNoThirdPartyTrafficOn, thirdPartyRefusal } from '@/lib/admin/third-party-mode';
 
 // In-memory LRU cache: domain -> { data, contentType, fetchedAt }
 const CACHE_MAX_SIZE = 1000;
@@ -439,6 +440,10 @@ function evictOldest() {
 }
 
 export async function GET(request: NextRequest) {
+  // Sender icons come from DuckDuckGo: off, before anything else, while the
+  // server must not contact outside services (#903).
+  if (await isNoThirdPartyTrafficOn()) return thirdPartyRefusal('Sender icons');
+
   const domain = request.nextUrl.searchParams.get('domain');
 
   if (!domain || !isValidDomain(domain)) {

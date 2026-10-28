@@ -17,6 +17,7 @@ import { productName } from '@/lib/product-name';
 import {
   getByPath, settingsSubResults, tabKeywords, tabSearchEntries, type SettingsSearchTab,
 } from '@/lib/settings-search';
+import { currentSessionLimits } from '@/lib/session-policy/limits';
 import type { AppSettingsView, SettingsSearchResult } from '../plugin-types';
 
 type Messages = Record<string, unknown>;
@@ -140,6 +141,13 @@ export function doAppGetSettings(): AppSettingsView {
     if (typeof value === 'string' || typeof value === 'boolean' || (typeof value === 'number' && Number.isFinite(value))) out[key] = value;
     else if (Array.isArray(value) && value.every((v) => typeof v === 'number' || typeof v === 'string')) out[key] = value.slice(0, 20) as number[] | string[];
   }
+  // Minutes without activity before Bulwark signs out (0 = never). The user
+  // setting of that name was never read; the organisation's idle timeout is
+  // what applies, the strictest of the accounts signed in here.
+  const limits = currentSessionLimits();
+  out.sessionTimeout = limits
+    ? limits.idle?.minutes ?? 0
+    : usePolicyStore.getState().getOrganisation().session.idleMinutes;
   const theme = (useThemeStore.getState() as unknown as { theme?: unknown }).theme;
   if (typeof theme === 'string') out.theme = theme;
   const locale = useLocaleStore.getState().locale;

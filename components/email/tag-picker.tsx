@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useSettingsStore, KEYWORD_PALETTE_ROWS } from "@/stores/settings-store";
 import { buildKeywordTree, composeKeywordId, MAX_KEYWORD_ID_LENGTH, type KeywordNode } from "@/lib/keyword-nesting";
 import { useKeywordFormat } from "@/hooks/use-keyword-format";
+import { useAccountTags, type TagScope } from "@/hooks/use-account-tags";
 
 /** Below this many tags a filter box costs more room than it saves. */
 const SEARCH_THRESHOLD = 10;
@@ -30,6 +31,7 @@ export function TagPicker({
   partialIds = NO_IDS,
   onToggle,
   touch = false,
+  scope,
 }: {
   selectedIds: string[];
   /**
@@ -40,11 +42,18 @@ export function TagPicker({
   onToggle: (tagId: string) => void;
   /** Larger hit areas for the mobile sheet. */
   touch?: boolean;
+  /**
+   * The account whose tags to offer (a group account offers its shared
+   * tags). Undefined: the TagScopeContext around the picker; null: the
+   * user's own tags.
+   */
+  scope?: TagScope | null;
 }) {
   const t = useTranslations("email_viewer");
-  const keywords = useSettingsStore((state) => state.emailKeywords);
+  const tShared = useTranslations("shared_tags");
+  const { definitions: keywords, shared } = useAccountTags(scope);
   const nestedTags = useSettingsStore((state) => state.nestedTags);
-  const { tagName, tagColor } = useKeywordFormat();
+  const { tagName, tagColor } = useKeywordFormat(scope);
   const [query, setQuery] = useState("");
   const addKeyword = useSettingsStore((state) => state.addKeyword);
   // "New tag" right here (MAIL-31): a name field in the picker; the tag gets
@@ -137,6 +146,14 @@ export function TagPicker({
 
   return (
     <>
+      {shared && (
+        <p
+          className={cn("text-xs text-muted-foreground", touch ? "px-4 pb-2" : "px-3 pb-1")}
+          data-testid="tag-picker-shared"
+        >
+          {tShared("picker_heading")}
+        </p>
+      )}
       {showSearch && (
         <div className={cn("relative", touch ? "px-3 pb-2" : "px-2 pb-1")}>
           <Search className="absolute start-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />

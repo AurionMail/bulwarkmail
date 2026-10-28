@@ -124,6 +124,7 @@ export function PushNotificationPrompt() {
   );
 
   const accountId = client?.getAccountId() ?? null;
+  // Empty when no relay may be used (third-party traffic off, no own relay).
   const relayBaseUrl = resolveActiveRelayUrl(policy, userPushRelayUrl);
 
   const dismissForSession = useCallback((id: string) => {
@@ -255,6 +256,7 @@ export function PushNotificationPrompt() {
       || wasDismissed(accountId)
       || !isWebPushSupported()
       || Notification.permission === "denied"
+      || !relayBaseUrl
     ) {
       return;
     }
@@ -287,6 +289,7 @@ export function PushNotificationPrompt() {
     pathname,
     policyLoaded,
     pwaPromptVisible,
+    relayBaseUrl,
     sessionDismissedAccountIds,
   ]);
 

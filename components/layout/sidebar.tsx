@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState, useEffect, useMemo, useRef, Fragment, ReactNode } from "react";
+import { memo, useState, useEffect, useMemo, useCallback, useRef, Fragment, ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
@@ -53,6 +53,7 @@ import {
 } from "@/lib/keyword-nesting";
 import { useShortenedText } from "@/hooks/use-shortened-text";
 import { useKeywordFormat } from "@/hooks/use-keyword-format";
+import { TagScopeContext, useAccountTags } from "@/hooks/use-account-tags";
 import { isEditableEventTarget } from "@/lib/keyboard";
 import { Mailbox } from "@/lib/jmap/types";
 import { useContextMenu } from "@/hooks/use-context-menu";
@@ -74,7 +75,8 @@ import { unifiedLoadProgress } from "@/lib/unified-mailbox";
 import { useVacationStore } from "@/stores/vacation-store";
 import { useSettingsStore, getKeywordVisibility } from "@/stores/settings-store";
 import { usePolicyStore } from "@/stores/policy-store";
-import { useEmailStore } from "@/stores/email-store";
+import { useEmailStore, buildTagViewAccountClients } from "@/stores/email-store";
+import { trashAndJunkIds } from "@/lib/unified-mailbox";
 import { toast } from "@/stores/toast-store";
 import { toastWithUndo, undoLabels, undoMoveAction } from "@/lib/email-action-toast";
 import { debug } from "@/lib/debug";
@@ -101,7 +103,7 @@ interface SidebarProps {
   selectedMailbox?: string;
   selectedKeyword?: string | null;
   onMailboxSelect?: (mailboxId: string) => void;
-  onTagSelect?: (keywordId: string | null) => void;
+  onTagSelect?: (keywordId: string | null, accountId?: string | null) => void;
   onCompose?: () => void;
   /**
    * Mountain View, desktop only: the rail grows a Compose pill at the top and
@@ -788,7 +790,7 @@ function TagItem({
   selectedKeyword: string | null;
   expandedTags: Set<string>;
   isCollapsed: boolean;
-  onTagSelect?: (keywordId: string | null) => void;
+  onTagSelect?: (keywordId: string | null, accountId?: string | null) => void;
   onToggleExpand: (keywordId: string) => void;
   tagCounts: Record<string, { total: number; unread: number }>;
   colorful: boolean;
@@ -864,6 +866,106 @@ function TagItem({
         />
       ))}
     </>
+  );
+}
+
+type TagCounts = Record<string, { total: number; unread: number }>;
+const NO_TAG_COUNTS: TagCounts = {};
+
+/**
+ * Counts of a group account's shared tags in that account only, outside
+ * Trash and Junk like the tag view. Asked again whenever the sidebar's own
+ * tag counts are (every mail change), and when the tags change.
+ */
+function useSharedTagCounts(accountId: string, ids: string[], enabled: boolean): TagCounts {
+  const client = useAuthStore((s) => s.client);
+  const refresh = useEmailStore((s) => s.tagCounts);
+  const idsKey = ids.join('\n');
+  const [counts, setCounts] = useState<TagCounts>(NO_TAG_COUNTS);
+  useEffect(() => {
+    if (!enabled || !client || !idsKey) return;
+    const account = buildTagViewAccountClients(client).find((a) => a.jmapAccountId === accountId);
+    if (!account) return;
+    let cancelled = false;
+    client.getTagCounts(idsKey.split('\n'), accountId, trashAndJunkIds(account))
+      .then((next) => { if (!cancelled) setCounts(next); })
+      .catch(() => { /* the rows show no count */ });
+    return () => { cancelled = true; };
+  }, [client, accountId, idsKey, refresh, enabled]);
+  return counts;
+}
+
+/**
+ * The tags of a group account, under its folders in the Shared section: the
+ * shared definitions plus the tags found on its messages (useAccountTags),
+ * with their counts in that account. Picking one lists that account's
+ * messages with the tag. Nothing for a mailbox a person shared or a server
+ * without metadata, where the user's own tags above stand for every account
+ * as before.
+ */
+function SharedAccountTags({
+  loginId,
+  accountId,
+  selectedKeyword,
+  expandedTags,
+  onTagSelect,
+  onToggleExpand,
+  colorful,
+}: {
+  loginId: string;
+  accountId: string;
+  /** The tag picked in this account's list, if any. */
+  selectedKeyword: string | null;
+  expandedTags: Set<string>;
+  onTagSelect?: (keywordId: string | null, accountId?: string | null) => void;
+  onToggleExpand: (keywordId: string) => void;
+  colorful: boolean;
+}) {
+  const t = useTranslations('shared_tags');
+  const router = useRouter();
+  const scope = useMemo(() => ({ loginId, accountId }), [loginId, accountId]);
+  const { definitions, shared } = useAccountTags(scope);
+  const nestedTags = useSettingsStore((s) => s.nestedTags);
+  const [expanded, setExpanded] = useState(true);
+  const tree = useMemo(
+    () => (nestedTags ? buildKeywordTree(definitions) : definitions.map((kw) => ({ ...kw, children: [], depth: 0 }))),
+    [definitions, nestedTags],
+  );
+  const ids = useMemo(() => definitions.map((kw) => kw.id), [definitions]);
+  const counts = useSharedTagCounts(accountId, ids, shared && expanded);
+  const select = useCallback(
+    (keywordId: string | null) => onTagSelect?.(keywordId, keywordId ? accountId : null),
+    [onTagSelect, accountId],
+  );
+  if (!shared || definitions.length === 0) return null;
+  return (
+    <TagScopeContext.Provider value={scope}>
+      <div data-testid="shared-account-tags">
+        <SidebarSectionHeader
+          label={t('sidebar_heading')}
+          expanded={expanded}
+          onToggle={() => setExpanded((open) => !open)}
+          onSettings={() => router.push(buildSettingsPath('organize', 'shared-tags'))}
+          settingsTitle={t('edit')}
+          testId="section-shared-tags"
+          isCollapsed={false}
+          sub
+        />
+        {expanded && tree.map((node) => (
+          <TagItem
+            key={node.id}
+            node={node}
+            selectedKeyword={selectedKeyword}
+            expandedTags={expandedTags}
+            isCollapsed={false}
+            onTagSelect={select}
+            onToggleExpand={onToggleExpand}
+            tagCounts={counts}
+            colorful={colorful}
+          />
+        ))}
+      </div>
+    </TagScopeContext.Provider>
   );
 }
 
@@ -1058,6 +1160,9 @@ function SidebarImpl({
   const emailKeywords = useSettingsStore(s => s.emailKeywords);
   const nestedTags = useSettingsStore(s => s.nestedTags);
   const tagsAboveShared = usePolicyStore(s => s.isFeatureEnabled('tagsAboveSharedEnabled'));
+  // A tag picked in a group account's shared tags (see SharedAccountTags).
+  const selectedKeywordAccountId = useEmailStore(s => s.selectedKeywordAccountId);
+  const personalSelectedKeyword = selectedKeywordAccountId ? null : selectedKeyword;
   const isEmbedded = useIsEmbedded();
   // The Pro shell owns the global chrome (rail + tab bar), so the sidebar's
   // own AccountSwitcher would be a redundant second account UI in the same
@@ -1219,7 +1324,7 @@ function SidebarImpl({
   // filling it back in. A tag the server answered for with zero unread hides,
   // which is the point of the setting.
   const isTagVisible = (node: KeywordNode) => {
-    if (showAllTags || node.id === selectedKeyword) return true;
+    if (showAllTags || node.id === personalSelectedKeyword) return true;
     const visibility = getKeywordVisibility(node);
     if (visibility === 'hide') return false;
     if (visibility === 'unread') {
@@ -1357,7 +1462,7 @@ function SidebarImpl({
               <TagItem
                 key={node.id}
                 node={node}
-                selectedKeyword={selectedKeyword}
+                selectedKeyword={personalSelectedKeyword}
                 expandedTags={expandedTags}
                 isCollapsed={isCollapsed}
                 onTagSelect={onTagSelect}
@@ -1927,6 +2032,17 @@ function SidebarImpl({
                           ))}
                           {menuAccountId && !account.children.some((child) => child.role === 'drafts')
                             && renderScheduledRow(`${account.id}-scheduled`, { accountId: menuAccountId })}
+                          {menuAccountId && activeAccountId && (
+                            <SharedAccountTags
+                              loginId={activeAccountId}
+                              accountId={menuAccountId}
+                              selectedKeyword={selectedKeywordAccountId === menuAccountId ? selectedKeyword : null}
+                              expandedTags={expandedTags}
+                              onTagSelect={onTagSelect}
+                              onToggleExpand={handleToggleTagExpand}
+                              colorful={colorfulSidebarIcons}
+                            />
+                          )}
                         </>
                       )}
                     </div>

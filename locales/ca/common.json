@@ -88,6 +88,20 @@
       "back_to_login": "Torna a l'inici de sessió"
     }
   },
+  "session_limits": {
+    "idle_title": "Encara hi sou?",
+    "idle_message": "Es tancarà la vostra sessió d'aquí a {seconds, plural, one {# segon} other {# segons}} perquè no hi ha hagut activitat. Els missatges oberts es desen com a esborranys.",
+    "stay": "Mantén la sessió",
+    "sign_out_now": "Tanca la sessió ara",
+    "max_title": "La vostra sessió s'acaba",
+    "max_message": "La vostra organització tanca les sessions {hours, plural, one {# hora} other {# hores}} després d'iniciar la sessió. Es tancarà la vostra sessió d'aquí a {seconds, plural, one {# segon} other {# segons}}. Els missatges oberts es desen com a esborranys.",
+    "dismiss": "D'acord",
+    "signing_out": "S'estan desant els esborranys i tancant la sessió…",
+    "reason_idle": "S'ha tancat la vostra sessió després de {minutes, plural, one {# minut} other {# minuts}} sense activitat.",
+    "reason_max": "S'ha tancat la vostra sessió perquè ha arribat a la durada màxima de {hours, plural, one {# hora} other {# hores}}.",
+    "drafts_not_saved": "Un o més missatges oberts no s'han pogut desar com a esborranys.",
+    "seconds_left": "{seconds, plural, one {Queda # segon} other {Queden # segons}}"
+  },
   "totp_reauth": {
     "title": "La sessió ha caducat",
     "description": "El codi de doble factor ha canviat. Introduïu un codi nou de l'aplicació d'autenticació per continuar.",
@@ -348,6 +362,34 @@
     "reschedule_send": "Reprograma",
     "cancel_and_edit": "Cancel·la i edita",
     "cancel_and_compose_again": "Cancel·la i torna a redactar"
+  },
+  "shared_tags": {
+    "title": "Etiquetes compartides",
+    "description": "Etiquetes de les vostres bústies de grup. Tothom del grup veu els mateixos noms i colors al seu correu.",
+    "picker_heading": "Compartides amb tothom d'aquesta bústia",
+    "sidebar_heading": "Etiquetes",
+    "edit": "Edita les etiquetes compartides",
+    "edit_tag": "Edita {name}",
+    "delete_tag": "Suprimeix {name}",
+    "name_it": "Posa nom a {name}",
+    "add": "Afegeix una etiqueta compartida",
+    "name": "Nom",
+    "color": "Color",
+    "save": "Desa",
+    "cancel": "Cancel·la",
+    "delete": "Suprimeix",
+    "delete_confirm": "Voleu suprimir-la per a tothom? L'etiqueta es manté als seus missatges.",
+    "found_on_messages": "En missatges, encara sense nom",
+    "empty": "Encara no hi ha etiquetes compartides.",
+    "exists": "Aquesta bústia ja té aquesta etiqueta.",
+    "too_long": "Aquest nom és massa llarg.",
+    "loading": "Carregant…",
+    "unsupported": "Aquest servidor de correu no pot desar etiquetes compartides, així que aquesta bústia mostra les vostres pròpies etiquetes.",
+    "unavailable": "No s'han pogut carregar les etiquetes compartides d'aquesta bústia, així que mostra les vostres pròpies etiquetes. Bulwark ho tornarà a provar més tard.",
+    "no_rights": "Podeu fer servir aquestes etiquetes, però no les podeu canviar en aquesta bústia.",
+    "too_many": "Hi ha massa etiquetes compartides. Suprimiu-ne algunes abans d'afegir-ne més.",
+    "save_failed": "No s'han pogut desar les etiquetes compartides. Bulwark ho tornarà a provar quan el servidor respongui.",
+    "save_pending": "Encara no s'ha desat. Bulwark ho tornarà a provar quan el servidor respongui."
   },
   "email_viewer": {
     "read_receipt": {
@@ -712,6 +754,18 @@
       "load_failed": "No s'han pogut carregar les carpetes. Torna-ho a provar."
     }
   },
+  "external_mail": {
+    "sender_label": "Extern",
+    "sender_tooltip": "De {domain}, fora de la vostra organització",
+    "sender_tooltip_no_domain": "D'una adreça sense domini, fora de la vostra organització",
+    "confirm_title": "Voleu enviar-lo fora de la vostra organització?",
+    "confirm_message": "{count, plural, one {Aquest destinatari és} other {Aquests # destinataris són}} fora de la vostra organització. Envieu-lo només si és el que voleu.",
+    "field_to": "Per a",
+    "field_cc": "CC",
+    "field_bcc": "CCO",
+    "send_anyway": "Envia igualment",
+    "back": "Enrere"
+  },
   "email_composer": {
     "select_from_directory": "Selecciona del directori",
     "minimize": "Minimitza",
@@ -1046,6 +1100,13 @@
     "rule_folder_failed": "No s'ha pogut crear la carpeta",
     "vacation_filters_save_failed": "S'ha desat la configuració d'absència, però no s'han pogut desar el reenviament ni els destinataris de la resposta"
   },
+  "third_party": {
+    "push_needs_relay": "Les notificacions push necessiten un repetidor push gestionat per la vostra organització, i no n'hi ha cap de configurat. El correu nou es continua mostrant mentre l'aplicació està oberta.",
+    "relay_desc": "Només s'ofereixen els repetidors propis de la vostra organització, perquè aquest servidor no contacta amb serveis externs.",
+    "relay_none": "No n'hi ha cap de configurat",
+    "plugin_refused": "No s'ha iniciat: aquest connector es connecta a serveis externs, que la vostra organització ha desactivat.",
+    "remote_content_blocked": "La vostra organització bloqueja el contingut d'altres servidors, així que les imatges remotes d'aquest missatge no es mostren."
+  },
   "date": {
     "today": "Avui",
     "yesterday": "Ahir",
@@ -1112,6 +1173,7 @@
   },
   "settings": {
     "title": "Configuració",
+    "org_locked": "Establert per la vostra organització",
     "back_to_mail": "Torna al correu",
     "back_to_settings": "Torna als paràmetres",
     "save_success": "Configuració desada correctament",
@@ -3161,6 +3223,23 @@
     "delete_button": "Suprimeix",
     "delete_confirm_title": "Suprimeix la identitat"
   },
+  "org_signature": {
+    "disclaimer_added_on_send": "S'afegeix en enviar",
+    "identity_signature_label": "Signatura",
+    "identity_no_signature": "Sense signatura",
+    "identity_default": "Deixeu les dues signatures buides per enviar la signatura de la vostra organització des d'aquesta adreça.",
+    "details": {
+      "title": "Les vostres dades",
+      "description": "La signatura de la vostra organització mostra aquestes dades. Ompliu-les una vegada; totes les adreces des de les quals envieu les fan servir.",
+      "preview": "La vostra signatura",
+      "fields": {
+        "title": "Càrrec",
+        "department": "Departament",
+        "phone": "Telèfon",
+        "mobile": "Mòbil"
+      }
+    }
+  },
   "templates": {
     "picker_title": "Trieu una plantilla",
     "manage": "Gestiona les plantilles",
@@ -3191,6 +3270,26 @@
       "day_of_week": "Dia de la setmana",
       "sender_name": "El vostre nom"
     }
+  },
+  "org_templates": {
+    "section_personal": "Les meves plantilles",
+    "section_organisation": "Organització",
+    "sources_label": "Llistes de plantilles",
+    "organisation_note": "De la vostra organització. No les podeu canviar, però en podeu copiar una a les vostres plantilles.",
+    "copy_to_personal": "Copia a les meves plantilles",
+    "duplicate": "Duplica",
+    "save_failed": "No s'ha pogut desar la plantilla. Torneu-ho a provar.",
+    "save_failed_forbidden": "No podeu canviar aquestes plantilles.",
+    "save_failed_too_large": "Aquesta plantilla supera els 8 kB que el servidor desa per plantilla. Escurceu-la i torneu-la a desar.",
+    "save_failed_no_room": "La bústia no té espai per a més plantilles. Suprimiu-ne una i torneu-ho a provar.",
+    "local_only_too_large": "Només en aquest navegador: supera els 8 kB que el servidor desa per plantilla.",
+    "local_only_no_room": "Només en aquest navegador: el vostre compte no té espai per a més plantilles.",
+    "personal_in_account": "Les vostres plantilles es desen al vostre compte, així que les teniu a tots els dispositius on inicieu la sessió. Qualsevol persona amb qui compartiu la safata d'entrada les pot llegir.",
+    "team_note": "Tothom de {name} veu aquestes plantilles i les pot canviar.",
+    "team_read_only": "Podeu fer servir aquestes plantilles, però no les podeu canviar.",
+    "save_failed_conflict": "Algú altre l'ha canviat. Torneu a carregar i torneu-ho a provar.",
+    "preview_to": "Per a: {list}",
+    "preview_cc": "CC: {list}"
   },
   "contacts": {
     "directory": {
@@ -4228,6 +4327,89 @@
       "custom": "Personalitzat"
     }
   },
+  "delegates": {
+    "tab": "Compartició",
+    "title": "Delegats",
+    "description": "Doneu accés a algú al vostre correu, calendaris i contactes en un sol pas, i vegeu qui té accés a què.",
+    "give_access": "Dona accés",
+    "who_has_access": "Qui té accés",
+    "nobody": "Ningú no té accés al vostre correu, calendaris, contactes ni fitxers.",
+    "loading": "Carregant…",
+    "read_failed": "No s'ha pogut llegir una part del que compartiu, així que Canvia i Elimina l'accés esperen fins que es pugui.",
+    "change": "Canvia",
+    "remove": "Elimina l'accés",
+    "remove_title": "Voleu eliminar l'accés de {name}?",
+    "remove_message": "{name} perd l'accés a tot el que heu compartit des del vostre compte: correu, calendaris, contactes i fitxers.",
+    "removed": "Accés eliminat",
+    "remove_partial": "Aquests elements encara hi tenen accés: {items}",
+    "applied": "{name} ja hi té accés",
+    "updated": "Accés actualitzat",
+    "unknown_person": "Persona desconeguda",
+    "group": "Grup",
+    "has_access": "Hi té accés",
+    "summary": {
+      "mail_all": "Totes les carpetes de correu",
+      "mail_inbox": "Safata d'entrada",
+      "mail_some": "{count, plural, one {# carpeta de correu} other {# carpetes de correu}}",
+      "calendars": "{count, plural, one {# calendari} other {# calendaris}}",
+      "address_books": "{count, plural, one {# llibreta d'adreces} other {# llibretes d'adreces}}",
+      "files": "{count, plural, one {# fitxer o carpeta} other {# fitxers o carpetes}}"
+    },
+    "level": {
+      "read": "Lectura",
+      "write": "Lectura i escriptura",
+      "mixed": "Permisos diferents",
+      "none": "Només disponibilitat"
+    },
+    "dialog_title_add": "Dona accés",
+    "dialog_title_change": "Canvia l'accés de {name}",
+    "person": "Persona",
+    "search_placeholder": "Nom o adreça electrònica",
+    "change_person": "Canvia",
+    "no_match": "No s'ha trobat ningú.",
+    "use_address": "Utilitza {address}",
+    "looking_up": "S'està cercant…",
+    "not_found": "Ningú d'aquest servidor no té l'adreça {address}.",
+    "lookup_failed": "No s'ha pogut cercar aquesta adreça.",
+    "is_you": "Sou vós.",
+    "known_only": "Només es mostren els vostres grups i les persones que han compartit alguna cosa amb vós.",
+    "directory_off_note": "L'administrador ha d'activar les consultes al directori a Stalwart abans que pugueu afegir algú nou.",
+    "directory_failed": "No s'ha pogut carregar la llista de persones i grups.",
+    "what": "Què",
+    "mail": "Correu",
+    "mail_all": "Totes les carpetes",
+    "mail_inbox": "Només la safata d'entrada",
+    "calendars": "Calendaris",
+    "calendars_default": "Calendari predeterminat",
+    "calendars_all": "Tots els calendaris",
+    "address_books": "Contactes",
+    "address_books_default": "Llibreta d'adreces predeterminada",
+    "address_books_all": "Totes les llibretes d'adreces",
+    "none": "Res",
+    "keep": "Deixa-ho com està",
+    "empty_scope": "Trieu correu, calendaris o contactes.",
+    "nothing_to_change": "No hi ha res a canviar. Trieu què ha de rebre aquesta persona o feu servir Elimina l'accés.",
+    "change_note": "Les carpetes, calendaris i llibretes d'adreces que deixeu fora perden l'accés. Els fitxers compartits es queden com estan; Elimina l'accés també els retira.",
+    "rights": "Permisos",
+    "rights_read": "Lectura",
+    "rights_read_hint": "Veure el vostre correu, esdeveniments i contactes.",
+    "rights_read_hint_flags": "Veure el vostre correu, esdeveniments i contactes. Aquest servidor també permet marcar el correu i marcar-lo com a llegit.",
+    "rights_write": "Lectura i escriptura",
+    "rights_write_hint": "A més, arxivar, marcar i suprimir correu, i canviar esdeveniments i contactes.",
+    "rights_keep": "Deixa-ho com està",
+    "rights_keep_hint": "El que ja té manté els seus permisos; el que s'afegeixi rep els permisos que té la resta d'aquest tipus, o lectura.",
+    "send_note": "Els delegats poden llegir i organitzar el vostre correu i el vostre calendari. Stalwart no els permet enviar com a vós ni en nom vostre. Per compartir una adreça entre diverses persones, demaneu una bústia compartida a l'administrador.",
+    "apply_add": "Dona accés",
+    "apply_change": "Desa",
+    "partial_title": "Aquests elements no s'han pogut canviar. La resta està fet.",
+    "retry": "Torna-ho a provar",
+    "kind": {
+      "mailbox": "Carpeta de correu",
+      "calendar": "Calendari",
+      "addressBook": "Llibreta d'adreces",
+      "file": "Fitxer"
+    }
+  },
   "advanced_search": {
     "title": "Cerca avançada",
     "from": "De",
@@ -4623,6 +4805,32 @@
   "unified_mailbox": {
     "search_unavailable": "La cerca no està disponible a la vista unificada"
   },
+  "recover_deleted": {
+    "tab": "Recupera elements suprimits",
+    "title": "Recupera elements suprimits",
+    "description": "Correu que heu suprimit definitivament, per exemple en buidar la paperera, i que el servidor encara conserva. Seleccioneu missatges i restaureu-los.",
+    "range_days": "Es mostra el correu suprimit {days, plural, one {l'últim dia} other {els últims # dies}}.",
+    "range_all": "Es mostra tot el correu suprimit que el servidor encara conserva.",
+    "loading": "S'està carregant el correu suprimit…",
+    "load_failed": "No s'ha pogut carregar el correu suprimit.",
+    "retry": "Torna-ho a provar",
+    "empty": "No hi ha correu suprimit per recuperar.",
+    "select_all": "Selecciona-ho tot",
+    "selected": "{count} seleccionats",
+    "refresh": "Actualitza",
+    "restore": "Restaura",
+    "restored": "{count, plural, one {# missatge torna} other {# missatges tornen}} a la vostra safata d'entrada.",
+    "restore_partial": "{count, plural, one {No s'ha pogut restaurar # missatge. Continua seleccionat perquè ho pugueu tornar a provar.} other {No s'han pogut restaurar # missatges. Continuen seleccionats perquè ho pugueu tornar a provar.}}",
+    "restore_hint": "El correu restaurat torna a la safata d'entrada com a no llegit, ordenat per la data original, així que pot quedar molt avall a la llista. El servidor el restaura en segon pla. Si allà falla, el missatge es perd i Bulwark no ho pot saber.",
+    "unknown_sender": "Remitent desconegut",
+    "no_subject": "(sense assumpte)",
+    "deleted_on": "Suprimit el {date}",
+    "trash_hint": "L'heu suprimit definitivament per error?",
+    "trash_link": "Recupera elements suprimits",
+    "empty_hint": "El correu suprimit només apareix aquí si l'administrador ha activat l'arxivament d'elements suprimits a Stalwart.",
+    "restore_gone": "{count, plural, one {# missatge ja no era a l'arxiu: s'ha restaurat en un altre lloc o el servidor ja no el conserva.} other {# missatges ja no eren a l'arxiu: s'han restaurat en un altre lloc o el servidor ja no els conserva.}}",
+    "show_older": "Mostra'n de més antics"
+  },
   "quote_header": {
     "reply_line": "El {date}, {from} va escriure:",
     "forwarded_separator": "---------- Missatge reenviat ----------",
@@ -4740,7 +4948,7 @@
       },
       "email_write": {
         "title": "Canviar i organitzar el vostre correu",
-        "body": "Afegir o treure etiquetes, marques i altres paraules clau dels vostres missatges, moure'ls entre les vostres carpetes i a l'arxiu, i desar esborranys."
+        "body": "Afegir o treure etiquetes, marques i altres paraules clau dels vostres missatges, moure'ls entre les vostres carpetes i a l'arxiu, i desar esborranys. També pot desar un valor petit que tots els membres d'una bústia d'equip poden llegir."
       },
       "email_send": {
         "title": "Canviar el correu abans d'enviar-lo",
@@ -4856,7 +5064,11 @@
       },
       "account_read": {
         "title": "Veure els vostres comptes",
-        "body": "Veure els comptes que heu afegit, amb les seves adreces i servidors."
+        "body": "Veure els comptes que heu afegit, amb les seves adreces i servidors, i quins comptes de correu són bústies d'equip."
+      },
+      "directory_read": {
+        "title": "Cercar persones",
+        "body": "Cercar persones al directori de la vostra organització."
       },
       "http_post": {
         "title": "Fer servir el servidor del webmail en nom vostre",
@@ -5019,6 +5231,10 @@
       "error_server": "Introduïu l'adreça del servidor, per exemple https://cloud.example.com",
       "error_save": "No s'ha pogut desar: {error}"
     }
+  },
+  "plugin_list": {
+    "filters": "Filtres",
+    "remove_filter": "Treu el filtre {label}"
   },
   "global_search": {
     "title": "Cerca-ho tot",

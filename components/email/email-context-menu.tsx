@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useEmailStore, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
+import { useEmailTagScope, type TagScope } from "@/hooks/use-account-tags";
 import { Email, Mailbox } from "@/lib/jmap/types";
 import {
   ContextMenu,
@@ -13,7 +14,7 @@ import {
   ContextMenuHeader,
 } from "@/components/ui/context-menu";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
-import { PluginActions, usePluginActions } from "@/components/plugins/plugin-actions";
+import { PluginActions, useMessageActionTarget, usePluginActions } from "@/components/plugins/plugin-actions";
 import {
   Mail,
   MailOpen,
@@ -98,6 +99,11 @@ interface EmailContextMenuProps {
   /** Tags every selected message carries, and those only some of them do. */
   batchTagIds?: string[];
   batchPartialTagIds?: string[];
+  /**
+   * The account of the whole selection (commonTagScope): its tags are
+   * offered. Null when the selection mixes accounts: the user's own tags.
+   */
+  batchTagScope?: TagScope | null;
   /** Takes the tag off when the whole selection has it, else puts it on all. */
   onBatchToggleTag?: (tagId: string) => void;
   onBatchDelete?: () => void;
@@ -159,6 +165,7 @@ export function EmailContextMenu({
   onBatchMarkAsRead,
   batchTagIds,
   batchPartialTagIds,
+  batchTagScope = null,
   onBatchToggleTag,
   onBatchDelete,
   onBatchArchive,
@@ -188,6 +195,8 @@ export function EmailContextMenu({
   const tSidebar = useTranslations("sidebar");
   const isUnread = !email.keywords?.$seen;
   const currentTagIds = getEmailTagIds(email.keywords);
+  // The row's account names its tags; a selection uses batchTagScope.
+  const tagScope = useEmailTagScope(email);
   const showBatchActions = isMultiSelect && selectedCount > 1;
   const isInJunkFolder = currentMailboxRole === 'junk';
   // Marking your own outgoing mail as spam makes no sense - hide the action
@@ -307,7 +316,12 @@ export function EmailContextMenu({
   // opens this menu, so it is where those buttons live there. Below, the
   // selection's entries in the default layout's order or, under Mountain
   // View, in Gmail's.
-  const hasRowPluginActions = usePluginActions("message-row-actions", { mailboxRole: currentMailboxRole ?? null }).length > 0;
+  const rowPluginTarget = useMessageActionTarget(email);
+  const hasRowPluginActions = usePluginActions("message-row-actions", {
+    mailboxRole: currentMailboxRole ?? null,
+    accountKind: rowPluginTarget.accountKind,
+    keywords: rowPluginTarget.keywords,
+  }).length > 0;
   const rowPluginContext = useMemo(() => ({ emailId: email.id }), [email.id]);
   const rowPluginBlock = !showBatchActions && hasRowPluginActions ? (
     <>
@@ -316,6 +330,7 @@ export function EmailContextMenu({
         surface="message-row-actions"
         variant="menu"
         context={rowPluginContext}
+        target={rowPluginTarget}
         mailboxRole={currentMailboxRole ?? null}
         onRan={onClose}
       />
@@ -411,6 +426,7 @@ export function EmailContextMenu({
                 selectedIds={batchTagIds ?? []}
                 partialIds={batchPartialTagIds}
                 onToggle={(tagId) => onBatchToggleTag?.(tagId)}
+                scope={batchTagScope}
               />
             </div>
           </ContextMenuSubMenu>
@@ -454,7 +470,7 @@ export function EmailContextMenu({
         return (
           <ContextMenuSubMenu key={entry.key} icon={entry.icon} label={entry.label} testId={entry.testId}>
             <div className="w-56 max-w-[18rem]">
-              <TagPicker selectedIds={currentTagIds} onToggle={(tagId) => onSetTag?.(tagId)} />
+              <TagPicker selectedIds={currentTagIds} onToggle={(tagId) => onSetTag?.(tagId)} scope={tagScope} />
             </div>
           </ContextMenuSubMenu>
         );

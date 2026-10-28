@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { configManager } from '@/lib/admin/config-manager';
+import { isNoThirdPartyTrafficOn, thirdPartyRefusal } from '@/lib/admin/third-party-mode';
 import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
 import { CREDENTIAL_ID_RE } from '@/lib/plugin-secrets/credentials';
@@ -41,6 +42,8 @@ export async function POST(request: NextRequest) {
   if (!configManager.getPolicy().features.pluginsEnabled) {
     return NextResponse.json({ error: 'Plugins are turned off', code: 'disabled' }, { status: 403 });
   }
+  // Every proxied request goes to a host outside this deployment (#903).
+  if (await isNoThirdPartyTrafficOn()) return thirdPartyRefusal('The plugin proxy');
 
   const creds = await getStalwartCredentials(request);
   if (!creds) return NextResponse.json({ error: 'Not authenticated', code: 'unauthenticated' }, { status: 401 });

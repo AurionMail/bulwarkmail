@@ -88,6 +88,20 @@
       "back_to_login": "Powrót do logowania"
     }
   },
+  "session_limits": {
+    "idle_title": "Jesteś tam jeszcze?",
+    "idle_message": "Za {seconds, plural, one {# sekundę} few {# sekundy} many {# sekund} other {# sekundy}} nastąpi wylogowanie z powodu braku aktywności. Otwarte wiadomości zostaną zapisane jako szkice.",
+    "stay": "Pozostań zalogowany",
+    "sign_out_now": "Wyloguj się teraz",
+    "max_title": "Twoja sesja się kończy",
+    "max_message": "Twoja organizacja kończy sesje {hours, plural, one {# godzinę} few {# godziny} many {# godzin} other {# godziny}} po zalogowaniu. Za {seconds, plural, one {# sekundę} few {# sekundy} many {# sekund} other {# sekundy}} nastąpi wylogowanie. Otwarte wiadomości zostaną zapisane jako szkice.",
+    "dismiss": "OK",
+    "signing_out": "Zapisywanie szkiców i wylogowywanie…",
+    "reason_idle": "Nastąpiło wylogowanie po {minutes, plural, one {# minucie} few {# minutach} many {# minutach} other {# minuty}} bez aktywności.",
+    "reason_max": "Nastąpiło wylogowanie, ponieważ sesja osiągnęła maksymalną długość: {hours, plural, one {# godzina} few {# godziny} many {# godzin} other {# godziny}}.",
+    "drafts_not_saved": "Nie udało się zapisać jako szkice co najmniej jednej otwartej wiadomości.",
+    "seconds_left": "{seconds, plural, one {Została # sekunda} few {Zostały # sekundy} many {Zostało # sekund} other {Zostało # sekundy}}"
+  },
   "totp_reauth": {
     "title": "Sesja wygasła",
     "description": "Twój kod dwuskładnikowy się zmienił. Aby kontynuować, wpisz nowy kod z aplikacji uwierzytelniającej.",
@@ -348,6 +362,34 @@
     "reschedule_send": "Przełóż",
     "cancel_and_edit": "Anuluj i edytuj",
     "cancel_and_compose_again": "Anuluj i napisz ponownie"
+  },
+  "shared_tags": {
+    "title": "Wspólne etykiety",
+    "description": "Etykiety Twoich skrzynek grupowych. Wszyscy w grupie widzą te same nazwy i kolory przy jej wiadomościach.",
+    "picker_heading": "Wspólne dla wszystkich w tej skrzynce",
+    "sidebar_heading": "Etykiety",
+    "edit": "Edytuj wspólne etykiety",
+    "edit_tag": "Edytuj {name}",
+    "delete_tag": "Usuń {name}",
+    "name_it": "Nadaj nazwę {name}",
+    "add": "Dodaj wspólną etykietę",
+    "name": "Nazwa",
+    "color": "Kolor",
+    "save": "Zapisz",
+    "cancel": "Anuluj",
+    "delete": "Usuń",
+    "delete_confirm": "Usunąć dla wszystkich? Etykieta pozostanie przy swoich wiadomościach.",
+    "found_on_messages": "Przy wiadomościach, jeszcze bez nazwy",
+    "empty": "Nie ma jeszcze wspólnych etykiet.",
+    "exists": "Ta skrzynka ma już tę etykietę.",
+    "too_long": "Ta nazwa jest za długa.",
+    "loading": "Ładowanie…",
+    "unsupported": "Ten serwer poczty nie może przechowywać wspólnych etykiet, dlatego ta skrzynka pokazuje Twoje własne etykiety.",
+    "unavailable": "Nie udało się wczytać wspólnych etykiet tej skrzynki, dlatego pokazuje ona Twoje własne etykiety. Bulwark spróbuje ponownie później.",
+    "no_rights": "Możesz używać tych etykiet, ale nie możesz ich zmieniać w tej skrzynce.",
+    "too_many": "Jest za dużo wspólnych etykiet. Usuń kilka, zanim dodasz kolejne.",
+    "save_failed": "Nie udało się zapisać wspólnych etykiet. Bulwark spróbuje ponownie, gdy serwer odpowie.",
+    "save_pending": "Jeszcze nie zapisano. Bulwark spróbuje ponownie, gdy serwer odpowie."
   },
   "email_viewer": {
     "read_receipt": {
@@ -712,6 +754,18 @@
       "load_failed": "Nie udało się wczytać folderów. Spróbuj ponownie."
     }
   },
+  "external_mail": {
+    "sender_label": "Zewnętrzny",
+    "sender_tooltip": "Z domeny {domain}, spoza Twojej organizacji",
+    "sender_tooltip_no_domain": "Z adresu bez domeny, spoza Twojej organizacji",
+    "confirm_title": "Wysłać poza Twoją organizację?",
+    "confirm_message": "{count, plural, one {Ten odbiorca jest} few {Ci # odbiorcy są} many {Tych # odbiorców jest} other {Ci # odbiorcy są}} spoza Twojej organizacji. Wyślij tylko wtedy, gdy tak ma być.",
+    "field_to": "Do",
+    "field_cc": "DW",
+    "field_bcc": "UDW",
+    "send_anyway": "Wyślij mimo to",
+    "back": "Wstecz"
+  },
   "email_composer": {
     "select_from_directory": "Wybierz z katalogu",
     "minimize": "Minimalizuj",
@@ -1046,6 +1100,13 @@
     "rule_folder_failed": "Nie udało się utworzyć folderu",
     "vacation_filters_save_failed": "Ustawienia nieobecności zapisane, ale nie udało się zapisać przekazywania ani odbiorców odpowiedzi"
   },
+  "third_party": {
+    "push_needs_relay": "Powiadomienia push wymagają przekaźnika push prowadzonego przez Twoją organizację, a żaden nie jest skonfigurowany. Nowe wiadomości nadal pojawiają się, gdy aplikacja jest otwarta.",
+    "relay_desc": "Dostępne są tylko własne przekaźniki Twojej organizacji, ponieważ ten serwer nie łączy się z usługami zewnętrznymi.",
+    "relay_none": "Brak skonfigurowanych",
+    "plugin_refused": "Nie uruchomiono: ta wtyczka łączy się z usługami zewnętrznymi, które Twoja organizacja wyłączyła.",
+    "remote_content_blocked": "Twoja organizacja blokuje treści z innych serwerów, dlatego zdalne obrazy w tej wiadomości nie są wyświetlane."
+  },
   "date": {
     "today": "Dzisiaj",
     "yesterday": "Wczoraj",
@@ -1112,6 +1173,7 @@
   },
   "settings": {
     "title": "Ustawienia",
+    "org_locked": "Ustawione przez Twoją organizację",
     "back_to_mail": "Powrót do poczty",
     "back_to_settings": "Wróć do ustawień",
     "save_success": "Ustawienia zostały zapisane",
@@ -3161,6 +3223,23 @@
     "delete_button": "Usuń",
     "delete_confirm_title": "Usuń tożsamość"
   },
+  "org_signature": {
+    "disclaimer_added_on_send": "Dodawane przy wysyłaniu",
+    "identity_signature_label": "Podpis",
+    "identity_no_signature": "Bez podpisu",
+    "identity_default": "Zostaw oba podpisy puste, aby z tego adresu wysyłać podpis Twojej organizacji.",
+    "details": {
+      "title": "Twoje dane",
+      "description": "Podpis Twojej organizacji pokazuje te dane. Wypełnij je raz; korzysta z nich każdy adres, z którego wysyłasz.",
+      "preview": "Twój podpis",
+      "fields": {
+        "title": "Stanowisko",
+        "department": "Dział",
+        "phone": "Telefon",
+        "mobile": "Telefon komórkowy"
+      }
+    }
+  },
   "templates": {
     "picker_title": "Wybierz szablon",
     "manage": "Zarządzaj szablonami",
@@ -3191,6 +3270,26 @@
       "day_of_week": "Dzień tygodnia",
       "sender_name": "Twoje imię"
     }
+  },
+  "org_templates": {
+    "section_personal": "Moje szablony",
+    "section_organisation": "Organizacja",
+    "sources_label": "Listy szablonów",
+    "organisation_note": "Od Twojej organizacji. Nie możesz ich zmieniać, ale możesz skopiować dowolny do własnych szablonów.",
+    "copy_to_personal": "Kopiuj do moich szablonów",
+    "duplicate": "Duplikuj",
+    "save_failed": "Nie udało się zapisać szablonu. Spróbuj ponownie.",
+    "save_failed_forbidden": "Nie możesz zmieniać tych szablonów.",
+    "save_failed_too_large": "Ten szablon przekracza 8 KB, które serwer przechowuje na szablon. Skróć go i zapisz ponownie.",
+    "save_failed_no_room": "W skrzynce nie ma miejsca na więcej szablonów. Usuń jeden i spróbuj ponownie.",
+    "local_only_too_large": "Tylko w tej przeglądarce: przekracza 8 KB, które serwer przechowuje na szablon.",
+    "local_only_no_room": "Tylko w tej przeglądarce: na Twoim koncie nie ma miejsca na więcej szablonów.",
+    "personal_in_account": "Twoje szablony są przechowywane na Twoim koncie, więc masz je na każdym urządzeniu, na którym się logujesz. Może je przeczytać każdy, komu udostępniasz folder Odebrane.",
+    "team_note": "Wszyscy w {name} widzą te szablony i mogą je zmieniać.",
+    "team_read_only": "Możesz używać tych szablonów, ale nie możesz ich zmieniać.",
+    "save_failed_conflict": "Zmienione przez kogoś innego. Odśwież i spróbuj ponownie.",
+    "preview_to": "Do: {list}",
+    "preview_cc": "DW: {list}"
   },
   "contacts": {
     "directory": {
@@ -4577,6 +4676,32 @@
   "unified_mailbox": {
     "search_unavailable": "Wyszukiwanie jest niedostępne w widoku ujednoliconym"
   },
+  "recover_deleted": {
+    "tab": "Odzyskaj usunięte elementy",
+    "title": "Odzyskaj usunięte elementy",
+    "description": "Wiadomości usunięte na stałe, na przykład przez opróżnienie Kosza, które serwer nadal przechowuje. Zaznacz wiadomości i przywróć je.",
+    "range_days": "Wiadomości usunięte {days, plural, one {w ciągu ostatniego dnia} few {w ciągu ostatnich # dni} many {w ciągu ostatnich # dni} other {w ciągu ostatnich # dnia}}.",
+    "range_all": "Wszystkie usunięte wiadomości, które serwer nadal przechowuje.",
+    "loading": "Wczytywanie usuniętych wiadomości…",
+    "load_failed": "Nie udało się wczytać usuniętych wiadomości.",
+    "retry": "Spróbuj ponownie",
+    "empty": "Nie ma usuniętych wiadomości do odzyskania.",
+    "select_all": "Zaznacz wszystko",
+    "selected": "Zaznaczono: {count}",
+    "refresh": "Odśwież",
+    "restore": "Przywróć",
+    "restored": "{count, plural, one {# wiadomość wraca} few {# wiadomości wracają} many {# wiadomości wraca} other {# wiadomości wraca}} do folderu Odebrane.",
+    "restore_partial": "{count, plural, one {Nie udało się przywrócić # wiadomości. Pozostaje zaznaczona, więc możesz spróbować ponownie.} few {Nie udało się przywrócić # wiadomości. Pozostają zaznaczone, więc możesz spróbować ponownie.} many {Nie udało się przywrócić # wiadomości. Pozostają zaznaczone, więc możesz spróbować ponownie.} other {Nie udało się przywrócić # wiadomości. Pozostają zaznaczone, więc możesz spróbować ponownie.}}",
+    "restore_hint": "Przywrócone wiadomości wracają do folderu Odebrane jako nieprzeczytane, posortowane według pierwotnej daty, więc mogą być daleko na liście. Serwer przywraca je w tle. Jeśli tam się to nie uda, wiadomość przepada, a Bulwark nie może tego wykryć.",
+    "unknown_sender": "Nieznany nadawca",
+    "no_subject": "(brak tematu)",
+    "deleted_on": "Usunięto {date}",
+    "trash_hint": "Usunięto na stałe przez pomyłkę?",
+    "trash_link": "Odzyskaj usunięte elementy",
+    "empty_hint": "Usunięte wiadomości pojawiają się tu tylko wtedy, gdy administrator włączył w Stalwart archiwizację usuniętych elementów.",
+    "restore_gone": "{count, plural, one {# wiadomości nie było już w archiwum: została przywrócona gdzie indziej albo serwer przestał ją przechowywać.} few {# wiadomości nie było już w archiwum: zostały przywrócone gdzie indziej albo serwer przestał je przechowywać.} many {# wiadomości nie było już w archiwum: zostały przywrócone gdzie indziej albo serwer przestał je przechowywać.} other {# wiadomości nie było już w archiwum: zostały przywrócone gdzie indziej albo serwer przestał je przechowywać.}}",
+    "show_older": "Pokaż starsze"
+  },
   "calendar_event_notifications": {
     "someone": "Ktoś",
     "invited": "{name} zaprosił(a) Cię na „{title}”",
@@ -4621,6 +4746,89 @@
       "readWrite": "Odczyt i zapis",
       "manager": "Menedżer",
       "custom": "Niestandardowe"
+    }
+  },
+  "delegates": {
+    "tab": "Udostępnianie",
+    "title": "Pełnomocnicy",
+    "description": "Daj komuś dostęp do swojej poczty, kalendarzy i kontaktów w jednym kroku i zobacz, kto ma dostęp do czego.",
+    "give_access": "Daj dostęp",
+    "who_has_access": "Kto ma dostęp",
+    "nobody": "Nikt nie ma dostępu do Twojej poczty, kalendarzy, kontaktów ani plików.",
+    "loading": "Ładowanie…",
+    "read_failed": "Nie udało się odczytać części Twoich udostępnień, dlatego „Zmień” i „Usuń dostęp” czekają, aż będzie to możliwe.",
+    "change": "Zmień",
+    "remove": "Usuń dostęp",
+    "remove_title": "Usunąć dostęp dla {name}?",
+    "remove_message": "{name} traci dostęp do wszystkiego, co udostępniono z Twojego konta: poczty, kalendarzy, kontaktów i plików.",
+    "removed": "Dostęp usunięty",
+    "remove_partial": "Dostęp nadal mają: {items}",
+    "applied": "{name} ma teraz dostęp",
+    "updated": "Dostęp zaktualizowany",
+    "unknown_person": "Nieznana osoba",
+    "group": "Grupa",
+    "has_access": "Ma dostęp",
+    "summary": {
+      "mail_all": "Wszystkie foldery poczty",
+      "mail_inbox": "Odebrane",
+      "mail_some": "{count, plural, one {# folder poczty} few {# foldery poczty} many {# folderów poczty} other {# folderu poczty}}",
+      "calendars": "{count, plural, one {# kalendarz} few {# kalendarze} many {# kalendarzy} other {# kalendarza}}",
+      "address_books": "{count, plural, one {# książka adresowa} few {# książki adresowe} many {# książek adresowych} other {# książki adresowej}}",
+      "files": "{count, plural, one {# plik lub folder} few {# pliki lub foldery} many {# plików lub folderów} other {# pliku lub folderu}}"
+    },
+    "level": {
+      "read": "Odczyt",
+      "write": "Odczyt i zapis",
+      "mixed": "Różne uprawnienia",
+      "none": "Tylko dostępność"
+    },
+    "dialog_title_add": "Daj dostęp",
+    "dialog_title_change": "Zmień dostęp dla {name}",
+    "person": "Osoba",
+    "search_placeholder": "Imię i nazwisko lub adres e-mail",
+    "change_person": "Zmień",
+    "no_match": "Nikogo nie znaleziono.",
+    "use_address": "Użyj {address}",
+    "looking_up": "Wyszukiwanie…",
+    "not_found": "Nikt na tym serwerze nie ma adresu {address}.",
+    "lookup_failed": "Nie udało się wyszukać tego adresu.",
+    "is_you": "To Ty.",
+    "known_only": "Widoczne są tylko Twoje grupy i osoby, które coś Ci udostępniły.",
+    "directory_off_note": "Zanim dodasz nową osobę, administrator musi włączyć zapytania do katalogu w Stalwart.",
+    "directory_failed": "Nie udało się wczytać listy osób i grup.",
+    "what": "Co",
+    "mail": "Poczta",
+    "mail_all": "Wszystkie foldery",
+    "mail_inbox": "Tylko Odebrane",
+    "calendars": "Kalendarze",
+    "calendars_default": "Domyślny kalendarz",
+    "calendars_all": "Wszystkie kalendarze",
+    "address_books": "Kontakty",
+    "address_books_default": "Domyślna książka adresowa",
+    "address_books_all": "Wszystkie książki adresowe",
+    "none": "Nic",
+    "keep": "Zostaw bez zmian",
+    "empty_scope": "Wybierz pocztę, kalendarze lub kontakty.",
+    "nothing_to_change": "Nie ma czego zmieniać. Wybierz, co ta osoba ma otrzymać, albo użyj „Usuń dostęp”.",
+    "change_note": "Foldery, kalendarze i książki adresowe, które pominiesz, tracą dostęp. Udostępnione pliki pozostają bez zmian; „Usuń dostęp” usuwa również je.",
+    "rights": "Uprawnienia",
+    "rights_read": "Odczyt",
+    "rights_read_hint": "Widzi Twoją pocztę, wydarzenia i kontakty.",
+    "rights_read_hint_flags": "Widzi Twoją pocztę, wydarzenia i kontakty. Na tym serwerze może też oznaczać wiadomości flagą i jako przeczytane.",
+    "rights_write": "Odczyt i zapis",
+    "rights_write_hint": "Może też przenosić do folderów, oznaczać i usuwać wiadomości oraz zmieniać wydarzenia i kontakty.",
+    "rights_keep": "Zostaw bez zmian",
+    "rights_keep_hint": "To, co już ma, zachowuje swoje uprawnienia; nowe elementy dostają uprawnienia reszty tego typu albo odczyt.",
+    "send_note": "Pełnomocnicy mogą czytać i porządkować Twoją pocztę i kalendarz. Stalwart nie pozwala im wysyłać jako Ty ani w Twoim imieniu. Jeśli kilka osób ma korzystać z jednego adresu, poproś administratora o udostępnioną skrzynkę.",
+    "apply_add": "Daj dostęp",
+    "apply_change": "Zapisz",
+    "partial_title": "Tych elementów nie udało się zmienić. Reszta jest gotowa.",
+    "retry": "Spróbuj ponownie",
+    "kind": {
+      "mailbox": "Folder poczty",
+      "calendar": "Kalendarz",
+      "addressBook": "Książka adresowa",
+      "file": "Plik"
     }
   },
   "quote_header": {
@@ -4740,7 +4948,7 @@
       },
       "email_write": {
         "title": "Zmiana i porządkowanie poczty",
-        "body": "Dodaje i usuwa etykiety, flagi i inne słowa kluczowe w Twoich wiadomościach, przenosi je między Twoimi folderami i do archiwum oraz zapisuje szkice."
+        "body": "Dodaje i usuwa etykiety, flagi i inne słowa kluczowe w Twoich wiadomościach, przenosi je między Twoimi folderami i do archiwum oraz zapisuje szkice. Może też przechowywać niewielką wartość, którą może odczytać każdy członek skrzynki zespołu."
       },
       "email_send": {
         "title": "Zmiana poczty przed wysłaniem",
@@ -4856,7 +5064,11 @@
       },
       "account_read": {
         "title": "Podgląd kont",
-        "body": "Widzi dodane przez Ciebie konta wraz z ich adresami i serwerami."
+        "body": "Widzi dodane przez Ciebie konta wraz z ich adresami i serwerami oraz to, które konta pocztowe są skrzynkami zespołu."
+      },
+      "directory_read": {
+        "title": "Wyszukiwanie osób",
+        "body": "Wyszukuje osoby w katalogu Twojej organizacji."
       },
       "http_post": {
         "title": "Korzystanie z serwera webmaila w Twoim imieniu",
@@ -5019,6 +5231,10 @@
       "error_server": "Wpisz adres serwera, na przykład https://cloud.example.com",
       "error_save": "Nie udało się zapisać: {error}"
     }
+  },
+  "plugin_list": {
+    "filters": "Filtry",
+    "remove_filter": "Usuń filtr {label}"
   },
   "global_search": {
     "title": "Szukaj wszędzie",

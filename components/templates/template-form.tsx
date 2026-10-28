@@ -26,17 +26,27 @@ interface TemplateFormProps {
   };
   onSave: (data: Omit<EmailTemplate, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onCancel: () => void;
+  /**
+   * A template others use too (a team's): no sending identity, since
+   * identity ids are each member's own, and no favourite.
+   */
+  shared?: boolean;
+  /** A save is under way: the save button waits. */
+  busy?: boolean;
+  /** The templates whose categories the category field suggests; the browser's list when left out. */
+  categorySource?: EmailTemplate[];
   /** Told whenever the form gets or loses changes, so its host can ask before closing (R5). */
   onDirtyChange?: (dirty: boolean) => void;
 }
 
-export function TemplateForm({ template, initialData, onSave, onCancel, onDirtyChange }: TemplateFormProps) {
+export function TemplateForm({ template, initialData, onSave, onCancel, shared = false, busy = false, categorySource, onDirtyChange }: TemplateFormProps) {
   const t = useTranslations('templates');
   const tSettings = useTranslations('settings.templates');
   const tComposer = useTranslations('email_composer');
 
   const { identities } = useAuthStore();
-  const templates = useTemplateStore((s) => s.templates);
+  const browserList = useTemplateStore((s) => s.templates);
+  const templates = categorySource ?? browserList;
 
   const [name, setName] = useState(template?.name || '');
   const [category, setCategory] = useState(template?.category || '');
@@ -98,8 +108,8 @@ export function TemplateForm({ template, initialData, onSave, onCancel, onDirtyC
       defaultRecipients: to.length || cc.length || bcc.length
         ? { to: to.length ? to : undefined, cc: cc.length ? cc : undefined, bcc: bcc.length ? bcc : undefined }
         : undefined,
-      identityId: identityId || undefined,
-      isFavorite,
+      identityId: shared ? undefined : identityId || undefined,
+      isFavorite: shared ? false : isFavorite,
     });
   };
 
@@ -227,7 +237,7 @@ export function TemplateForm({ template, initialData, onSave, onCancel, onDirtyC
         </div>
       </div>
 
-      {identities.length > 1 && (
+      {!shared && identities.length > 1 && (
         <div>
           <label className="text-sm font-medium text-foreground">{tSettings('identity')}</label>
           <select
@@ -246,20 +256,22 @@ export function TemplateForm({ template, initialData, onSave, onCancel, onDirtyC
       )}
 
       <div className="flex items-center justify-between pt-2">
-        <button
-          type="button"
-          onClick={() => setIsFavorite(!isFavorite)}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Star className={cn('w-4 h-4', isFavorite && 'fill-amber-400 text-amber-400')} />
-          {tSettings('favorite')}
-        </button>
+        {shared ? <span /> : (
+          <button
+            type="button"
+            onClick={() => setIsFavorite(!isFavorite)}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Star className={cn('w-4 h-4', isFavorite && 'fill-amber-400 text-amber-400')} />
+            {tSettings('favorite')}
+          </button>
+        )}
 
         <div className="flex gap-2">
           <Button type="button" variant="outline" size="sm" onClick={onCancel}>
             {tSettings('cancel')}
           </Button>
-          <Button type="submit" size="sm">
+          <Button type="submit" size="sm" disabled={busy}>
             {template ? tSettings('update') : tSettings('create')}
           </Button>
         </div>

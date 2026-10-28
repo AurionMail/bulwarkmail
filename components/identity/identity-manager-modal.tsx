@@ -29,6 +29,7 @@ import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import { useDiscardChanges } from '@/components/settings/use-discard-changes';
 import { toUnicodeEmail } from '@/lib/idn';
 import { sortIdentities } from '@/lib/identity-order';
+import { useRestriction } from '@/hooks/use-restriction';
 
 interface IdentityFormData {
   name: string;
@@ -47,7 +48,9 @@ interface IdentityManagerModalProps {
 export function IdentityManagerModal({ isOpen, onClose }: IdentityManagerModalProps) {
   const t = useTranslations('identities');
   const tNotif = useTranslations('notifications');
-  const tCommon = useTranslations('common');
+  // A locked or hidden signature: the identity's own isn't what it sends with.
+  const signatureRestriction = useRestriction('signature');
+  const showOwnSignature = !signatureRestriction.locked && !signatureRestriction.hidden;
 
   const client = useAuthStore((state) => state.client);
   const identities = useIdentityStore((state) => state.identities);
@@ -296,7 +299,7 @@ export function IdentityManagerModal({ isOpen, onClose }: IdentityManagerModalPr
                               {t('display.bcc')} {identity.bcc.map((a) => toUnicodeEmail(a.email)).join(', ')}
                             </p>
                           )}
-                          {identity.textSignature && (
+                          {showOwnSignature && identity.textSignature && (
                             <p className="line-clamp-2">
                               {t('display.signature')} {identity.textSignature}
                             </p>
@@ -316,7 +319,7 @@ export function IdentityManagerModal({ isOpen, onClose }: IdentityManagerModalPr
                           </IconButton>
                         )}
                         <IconButton
-                          label={tCommon('edit')}
+                          label={t('edit_identity')}
                           onClick={() => setEditingId(identity.id)}
                           disabled={!!editingId || isCreating}
                         >

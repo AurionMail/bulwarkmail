@@ -88,6 +88,20 @@
       "back_to_login": "返回登入頁面"
     }
   },
+  "session_limits": {
+    "idle_title": "您還在嗎？",
+    "idle_message": "由於沒有任何活動，您將在 {seconds, plural, other {# 秒}}後登出。開啟中的郵件會儲存為草稿。",
+    "stay": "保持登入",
+    "sign_out_now": "立即登出",
+    "max_title": "您的工作階段即將結束",
+    "max_message": "您的組織會在登入 {hours, plural, other {# 小時}}後結束工作階段。您將在 {seconds, plural, other {# 秒}}後登出。開啟中的郵件會儲存為草稿。",
+    "dismiss": "確定",
+    "signing_out": "正在儲存草稿並登出…",
+    "reason_idle": "由於 {minutes, plural, other {# 分鐘}}內沒有活動，您已登出。",
+    "reason_max": "由於工作階段已達 {hours, plural, other {# 小時}}的最長時限，您已登出。",
+    "drafts_not_saved": "有一封或多封開啟中的郵件無法儲存為草稿。",
+    "seconds_left": "剩下 {seconds, plural, other {# 秒}}"
+  },
   "totp_reauth": {
     "title": "工作階段已過期",
     "description": "您的雙重驗證碼已變更。請輸入驗證器應用程式中的新驗證碼以繼續。",
@@ -348,6 +362,34 @@
     "reschedule_send": "重新排程",
     "cancel_and_edit": "取消並編輯",
     "cancel_and_compose_again": "取消並重新撰寫"
+  },
+  "shared_tags": {
+    "title": "共用標籤",
+    "description": "您的群組信箱標籤。群組中的每個人在其郵件上看到的名稱和顏色都相同。",
+    "picker_heading": "與此信箱中的所有人共用",
+    "sidebar_heading": "標籤",
+    "edit": "編輯共用標籤",
+    "edit_tag": "編輯 {name}",
+    "delete_tag": "刪除 {name}",
+    "name_it": "為 {name} 命名",
+    "add": "新增共用標籤",
+    "name": "名稱",
+    "color": "顏色",
+    "save": "儲存",
+    "cancel": "取消",
+    "delete": "刪除",
+    "delete_confirm": "要為所有人刪除嗎？標籤仍會保留在其郵件上。",
+    "found_on_messages": "已在郵件上，尚未命名",
+    "empty": "還沒有共用標籤。",
+    "exists": "此信箱已有這個標籤。",
+    "too_long": "名稱太長。",
+    "loading": "載入中…",
+    "unsupported": "此郵件伺服器無法保存共用標籤，因此此信箱顯示的是您自己的標籤。",
+    "unavailable": "無法載入此信箱的共用標籤，因此顯示的是您自己的標籤。Bulwark 稍後會再試一次。",
+    "no_rights": "您可以使用這些標籤，但無法在此信箱中變更。",
+    "too_many": "共用標籤太多。請先刪除一些再新增。",
+    "save_failed": "無法儲存共用標籤。伺服器回應後 Bulwark 會再試一次。",
+    "save_pending": "尚未儲存。伺服器回應後 Bulwark 會再試一次。"
   },
   "email_viewer": {
     "read_receipt": {
@@ -712,6 +754,18 @@
       "load_failed": "無法載入資料夾。請再試一次。"
     }
   },
+  "external_mail": {
+    "sender_label": "外部",
+    "sender_tooltip": "來自 {domain}，位於您的組織之外",
+    "sender_tooltip_no_domain": "來自沒有網域的地址，位於您的組織之外",
+    "confirm_title": "要傳送到組織外部嗎？",
+    "confirm_message": "{count, plural, other {這 # 位收件者}}位於您的組織之外。請僅在確定要這麼做時傳送。",
+    "field_to": "收件者",
+    "field_cc": "副本",
+    "field_bcc": "密件副本",
+    "send_anyway": "仍然傳送",
+    "back": "返回"
+  },
   "email_composer": {
     "select_from_directory": "從目錄中選取",
     "minimize": "最小化",
@@ -1046,6 +1100,13 @@
     "rule_folder_failed": "無法建立資料夾",
     "vacation_filters_save_failed": "外出設定已儲存，但轉寄和回覆對象設定未能儲存"
   },
+  "third_party": {
+    "push_needs_relay": "推送通知需要由您的組織執行的推送中繼，但尚未設定。應用程式開啟時，新郵件仍會顯示。",
+    "relay_desc": "由於此伺服器不會連線至外部服務，因此只提供您組織自己的中繼。",
+    "relay_none": "未設定",
+    "plugin_refused": "未啟動：此外掛程式會連線至外部服務，而您的組織已將其關閉。",
+    "remote_content_blocked": "您的組織會封鎖來自其他伺服器的內容，因此此郵件中的遠端圖片不會顯示。"
+  },
   "date": {
     "today": "今天",
     "yesterday": "昨天",
@@ -1112,6 +1173,7 @@
   },
   "settings": {
     "title": "設定",
+    "org_locked": "由您的組織設定",
     "back_to_mail": "回到郵件",
     "back_to_settings": "返回設定",
     "save_success": "設定已成功儲存",
@@ -3161,6 +3223,23 @@
     "delete_button": "刪除",
     "delete_confirm_title": "刪除寄件身分"
   },
+  "org_signature": {
+    "disclaimer_added_on_send": "傳送時加入",
+    "identity_signature_label": "簽名",
+    "identity_no_signature": "無簽名",
+    "identity_default": "將兩個簽名都留白，即可從此地址傳送您組織的簽名。",
+    "details": {
+      "title": "您的資料",
+      "description": "您組織的簽名會顯示這些資料。只需填寫一次，您用來傳送的每個地址都會使用它們。",
+      "preview": "您的簽名",
+      "fields": {
+        "title": "職稱",
+        "department": "部門",
+        "phone": "電話",
+        "mobile": "行動電話"
+      }
+    }
+  },
   "templates": {
     "picker_title": "選擇範本",
     "manage": "管理範本",
@@ -3191,6 +3270,26 @@
       "day_of_week": "星期幾",
       "sender_name": "您的姓名"
     }
+  },
+  "org_templates": {
+    "section_personal": "我的範本",
+    "section_organisation": "組織",
+    "sources_label": "範本清單",
+    "organisation_note": "來自您的組織。您無法變更這些範本，但可以將其複製到您自己的範本中。",
+    "copy_to_personal": "複製到我的範本",
+    "duplicate": "建立副本",
+    "save_failed": "無法儲存範本。請再試一次。",
+    "save_failed_forbidden": "您無法變更這些範本。",
+    "save_failed_too_large": "此範本超過伺服器為每個範本保存的 8 KB 上限。請縮短後再儲存一次。",
+    "save_failed_no_room": "信箱中沒有空間保存更多範本。請刪除一個後再試一次。",
+    "local_only_too_large": "僅在此瀏覽器中：超過伺服器為每個範本保存的 8 KB 上限。",
+    "local_only_no_room": "僅在此瀏覽器中：您的帳號沒有空間保存更多範本。",
+    "personal_in_account": "您的範本保存在您的帳號中，因此您登入的每部裝置上都能使用。與您共用收件匣的任何人都可以閱讀這些範本。",
+    "team_note": "{name} 中的所有人都能看到並變更這些範本。",
+    "team_read_only": "您可以使用這些範本，但無法變更。",
+    "save_failed_conflict": "已被其他人變更。請重新載入後再試一次。",
+    "preview_to": "收件者：{list}",
+    "preview_cc": "副本：{list}"
   },
   "contacts": {
     "directory": {
@@ -4228,6 +4327,89 @@
       "custom": "自訂"
     }
   },
+  "delegates": {
+    "tab": "共用",
+    "title": "代理人",
+    "description": "一次為他人授予您郵件、行事曆和聯絡人的存取權，並查看誰可以存取哪些內容。",
+    "give_access": "授予存取權",
+    "who_has_access": "誰有存取權",
+    "nobody": "沒有人可以存取您的郵件、行事曆、聯絡人或檔案。",
+    "loading": "載入中…",
+    "read_failed": "無法讀取您的部分共用設定，因此「變更」和「移除存取權」需等到可以讀取時才能使用。",
+    "change": "變更",
+    "remove": "移除存取權",
+    "remove_title": "要移除 {name} 的存取權嗎？",
+    "remove_message": "{name} 將無法再存取您從自己帳號共用的所有內容：郵件、行事曆、聯絡人和檔案。",
+    "removed": "已移除存取權",
+    "remove_partial": "以下項目仍有存取權：{items}",
+    "applied": "{name} 現在有存取權了",
+    "updated": "已更新存取權",
+    "unknown_person": "未知的人員",
+    "group": "群組",
+    "has_access": "有存取權",
+    "summary": {
+      "mail_all": "所有郵件信件匣",
+      "mail_inbox": "收件匣",
+      "mail_some": "{count, plural, other {# 個郵件信件匣}}",
+      "calendars": "{count, plural, other {# 個行事曆}}",
+      "address_books": "{count, plural, other {# 個通訊錄}}",
+      "files": "{count, plural, other {# 個檔案或資料夾}}"
+    },
+    "level": {
+      "read": "讀取",
+      "write": "讀取與寫入",
+      "mixed": "權限不同",
+      "none": "僅限空閒／忙碌"
+    },
+    "dialog_title_add": "授予存取權",
+    "dialog_title_change": "變更 {name} 的存取權",
+    "person": "人員",
+    "search_placeholder": "姓名或電子郵件地址",
+    "change_person": "變更",
+    "no_match": "找不到任何人。",
+    "use_address": "使用 {address}",
+    "looking_up": "正在查詢…",
+    "not_found": "此伺服器上沒有人使用地址 {address}。",
+    "lookup_failed": "無法查詢此地址。",
+    "is_you": "這是您自己。",
+    "known_only": "只會列出您所屬的群組，以及曾與您共用內容的人員。",
+    "directory_off_note": "您的管理員必須先在 Stalwart 中啟用目錄查詢，您才能新增其他人員。",
+    "directory_failed": "無法載入人員和群組清單。",
+    "what": "內容",
+    "mail": "郵件",
+    "mail_all": "所有信件匣",
+    "mail_inbox": "僅收件匣",
+    "calendars": "行事曆",
+    "calendars_default": "預設行事曆",
+    "calendars_all": "所有行事曆",
+    "address_books": "聯絡人",
+    "address_books_default": "預設通訊錄",
+    "address_books_all": "所有通訊錄",
+    "none": "無",
+    "keep": "保持不變",
+    "empty_scope": "請選擇郵件、行事曆或聯絡人。",
+    "nothing_to_change": "沒有需要變更的內容。請選擇對方應取得的內容，或使用「移除存取權」。",
+    "change_note": "您未選擇的信件匣、行事曆和通訊錄將失去存取權。共用的檔案維持不變；「移除存取權」會將它們一併移除。",
+    "rights": "權限",
+    "rights_read": "讀取",
+    "rights_read_hint": "查看您的郵件、活動和聯絡人。",
+    "rights_read_hint_flags": "查看您的郵件、活動和聯絡人。此伺服器也允許對方為郵件加上旗標並標示為已讀。",
+    "rights_write": "讀取與寫入",
+    "rights_write_hint": "還可以歸檔、標記和刪除郵件，以及變更活動和聯絡人。",
+    "rights_keep": "保持不變",
+    "rights_keep_hint": "既有的內容保留其權限；新增的內容取得同類其他內容的權限，若沒有則為讀取。",
+    "send_note": "代理人可以閱讀並整理您的郵件和行事曆。Stalwart 不允許他們以您的身分或代表您傳送郵件。如需多人共用一個地址，請向管理員申請共用信箱。",
+    "apply_add": "授予存取權",
+    "apply_change": "儲存",
+    "partial_title": "以下項目無法變更。其餘已完成。",
+    "retry": "重試",
+    "kind": {
+      "mailbox": "郵件信件匣",
+      "calendar": "行事曆",
+      "addressBook": "通訊錄",
+      "file": "檔案"
+    }
+  },
   "advanced_search": {
     "title": "進階搜尋",
     "from": "寄件者",
@@ -4623,6 +4805,32 @@
   "unified_mailbox": {
     "search_unavailable": "整合檢視中無法使用搜尋"
   },
+  "recover_deleted": {
+    "tab": "復原已刪除的項目",
+    "title": "復原已刪除的項目",
+    "description": "您已永久刪除（例如清空垃圾桶）但伺服器仍保留的郵件。選取郵件即可還原。",
+    "range_days": "顯示{days, plural, other {過去 # 天}}內刪除的郵件。",
+    "range_all": "顯示伺服器仍保留的所有已刪除郵件。",
+    "loading": "正在載入已刪除的郵件…",
+    "load_failed": "無法載入已刪除的郵件。",
+    "retry": "重試",
+    "empty": "沒有可復原的已刪除郵件。",
+    "select_all": "全部選取",
+    "selected": "已選取 {count} 個",
+    "refresh": "重新整理",
+    "restore": "還原",
+    "restored": "{count, plural, other {# 封郵件}}正在回到您的收件匣。",
+    "restore_partial": "{count, plural, other {# 封郵件無法還原。它們仍保持選取，您可以再試一次。}}",
+    "restore_hint": "還原的郵件會以未讀狀態回到收件匣，並依原始日期排序，因此可能位於清單很下方。伺服器會在背景中進行還原。如果伺服器端還原失敗，郵件將會遺失，而 Bulwark 無法得知。",
+    "unknown_sender": "未知寄件者",
+    "no_subject": "（無主旨）",
+    "deleted_on": "刪除於 {date}",
+    "trash_hint": "不小心永久刪除了嗎？",
+    "trash_link": "復原已刪除的項目",
+    "empty_hint": "只有當您的管理員在 Stalwart 中啟用已刪除項目的封存後，已刪除的郵件才會顯示在這裡。",
+    "restore_gone": "{count, plural, other {# 封郵件已不在封存中：它們已在其他地方還原，或伺服器已不再保留。}}",
+    "show_older": "顯示較舊的郵件"
+  },
   "quote_header": {
     "reply_line": "在 {date}，{from} 寫道：",
     "forwarded_separator": "---------- 轉寄郵件 ----------",
@@ -4740,7 +4948,7 @@
       },
       "email_write": {
         "title": "變更和整理您的郵件",
-        "body": "為您的郵件新增或移除標籤、旗標和其他關鍵字，在您的信件匣之間移動郵件或將其移至封存，並儲存草稿。"
+        "body": "為您的郵件新增或移除標籤、旗標和其他關鍵字，在您的信件匣之間移動郵件或將其移至封存，並儲存草稿。它也可以儲存一小段資料，讓團隊信箱的每位成員都能讀取。"
       },
       "email_send": {
         "title": "在傳送前變更郵件",
@@ -4856,7 +5064,11 @@
       },
       "account_read": {
         "title": "查看您的帳號",
-        "body": "查看您新增的帳號及其地址和伺服器。"
+        "body": "查看您新增的帳號及其地址和伺服器，以及哪些郵件帳號是團隊信箱。"
+      },
+      "directory_read": {
+        "title": "查詢人員",
+        "body": "在您組織的目錄中查詢人員。"
       },
       "http_post": {
         "title": "代表您使用網頁郵件伺服器",
@@ -5019,6 +5231,10 @@
       "error_server": "請輸入伺服器位址，例如 https://cloud.example.com",
       "error_save": "無法儲存：{error}"
     }
+  },
+  "plugin_list": {
+    "filters": "篩選",
+    "remove_filter": "移除篩選條件 {label}"
   },
   "global_search": {
     "title": "全域搜尋",

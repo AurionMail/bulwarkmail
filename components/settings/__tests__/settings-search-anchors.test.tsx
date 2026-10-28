@@ -11,6 +11,16 @@ import en from '@/locales/en/common.json';
 
 vi.unmock('next-intl');
 vi.mock('@/components/plugins/plugin-iframe-slot', () => ({ PluginIframeSlot: () => null }));
+// Recover deleted items asks the server first; here it has the feature.
+vi.mock('@/hooks/use-deleted-items-recovery', async () => {
+  const { useAuthStore } = await import('@/stores/auth-store');
+  return {
+    useDeletedItemsRecovery: () => {
+      const client = useAuthStore((s) => s.client);
+      return { available: true, off: false, pending: false, client, key: 'acc' };
+    },
+  };
+});
 
 const { useSettingsStore } = await import('@/stores/settings-store');
 const { useAuthStore } = await import('@/stores/auth-store');
@@ -36,6 +46,8 @@ const pages = {
   filters: (await import('../filter-settings')).FilterSettings,
   organize: (await import('../organize-settings')).OrganizeSettings,
   security: (await import('../account-security-settings')).AccountSecuritySettings,
+  sharing: (await import('../delegates/delegates-settings')).DelegatesSettings,
+  recovery: (await import('../recover-deleted-settings')).RecoverDeletedSettings,
   calendar: (await import('../calendar-settings')).CalendarSettings,
   calendar2: (await import('../calendar-management-settings')).CalendarManagementSettings,
   contacts: (await import('../contacts-settings')).ContactsSettings,
@@ -49,6 +61,9 @@ const OVERRIDES: Record<string, () => unknown> = {
   getAccountId: () => 'acc', getSieveAccountId: () => 'acc', getUsername: () => 'user@example.com',
   getSharedAccounts: () => [], getSieveAccounts: () => [], getSieveCapabilities: () => null,
   hasAccountCapability: () => false, supportsCalendars: () => true, supportsFiles: () => true, hasDelayedSend: () => true,
+  // Sharing and Recover deleted items read these on open.
+  getShareTargets: async () => ({ targets: [], failed: [] }), listPrincipals: async () => ({ principals: [], status: 'ok' }),
+  getPrincipals: async () => [], listArchivedEmails: async () => ({ items: [], nextPosition: null }),
 };
 const CLIENT = new Proxy({}, {
   get: (_t, prop) => (prop === 'then' ? undefined : (OVERRIDES[String(prop)] ?? (() => null))),
@@ -58,7 +73,7 @@ const CLIENT = new Proxy({}, {
 const TAB_PAGES: Record<string, string[]> = {
   account: ['account'], general: ['general'], notifications: ['notifications'], appearance: ['appearance'],
   message_list: ['message_list'], reading: ['reading'], composing: ['composing'], vacation: ['vacation'],
-  filters: ['filters'], organize: ['organize'], security: ['security'], calendar: ['calendar', 'calendar2'],
+  filters: ['filters'], organize: ['organize'], security: ['security'], sharing: ['sharing'], recovery: ['recovery'], calendar: ['calendar', 'calendar2'],
   contacts: ['contacts', 'contacts2'], files: ['files'], addons: ['addons'], backup: ['backup'],
 };
 

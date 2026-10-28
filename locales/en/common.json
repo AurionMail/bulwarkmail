@@ -88,6 +88,20 @@
       "back_to_login": "Back to login"
     }
   },
+  "session_limits": {
+    "idle_title": "Are you still there?",
+    "idle_message": "You'll be signed out in {seconds, plural, one {# second} other {# seconds}} because there was no activity. Open messages are saved as drafts.",
+    "stay": "Stay signed in",
+    "sign_out_now": "Sign out now",
+    "max_title": "Your session is ending",
+    "max_message": "Your organisation ends sessions {hours, plural, one {# hour} other {# hours}} after sign-in. You'll be signed out in {seconds, plural, one {# second} other {# seconds}}. Open messages are saved as drafts.",
+    "dismiss": "OK",
+    "signing_out": "Saving drafts and signing out…",
+    "reason_idle": "You were signed out after {minutes, plural, one {# minute} other {# minutes}} without activity.",
+    "reason_max": "You were signed out because your session reached its maximum length of {hours, plural, one {# hour} other {# hours}}.",
+    "drafts_not_saved": "One or more open messages could not be saved as drafts.",
+    "seconds_left": "{seconds, plural, one {# second} other {# seconds}} left"
+  },
   "totp_reauth": {
     "title": "Session expired",
     "description": "Your two-factor code has changed. Enter a new code from your authenticator app to continue.",
@@ -348,6 +362,34 @@
     "reschedule_send": "Reschedule",
     "cancel_and_edit": "Cancel and edit",
     "cancel_and_compose_again": "Cancel and compose again"
+  },
+  "shared_tags": {
+    "title": "Shared tags",
+    "description": "Tags of your group mailboxes. Everyone in the group sees the same names and colors on its mail.",
+    "picker_heading": "Shared with everyone in this mailbox",
+    "sidebar_heading": "Tags",
+    "edit": "Edit shared tags",
+    "edit_tag": "Edit {name}",
+    "delete_tag": "Delete {name}",
+    "name_it": "Name {name}",
+    "add": "Add shared tag",
+    "name": "Name",
+    "color": "Color",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "delete_confirm": "Delete for everyone? The tag stays on its messages.",
+    "found_on_messages": "On messages, no name yet",
+    "empty": "No shared tags yet.",
+    "exists": "This mailbox already has this tag.",
+    "too_long": "This name is too long.",
+    "loading": "Loading…",
+    "unsupported": "This mail server can't keep shared tags, so this mailbox shows your own tags.",
+    "unavailable": "Couldn't load the shared tags of this mailbox, so it shows your own tags. Bulwark tries again later.",
+    "no_rights": "You can use these tags, but you can't change them in this mailbox.",
+    "too_many": "There are too many shared tags. Delete some before adding more.",
+    "save_failed": "Couldn't save the shared tags. Bulwark tries again when the server answers.",
+    "save_pending": "Not saved yet. Bulwark tries again when the server answers."
   },
   "email_viewer": {
     "read_receipt": {
@@ -712,6 +754,18 @@
     "plugin_panel_show": "Show plugin panel",
     "plugin_panel_hide": "Hide plugin panel"
   },
+  "external_mail": {
+    "sender_label": "External",
+    "sender_tooltip": "From {domain}, outside your organisation",
+    "sender_tooltip_no_domain": "From an address without a domain, outside your organisation",
+    "confirm_title": "Send outside your organisation?",
+    "confirm_message": "{count, plural, one {This recipient is} other {These # recipients are}} outside your organisation. Send only if you mean to.",
+    "field_to": "To",
+    "field_cc": "Cc",
+    "field_bcc": "Bcc",
+    "send_anyway": "Send anyway",
+    "back": "Back"
+  },
   "email_composer": {
     "select_from_directory": "Select from directory",
     "minimize": "Minimize",
@@ -1046,6 +1100,13 @@
     "rule_folder_failed": "Could not create the folder",
     "vacation_filters_save_failed": "Out of office settings saved, but the forwarding and reply recipients could not be saved"
   },
+  "third_party": {
+    "push_needs_relay": "Push notifications need a push relay run by your organisation, and none is set up. New mail still shows while the app is open.",
+    "relay_desc": "Only your organisation's own relays are offered, because this server doesn't contact outside services.",
+    "relay_none": "None set up",
+    "plugin_refused": "Not started: this plugin connects to outside services, which your organisation has turned off.",
+    "remote_content_blocked": "Your organisation blocks content from other servers, so remote pictures in this message aren't shown."
+  },
   "date": {
     "today": "Today",
     "yesterday": "Yesterday",
@@ -1112,6 +1173,7 @@
   },
   "settings": {
     "title": "Settings",
+    "org_locked": "Set by your organisation",
     "back_to_mail": "Back to mail",
     "back_to_settings": "Back to settings",
     "save_success": "Settings saved successfully",
@@ -3161,6 +3223,23 @@
     "delete_button": "Delete",
     "delete_confirm_title": "Delete identity?"
   },
+  "org_signature": {
+    "disclaimer_added_on_send": "Added when you send",
+    "identity_signature_label": "Signature",
+    "identity_no_signature": "No signature",
+    "identity_default": "Leave both signatures empty to send your organisation's signature from this address.",
+    "details": {
+      "title": "Your details",
+      "description": "Your organisation's signature shows these. Fill them in once; every address you send from uses them.",
+      "preview": "Your signature",
+      "fields": {
+        "title": "Job title",
+        "department": "Department",
+        "phone": "Phone",
+        "mobile": "Mobile"
+      }
+    }
+  },
   "templates": {
     "picker_title": "Choose a template",
     "manage": "Manage templates",
@@ -3191,6 +3270,26 @@
       "day_of_week": "Day of the week",
       "sender_name": "Your name"
     }
+  },
+  "org_templates": {
+    "section_personal": "My templates",
+    "section_organisation": "Organisation",
+    "sources_label": "Template lists",
+    "organisation_note": "From your organisation. You can't change these, but you can copy one into your own templates.",
+    "copy_to_personal": "Copy to my templates",
+    "duplicate": "Duplicate",
+    "save_failed": "The template could not be saved. Try again.",
+    "save_failed_forbidden": "You can't change these templates.",
+    "save_failed_too_large": "This template is larger than the 8 KB the server keeps per template. Shorten it and save again.",
+    "save_failed_no_room": "The mailbox has no room for more templates. Delete one and try again.",
+    "local_only_too_large": "Only in this browser: larger than the 8 KB the server keeps per template.",
+    "local_only_no_room": "Only in this browser: your account has no room for more templates.",
+    "personal_in_account": "Your templates are kept in your account, so you have them on every device you sign in on. Anyone you share your Inbox with can read them.",
+    "team_note": "Everyone in {name} sees these templates and can change them.",
+    "team_read_only": "You can use these templates but not change them.",
+    "save_failed_conflict": "Changed by someone else. Reload and try again.",
+    "preview_to": "To: {list}",
+    "preview_cc": "Cc: {list}"
   },
   "contacts": {
     "directory": {
@@ -4228,6 +4327,89 @@
       "custom": "Custom"
     }
   },
+  "delegates": {
+    "tab": "Sharing",
+    "title": "Delegates",
+    "description": "Give someone access to your mail, calendars and contacts in one step, and see who has access to what.",
+    "give_access": "Give access",
+    "who_has_access": "Who has access",
+    "nobody": "Nobody has access to your mail, calendars, contacts or files.",
+    "loading": "Loading…",
+    "read_failed": "Some of your sharing couldn't be read, so Change and Remove access wait until it can.",
+    "change": "Change",
+    "remove": "Remove access",
+    "remove_title": "Remove access for {name}?",
+    "remove_message": "{name} loses access to everything you shared from your own account: mail, calendars, contacts and files.",
+    "removed": "Access removed",
+    "remove_partial": "These still have access: {items}",
+    "applied": "{name} now has access",
+    "updated": "Access updated",
+    "unknown_person": "Unknown person",
+    "group": "Group",
+    "has_access": "Has access",
+    "summary": {
+      "mail_all": "All mail folders",
+      "mail_inbox": "Inbox",
+      "mail_some": "{count, plural, one {# mail folder} other {# mail folders}}",
+      "calendars": "{count, plural, one {# calendar} other {# calendars}}",
+      "address_books": "{count, plural, one {# address book} other {# address books}}",
+      "files": "{count, plural, one {# file or folder} other {# files or folders}}"
+    },
+    "level": {
+      "read": "Read",
+      "write": "Read and write",
+      "mixed": "Different rights",
+      "none": "Free/busy only"
+    },
+    "dialog_title_add": "Give access",
+    "dialog_title_change": "Change access for {name}",
+    "person": "Person",
+    "search_placeholder": "Name or email address",
+    "change_person": "Change",
+    "no_match": "Nobody found.",
+    "use_address": "Use {address}",
+    "looking_up": "Looking up…",
+    "not_found": "Nobody on this server has the address {address}.",
+    "lookup_failed": "Couldn't look up this address.",
+    "is_you": "That's you.",
+    "known_only": "Only your groups and people who have shared something with you are listed.",
+    "directory_off_note": "Your administrator has to turn on directory lookups in Stalwart before you can add someone new.",
+    "directory_failed": "Couldn't load the list of people and groups.",
+    "what": "What",
+    "mail": "Mail",
+    "mail_all": "All folders",
+    "mail_inbox": "Inbox only",
+    "calendars": "Calendars",
+    "calendars_default": "Default calendar",
+    "calendars_all": "All calendars",
+    "address_books": "Contacts",
+    "address_books_default": "Default address book",
+    "address_books_all": "All address books",
+    "none": "None",
+    "keep": "Keep as it is",
+    "empty_scope": "Choose mail, calendars or contacts.",
+    "nothing_to_change": "Nothing to change. Pick what they should get, or use Remove access.",
+    "change_note": "Folders, calendars and address books you leave out lose access. Shared files stay as they are; Remove access takes those away too.",
+    "rights": "Rights",
+    "rights_read": "Read",
+    "rights_read_hint": "See your mail, events and contacts.",
+    "rights_read_hint_flags": "See your mail, events and contacts. This server also lets them flag mail and mark it as read.",
+    "rights_write": "Read and write",
+    "rights_write_hint": "Also file, flag and delete mail, and change events and contacts.",
+    "rights_keep": "Keep as it is",
+    "rights_keep_hint": "What they have keeps its rights; anything added gets the rights the rest of that type has, or read.",
+    "send_note": "Delegates can read and organise your mail and calendar. Stalwart doesn't let them send as you or on your behalf. To share one address between several people, ask your administrator for a shared mailbox.",
+    "apply_add": "Give access",
+    "apply_change": "Save",
+    "partial_title": "These couldn't be changed. The rest is done.",
+    "retry": "Try again",
+    "kind": {
+      "mailbox": "Mail folder",
+      "calendar": "Calendar",
+      "addressBook": "Address book",
+      "file": "File"
+    }
+  },
   "advanced_search": {
     "title": "Advanced Search",
     "from": "From",
@@ -4623,6 +4805,32 @@
   "unified_mailbox": {
     "search_unavailable": "Search is not available in the unified view"
   },
+  "recover_deleted": {
+    "tab": "Recover deleted items",
+    "title": "Recover deleted items",
+    "description": "Mail you deleted for good, for example by emptying Trash, that the server still keeps. Select messages and restore them.",
+    "range_days": "Showing mail deleted in the last {days, plural, one {day} other {# days}}.",
+    "range_all": "Showing all deleted mail the server still keeps.",
+    "loading": "Loading deleted mail…",
+    "load_failed": "Deleted mail couldn't be loaded.",
+    "retry": "Try again",
+    "empty": "There is no deleted mail to recover.",
+    "select_all": "Select all",
+    "selected": "{count} selected",
+    "refresh": "Refresh",
+    "restore": "Restore",
+    "restored": "{count, plural, one {# message is} other {# messages are}} on the way back to your Inbox.",
+    "restore_partial": "{count, plural, one {# message couldn't be restored. It stays selected, so you can try again.} other {# messages couldn't be restored. They stay selected, so you can try again.}}",
+    "restore_hint": "Restored mail goes back to your Inbox as unread, sorted by its original date, so it may be far down the list. The server restores it in the background. If that fails there, the message is lost and Bulwark can't tell.",
+    "unknown_sender": "Unknown sender",
+    "no_subject": "(no subject)",
+    "deleted_on": "Deleted {date}",
+    "trash_hint": "Deleted for good by mistake?",
+    "trash_link": "Recover deleted items",
+    "empty_hint": "Deleted mail only shows up here if your administrator turned on archiving of deleted items in Stalwart.",
+    "restore_gone": "{count, plural, one {# message was no longer in the archive: it was restored elsewhere or the server stopped keeping it.} other {# messages were no longer in the archive: they were restored elsewhere or the server stopped keeping them.}}",
+    "show_older": "Show older"
+  },
   "quote_header": {
     "reply_line": "On {date}, {from} wrote:",
     "forwarded_separator": "---------- Forwarded message ----------",
@@ -4740,7 +4948,7 @@
       },
       "email_write": {
         "title": "Change and organise your email",
-        "body": "Add or remove tags, flags and other keywords on your messages, move them between your folders and to the archive, and save drafts."
+        "body": "Add or remove tags, flags and other keywords on your messages, move them between your folders and to the archive, and save drafts. It can also store a small value that every member of a team mailbox can read."
       },
       "email_send": {
         "title": "Change mail before it is sent",
@@ -4856,7 +5064,11 @@
       },
       "account_read": {
         "title": "See your accounts",
-        "body": "See the accounts you added, with their addresses and servers."
+        "body": "See the accounts you added with their addresses and servers, and which mail accounts are team mailboxes."
+      },
+      "directory_read": {
+        "title": "Look up people",
+        "body": "Look up people in your organisation's directory."
       },
       "http_post": {
         "title": "Use the webmail server for you",
@@ -5019,6 +5231,10 @@
       "error_server": "Enter the server's address, for example https://cloud.example.com",
       "error_save": "Could not save: {error}"
     }
+  },
+  "plugin_list": {
+    "filters": "Filters",
+    "remove_filter": "Remove filter {label}"
   },
   "global_search": {
     "title": "Search everything",

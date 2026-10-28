@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 
 interface TelemetryStatus {
   consent: 'pending' | 'on' | 'off';
-  consentSource: 'env' | 'file';
+  consentSource: 'no-third-party' | 'env' | 'file';
   endpoint: string;
   defaultEndpoint: string;
   consentedAt: string | null;
@@ -141,7 +141,8 @@ export function TelemetryPage() {
     );
   }
 
-  const envOverridden = status.consentSource === 'env';
+  const noThirdParty = status.consentSource === 'no-third-party';
+  const envOverridden = status.consentSource === 'env' || noThirdParty;
   const isOn = status.consent === 'on';
   const shownOn = (consentDraft ?? status.consent) === 'on';
 
@@ -149,7 +150,8 @@ export function TelemetryPage() {
     status.consent === 'pending' && 'Initialising - no heartbeats sent yet.',
     status.consent === 'on' && 'Heartbeats are enabled. Thanks for helping us improve!',
     status.consent === 'off' && 'Heartbeats are off (default).',
-    envOverridden && 'Locked by the BULWARK_TELEMETRY env var.',
+    noThirdParty && 'Locked off: no third-party traffic is on (Organisation > Security).',
+    envOverridden && !noThirdParty && 'Locked by the BULWARK_TELEMETRY env var.',
   ].filter(Boolean).join(' ');
 
   return (

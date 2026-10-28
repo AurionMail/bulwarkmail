@@ -43,11 +43,14 @@ import { getOwnAddresses } from "@/lib/filters/quick-rule-target";
 import { emitThreadExpand } from "@/lib/plugin-thread-expand";
 import { normalizeAddress } from "@/lib/filters/quick-rules";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
-import { PluginActions } from "@/components/plugins/plugin-actions";
+import { PluginListFilters } from "./plugin-list-filters";
+import { PluginActions, useFolderAccountKind } from "@/components/plugins/plugin-actions";
 import { useUnreadFirstSection } from "@/hooks/use-unread-first-section";
 import { unreadSectionRowCount } from "@/lib/unread-first";
 import { MvListSectionHeader } from "./mv-list-section-header";
 import { type OpenableEmail, PluginSearchResults } from "./plugin-search-results";
+import { commonTagScope } from "@/hooks/use-account-tags";
+import { TrashRecoveryLink } from "./trash-recovery-link";
 
 interface EmailListProps {
   emails: Email[];
@@ -274,6 +277,7 @@ export function EmailList({
   const listHold = useEmailStore((state) => state.listHold);
   const viewingAccountId = useEmailStore((state) => state.viewingAccountId);
   const selectedKeyword = useEmailStore((state) => state.selectedKeyword);
+  const selectedKeywordAccountId = useEmailStore((state) => state.selectedKeywordAccountId);
   const searchMailboxId = useEmailStore((state) => state.searchMailboxId);
   const activeAccountId = useAuthStore((state) => state.activeAccountId);
   const activeTabId = useMessageListTabsStore((state) => state.activeTabId);
@@ -508,6 +512,7 @@ export function EmailList({
     viewingAccountId,
     selectedMailbox,
     selectedKeyword,
+    selectedKeywordAccountId,
     isUnifiedView && (crossView ?? unifiedRole),
     isScheduledView,
     activeTabId,
@@ -530,6 +535,7 @@ export function EmailList({
     [emails, threadEmailsCache, selectedEmailKeys],
   );
   const bulkActionContext = useMemo(() => ({ emailIds: selectedEmailIds }), [selectedEmailIds]);
+  const folderAccountKind = useFolderAccountKind();
   // "Remove from this folder" (#615): offered for a selection only when every
   // selected message is also in another folder.
   const removeFromFolder = useRemoveFromFolder();
@@ -583,7 +589,8 @@ export function EmailList({
     const all: string[] = [];
     const some: string[] = [];
     for (const [tagId, count] of counts) (count === selected.length ? all : some).push(tagId);
-    return { all, some };
+    // A selection within one group account offers that account's shared tags.
+    return { all, some, scope: commonTagScope(selected) };
   }, [emails, selectedEmailKeys]);
 
   // A tag every selected message has comes off; any other goes onto all of
@@ -918,6 +925,7 @@ export function EmailList({
               title={tContextMenu('tag')}
               selectedIds={selectionTags.all}
               partialIds={selectionTags.some}
+              scope={selectionTags.scope}
               onToggle={handleBatchToggleTag}
               active={hasSelection && !isScheduledView}
               disabled={isProcessing}
@@ -958,6 +966,7 @@ export function EmailList({
               <PluginActions
                 surface="message-bulk-actions"
                 context={bulkActionContext}
+                accountKind={folderAccountKind}
                 mailboxRole={effectiveMailboxRole ?? null}
                 compact
                 overflow={batchNarrow}
@@ -1008,6 +1017,9 @@ export function EmailList({
         />
       )}
 
+      {/* Recover deleted items, from the account's own Trash (mounted only there) */}
+      {currentMailbox?.role === 'trash' && <TrashRecoveryLink mailbox={currentMailbox} />}
+
       {/* Empty Folder Banner for Junk/Trash */}
       {isEmptyableFolder && emails.length > 0 && !hasSelection && (
         <div className="px-4 py-2 border-b border-border bg-muted/30 flex items-center justify-between">
@@ -1030,6 +1042,15 @@ export function EmailList({
             {t('empty_folder.button')}
           </Button>
         </div>
+      )}
+
+      {/* Plugins' keyword filters, in a folder's own list (not search, tags or merged views). */}
+      {!isSearching && !selectedKeyword && !isUnifiedView && !isScheduledView && selectedMailbox && (
+        <PluginListFilters
+          mailboxRole={effectiveMailboxRole ?? null}
+          accountKind={folderAccountKind}
+          onChange={() => { if (client) void useEmailStore.getState().fetchEmails(client); }}
+        />
       )}
 
       <PluginSlot name="message-list-header" className="w-full" extraProps={listSlotProps} />
@@ -1238,6 +1259,7 @@ export function EmailList({
           onBatchMarkAsRead={(read) => markSelectionRead(read)}
           batchTagIds={selectionTags.all}
           batchPartialTagIds={selectionTags.some}
+          batchTagScope={selectionTags.scope}
           onBatchToggleTag={handleBatchToggleTag}
           onBatchDelete={() => void handleBatchDelete()}
           onBatchArchive={() => void handleBatchArchive()}

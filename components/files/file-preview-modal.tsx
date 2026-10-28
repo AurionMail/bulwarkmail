@@ -16,6 +16,7 @@ import { emailIframeCsp, sanitizeEmailBodyForIframe } from "@/lib/email-sanitiza
 import { useSettingsStore } from "@/stores/settings-store";
 import { useCloseOnBack } from "@/hooks/use-close-on-back";
 import type { FileResourceView } from "@/lib/plugin-types";
+import { useNoThirdPartyTraffic } from "@/hooks/use-third-party-mode";
 
 /**
  * An HTML attachment as a document for a fully locked frame (sandbox="",
@@ -161,7 +162,9 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
   // open-in-new-tab fallback use.
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [htmlDoc, setHtmlDoc] = useState<string | null>(null);
-  const blockRemote = useSettingsStore((state) => state.externalContentPolicy) !== "allow";
+  // Always blocked with no third-party traffic (#903).
+  const remoteBlockedByOrg = useNoThirdPartyTraffic();
+  const blockRemote = useSettingsStore((state) => state.externalContentPolicy) !== "allow" || remoteBlockedByOrg;
 
   // Decide whether to render the PDF in a plain <iframe> (desktop) or with the
   // pdf.js canvas viewer (mobile). navigator.pdfViewerEnabled is the standard

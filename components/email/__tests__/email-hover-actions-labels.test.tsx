@@ -4,7 +4,11 @@ import type { Email } from '@/lib/jmap/types';
 import { useSettingsStore } from '@/stores/settings-store';
 import { EmailHoverActions } from '../email-hover-actions';
 
-vi.mock('@/components/plugins/plugin-actions', () => ({ PluginActions: () => null, usePluginActions: () => [] }));
+vi.mock('@/components/plugins/plugin-actions', () => ({
+  PluginActions: () => null,
+  usePluginActions: () => [],
+  useMessageActionTarget: () => ({ accountKind: 'personal', keywords: [] }),
+}));
 
 // R10: one word per action. The row's quick actions say what the row's menu
 // says ("Report spam", "Mark as unread"), not "Mark as Spam" or "Mark Read /

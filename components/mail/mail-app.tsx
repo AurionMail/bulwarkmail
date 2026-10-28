@@ -115,11 +115,10 @@ import { FilePreviewModal } from "@/components/files/file-preview-modal";
 import { WopiEditor } from "@/components/files/wopi-editor";
 import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
 import { isFilePreviewable } from "@/lib/file-preview";
-import { appendHtmlSignature, appendPlainTextSignature } from "@/lib/signature-utils";
+import { prepareQuickReply } from "@/lib/outgoing/quick-reply";
 import { computeReplyThreadingHeaders } from "@/lib/email-threading";
 import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
-import { findDraftIdentityId, findReplyIdentityId, resolveComposeAccountEmail } from "@/lib/reply-identity";
-import { buildReplyRecipients, isSelfSent } from "@/lib/reply-recipients";
+import { resolveComposeAccountEmail } from "@/lib/reply-identity";
 import { useProMultiAccountIdentities } from "@/hooks/use-pro-multi-account-identities";
 import { Filter, ChevronDown, X, Paperclip, Star, Mail, MailOpen, RotateCcw, PenSquare, CheckSquare, Square, AlertTriangle, ArrowLeft, RefreshCw, Reply, ReplyAll, Forward, Archive, Trash2, FolderInput, ShieldAlert, ShieldCheck, Folder } from "@/components/icons";
 import { useRegisterCommands } from "@/lib/command-registry";
@@ -164,6 +163,8 @@ import { consumePendingDeepLink, subscribePendingDeepLink } from "@/lib/deep-lin
 import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
 import type { QuoteHeader } from "@/lib/plugin-types";
 import { initialLinkSearch, useLiteLinkSegments } from "@/hooks/use-lite-link-segments";
+import { useMinimisedComposerFlush } from "@/hooks/use-minimised-composer-flush";
+import { quickReplyEnvelope, saveQuickReplyDraft } from "@/lib/outgoing/quick-reply-envelope";
 
 export interface MailAppProps {
   /**
@@ -2315,6 +2316,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     setPendingDraft(null);
   }, []);
 
+  // A minimised composer's edits live only in pendingDraft. Before an
+  // automatic sign-out it is opened again and saves them itself.
+  useMinimisedComposerFlush(!showComposer && pendingDraft?.unsaved === true, () => setShowComposer(true));
+
   const handleReply = async (draftText?: string) => {
     if (selectedEmail) {
       const formerSelected = { ...selectedEmail };
@@ -3371,9 +3376,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     }
   };
 
-  const handleTagSelect = async (keywordId: string | null) => {
+  const handleTagSelect = async (keywordId: string | null, accountId: string | null = null) => {
     setScheduledView(false);
-    selectKeyword(keywordId);
+    selectKeyword(keywordId, accountId);
 
     // On mobile, close sidebar and go to list view
     if (isMobile) {
@@ -3912,49 +3917,23 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     };
   }, [previewAttachment]);
 
-  const handleQuickReply = async (body: string) => {
+  // Before an automatic sign-out: the typed quick reply is kept as a draft.
+  const handleSaveQuickReplyDraft = async (body: string) => {
     if (!client || !selectedEmail) return;
+    await saveQuickReplyDraft({ client, email: selectedEmail, identities, body, replyPrefix: t('email_composer.prefix.reply') });
+  };
 
-    // Quick reply follows the same addressing rules as the composer: Reply-To
-    // over From, and for our own messages in a thread the original recipients
-    // instead of ourselves (#703).
-    const ownIdentityEmails = identities.map(i => i.email).filter(Boolean);
-    const replySource = {
-      from: selectedEmail.from,
-      replyToAddresses: selectedEmail.replyTo,
-      to: selectedEmail.to,
-      cc: selectedEmail.cc,
-    };
-    const recipients = buildReplyRecipients(replySource, 'reply', ownIdentityEmails).to
-      .map(r => r.email)
-      .filter((email): email is string => Boolean(email));
+  // Resolves true once the reply went out (or was scheduled), false when it
+  // stopped before sending, so the quick-reply box keeps the text.
+  const handleQuickReply = async (body: string): Promise<boolean> => {
+    if (!client || !selectedEmail) return false;
+
+    // Quick reply follows the composer's addressing rules and sends from the
+    // address the message was delivered to (lib/outgoing/quick-reply-envelope.ts).
+    const { recipients, sendingIdentity, primaryIdentity } = quickReplyEnvelope(selectedEmail, identities);
     if (recipients.length === 0) {
       throw new Error("No sender email found");
     }
-
-    const primaryIdentity = identities[0];
-
-    // Send from the address the message was delivered to, so a reply out of a
-    // shared or aliased mailbox does not go out as the account owner. Our own
-    // message keeps the identity it was sent from - the recipients are the
-    // other party, so resolving from them would send as their address.
-    //
-    // Quick reply resolves the user's OWN identities only. It deliberately does
-    // NOT take the domain catch-all `From:` rewrite that the full composer
-    // offers: this surface is a bare text box with no From row, so a rewritten
-    // From would be applied with nothing on screen to show it - or to correct
-    // it. A catch-all delivery quick-replies as the matching own identity, and
-    // the user can open the full composer when they need the rewrite.
-    const selfSentIdentityId = isSelfSent(replySource, ownIdentityEmails)
-      ? findDraftIdentityId(identities, selectedEmail.from?.[0])
-      : null;
-    const sendingIdentityId = selfSentIdentityId ?? findReplyIdentityId(identities, {
-      to: selectedEmail.to,
-      cc: selectedEmail.cc,
-      bcc: selectedEmail.bcc,
-    });
-    const sendingIdentity =
-      (sendingIdentityId ? identities.find((i) => i.id === sendingIdentityId) : undefined) || primaryIdentity;
     const headerFromEmail = sendingIdentity?.email;
     const headerFromName = sendingIdentity?.name || undefined;
 
@@ -3965,21 +3944,19 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const signatureIdentity = (sendingIdentity?.htmlSignature || sendingIdentity?.textSignature)
       ? sendingIdentity
       : primaryIdentity;
-    const separator = useSettingsStore.getState().signatureSeparatorEnabled;
-    const finalBody = appendPlainTextSignature(body, signatureIdentity, { separator });
-
-    // When the identity has an HTML signature, send a matching HTML body so the
-    // signature keeps its formatting; appendPlainTextSignature would otherwise
-    // flatten it to plain text. Text-only identities keep the plain-text-only
-    // behavior (htmlBody stays undefined).
-    const escapedBody = body
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/\n/g, '<br>');
-    const finalHtmlBody = signatureIdentity?.htmlSignature?.trim()
-      ? appendHtmlSignature(`<div>${escapedBody}</div>`, signatureIdentity, { separator })
-      : undefined;
+    // The same checks and finalisers as the composer's send
+    // (lib/outgoing/send-pipeline.ts): a quick reply is no way around them.
+    const prepared = await prepareQuickReply({
+      body,
+      signatureIdentity,
+      sendingIdentity,
+      separator: useSettingsStore.getState().signatureSeparatorEnabled,
+      to: recipients,
+      fromEmail: headerFromEmail,
+      identityId: sendingIdentity?.id,
+    });
+    if (!prepared) return false;
+    const { html: finalHtmlBody, text: finalBody } = prepared;
 
     const originalEmailId = selectedEmail.id;
     const originalSource = emailWriteSource(selectedEmail, client);
@@ -3992,7 +3969,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           message: t('email_composer.send_delay_unsupported_confirm'),
           confirmText: t('email_composer.send'),
         });
-        if (!confirmed) return;
+        if (!confirmed) return false;
       } else {
         delayedUntil = new Date(Date.now() + sendDelaySeconds * 1000).toISOString();
       }
@@ -4042,7 +4019,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
     if (result.scheduled) {
       await refreshScheduledMetadata(client);
-      return;
+      return true;
     }
 
     if (!refused) toast.success(t('notifications.email_sent'));
@@ -4084,6 +4061,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     } catch (error) {
       console.error('Quick reply sent, but refreshing the view failed:', error);
     }
+    return true;
   };
 
   // Mountain View reads a message inside its conversation, as Gmail does: load
@@ -5643,6 +5621,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     }}
                     onDownloadAttachment={handleDownloadAttachment}
                     onQuickReply={handleQuickReply}
+                    onSaveQuickReplyDraft={handleSaveQuickReplyDraft}
                     onBack={handleMobileBack}
                     onNavigateNext={handleNavigateNext}
                     onNavigatePrev={handleNavigatePrev}

@@ -11,13 +11,15 @@ import { proxyAccounts, proxyCancel, proxyConnect, proxyDisconnect, proxyFetch, 
 import { checkActions, isActionSurface, setPluginActions } from './actions';
 import { checkDayLabels, setDayLabels } from './day-labels';
 import { refreshRowBadges } from './row-badges';
+import { checkListFilters, setPluginListFilters } from './list-filters';
 import { checkPages, setPluginPages } from './pages';
 import { toast as appToast } from '@/stores/toast-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAccountStore } from '@/stores/account-store';
 import { claimLegacyPluginStorage, pluginStoragePrefix } from './storage-scope';
 import { useIdentityStore } from '@/stores/identity-store';
-import { useEmailStore } from '@/stores/email-store';
+import { resolveEmailBlobContext, useEmailStore } from '@/stores/email-store';
+import { keywordPointer } from '../jmap/patch-pointer';
 import { useFilterStore } from '@/stores/filter-store';
 import { useMessageListTabsStore } from '@/stores/message-list-tabs-store';
 import {
@@ -34,12 +36,12 @@ import { DEFAULT_KEYWORD_SCAN_LIMIT } from '../jmap/client';
 import { isServerSetKeyword } from '../jmap/server-keywords';
 import { suggestKeywordColor } from '../keyword-discovery';
 import { MAX_KEYWORD_LENGTH } from '../keyword-nesting';
-import { KEYWORD_PREFIX } from '../thread-utils';
+import { emailKeyFor, KEYWORD_PREFIX } from '../thread-utils';
 import { DEFAULT_SEARCH_FILTERS, normalizePluginFilter } from '../jmap/search-utils';
 import { awaitDialog, awaitPrompt, awaitCustomDialog, type PromptField } from './host-dialog';
 import { fileStorage } from '../plugin-storage';
 import { generateUUID } from '../utils';
-import { AddressBook, ContactCard, Identity } from '../jmap/types';
+import { AddressBook, ContactCard, Email, Identity } from '../jmap/types';
 import { EncryptionAtRestConfig, PublicKeyInfo, PublicKeyInput, useAccountSecurityStore } from '@/stores/account-security-store';
 import {
   doCalendarCreateEvent, doCalendarDeleteEvent, doCalendarGetEvent, doCalendarGetEvents,
@@ -56,9 +58,11 @@ import {
 import { MAX_PLUGIN_FETCH_BYTES, readFileName, readMediaType, sessionClient } from './host-api-input';
 import { doComposeOpen, doComposeReply, doDraftsCreate } from './host-api-compose';
 import { doNotificationsShow } from './host-api-notify';
+import { doAccountDataGet, doAccountDataSet, doUserFindPeople, doUserGetMailAccounts, doUserGetSelf } from './host-api-account';
 import { setSectionTitle } from './section-titles';
 import { requestPanel } from './panel-requests';
 import { doComposerAttach, doComposerGetBody, doComposerGetSelection, doComposerReplaceBody, doComposerReplaceSelection } from './host-api-composer';
+import { pluginAllowed, wkdAllowed } from '../outgoing-hosts';
 
 /**
  * Methods only callable from the privileged (same-origin) tier. These expose
@@ -151,6 +155,15 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   'addressbook.create': 'contacts:write',
   // user
   'user.getAccounts': 'account:read',
+  // The user's own account (principal id) and address, and which mail
+  // accounts are team (group) mailboxes.
+  'user.getSelf': 'account:read',
+  'user.getMailAccounts': 'account:read',
+  // People from the server's directory: names and addresses of others.
+  'user.findPeople': 'directory:read',
+  // A plugin's own value in a mail account's shared Inbox metadata.
+  'accountData.get': 'email:read',
+  'accountData.set': 'email:write',
   'user.getIdentities': 'identity:read',
   // The IANA zone the app shows times in (Settings or the browser's).
   'user.getTimeZone': null,
@@ -181,6 +194,7 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   // email keyword mutations
   'email.setKeyword': 'email:write',
   'email.removeKeyword': 'email:write',
+  'email.updateKeywords': 'email:write',
   // Native keyword definitions are a deliberately narrow settings API: a
   // plugin can read definitions, append missing ones, or reorder the complete
   // existing set, but cannot overwrite or remove user-managed tags.
@@ -220,6 +234,7 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   'ui.setActions': null,
   // Ask the rows again for onEmailListItemRender badges (rate limited).
   'ui.refreshRowBadges': null,
+  'ui.setListFilters': 'ui:message-list',
   'ui.setDayLabels': 'ui:calendar-action',
   'ui.setPages': 'ui:app-page',
   'ui.setSectionTitle': 'ui:sidebar-widget',
@@ -667,6 +682,9 @@ async function readCapped(res: Response, limit: number): Promise<ArrayBuffer> {
 }
 
 async function doHttpFetch(plugin: InstalledPlugin, rawUrl: string, init?: PluginFetchInit) {
+  // Such a plugin isn't started in the no-third-party mode; this is the
+  // second lock in case one runs anyway (#903).
+  if (!pluginAllowed(plugin)) throw new Error('Outside requests are off: this server does not contact outside services');
   if (typeof rawUrl !== 'string') throw new Error('url must be a string');
   let url: URL;
   try { url = new URL(rawUrl); } catch { throw new Error('url must be absolute https://'); }
@@ -1169,6 +1187,8 @@ export interface WkdResult {
 }
 
 export async function doGetPublicKeyFromWKD(email: string): Promise<WkdResult> {
+  // The lookup goes to the recipient's domain: off with third-party traffic (#903).
+  if (!wkdAllowed()) return { status: 'ERROR', error: 'Key lookups at other domains are off on this server' };
   const cleanEmail = email.trim();
   const atIndex = cleanEmail.lastIndexOf('@');
   
@@ -1304,6 +1324,22 @@ function assertPluginKeyword(keyword: unknown): string {
   return keyword;
 }
 
+/**
+ * Keywords that change what the app and the server do with a message, not
+ * just how it is labelled: a draft opens in the composer, $junk and
+ * $notjunk train the spam filter, $phishing hides the content. The
+ * email.* keyword methods leave them to the app's own actions.
+ */
+const PROTECTED_KEYWORDS = new Set(['$draft', '$junk', '$notjunk', '$phishing']);
+
+function assertMailKeyword(keyword: unknown): string {
+  const checked = assertPluginKeyword(keyword);
+  if (PROTECTED_KEYWORDS.has(checked.toLowerCase())) {
+    throw new Error(`JMAP keyword "${checked}" can't be changed by a plugin`);
+  }
+  return checked;
+}
+
 function assertPluginKeywords(value: unknown): Record<string, true> {
   if (!isPlainObject(value)) {
     throw new Error('jmap.setKeywords: keywords must be an object');
@@ -1342,6 +1378,79 @@ function requireClient() {
   const { client } = useAuthStore.getState();
   if (!client) throw new Error('No active session');
   return client;
+}
+
+/** Most keywords one email.updateKeywords call changes. */
+export const MAX_PLUGIN_KEYWORD_CHANGES = 20;
+
+/**
+ * Set (true) and clear (false) several keywords of one message in one
+ * Email/set, so a swap (one assignee for another) never leaves both or
+ * neither. A message listed in the open view, or the open one, changes
+ * through the list as the app's own actions do: the row shows the new
+ * keywords at once and the keyword hooks run. Another message is changed on
+ * the server only. `accountId` names the message's account (a click's
+ * context carries it for team and shared mailboxes); without it the
+ * signed-in account's.
+ */
+async function doEmailUpdateKeywords(emailIdArg: unknown, changesArg: unknown, accountArg: unknown): Promise<boolean> {
+  const method = 'email.updateKeywords';
+  const emailId = assertEmailId(emailIdArg, method);
+  if (!isPlainObject(changesArg)) throw new Error(`${method}: changes must be an object of keyword: true | false`);
+  const entries = Object.entries(changesArg);
+  if (entries.length > MAX_PLUGIN_KEYWORD_CHANGES) throw new Error(`${method}: at most ${MAX_PLUGIN_KEYWORD_CHANGES} keywords at once`);
+  const changes: Record<string, boolean> = {};
+  for (const [keyword, value] of entries) {
+    assertMailKeyword(keyword);
+    if (typeof value !== 'boolean') throw new Error(`${method}: keyword "${keyword}" must be true (set) or false (clear)`);
+    changes[keyword] = value;
+  }
+  const accountId = assertOptionalAccountId(accountArg, method);
+  if (entries.length === 0) return true;
+  const client = requireClient();
+  const own = client.getAccountId();
+  const wanted = accountId && accountId !== own ? accountId : undefined;
+  const state = useEmailStore.getState();
+  const isTarget = (email: Email) => {
+    if (email.id !== emailId) return false;
+    const owner = resolveEmailBlobContext(email, client);
+    if (owner.client !== client) return false;
+    return (owner.accountId && owner.accountId !== own ? owner.accountId : undefined) === wanted;
+  };
+  const row = [...state.emails, ...(state.selectedEmail ? [state.selectedEmail] : [])].find(isTarget);
+  let done = true;
+  if (row) {
+    done = await state.patchEmailKeywords(client, emailId, changes, emailKeyFor(row));
+  } else {
+    const patch = Object.fromEntries(Object.entries(changes).map(([keyword, value]) => [keywordPointer(keyword), value ? true : null]));
+    await client.batchUpdateKeywords([emailId], patch, wanted);
+  }
+  if (done) patchThreadCache(isTarget, changes);
+  return done;
+}
+
+/**
+ * The same change on the messages of expanded conversations
+ * (threadEmailsCache), whose inner rows patchEmailKeywords doesn't touch.
+ */
+function patchThreadCache(isTarget: (email: Email) => boolean, changes: Record<string, boolean>): void {
+  useEmailStore.setState((state) => {
+    let cache: Map<string, Email[]> | null = null;
+    for (const [key, members] of state.threadEmailsCache) {
+      if (!members.some(isTarget)) continue;
+      cache ??= new Map(state.threadEmailsCache);
+      cache.set(key, members.map((email) => {
+        if (!isTarget(email)) return email;
+        const keywords = { ...email.keywords };
+        for (const [keyword, on] of Object.entries(changes)) {
+          if (on) keywords[keyword] = true;
+          else delete keywords[keyword];
+        }
+        return { ...email, keywords };
+      }));
+    }
+    return cache ? { threadEmailsCache: cache } : {};
+  });
 }
 
 // ─── Native keyword definitions ──────────────────────────────
@@ -1888,6 +1997,7 @@ export async function dispatchApiCall(
       return undefined;
     }
     case 'ui.refreshRowBadges': refreshRowBadges(); return undefined;
+    case 'ui.setListFilters': setPluginListFilters(plugin.id, plugin.name, checkListFilters(args[0])); return undefined;
     case 'ui.setDayLabels': setDayLabels(plugin.id, plugin.name, checkDayLabels(args[0])); return undefined;
     case 'ui.setPages': setPluginPages(plugin.id, plugin.name, checkPages(args[0])); return undefined;
     case 'ui.setSectionTitle': setSectionTitle(plugin.id, args[0]); return undefined;
@@ -1975,6 +2085,11 @@ export async function dispatchApiCall(
     case 'addressbook.create': return doAddressBookCreate(args[0] as string);
 
     case 'user.getAccounts':   return doUserGetAccounts();
+    case 'user.getSelf':       return doUserGetSelf();
+    case 'user.getMailAccounts': return doUserGetMailAccounts();
+    case 'user.findPeople':    return doUserFindPeople(plugin, args[0]);
+    case 'accountData.get':    return doAccountDataGet(plugin, args[0]);
+    case 'accountData.set':    return doAccountDataSet(plugin, args[0], args[1]);
     case 'user.getIdentities': return doUserGetIdentities();
     case 'user.getTimeZone': return userTimeZone();
     case 'app.getInfo': return doAppGetInfo();
@@ -2086,14 +2201,15 @@ export async function dispatchApiCall(
 
     case 'email.setKeyword': {
       const emailId = assertEmailId(args[0], 'email.setKeyword');
-      const keyword = assertPluginKeyword(args[1]);
+      const keyword = assertMailKeyword(args[1]);
       const accountId = assertOptionalAccountId(args[2], 'email.setKeyword');
       await requireClient().setKeyword(emailId, keyword, accountId);
       return undefined;
     }
+    case 'email.updateKeywords': return doEmailUpdateKeywords(args[0], args[1], args[2]);
     case 'email.removeKeyword': {
       const emailId = assertEmailId(args[0], 'email.removeKeyword');
-      const keyword = assertPluginKeyword(args[1]);
+      const keyword = assertMailKeyword(args[1]);
       const accountId = assertOptionalAccountId(args[2], 'email.removeKeyword');
       await requireClient().removeKeyword(emailId, keyword, accountId);
       return undefined;

@@ -1,3 +1,4 @@
+import { advertisesMailboxMetadata, bulwarkEntries, escapeMetadataPathSegment, MAX_METADATA_ENTRY_BYTES, METADATA_CAPABILITY, MetadataPatchError, MetadataRefusedError, MetadataTooLargeError, MetadataUnsupportedError, metadataValueBytes, namespaceFor } from "./bulwark-metadata";
 import { IncompleteDeleteError } from "./delete-error";
 import { ArchiveEmailsError } from "./archive-error";
 import { generateUUID } from '@/lib/utils';
@@ -23,6 +24,9 @@ import { SchedulingDeniedError } from "./scheduling-error";
 import { jmapError, jmapErrorFailedIds, jmapErrorType, jmapSetError, type JmapError, type JmapErrorInfo } from "./jmap-error";
 import { isServerSetKeyword } from "./server-keywords";
 import { PrincipalsRequestError } from "./principals-error";
+import { buildShareSetCalls, failAll, parseShareTargets, readShareSetResults, SET_METHOD, type ShareChange, type ShareChangeResult, type ShareTarget } from "./share-batch";
+import type { ShareKind } from "./share-rights";
+import { ARCHIVED_ITEM_USING, STALWART_CAPABILITY, buildRestoreCalls, hasArchivedEmail, listArchivedEmailsPaged, readRestoreResults, type ArchiveIo, type ArchiveListResult, type ArchiveQueryPage, type RestoreResult } from "@/lib/recovery/archived-items";
 import { RescheduleRestoredError } from "./reschedule-error";
 
 export { SchedulingDeniedError, RescheduleRestoredError };
@@ -2670,7 +2674,10 @@ export class JMAPClient implements IJMAPClient {
     limit?: number;
     onProgress?: (scanned: number, total: number) => void;
     signal?: AbortSignal;
+    /** Another account of this login, e.g. a group account (default: the own one). */
+    accountId?: string;
   }): Promise<{ keywords: Record<string, number>; scanned: number; total: number; complete: boolean }> {
+    const accountId = options?.accountId || this.accountId;
     const cap = Math.max(0, options?.limit ?? DEFAULT_KEYWORD_SCAN_LIMIT);
     const pageSize = Math.max(1, Math.min(500, this.getMaxObjectsInGet()));
     const keywords: Record<string, number> = {};
@@ -2684,14 +2691,14 @@ export class JMAPClient implements IJMAPClient {
       try {
         const response = await this.request([
           ["Email/query", {
-            accountId: this.accountId,
+            accountId,
             sort: [{ property: "receivedAt", isAscending: false }],
             limit: Math.min(pageSize, cap - scanned),
             position: scanned,
             calculateTotal: scanned === 0,
           }, "0"],
           ["Email/get", {
-            accountId: this.accountId,
+            accountId,
             "#ids": { resultOf: "0", name: "Email/query", path: "/ids" },
             properties: ["keywords"],
           }, "1"],
@@ -6885,34 +6892,22 @@ export class JMAPClient implements IJMAPClient {
     const all: Principal[] = [];
     try {
       for (let position = 0; position < MAX_PRINCIPALS;) {
-        const response = await this.request([
-          ["Principal/query", { accountId, position, limit: pageSize }, "0"],
-          ["Principal/get", {
-            accountId,
-            "#ids": { resultOf: "0", name: "Principal/query", path: "/ids" },
-            properties: PRINCIPAL_PROPERTIES,
-          }, "1"],
-        ], this.principalsUsing());
-
-        const responses = response.methodResponses ?? [];
-        const queryResp = responses.find((r) => r[0] === "Principal/query");
-        const getResp = responses.find((r) => r[0] === "Principal/get");
-        if (!queryResp || !getResp) {
-          const error = responses.find((r) => r[0] === "error")?.[1] as JmapErrorInfo | undefined;
+        const page = await this.queryPrincipals(accountId, { position, limit: pageSize });
+        if (!page.ok) {
+          const { error } = page;
           if (options?.throwOnError) throw new PrincipalsRequestError(error?.type ?? null, error?.description);
-          if (error?.type === "forbidden") {
+          if (page.forbidden) {
             return {
               principals: await this.getKnownPrincipals(accountId),
               status: "restricted",
-              ...(error.description === DIRECTORY_QUERIES_OFF ? { directoryQueriesOff: true } : {}),
+              ...(page.directoryQueriesOff ? { directoryQueriesOff: true } : {}),
             };
           }
           console.error("Failed to fetch principals:", error);
           return { principals: all, status: "error" };
         }
-        const ids: string[] = queryResp[1]?.ids ?? [];
-        const list = (getResp[1].list || []) as Principal[];
-        all.push(...list.map((p) => ({ ...p, accountId })));
+        const { ids, list } = page;
+        all.push(...list);
         if (ids.length < pageSize) break;
         position += ids.length;
       }
@@ -6926,6 +6921,39 @@ export class JMAPClient implements IJMAPClient {
       console.error("Failed to fetch principals:", error);
       return { principals: all, status: "error" };
     }
+  }
+
+  /**
+   * One Principal/query with the matching Principal/get, as listPrincipals
+   * and findPrincipalByEmail send it. When the query is refused the chained
+   * get fails with `invalidResultReference`, so only the query's own error
+   * says why: `forbidden`, and `directoryQueriesOff` when Stalwart 1.0 says
+   * the administrator turned directory queries off.
+   */
+  private async queryPrincipals(
+    accountId: string,
+    args: { filter?: Record<string, unknown>; position?: number; limit: number },
+  ): Promise<
+    | { ok: true; ids: string[]; list: Principal[] }
+    | { ok: false; forbidden: boolean; directoryQueriesOff: boolean; error: JmapErrorInfo | undefined }
+  > {
+    const response = await this.request([
+      ["Principal/query", { accountId, ...args }, "0"],
+      ["Principal/get", {
+        accountId,
+        "#ids": { resultOf: "0", name: "Principal/query", path: "/ids" },
+        properties: PRINCIPAL_PROPERTIES,
+      }, "1"],
+    ], this.principalsUsing());
+    const responses = response.methodResponses ?? [];
+    const queryResp = responses.find((r) => r[0] === "Principal/query");
+    const getResp = responses.find((r) => r[0] === "Principal/get");
+    if (!queryResp || !getResp) {
+      const error = responses.find((r) => r[0] === "error")?.[1] as JmapErrorInfo | undefined;
+      return { ok: false, forbidden: error?.type === "forbidden", directoryQueriesOff: error?.description === DIRECTORY_QUERIES_OFF, error };
+    }
+    const list = ((getResp[1].list || []) as Principal[]).map((p) => ({ ...p, accountId }));
+    return { ok: true, ids: queryResp[1]?.ids ?? [], list };
   }
 
   /** The principals of {@link listPrincipals}, without the status. */
@@ -7064,6 +7092,147 @@ export class JMAPClient implements IJMAPClient {
     const own = ((result as { list?: Principal[] }).list ?? []).find((p) => p.id === ownId);
     const calendars = own?.capabilities?.["urn:ietf:params:jmap:calendars"] as { mayGetAvailability?: boolean } | undefined;
     return calendars?.mayGetAvailability !== false;
+  }
+
+  /**
+   * The principal type ("individual", "group") of each id. Stalwart uses the
+   * account id as the principal id, and Principal/get answers for accounts
+   * the user can access even with directory queries off. Null when the
+   * server has no principals or refuses.
+   */
+  async getPrincipalTypes(ids: string[]): Promise<Record<string, string> | null> {
+    if (!this.supportsPrincipals() || ids.length === 0) return ids.length === 0 ? {} : null;
+    try {
+      const response = await this.request([
+        ["Principal/get", { accountId: this.accountId, ids, properties: ["id", "type"] }, "0"],
+      ], this.principalsUsing());
+      const [method, result] = response.methodResponses?.[0] ?? [];
+      if (method !== "Principal/get") return null;
+      const types: Record<string, string> = {};
+      for (const principal of (result as { list?: Principal[] }).list ?? []) {
+        if (principal.id && typeof principal.type === "string") types[principal.id] = principal.type;
+      }
+      return types;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Accounts whose metadata request failed, with when: not asked again for
+   * ten minutes. A dropped connection (the pre-release 1.0 build) looks the
+   * same as a network blip, so the pause is not for the whole session.
+   */
+  private metadataUnsupported = new Map<string, number>();
+
+  /** Whether Bulwark may keep data in this account's Inbox metadata (lib/jmap/bulwark-metadata.ts). */
+  supportsBulwarkMetadata(accountId?: string): boolean {
+    const id = accountId || this.accountId;
+    const failedAt = this.metadataUnsupported.get(id);
+    if (failedAt !== undefined && Date.now() - failedAt < 10 * 60_000) return false;
+    return advertisesMailboxMetadata(this.accounts[id]?.accountCapabilities as Record<string, unknown> | undefined);
+  }
+
+  /**
+   * Bulwark's metadata entries of the account's Inbox, by key, shared or the
+   * user's private ones. Null when the server has no usable metadata.
+   */
+  async getBulwarkMetadata(accountId?: string, options?: { private?: boolean }): Promise<Record<string, unknown> | null> {
+    const id = accountId || this.accountId;
+    if (!this.supportsBulwarkMetadata(id)) return null;
+    const property = options?.private ? "privateMetadata" : "metadata";
+    try {
+      // A request of its own: a server that can't answer it must not take
+      // other calls down with it.
+      const response = await this.request([
+        ["Mailbox/query", { accountId: id, filter: { role: "inbox" } }, "q"],
+        ["Mailbox/get", { accountId: id, "#ids": { resultOf: "q", name: "Mailbox/query", path: "/ids" }, properties: ["id", property] }, "g"],
+      ], ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:mail", METADATA_CAPABILITY]);
+      const get = response.methodResponses?.find((r) => r[0] === "Mailbox/get");
+      const inbox = (get?.[1] as { list?: Array<Record<string, unknown>> } | undefined)?.list?.[0];
+      // An answer without the property is a server that doesn't keep it,
+      // never "every entry was removed".
+      if (!inbox || !(property in inbox)) throw new MetadataUnsupportedError("No Inbox metadata in the answer");
+      this.metadataInboxIds.set(id, inbox.id as string);
+      this.metadataUnsupported.delete(id);
+      return bulwarkEntries(inbox[property]);
+    } catch (error) {
+      debug.warn('jmap', `Metadata unavailable for account ${id}:`, error);
+      this.metadataUnsupported.set(id, Date.now());
+      return null;
+    }
+  }
+
+  private metadataInboxIds = new Map<string, string>();
+
+  /**
+   * Writes one Bulwark metadata entry of the account's Inbox (null removes
+   * it), leaving every other entry as it is. Throws MetadataTooLargeError
+   * when the server refuses the size, MetadataUnsupportedError when the
+   * account has no metadata.
+   */
+  async setBulwarkMetadata(accountId: string | undefined, key: string, value: unknown, options?: { private?: boolean }): Promise<void> {
+    const id = accountId || this.accountId;
+    if (!this.supportsBulwarkMetadata(id)) throw new MetadataUnsupportedError();
+    const property = options?.private ? "privateMetadata" : "metadata";
+    if (value !== null && metadataValueBytes(value) > MAX_METADATA_ENTRY_BYTES) {
+      throw new MetadataTooLargeError(`The entry is larger than ${MAX_METADATA_ENTRY_BYTES} bytes`);
+    }
+    await this.updateInboxMetadata(id, { [`${property}/${namespaceFor(key)}`]: value }, options);
+  }
+
+  /**
+   * Whether the account advertises vendor metadata on mailboxes, whatever
+   * its last request did (supportsBulwarkMetadata also pauses after a
+   * failure). False means the server keeps no metadata for this account.
+   */
+  advertisesBulwarkMetadata(accountId?: string): boolean {
+    const id = accountId || this.accountId;
+    return advertisesMailboxMetadata(this.accounts[id]?.accountCapabilities as Record<string, unknown> | undefined);
+  }
+
+  /**
+   * Changes values inside one Bulwark metadata entry of the account's Inbox
+   * and nothing else: each patch path (segments, escaped here) is set, null
+   * removes it, an empty path is the whole entry. Returns the Mailbox state
+   * after the change, so a caller can recognise the push of its own write.
+   * Throws MetadataTooLargeError (the server's size limit),
+   * MetadataPatchError (a parent of a path doesn't exist) and
+   * MetadataUnsupportedError.
+   */
+  async patchBulwarkMetadata(accountId: string | undefined, key: string, patches: Array<{ path: string[]; value: unknown }>): Promise<{ newState?: string }> {
+    const id = accountId || this.accountId;
+    if (!this.supportsBulwarkMetadata(id)) throw new MetadataUnsupportedError();
+    const update: Record<string, unknown> = {};
+    for (const { path, value } of patches) {
+      update[[`metadata/${namespaceFor(key)}`, ...path.map(escapeMetadataPathSegment)].join("/")] = value;
+    }
+    return { newState: await this.updateInboxMetadata(id, update) };
+  }
+
+  /** One Mailbox/set of the Inbox's metadata; answers the new Mailbox state. */
+  private async updateInboxMetadata(id: string, update: Record<string, unknown>, options?: { private?: boolean }): Promise<string | undefined> {
+    let inboxId = this.metadataInboxIds.get(id);
+    if (!inboxId) {
+      await this.getBulwarkMetadata(id, options);
+      inboxId = this.metadataInboxIds.get(id);
+      if (!inboxId) throw new MetadataUnsupportedError();
+    }
+    const response = await this.request([
+      ["Mailbox/set", { accountId: id, update: { [inboxId]: update } }, "0"],
+    ], ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:mail", METADATA_CAPABILITY]);
+    const [method, result] = response.methodResponses?.[0] ?? [];
+    if (method !== "Mailbox/set") {
+      throw jmapError((result as JmapErrorInfo | undefined)?.description || "Failed to save metadata", result as JmapErrorInfo | undefined);
+    }
+    const notUpdated = (result as { notUpdated?: Record<string, { type?: string; description?: string }> }).notUpdated?.[inboxId];
+    if (notUpdated) {
+      if (/exceeds the maximum/i.test(notUpdated.description ?? "")) throw new MetadataTooLargeError(notUpdated.description!);
+      if (notUpdated.type === "invalidPatch") throw new MetadataPatchError(notUpdated.description || "A parent of the patched value does not exist");
+      throw new MetadataRefusedError(notUpdated.type ?? "unknown", notUpdated.description || `Failed to save metadata (${notUpdated.type ?? "unknown"})`);
+    }
+    const newState = (result as { newState?: unknown }).newState;
+    return typeof newState === "string" ? newState : undefined;
   }
 
   /**
@@ -7286,6 +7455,132 @@ export class JMAPClient implements IJMAPClient {
     }
     if (!setResult.updated || !(mailboxId in setResult.updated)) {
       throw new Error("Server did not confirm the share update");
+    }
+  }
+
+  // ── Sharing many items at once (the Delegates page) ──────────────
+
+  /**
+   * Whether the server keeps a folder's "mark as read" and keyword rights as
+   * one right, so a read-only share can also flag mail. Stalwart 1.0 does
+   * (a read grant reads back with maySetKeywords); every 1.0 account lists
+   * principals:owner, which 0.16 never does (see keepsServerTextOrder).
+   */
+  sharesSeenWithKeywords(accountId?: string): boolean {
+    return this.hasAccountCapability("urn:ietf:params:jmap:principals:owner", accountId);
+  }
+
+  /**
+   * Every folder, calendar and address book of the user's own account with
+   * its `shareWith`, and the files that are shared with someone. A type the
+   * account can't share is left out; one whose read failed is in `failed`,
+   * so the caller doesn't mistake it for "shared with nobody".
+   */
+  async getShareTargets(
+    include: { calendars?: boolean; contacts?: boolean; files?: boolean } = {},
+  ): Promise<{ targets: ShareTarget[]; failed: ShareKind[] }> {
+    const calls: JMAPMethodCall[] = [];
+    const using = new Set<string>(["urn:ietf:params:jmap:core"]);
+    const accounts: { mailbox?: string; calendar?: string; addressBook?: string } = {};
+    if (this.supportsMailboxSharing()) {
+      accounts.mailbox = this.accountId;
+      calls.push(["Mailbox/get", { accountId: this.accountId, ids: null, properties: ["id", "name", "role", "parentId", "shareWith"] }, "m"]);
+      for (const u of ["urn:ietf:params:jmap:mail", JMAPClient.MAIL_SHARE_CAPABILITY]) using.add(u);
+    }
+    const calendarsAccountId = this.getCalendarsAccountId();
+    if (include.calendars !== false && this.supportsCalendars(calendarsAccountId)) {
+      accounts.calendar = calendarsAccountId;
+      calls.push(["Calendar/get", { accountId: calendarsAccountId, ids: null, properties: ["id", "name", "isDefault", "shareWith"] }, "c"]);
+      for (const u of this.calendarUsing()) using.add(u);
+    }
+    const contactsAccountId = this.getContactsAccountId();
+    if (include.contacts !== false && this.supportsContacts(contactsAccountId)) {
+      accounts.addressBook = contactsAccountId;
+      calls.push(["AddressBook/get", { accountId: contactsAccountId, ids: null, properties: ["id", "name", "isDefault", "shareWith"] }, "a"]);
+      for (const u of this.contactUsing()) using.add(u);
+    }
+
+    const readCollections = async (): Promise<{ targets: ShareTarget[]; failed: ShareKind[] }> => {
+      if (calls.length === 0) return { targets: [], failed: [] };
+      try {
+        const response = await this.request(calls, [...using]);
+        return parseShareTargets(response.methodResponses as [string, Record<string, unknown>, string][], accounts);
+      } catch (error) {
+        console.error("Failed to read sharing:", error);
+        return { targets: [], failed: Object.keys(accounts) as ShareKind[] };
+      }
+    };
+    const filesAccountId = this.getFilesAccountId();
+    const readFiles = async (): Promise<{ targets: ShareTarget[]; failed: ShareKind[] }> => {
+      if (include.files === false || !this.supportsFiles(filesAccountId)) return { targets: [], failed: [] };
+      try {
+        const targets: ShareTarget[] = [];
+        for (const node of await this.listAllFileNodes()) {
+          if (!node.shareWith || Object.keys(node.shareWith).length === 0) continue;
+          targets.push({ kind: "file", accountId: filesAccountId, id: node.id, name: node.name, parentId: node.parentId ?? null, shareWith: node.shareWith });
+        }
+        return { targets, failed: [] };
+      } catch (error) {
+        console.error("Failed to read file sharing:", error);
+        return { targets: [], failed: ["file"] };
+      }
+    };
+    // The file tree can take several requests; it is read alongside the rest.
+    const [collections, fileTargets] = await Promise.all([readCollections(), readFiles()]);
+    return { targets: [...collections.targets, ...fileTargets.targets], failed: [...collections.failed, ...fileTargets.failed] };
+  }
+
+  /**
+   * Applies `shareWith` changes to many items in as few requests as the
+   * server's limits allow, and says for each one whether it worked. Never
+   * throws: a request that fails marks its items failed.
+   */
+  async applyShareChanges(changes: ShareChange[]): Promise<ShareChangeResult[]> {
+    if (changes.length === 0) return [];
+    const { calls, changesByCall } = buildShareSetCalls(changes, {
+      maxObjectsInSet: this.getMaxObjectsInSet(),
+      wireRights: (change) => change.kind === "file" && change.rights && this.isLegacyFileNodeServer(change.accountId)
+        ? toLegacyRights(change.rights as FileNodeRights)
+        : change.rights,
+    });
+    const usingFor: Record<string, string[]> = {
+      [SET_METHOD.mailbox]: ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:mail", JMAPClient.MAIL_SHARE_CAPABILITY],
+      [SET_METHOD.calendar]: this.calendarUsing(),
+      [SET_METHOD.addressBook]: this.contactUsing(),
+      [SET_METHOD.file]: this.fileUsing(),
+    };
+    const results: ShareChangeResult[] = [];
+    for (const group of batched(calls, this.getMaxCallsInRequest())) {
+      const using = [...new Set(group.flatMap(([method]) => usingFor[method] ?? []))];
+      try {
+        const response = await this.request(group, using);
+        results.push(...readShareSetResults(group, changesByCall, response.methodResponses as [string, Record<string, unknown>, string][]));
+      } catch (error) {
+        results.push(...failAll(group, changesByCall, error));
+      }
+    }
+    return results;
+  }
+
+  /**
+   * The principal with this address, through a directory query. `forbidden`
+   * when the server refuses queries (Stalwart 1.0 with directory queries off,
+   * the default), with `directoryQueriesOff` when that is the reason.
+   */
+  async findPrincipalByEmail(email: string): Promise<{ principal: Principal | null; status: "ok" | "forbidden" | "error"; directoryQueriesOff?: boolean }> {
+    if (!this.supportsPrincipals()) return { principal: null, status: "error" };
+    const wanted = email.trim().toLowerCase();
+    try {
+      const page = await this.queryPrincipals(this.accountId, { filter: { email: wanted }, limit: 10 });
+      if (!page.ok) {
+        if (page.forbidden) return { principal: null, status: "forbidden", ...(page.directoryQueriesOff ? { directoryQueriesOff: true } : {}) };
+        return { principal: null, status: "error" };
+      }
+      const principal = page.list.find((p) => p.email?.toLowerCase() === wanted || p.name?.toLowerCase() === wanted) ?? null;
+      return { principal, status: "ok" };
+    } catch (error) {
+      console.error("Failed to look up principal:", error);
+      return { principal: null, status: "error" };
     }
   }
 
@@ -11719,5 +12014,100 @@ export class JMAPClient implements IJMAPClient {
       [['PushSubscription/set', { destroy: [id] }, '0']],
       ['urn:ietf:params:jmap:core'],
     );
+  }
+
+  // ── Recover deleted items (Stalwart Enterprise, lib/recovery/archived-items.ts) ──
+
+  advertisesArchivedItems(accountId?: string): boolean {
+    return this.hasAccountCapability(STALWART_CAPABILITY, accountId || this.accountId);
+  }
+
+  /** Accounts whose server refused the `accountId` filter (every user without Impersonate). */
+  private archiveFilterRefused = new Set<string>();
+
+  /**
+   * One page of the account's archived item ids, newest first. A request of
+   * its own: without an Enterprise license Stalwart refuses it (`forbidden`),
+   * and that must not take other calls down with it. The `accountId` filter
+   * keeps an admin's answer to this account; a normal user is refused it
+   * (`unsupportedFilter`) and asked again without it, once per account.
+   */
+  async queryArchivedItemIds(accountId?: string, options: { position?: number; limit?: number; calculateTotal?: boolean } = {}): Promise<ArchiveQueryPage> {
+    const id = accountId || this.accountId;
+    const args: Record<string, unknown> = { accountId: id };
+    if (options.position) args.position = options.position;
+    if (options.limit) args.limit = options.limit;
+    if (options.calculateTotal) args.calculateTotal = true;
+    const ask = async (filtered: boolean) => {
+      const response = await this.request([["x:ArchivedItem/query", filtered ? { ...args, filter: { accountId: id } } : args, "q"]], ARCHIVED_ITEM_USING);
+      return response.methodResponses?.[0] ?? [];
+    };
+    let [method, result] = await ask(!this.archiveFilterRefused.has(id));
+    if (method === "error" && (result as JmapErrorInfo | undefined)?.type === "unsupportedFilter" && !this.archiveFilterRefused.has(id)) {
+      this.archiveFilterRefused.add(id);
+      [method, result] = await ask(false);
+    }
+    if (method !== "x:ArchivedItem/query") {
+      const error = result as JmapErrorInfo | undefined;
+      throw jmapError(error?.description || "Failed to list deleted items", error);
+    }
+    const { ids, total } = result as { ids?: unknown; total?: unknown };
+    return {
+      ids: Array.isArray(ids) ? ids.filter((v): v is string => typeof v === "string") : [],
+      total: typeof total === "number" ? total : null,
+    };
+  }
+
+  private archiveIo(accountId: string): ArchiveIo {
+    return {
+      query: (position, limit) => this.queryArchivedItemIds(accountId, { position, limit, calculateTotal: true }),
+      get: async (ids) => {
+        const calls: JMAPMethodCall[] = batched(ids, this.getMaxObjectsInGet())
+          .map((batch, i): JMAPMethodCall => ["x:ArchivedItem/get", { accountId, ids: batch }, `g${i}`]);
+        const list: unknown[] = [];
+        for (const group of batched(calls, this.getMaxCallsInRequest())) {
+          const response = await this.request(group, ARCHIVED_ITEM_USING);
+          for (const [method, result] of response.methodResponses ?? []) {
+            if (method !== "x:ArchivedItem/get") {
+              const error = result as JmapErrorInfo | undefined;
+              throw jmapError(error?.description || "Failed to read deleted items", error);
+            }
+            const items = (result as { list?: unknown }).list;
+            if (Array.isArray(items)) list.push(...items);
+          }
+        }
+        return list;
+      },
+    };
+  }
+
+  /** The account's deleted messages inside the days window, newest first, in pages (see listArchivedEmailsPaged). */
+  async listArchivedEmails(accountId?: string, options: { days?: number; startPosition?: number } = {}): Promise<ArchiveListResult> {
+    const id = accountId || this.accountId;
+    return listArchivedEmailsPaged(this.archiveIo(id), id, { days: options.days ?? 0, startPosition: options.startPosition });
+  }
+
+  /** Whether at least one deleted message of the account is inside the days window. */
+  async hasArchivedEmail(accountId?: string, options: { days?: number } = {}): Promise<boolean> {
+    const id = accountId || this.accountId;
+    return hasArchivedEmail(this.archiveIo(id), id, { days: options.days ?? 0 });
+  }
+
+  async restoreArchivedItems(ids: string[], accountId?: string): Promise<RestoreResult[]> {
+    const id = accountId || this.accountId;
+    const calls = buildRestoreCalls(ids, id, this.getMaxObjectsInSet());
+    const results: RestoreResult[] = [];
+    for (const group of batched(calls, this.getMaxCallsInRequest())) {
+      try {
+        const response = await this.request(group, ARCHIVED_ITEM_USING);
+        results.push(...readRestoreResults(group, (response.methodResponses ?? []) as Array<[string, Record<string, unknown>, string]>));
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        for (const [, args] of group) {
+          results.push(...Object.keys(args.update as Record<string, unknown>).map((itemId) => ({ id: itemId, ok: false, error: reason })));
+        }
+      }
+    }
+    return results;
   }
 }

@@ -30,6 +30,8 @@ import { folderListKey, forgetFolderLists, rememberFolderList, rememberedFolderL
 import { keywordPointer } from "@/lib/jmap/patch-pointer";
 import { useAccountStore } from "@/stores/account-store";
 import { useMessageListTabsStore } from "@/stores/message-list-tabs-store";
+import { activeListFilterCondition, activeListFilterKeywords, listFilters, type ListFilterFolder } from "@/lib/plugin-sandbox/list-filters";
+import { mailAccountKind } from "@/lib/plugin-sandbox/account-kind";
 import { SendCancelledCleanupError } from "@/lib/send-failure-message";
 import type { StorageQuota } from "@/lib/quota";
 import { isArchiveActionEnabled } from "@/lib/archive-gate";
@@ -277,6 +279,12 @@ interface EmailStore {
 
   // Keyword/tag filter
   selectedKeyword: string | null;
+  /**
+   * A tag picked from a group account's shared tags in the sidebar: the tag
+   * view lists that JMAP account (of the active login) only. Null: every
+   * account the login reaches (#1038).
+   */
+  selectedKeywordAccountId: string | null;
   tagCounts: Record<string, { total: number; unread: number }>;
 
   // Advanced search state
@@ -388,7 +396,7 @@ interface EmailStore {
   setError: (error: string | null) => void;
   setSearchQuery: (query: string) => void;
   setQuota: (quota: StorageQuota | null) => void;
-  selectKeyword: (keyword: string | null) => void;
+  selectKeyword: (keyword: string | null, accountId?: string | null) => void;
   fetchTagCounts: (client: IJMAPClient) => Promise<void>;
   /** Take the email, not its id: the id alone collides across accounts. */
   toggleEmailSelection: (email: SelectableEmail) => void;
@@ -900,22 +908,43 @@ function unreadFirstFor(
 }
 
 /**
- * What a folder's query ANDs in: the open category tab's filter, and read
- * mail only in the "Unread first" inbox, whose unread mail is the section's.
+ * The keyword filters plugins offer for the list (api.ui.setListFilters)
+ * that the user turned on and that apply to this folder.
+ */
+function pluginListFilter(mailbox: Mailbox | undefined): Record<string, unknown> | null {
+  if (!mailbox || listFilters().length === 0) return null;
+  return activeListFilterCondition(pluginFilterFolder(mailbox));
+}
+
+/** A folder as the plugins' list filters see it: its role and its account's kind. */
+function pluginFilterFolder(mailbox: Mailbox): ListFilterFolder {
+  const auth = useAuthStore.getState();
+  const viewing = useEmailStore.getState().viewingAccountId;
+  const client = viewing ? auth.getClientForAccount(viewing) : auth.client;
+  return {
+    role: mailbox.role ?? null,
+    accountKind: client ? mailAccountKind(client, mailbox.isShared ? mailbox.accountId : undefined) : null,
+  };
+}
+
+/**
+ * What a folder's query ANDs in: the open category tab's filter, the
+ * plugins' list filters the user turned on, and read mail only in the
+ * "Unread first" inbox, whose unread mail is the section's.
  */
 function folderListFilter(
   mailbox: Mailbox | undefined,
   s: Pick<EmailStore, 'selectedKeyword' | 'searchQuery' | 'searchFilters' | 'isUnifiedView'>,
 ): Record<string, unknown> | null {
   const categoryFilter = useMessageListTabsStore.getState().getCategoryFilter(mailbox?.role);
-  return andFilters(categoryFilter, unreadFirstFor(mailbox, s) ? READ_FILTER : null);
+  return andFilters(andFilters(categoryFilter, pluginListFilter(mailbox)), unreadFirstFor(mailbox, s) ? READ_FILTER : null);
 }
 
 /** The newest unread mail of the folder, for the "Unread first" inbox. */
 async function loadUnreadSection(client: IJMAPClient, mailbox: Mailbox, get: StoreGet): Promise<{ emails: Email[]; total: number }> {
   const effectiveClient = resolveActionClient(client);
   const accountId = mailbox.isShared ? mailbox.accountId : undefined;
-  const categoryFilter = useMessageListTabsStore.getState().getCategoryFilter(mailbox.role);
+  const categoryFilter = andFilters(useMessageListTabsStore.getState().getCategoryFilter(mailbox.role), pluginListFilter(mailbox));
   const result = await effectiveClient.getEmails(
     mailbox.originalId || mailbox.id,
     accountId,
@@ -950,13 +979,16 @@ function applyUnreadSection(get: StoreGet, set: StoreSet, mailboxId: string, loa
  * the changed keywords (#718). The change moves the row at once, possibly past
  * the end of what is loaded, but nothing moves the rows from beyond it up -
  * reading the top unread mail over and over ran out of unread mail after the
- * first page while more waited on the server.
+ * first page while more waited on the server. The same for a keyword a
+ * plugin's list filter tests: a message marked done leaves an "Open" list.
  */
 function refillAfterKeywordChange(get: StoreGet, client: IJMAPClient, changed: Iterable<string>): void {
   const s = get();
   if (s.isUnifiedView || s.isScheduledView || s.selectedKeyword || s.searchQuery || !isFilterEmpty(s.searchFilters)) return;
   const sortKeywords = orderKeywords(s.listOrder);
-  if (![...changed].some((keyword) => sortKeywords.includes(keyword))) return;
+  const mailbox = listFilters().length > 0 ? resolveActionMailboxes().find((mb) => mb.id === s.selectedMailbox) : undefined;
+  const filtered = mailbox ? activeListFilterKeywords(pluginFilterFolder(mailbox)) : null;
+  if (![...changed].some((keyword) => sortKeywords.includes(keyword) || !!filtered?.has(keyword.toLowerCase()))) return;
   void s.refreshCurrentMailbox(client);
 }
 
@@ -1918,6 +1950,16 @@ export function buildTagViewAccountClients(passedClient: IJMAPClient): UnifiedAc
     });
   }
   return built;
+}
+
+/**
+ * The accounts a tag view lists: all of them, or only the group account
+ * whose shared tag was picked in the sidebar (selectedKeywordAccountId).
+ */
+function tagViewAccounts(passedClient: IJMAPClient): UnifiedAccountClient[] {
+  const built = buildTagViewAccountClients(passedClient);
+  const scoped = useEmailStore.getState().selectedKeywordAccountId;
+  return scoped ? built.filter((account) => account.jmapAccountId === scoped) : built;
 }
 
 /**
@@ -3178,6 +3220,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
   // Keyword/tag filter
   selectedKeyword: null,
+  selectedKeywordAccountId: null,
   tagCounts: {},
 
   // Advanced search state
@@ -3243,6 +3286,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     selectedEmail: null,
     selectedEmailKeys: new Set(),
     selectedKeyword: null,
+    selectedKeywordAccountId: null,
     expandedThreadIds: new Set(),
     threadEmailsCache: new Map(),
     threadEmailCounts: new Map(),
@@ -3333,8 +3377,9 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     }
     set({ listHold: { rowKey, keywords } });
   },
-  selectKeyword: (keyword) => set(state => ({
+  selectKeyword: (keyword, accountId = null) => set(state => ({
     selectedKeyword: keyword,
+    selectedKeywordAccountId: keyword ? accountId : null,
     isLoadingMore: false,
     selectedEmail: null,
     selectedEmailKeys: new Set(),
@@ -3391,6 +3436,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       selectedEmail: null,
       selectedEmailKeys: new Set(),
       selectedKeyword: null,
+      selectedKeywordAccountId: null,
       expandedThreadIds: new Set(),
       threadEmailsCache: new Map(),
       threadEmailCounts: new Map(),
@@ -3685,7 +3731,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const { selectedKeyword } = get();
       if (selectedKeyword) {
         const order = getMessageListOrderFor(null);
-        const built = buildTagViewAccountClients(client);
+        const built = tagViewAccounts(client);
         // Selecting a tag keeps an active search (`handleTagSelect` does not
         // clear it), and the search paths narrow the tag rather than replace
         // it — so honour the query here too, or the list would flip between
@@ -3989,7 +4035,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         // Searching inside a tag view narrows the tag (see searchEmails), so
         // page 2 must carry the same keyword AND the same query — otherwise it
         // appends unrelated all-folders hits to a tag list.
-        const built = buildTagViewAccountClients(client);
+        const built = tagViewAccounts(client);
         result = await fetchTagEmails(
           built, `$label:${selectedKeyword}`, emailsPerPage, positionsByAccount(emails), getMessageListOrderFor(null),
           hasFilters
@@ -4004,7 +4050,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         if (isAllFoldersSearchScope(searchMailboxId)) {
           // Folder-less scope: the next page of the same own + group account
           // fan-out the search ran (#1082).
-          const built = buildTagViewAccountClients(client);
+          const built = tagViewAccounts(client);
           const scope = acrossAccountsSearchOptions(searchMailboxId);
           result = hasFilters
             ? await advancedSearchAcrossAccounts(built, buildJMAPFilter(searchQuery, searchFilters, undefined), emailsPerPage, positionsByAccount(emails), scope)
@@ -4027,7 +4073,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         // Tag view: the next page of the same cross-account fan-out the
         // initial fetch ran (same keyword, no folder constraint, same order),
         // so pagination spans the own and group accounts alike (#1038).
-        const built = buildTagViewAccountClients(client);
+        const built = tagViewAccounts(client);
         result = await fetchTagEmails(
           built, `$label:${selectedKeyword}`, emailsPerPage, positionsByAccount(emails), getMessageListOrderFor(null),
         );
@@ -5170,7 +5216,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         // NARROWS the tag rather than silently replacing the list with an
         // unrelated all-folders result that the next push refresh would throw
         // away again.
-        const built = buildTagViewAccountClients(client);
+        const built = tagViewAccounts(client);
         result = await fetchTagEmails(
           built, `$label:${selectedKeyword}`, emailsPerPage, 0, getMessageListOrderFor(null),
           textFilter(query),
@@ -5183,7 +5229,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         // views use (#1038). A single own-account query silently skipped the
         // shared accounts' mail (#1082). The default scope leaves every
         // account's Trash and Junk out; "All folders" searches them too.
-        const built = buildTagViewAccountClients(client);
+        const built = tagViewAccounts(client);
         result = await searchAcrossAccounts(built, query, emailsPerPage, 0, { ...acrossAccountsSearchOptions(searchMailboxId), deferSnippets: true });
         unifiedErrors = result.errors;
 
@@ -5285,7 +5331,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
       } else if (selectedKeyword) {
         // Narrow the tag rather than replace it — see searchEmails.
-        const built = buildTagViewAccountClients(client);
+        const built = tagViewAccounts(client);
         result = await fetchTagEmails(
           built, `$label:${selectedKeyword}`, emailsPerPage, 0, getMessageListOrderFor(null),
           buildJMAPFilter(searchQuery, searchFilters, undefined),
@@ -5295,7 +5341,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       } else if (isAllFoldersSearchScope(searchMailboxId)) {
         // Folder-less scope: fan out over the own + group/shared accounts with
         // a filter that carries no inMailbox clause (#1082).
-        const built = buildTagViewAccountClients(client);
+        const built = tagViewAccounts(client);
         result = await advancedSearchAcrossAccounts(
           built, buildJMAPFilter(searchQuery, searchFilters, undefined), emailsPerPage, 0,
           { ...acrossAccountsSearchOptions(searchMailboxId), deferSnippets: true },
@@ -6692,7 +6738,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
           // They cannot establish a folder delta baseline.
           // An active search narrows the tag, so carry it or the refresh
           // would silently widen the list back to the whole tag.
-          const built = buildTagViewAccountClients(client);
+          const built = tagViewAccounts(client);
           result = await fetchTagEmails(
             built, `$label:${selectedKeyword}`, emailsPerPage, 0, getMessageListOrderFor(null),
             hasFilters
@@ -6709,7 +6755,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
           if (isAllFoldersSearchScope(searchMailboxId)) {
             // Folder-less scope: the same own + group account fan-out the
             // search ran, so a change in a group account reaches the list (#1082).
-            const built = buildTagViewAccountClients(client);
+            const built = tagViewAccounts(client);
             result = await advancedSearchAcrossAccounts(
               built, buildJMAPFilter(searchQuery, searchFilters, undefined), emailsPerPage, 0,
               acrossAccountsSearchOptions(searchMailboxId),
@@ -7675,6 +7721,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       unifiedRole: role,
       crossView: null,
       selectedKeyword: null,
+      selectedKeywordAccountId: null,
       retainedInViewIds: new Set(),
       listHold: null,
       viewToken: token,
@@ -7761,6 +7808,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       unifiedRole: null,
       crossView: view,
       selectedKeyword: null,
+      selectedKeywordAccountId: null,
       retainedInViewIds: new Set(),
       listHold: null,
       viewToken: token,

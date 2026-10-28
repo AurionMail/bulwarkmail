@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { SettingsSection, SettingItem, Select } from './settings-section';
 import { IdentityManagerModal } from '@/components/identity/identity-manager-modal';
+import { SignatureDetailsSection } from './signature-details-section';
 import { useIdentityStore } from '@/stores/identity-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import {
@@ -106,6 +107,9 @@ export function EmailAddressesSection() {
           </div>
         </SettingItem>
       </SettingsSection>
+
+      {/* The details the organisation signature asks for, if it asks. */}
+      <SignatureDetailsSection />
 
       {/* Identity Manager Modal */}
       <IdentityManagerModal

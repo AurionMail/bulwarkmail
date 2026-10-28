@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { logger } from '@/lib/logger';
 import type { TelemetryStateFile, ConsentState } from './types';
 import { DEFAULT_ENDPOINT } from './types';
+import { isNoThirdPartyTrafficOn } from '@/lib/admin/third-party-mode';
 
 function getDir(): string {
   return process.env.TELEMETRY_DATA_DIR ||
@@ -83,15 +84,17 @@ export async function saveState(state: TelemetryStateFile): Promise<void> {
   await rename(tmp, statePath());
 }
 
-// Effective consent: env var wins over file. UI changes are blocked
-// when env override is active so the user knows where it's coming from.
+// Effective consent: the no-third-party mode wins over everything (#903),
+// then the env var, then the file. UI changes are blocked when either
+// override is active so the user knows where it's coming from.
 export async function effectiveConsent(): Promise<{
   consent: ConsentState;
-  source: 'env' | 'file';
+  source: 'no-third-party' | 'env' | 'file';
   state: TelemetryStateFile;
 }> {
   const envState = envOverride();
   const state = await loadState();
+  if (await isNoThirdPartyTrafficOn()) return { consent: 'off', source: 'no-third-party', state };
   if (envState) return { consent: envState, source: 'env', state };
   return { consent: state.consent, source: 'file', state };
 }

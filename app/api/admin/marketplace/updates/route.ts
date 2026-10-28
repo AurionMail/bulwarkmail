@@ -8,6 +8,8 @@ import {
   directoryJson,
   getDirectoryChannel,
   getDirectoryUrl,
+  directoryOff,
+  DIRECTORY_OFF_MESSAGE,
   installedExtensions,
   v2Url,
   type DirectoryAdvisory,
@@ -43,6 +45,13 @@ export async function GET(request: NextRequest) {
     const list = [...installed].map(([id, e]) => ({ id, ...e }));
     const ask = list.filter((e) => askDirectoryAbout(e.source)).map((e) => ({ slug: e.id, version: e.version }));
 
+    // The installed list is still useful with the official directory off (#903).
+    if (await directoryOff()) {
+      return NextResponse.json(
+        { installed: list, ...EMPTY, directoryUrl: null, channel: getDirectoryChannel(), appVersion: APP_VERSION || null, error: DIRECTORY_OFF_MESSAGE },
+        { headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
     const directoryUrl = await getDirectoryUrl();
     const channel = getDirectoryChannel();
     let answer: UpdatesAnswer = EMPTY;

@@ -6,6 +6,7 @@ import { toast } from '@/stores/toast-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useEmailStore } from '@/stores/email-store';
+import { flushComposers, resetComposeFlushRegistry } from '@/lib/compose-flush-registry';
 
 // Sending from the viewer - quick reply, "Send now" / "Reschedule" of a
 // scheduled message, and read receipts - used to fail silently or as an
@@ -108,6 +109,21 @@ describe('viewer send failures', () => {
     await waitFor(() => expect(toastError).toHaveBeenCalledWith('submission_quota'));
     expect(onQuickReply).toHaveBeenCalledWith('Thanks!');
     expect((box as HTMLTextAreaElement).value).toBe('Thanks!');
+  });
+
+  it('keeps typed quick-reply text as a draft before an automatic sign-out', async () => {
+    resetComposeFlushRegistry();
+    const onSaveQuickReplyDraft = vi.fn().mockResolvedValue(undefined);
+    render(
+      <EmailViewer email={makeEmail()} mailboxes={mailboxes} selectedMailbox="inbox" currentMailboxRole="inbox"
+        onQuickReply={vi.fn()} onSaveQuickReplyDraft={onSaveQuickReplyDraft} />,
+    );
+    await act(async () => { await flushComposers(1000); });
+    expect(onSaveQuickReplyDraft).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByPlaceholderText('quick_reply_placeholder'), { target: { value: 'On it.' } });
+    await act(async () => { await flushComposers(1000); });
+    expect(onSaveQuickReplyDraft).toHaveBeenCalledWith('On it.');
   });
 
   const scheduled = () => makeEmail({

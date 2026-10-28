@@ -27,11 +27,14 @@ import { registerShortcuts } from './shortcuts';
 import { mayOfferSlot, mayRegisterHook, pluginHasPermission, slotPropsFor } from './permissions';
 import { clearPluginActions, setActionDispatcher } from './actions';
 import { clearDayLabels } from './day-labels';
+import { clearPluginListFilters } from './list-filters';
 import { clearPluginPages } from './pages';
 import { clearSectionTitle } from './section-titles';
 import { cancelPluginProxyRequests } from './proxy-client';
 import { cancelConnectFor } from './connect-dialog';
+import { isHookHandedOver } from './host-features';
 import type { SlotName } from '../plugin-types';
+import { PLUGIN_REFUSED_ERROR, pluginAllowed } from '../outgoing-hosts';
 
 // ─── Hook-bus lookup (one flat map for name → bus) ────────────
 
@@ -222,6 +225,13 @@ export function loadSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
 }
 
 async function startSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
+  // A plugin that declares network access doesn't start while third-party
+  // traffic is off; the rest run (#903).
+  if (!pluginAllowed(plugin)) {
+    storeAccessor?.setPluginStatus(plugin.id, 'error', PLUGIN_REFUSED_ERROR);
+    console.warn(`[plugin-sandbox] "${plugin.id}" not started: it declares network access and third-party traffic is off`);
+    return;
+  }
 
   let background: ReturnType<typeof createBackgroundInstance> | null = null;
   try {
@@ -280,7 +290,12 @@ async function startSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
       }
       // The bus records a failure once; recording it here too made the
       // three-strikes breaker trip on the second error.
-      const proxy = (...args: unknown[]) => bg.invokeHook(hookName, args);
+      // While Bulwark does a retired plugin's job itself, that plugin's
+      // hook is skipped: copies older than the release that steps back on
+      // its own would ask twice (host-features.ts). Asked per call, so
+      // turning the core switch off gives the plugin its hook back.
+      const pluginId = plugin.id;
+      const proxy = (...args: unknown[]) => (isHookHandedOver(pluginId, hookName) ? undefined : bg.invokeHook(hookName, args));
       hookDisposables.push(bus.register(plugin.id, proxy as (...a: unknown[]) => unknown));
       if (hookName === 'onEmailOpen') openHandler = proxy;
     }
@@ -362,9 +377,10 @@ export function unloadSandboxedPlugin(pluginId: string): void {
   // Drop any message-list category tabs the plugin registered so the strip
   // disappears (and the inbox unfilters) the moment the plugin is disabled.
   try { useMessageListTabsStore.getState().clearTabs(pluginId); } catch { /* ignore */ }
-  // Same for the buttons, day labels and pages it declared, and anything
-  // still running through the proxy for it.
+  // Same for the buttons, list filters, day labels and pages it declared,
+  // and anything still running through the proxy for it.
   clearPluginActions(pluginId);
+  clearPluginListFilters(pluginId);
   clearDayLabels(pluginId);
   clearPluginPages(pluginId);
   clearSectionTitle(pluginId);

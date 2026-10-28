@@ -39,6 +39,7 @@ import { buildDuplicateEventData } from "@/lib/calendar-duplicate";
 import { useFormatEventDate } from "@/hooks/use-format-event-date";
 import { useIsPaneScoped } from "@/hooks/use-pane-context";
 import { useContactNameResolver } from "@/hooks/use-contact-name-resolver";
+import { confirmInvitationRecipients } from "@/lib/outgoing/external-recipients";
 import {
   calendarFormHooks,
   calendarHooks,
@@ -891,6 +892,14 @@ export function EventModal({
       }
 
       const shouldSendScheduling = userIsOrganizer && effectiveAttendees.length > 0 && sendInvitations;
+      // Invitations are mail too: newly invited people outside the
+      // organisation get the same confirm as a message (Back keeps the
+      // editor open, nothing saved).
+      if (shouldSendScheduling) {
+        const known = new Set(initialAttendees.map((a) => a.email.trim().toLowerCase()));
+        const invited = effectiveAttendees.map((a) => a.email).filter((email) => email && !known.has(email.trim().toLowerCase()));
+        if (!(await confirmInvitationRecipients(invited))) return;
+      }
       await onSave(data, shouldSendScheduling, {
         initialAttendees,
         attendees: effectiveAttendees,

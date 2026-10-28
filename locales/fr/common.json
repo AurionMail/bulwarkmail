@@ -88,6 +88,20 @@
       "back_to_login": "Retour à la connexion"
     }
   },
+  "session_limits": {
+    "idle_title": "Êtes-vous toujours là ?",
+    "idle_message": "Vous serez déconnecté dans {seconds, plural, one {# seconde} other {# secondes}} faute d'activité. Les messages ouverts sont enregistrés comme brouillons.",
+    "stay": "Rester connecté",
+    "sign_out_now": "Se déconnecter maintenant",
+    "max_title": "Votre session se termine",
+    "max_message": "Votre organisation met fin aux sessions {hours, plural, one {# heure} other {# heures}} après la connexion. Vous serez déconnecté dans {seconds, plural, one {# seconde} other {# secondes}}. Les messages ouverts sont enregistrés comme brouillons.",
+    "dismiss": "OK",
+    "signing_out": "Enregistrement des brouillons et déconnexion…",
+    "reason_idle": "Vous avez été déconnecté après {minutes, plural, one {# minute} other {# minutes}} sans activité.",
+    "reason_max": "Vous avez été déconnecté, car votre session a atteint sa durée maximale de {hours, plural, one {# heure} other {# heures}}.",
+    "drafts_not_saved": "Un ou plusieurs messages ouverts n'ont pas pu être enregistrés comme brouillons.",
+    "seconds_left": "{seconds, plural, one {# seconde restante} other {# secondes restantes}}"
+  },
   "totp_reauth": {
     "title": "Session expirée",
     "description": "Votre code à deux facteurs a changé. Saisissez un nouveau code de votre application d'authentification pour continuer.",
@@ -348,6 +362,34 @@
     "reschedule_send": "Replanifier",
     "cancel_and_edit": "Annuler et modifier",
     "cancel_and_compose_again": "Annuler et rédiger à nouveau"
+  },
+  "shared_tags": {
+    "title": "Étiquettes partagées",
+    "description": "Les étiquettes de vos boîtes aux lettres de groupe. Tous les membres du groupe voient les mêmes noms et couleurs sur ses messages.",
+    "picker_heading": "Partagées avec tous les membres de cette boîte aux lettres",
+    "sidebar_heading": "Étiquettes",
+    "edit": "Modifier les étiquettes partagées",
+    "edit_tag": "Modifier {name}",
+    "delete_tag": "Supprimer {name}",
+    "name_it": "Nommer {name}",
+    "add": "Ajouter une étiquette partagée",
+    "name": "Nom",
+    "color": "Couleur",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "delete_confirm": "Supprimer pour tout le monde ? L'étiquette reste sur ses messages.",
+    "found_on_messages": "Sur des messages, sans nom pour l'instant",
+    "empty": "Aucune étiquette partagée pour l'instant.",
+    "exists": "Cette boîte aux lettres a déjà cette étiquette.",
+    "too_long": "Ce nom est trop long.",
+    "loading": "Chargement…",
+    "unsupported": "Ce serveur de messagerie ne peut pas conserver d'étiquettes partagées, cette boîte aux lettres affiche donc vos propres étiquettes.",
+    "unavailable": "Impossible de charger les étiquettes partagées de cette boîte aux lettres, elle affiche donc vos propres étiquettes. Bulwark réessaiera plus tard.",
+    "no_rights": "Vous pouvez utiliser ces étiquettes, mais pas les modifier dans cette boîte aux lettres.",
+    "too_many": "Il y a trop d'étiquettes partagées. Supprimez-en quelques-unes avant d'en ajouter d'autres.",
+    "save_failed": "Impossible d'enregistrer les étiquettes partagées. Bulwark réessaiera dès que le serveur répondra.",
+    "save_pending": "Pas encore enregistré. Bulwark réessaiera dès que le serveur répondra."
   },
   "email_viewer": {
     "read_receipt": {
@@ -712,6 +754,18 @@
       "load_failed": "Impossible de charger vos dossiers. Réessayez."
     }
   },
+  "external_mail": {
+    "sender_label": "Externe",
+    "sender_tooltip": "De {domain}, hors de votre organisation",
+    "sender_tooltip_no_domain": "D'une adresse sans domaine, hors de votre organisation",
+    "confirm_title": "Envoyer hors de votre organisation ?",
+    "confirm_message": "{count, plural, one {Ce destinataire est} other {Ces # destinataires sont}} hors de votre organisation. N'envoyez que si c'est voulu.",
+    "field_to": "À",
+    "field_cc": "CC",
+    "field_bcc": "CCI",
+    "send_anyway": "Envoyer quand même",
+    "back": "Retour"
+  },
   "email_composer": {
     "select_from_directory": "Choisir dans l'annuaire",
     "minimize": "Réduire",
@@ -1046,6 +1100,13 @@
     "rule_folder_failed": "Impossible de créer le dossier",
     "vacation_filters_save_failed": "Paramètres d'absence enregistrés, mais le transfert et les destinataires de la réponse n'ont pas pu être enregistrés"
   },
+  "third_party": {
+    "push_needs_relay": "Les notifications push nécessitent un relais push géré par votre organisation, et aucun n'est configuré. Les nouveaux messages s'affichent toujours tant que l'application est ouverte.",
+    "relay_desc": "Seuls les relais de votre organisation sont proposés, car ce serveur ne contacte pas de services extérieurs.",
+    "relay_none": "Aucun configuré",
+    "plugin_refused": "Non démarré : ce plugin se connecte à des services extérieurs, que votre organisation a désactivés.",
+    "remote_content_blocked": "Votre organisation bloque le contenu provenant d'autres serveurs, les images distantes de ce message ne sont donc pas affichées."
+  },
   "date": {
     "today": "Aujourd'hui",
     "yesterday": "Hier",
@@ -1112,6 +1173,7 @@
   },
   "settings": {
     "title": "Paramètres",
+    "org_locked": "Défini par votre organisation",
     "back_to_mail": "Retour aux emails",
     "back_to_settings": "Retour aux paramètres",
     "save_success": "Paramètres enregistrés avec succès",
@@ -3161,6 +3223,23 @@
     "delete_button": "Supprimer",
     "delete_confirm_title": "Supprimer l'identité"
   },
+  "org_signature": {
+    "disclaimer_added_on_send": "Ajouté à l'envoi",
+    "identity_signature_label": "Signature",
+    "identity_no_signature": "Aucune signature",
+    "identity_default": "Laissez les deux signatures vides pour envoyer la signature de votre organisation depuis cette adresse.",
+    "details": {
+      "title": "Vos informations",
+      "description": "La signature de votre organisation affiche ces informations. Remplissez-les une fois ; toutes les adresses depuis lesquelles vous envoyez les utilisent.",
+      "preview": "Votre signature",
+      "fields": {
+        "title": "Poste",
+        "department": "Service",
+        "phone": "Téléphone",
+        "mobile": "Mobile"
+      }
+    }
+  },
   "templates": {
     "picker_title": "Choisir un modèle",
     "manage": "Gérer les modèles",
@@ -3191,6 +3270,26 @@
       "day_of_week": "Jour de la semaine",
       "sender_name": "Votre nom"
     }
+  },
+  "org_templates": {
+    "section_personal": "Mes modèles",
+    "section_organisation": "Organisation",
+    "sources_label": "Listes de modèles",
+    "organisation_note": "Fournis par votre organisation. Vous ne pouvez pas les modifier, mais vous pouvez en copier un dans vos propres modèles.",
+    "copy_to_personal": "Copier dans mes modèles",
+    "duplicate": "Dupliquer",
+    "save_failed": "Le modèle n'a pas pu être enregistré. Réessayez.",
+    "save_failed_forbidden": "Vous ne pouvez pas modifier ces modèles.",
+    "save_failed_too_large": "Ce modèle dépasse les 8 Ko que le serveur conserve par modèle. Raccourcissez-le et enregistrez à nouveau.",
+    "save_failed_no_room": "La boîte aux lettres n'a plus de place pour d'autres modèles. Supprimez-en un et réessayez.",
+    "local_only_too_large": "Uniquement dans ce navigateur : dépasse les 8 Ko que le serveur conserve par modèle.",
+    "local_only_no_room": "Uniquement dans ce navigateur : votre compte n'a plus de place pour d'autres modèles.",
+    "personal_in_account": "Vos modèles sont conservés dans votre compte, vous les retrouvez donc sur chaque appareil où vous vous connectez. Toute personne avec qui vous partagez votre boîte de réception peut les lire.",
+    "team_note": "Tous les membres de {name} voient ces modèles et peuvent les modifier.",
+    "team_read_only": "Vous pouvez utiliser ces modèles, mais pas les modifier.",
+    "save_failed_conflict": "Modifié par quelqu'un d'autre. Rechargez et réessayez.",
+    "preview_to": "À : {list}",
+    "preview_cc": "CC : {list}"
   },
   "contacts": {
     "directory": {
@@ -4577,6 +4676,32 @@
   "unified_mailbox": {
     "search_unavailable": "La recherche n'est pas disponible dans la vue unifiée"
   },
+  "recover_deleted": {
+    "tab": "Récupérer des éléments supprimés",
+    "title": "Récupérer des éléments supprimés",
+    "description": "Les e-mails que vous avez supprimés définitivement, par exemple en vidant la corbeille, et que le serveur conserve encore. Sélectionnez des messages et restaurez-les.",
+    "range_days": "E-mails supprimés {days, plural, one {au cours du dernier jour} other {au cours des # derniers jours}}.",
+    "range_all": "Tous les e-mails supprimés que le serveur conserve encore.",
+    "loading": "Chargement des e-mails supprimés…",
+    "load_failed": "Impossible de charger les e-mails supprimés.",
+    "retry": "Réessayer",
+    "empty": "Aucun e-mail supprimé à récupérer.",
+    "select_all": "Tout sélectionner",
+    "selected": "{count} sélectionné(s)",
+    "refresh": "Actualiser",
+    "restore": "Restaurer",
+    "restored": "{count, plural, one {# message revient} other {# messages reviennent}} dans votre boîte de réception.",
+    "restore_partial": "{count, plural, one {# message n'a pas pu être restauré. Il reste sélectionné pour que vous puissiez réessayer.} other {# messages n'ont pas pu être restaurés. Ils restent sélectionnés pour que vous puissiez réessayer.}}",
+    "restore_hint": "Les e-mails restaurés reviennent non lus dans votre boîte de réception, triés selon leur date d'origine : ils peuvent donc se trouver loin dans la liste. Le serveur les restaure en arrière-plan. Si cela échoue de son côté, le message est perdu et Bulwark ne peut pas le savoir.",
+    "unknown_sender": "Expéditeur inconnu",
+    "no_subject": "(sans objet)",
+    "deleted_on": "Supprimé le {date}",
+    "trash_hint": "Supprimé définitivement par erreur ?",
+    "trash_link": "Récupérer des éléments supprimés",
+    "empty_hint": "Les e-mails supprimés n'apparaissent ici que si votre administrateur a activé l'archivage des éléments supprimés dans Stalwart.",
+    "restore_gone": "{count, plural, one {# message n'était plus dans l'archive : il a été restauré ailleurs ou le serveur ne le conserve plus.} other {# messages n'étaient plus dans l'archive : ils ont été restaurés ailleurs ou le serveur ne les conserve plus.}}",
+    "show_older": "Afficher les plus anciens"
+  },
   "calendar_event_notifications": {
     "someone": "Quelqu'un",
     "invited": "{name} vous a invité à « {title} »",
@@ -4621,6 +4746,89 @@
       "readWrite": "Lecture & écriture",
       "manager": "Gestionnaire",
       "custom": "Personnalisé"
+    }
+  },
+  "delegates": {
+    "tab": "Partage",
+    "title": "Délégués",
+    "description": "Donnez à quelqu'un accès à vos e-mails, calendriers et contacts en une seule étape, et voyez qui a accès à quoi.",
+    "give_access": "Donner l'accès",
+    "who_has_access": "Qui a accès",
+    "nobody": "Personne n'a accès à vos e-mails, calendriers, contacts ou fichiers.",
+    "loading": "Chargement…",
+    "read_failed": "Une partie de vos partages n'a pas pu être lue, Modifier et Révoquer l'accès attendent donc que ce soit possible.",
+    "change": "Modifier",
+    "remove": "Révoquer l'accès",
+    "remove_title": "Révoquer l'accès de {name} ?",
+    "remove_message": "{name} perd l'accès à tout ce que vous avez partagé depuis votre propre compte : e-mails, calendriers, contacts et fichiers.",
+    "removed": "Accès révoqué",
+    "remove_partial": "Ces éléments sont encore accessibles : {items}",
+    "applied": "{name} a maintenant accès",
+    "updated": "Accès mis à jour",
+    "unknown_person": "Personne inconnue",
+    "group": "Groupe",
+    "has_access": "A accès",
+    "summary": {
+      "mail_all": "Tous les dossiers de messagerie",
+      "mail_inbox": "Boîte de réception",
+      "mail_some": "{count, plural, one {# dossier de messagerie} other {# dossiers de messagerie}}",
+      "calendars": "{count, plural, one {# calendrier} other {# calendriers}}",
+      "address_books": "{count, plural, one {# carnet d'adresses} other {# carnets d'adresses}}",
+      "files": "{count, plural, one {# fichier ou dossier} other {# fichiers ou dossiers}}"
+    },
+    "level": {
+      "read": "Lecture",
+      "write": "Lecture et écriture",
+      "mixed": "Droits différents",
+      "none": "Disponibilité uniquement"
+    },
+    "dialog_title_add": "Donner l'accès",
+    "dialog_title_change": "Modifier l'accès de {name}",
+    "person": "Personne",
+    "search_placeholder": "Nom ou adresse e-mail",
+    "change_person": "Modifier",
+    "no_match": "Aucune personne trouvée.",
+    "use_address": "Utiliser {address}",
+    "looking_up": "Recherche…",
+    "not_found": "Personne sur ce serveur n'a l'adresse {address}.",
+    "lookup_failed": "Impossible de rechercher cette adresse.",
+    "is_you": "C'est vous.",
+    "known_only": "Seuls vos groupes et les personnes qui ont partagé quelque chose avec vous sont listés.",
+    "directory_off_note": "Votre administrateur doit activer les requêtes d'annuaire dans Stalwart avant que vous puissiez ajouter quelqu'un de nouveau.",
+    "directory_failed": "Impossible de charger la liste des personnes et des groupes.",
+    "what": "Quoi",
+    "mail": "E-mails",
+    "mail_all": "Tous les dossiers",
+    "mail_inbox": "Boîte de réception uniquement",
+    "calendars": "Calendriers",
+    "calendars_default": "Calendrier par défaut",
+    "calendars_all": "Tous les calendriers",
+    "address_books": "Contacts",
+    "address_books_default": "Carnet d'adresses par défaut",
+    "address_books_all": "Tous les carnets d'adresses",
+    "none": "Aucun",
+    "keep": "Laisser tel quel",
+    "empty_scope": "Choisissez les e-mails, les calendriers ou les contacts.",
+    "nothing_to_change": "Rien à modifier. Choisissez ce que la personne doit recevoir, ou utilisez Révoquer l'accès.",
+    "change_note": "Les dossiers, calendriers et carnets d'adresses que vous laissez de côté perdent l'accès. Les fichiers partagés restent tels quels ; Révoquer l'accès les retire aussi.",
+    "rights": "Droits",
+    "rights_read": "Lecture",
+    "rights_read_hint": "Voir vos e-mails, événements et contacts.",
+    "rights_read_hint_flags": "Voir vos e-mails, événements et contacts. Ce serveur permet aussi de signaler les e-mails et de les marquer comme lus.",
+    "rights_write": "Lecture et écriture",
+    "rights_write_hint": "Aussi classer, signaler et supprimer des e-mails, et modifier des événements et des contacts.",
+    "rights_keep": "Laisser tel quel",
+    "rights_keep_hint": "Ce que la personne a déjà garde ses droits ; ce qui est ajouté reçoit les droits du reste de ce type, ou la lecture.",
+    "send_note": "Les délégués peuvent lire et organiser vos e-mails et votre calendrier. Stalwart ne leur permet pas d'envoyer en votre nom ou de votre part. Pour partager une adresse entre plusieurs personnes, demandez une boîte aux lettres partagée à votre administrateur.",
+    "apply_add": "Donner l'accès",
+    "apply_change": "Enregistrer",
+    "partial_title": "Ces éléments n'ont pas pu être modifiés. Le reste est fait.",
+    "retry": "Réessayer",
+    "kind": {
+      "mailbox": "Dossier de messagerie",
+      "calendar": "Calendrier",
+      "addressBook": "Carnet d'adresses",
+      "file": "Fichier"
     }
   },
   "quote_header": {
@@ -4740,7 +4948,7 @@
       },
       "email_write": {
         "title": "Modifier et organiser vos e-mails",
-        "body": "Ajouter ou retirer des étiquettes, des indicateurs et d'autres mots-clés sur vos messages, les déplacer entre vos dossiers et vers les archives, et enregistrer des brouillons."
+        "body": "Ajouter ou retirer des étiquettes, des indicateurs et d'autres mots-clés sur vos messages, les déplacer entre vos dossiers et vers les archives, et enregistrer des brouillons. Il peut aussi stocker une petite valeur que chaque membre d'une boîte aux lettres d'équipe peut lire."
       },
       "email_send": {
         "title": "Modifier les e-mails avant leur envoi",
@@ -4856,7 +5064,11 @@
       },
       "account_read": {
         "title": "Voir vos comptes",
-        "body": "Voir les comptes que vous avez ajoutés, avec leurs adresses et leurs serveurs."
+        "body": "Voir les comptes que vous avez ajoutés, avec leurs adresses et leurs serveurs, et savoir quels comptes de messagerie sont des boîtes aux lettres d'équipe."
+      },
+      "directory_read": {
+        "title": "Rechercher des personnes",
+        "body": "Rechercher des personnes dans l'annuaire de votre organisation."
       },
       "http_post": {
         "title": "Utiliser le serveur du webmail pour vous",
@@ -5019,6 +5231,10 @@
       "error_server": "Saisissez l'adresse du serveur, par exemple https://cloud.example.com",
       "error_save": "Impossible d'enregistrer : {error}"
     }
+  },
+  "plugin_list": {
+    "filters": "Filtres",
+    "remove_filter": "Retirer le filtre {label}"
   },
   "global_search": {
     "title": "Tout rechercher",
