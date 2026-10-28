@@ -640,3 +640,26 @@ describe('CalendarApp selected event', () => {
     expect(screen.getAllByRole('button', { name: /Standup/ })[0].style.boxShadow).toContain('var(--color-primary)');
   });
 });
+
+describe('CalendarApp day view tasks', () => {
+  it('draws a due task with the same chip as the week and month grids', async () => {
+    setUp([], 'day');
+    const task = { id: 't1', '@type': 'Task', title: 'Buy milk', calendarIds: { cal: true }, progress: 'needs-action', priority: 0, due: '2026-10-12', showWithoutTime: true } as never;
+    useSettingsStore.setState({ showTasksOnCalendar: true } as never);
+    useTaskStore.setState({ tasks: [task] } as never);
+    client.getCalendarTasks.mockResolvedValue([task]);
+    try {
+      renderApp();
+      const chip = await waitFor(() => {
+        const found = document.querySelector('[data-calendar-task="t1"]');
+        expect(found).not.toBeNull();
+        return found as HTMLElement;
+      });
+      // The shared chip: the title is its own button that opens the task.
+      fireEvent.click(within(chip).getByRole('button', { name: 'Buy milk' }));
+      expect(screen.getByRole('heading', { name: 'tasks.edit' })).toBeInTheDocument();
+    } finally {
+      useSettingsStore.setState({ showTasksOnCalendar: false } as never);
+    }
+  });
+});

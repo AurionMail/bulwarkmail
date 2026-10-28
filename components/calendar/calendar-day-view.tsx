@@ -5,8 +5,8 @@ import { useTranslations } from "next-intl";
 import { useDisplayDateFormatter } from "@/hooks/use-display-date-formatter";
 import { format, isSameDay, eachDayOfInterval, differenceInCalendarDays } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Check } from "@/components/icons";
 import { EventCard } from "./event-card";
+import { CalendarTaskChip } from "./task-chip";
 import { QuickEventInput } from "./quick-event-input";
 import { AllHoursToggle, HiddenEventsIndicator } from "./display-hours-controls";
 import { formatSnapTime, getEventDayBounds, getPrimaryCalendarId, isTimedEventFullDayOnDate, layoutOverlappingEvents } from "@/lib/calendar-utils";
@@ -397,37 +397,17 @@ export function CalendarDayView({
                         <>
                           <div className={cn("text-[10px] text-muted-foreground mb-1", allDayEvents.length > 0 && "mt-2")}>{t("tasks.label")}</div>
                           <div className="space-y-0.5">
-                            {dayTasks.map((task) => {
-                              const isCompleted = task.progress === "completed";
-                              const cal = calendars.find(c => task.calendarIds[c.id]);
-                              const color = cal?.color || "#3b82f6";
-                              return (
-                                <div
-                                  key={task.id}
-                                  data-calendar-task={task.id}
-                                  onClick={() => onSelectTask?.(task)}
-                                  className="flex items-center gap-1.5 px-1.5 py-0.5 rounded text-xs cursor-pointer hover:bg-muted/50 transition-colors"
-                                  style={{ borderInlineStart: `3px solid ${color}` }}
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); onToggleTaskComplete?.(task); }}
-                                    className={cn(
-                                      "flex-shrink-0 w-3.5 h-3.5 rounded-full border flex items-center justify-center",
-                                      isCompleted
-                                        ? "bg-success border-success text-success-foreground"
-                                        : "border-muted-foreground/40 hover:border-primary"
-                                    )}
-                                    aria-label={isCompleted ? t("tasks.mark_incomplete") : t("tasks.mark_complete")}
-                                  >
-                                    {isCompleted && <Check className="h-2.5 w-2.5" />}
-                                  </button>
-                                  <span className={cn("truncate", isCompleted && "line-through text-muted-foreground")} title={task.title || t("tasks.no_title")}>
-                                    {task.title || t("tasks.no_title")}
-                                  </span>
-                                </div>
-                              );
-                            })}
+                            {/* The same chip as the month and week grids. */}
+                            {dayTasks.map((task) => (
+                              <div key={task.id} className="h-5">
+                                <CalendarTaskChip
+                                  task={task}
+                                  calendar={calendars.find((c) => task.calendarIds[c.id])}
+                                  onToggleComplete={onToggleTaskComplete}
+                                  onSelect={onSelectTask}
+                                />
+                              </div>
+                            ))}
                           </div>
                         </>
                       )}
