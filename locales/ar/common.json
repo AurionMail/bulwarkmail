@@ -4189,6 +4189,14 @@
     "copied": "تم نسخ الرابط",
     "copy_failed": "تعذّر نسخ الرابط"
   },
+  "connector_link": {
+    "opening": "جارٍ الفتح…",
+    "unknown_title": "هذا الرابط أحدث من {name} هذا",
+    "unknown_body": "يفتح شيئًا لا يعرفه الإصدار {version}. تحديث {name} سيجعله يعمل.",
+    "malformed_title": "هذا الرابط غير صحيح تمامًا",
+    "malformed_body": "يطلب {label}، لكن المعامل {param} مفقود أو غير صالح. لم يُفتح أي شيء.",
+    "open_app": "فتح {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "جارٍ إكمال التفويض…",

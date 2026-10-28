@@ -4189,6 +4189,14 @@
     "copied": "Link másolva",
     "copy_failed": "Nem sikerült másolni a linket"
   },
+  "connector_link": {
+    "opening": "Megnyitás…",
+    "unknown_title": "Ez a hivatkozás újabb, mint ez a {name}",
+    "unknown_body": "Olyasmit nyit meg, amit a(z) {version} verzió nem ismer. A(z) {name} frissítése megoldja.",
+    "malformed_title": "Ez a hivatkozás nem egészen jó",
+    "malformed_body": "{label} megnyitását kéri, de a(z) {param} paraméter hiányzik vagy hibás. Semmi sem nyílt meg.",
+    "open_app": "{name} megnyitása"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Hitelesítés befejezése…",

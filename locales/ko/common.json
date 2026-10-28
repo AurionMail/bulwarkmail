@@ -4189,6 +4189,14 @@
     "copied": "링크가 복사되었습니다",
     "copy_failed": "링크를 복사하지 못했습니다"
   },
+  "connector_link": {
+    "opening": "여는 중…",
+    "unknown_title": "이 링크는 이 {name}보다 최신입니다",
+    "unknown_body": "버전 {version}이 알지 못하는 항목을 엽니다. {name}을 업데이트하면 열 수 있습니다.",
+    "malformed_title": "이 링크가 올바르지 않습니다",
+    "malformed_body": "{label}을 요청하지만 {param} 값이 없거나 잘못되었습니다. 아무것도 열지 않았습니다.",
+    "open_app": "{name} 열기"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "인증 완료 중…",

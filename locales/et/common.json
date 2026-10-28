@@ -4189,6 +4189,14 @@
     "copied": "Link kopeeritud",
     "copy_failed": "Linki ei õnnestunud kopeerida"
   },
+  "connector_link": {
+    "opening": "Avamine…",
+    "unknown_title": "See link on uuem kui see {name}",
+    "unknown_body": "See avab midagi, mida versioon {version} ei tunne. {name} värskendamine peaks selle lahendama.",
+    "malformed_title": "See link pole päris õige",
+    "malformed_body": "See küsib {label}, kuid selle parameeter {param} puudub või on vigane. Midagi ei avatud.",
+    "open_app": "Ava {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Autoriseerimise lõpetamine…",

@@ -4189,6 +4189,14 @@
     "copied": "Link copiat",
     "copy_failed": "Linkul nu a putut fi copiat"
   },
+  "connector_link": {
+    "opening": "Se deschide…",
+    "unknown_title": "Acest link este mai nou decât acest {name}",
+    "unknown_body": "Deschide ceva ce versiunea {version} nu cunoaște. Actualizarea {name} ar trebui să rezolve asta.",
+    "malformed_title": "Acest link nu este chiar corect",
+    "malformed_body": "Cere {label}, dar parametrul {param} lipsește sau este greșit. Nu s-a deschis nimic.",
+    "open_app": "Deschide {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Se finalizează autorizarea…",

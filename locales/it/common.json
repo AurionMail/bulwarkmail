@@ -4189,6 +4189,14 @@
     "copied": "Link copiato",
     "copy_failed": "Impossibile copiare il link"
   },
+  "connector_link": {
+    "opening": "Apertura…",
+    "unknown_title": "Questo link è più recente di questo {name}",
+    "unknown_body": "Apre qualcosa che la versione {version} non conosce. Aggiornare {name} dovrebbe risolvere.",
+    "malformed_title": "Questo link non è del tutto corretto",
+    "malformed_body": "Richiede {label}, ma il parametro {param} manca o non è valido. Non è stato aperto nulla.",
+    "open_app": "Apri {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Completamento dell'autorizzazione…",

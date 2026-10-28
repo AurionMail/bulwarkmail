@@ -4189,6 +4189,14 @@
     "copied": "Saite nokopēta",
     "copy_failed": "Neizdevās nokopēt saiti"
   },
+  "connector_link": {
+    "opening": "Atver…",
+    "unknown_title": "Šī saite ir jaunāka par šo {name}",
+    "unknown_body": "Tā atver kaut ko, ko versija {version} nepazīst. {name} atjaunināšanai tas būtu jāatrisina.",
+    "malformed_title": "Šī saite nav gluži pareiza",
+    "malformed_body": "Tā pieprasa {label}, bet tās parametrs {param} trūkst vai ir nepareizs. Nekas netika atvērts.",
+    "open_app": "Atvērt {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Pabeidz autorizāciju…",

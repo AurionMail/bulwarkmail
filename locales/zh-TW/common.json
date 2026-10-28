@@ -4189,6 +4189,14 @@
     "copied": "連結已複製",
     "copy_failed": "無法複製連結"
   },
+  "connector_link": {
+    "opening": "正在開啟…",
+    "unknown_title": "此連結比目前的 {name} 更新",
+    "unknown_body": "它要開啟的內容是版本 {version} 無法辨識的。更新 {name} 後即可開啟。",
+    "malformed_title": "此連結不太對",
+    "malformed_body": "它要求 {label}，但參數 {param} 遺失或格式錯誤。未開啟任何內容。",
+    "open_app": "開啟 {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "正在完成授權…",

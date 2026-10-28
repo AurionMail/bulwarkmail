@@ -4189,6 +4189,14 @@
     "copied": "Odkaz zkopírován",
     "copy_failed": "Odkaz se nepodařilo zkopírovat"
   },
+  "connector_link": {
+    "opening": "Otevírání…",
+    "unknown_title": "Tento odkaz je novější než tento {name}",
+    "unknown_body": "Otevírá něco, co verze {version} nezná. Aktualizace {name} by to měla vyřešit.",
+    "malformed_title": "Tento odkaz není úplně v pořádku",
+    "malformed_body": "Žádá o {label}, ale jeho parametr {param} chybí nebo je neplatný. Nic nebylo otevřeno.",
+    "open_app": "Otevřít {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Dokončování autorizace…",

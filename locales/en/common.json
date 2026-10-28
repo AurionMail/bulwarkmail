@@ -4189,6 +4189,14 @@
     "copied": "Link copied",
     "copy_failed": "Couldn't copy the link"
   },
+  "connector_link": {
+    "opening": "Opening…",
+    "unknown_title": "This link is newer than this {name}",
+    "unknown_body": "It opens something version {version} does not know about. Updating {name} should teach it.",
+    "malformed_title": "That link is not quite right",
+    "malformed_body": "It asks for {label}, but its {param} is missing or malformed. Nothing was opened.",
+    "open_app": "Open {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Completing authorization…",

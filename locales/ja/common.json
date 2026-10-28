@@ -4189,6 +4189,14 @@
     "copied": "リンクをコピーしました",
     "copy_failed": "リンクをコピーできませんでした"
   },
+  "connector_link": {
+    "opening": "開いています…",
+    "unknown_title": "このリンクはこの {name} より新しいものです",
+    "unknown_body": "バージョン {version} が知らないものを開こうとしています。{name} を更新すると開けるはずです。",
+    "malformed_title": "このリンクは正しくありません",
+    "malformed_body": "{label} を開こうとしていますが、{param} がないか不正です。何も開いていません。",
+    "open_app": "{name} を開く"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "認証を完了しています…",

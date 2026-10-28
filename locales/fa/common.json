@@ -4189,6 +4189,14 @@
     "copied": "پیوند کپی شد",
     "copy_failed": "کپی پیوند ممکن نشد"
   },
+  "connector_link": {
+    "opening": "در حال باز کردن…",
+    "unknown_title": "این پیوند از این {name} جدیدتر است",
+    "unknown_body": "چیزی را باز می‌کند که نسخهٔ {version} آن را نمی‌شناسد. به‌روزرسانی {name} باید مشکل را حل کند.",
+    "malformed_title": "این پیوند کاملاً درست نیست",
+    "malformed_body": "{label} را می‌خواهد، اما پارامتر {param} آن وجود ندارد یا نادرست است. چیزی باز نشد.",
+    "open_app": "باز کردن {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "در حال تکمیل احراز هویت…",

@@ -4189,6 +4189,14 @@
     "copied": "Enllaç copiat",
     "copy_failed": "No s'ha pogut copiar l'enllaç"
   },
+  "connector_link": {
+    "opening": "S'està obrint…",
+    "unknown_title": "Aquest enllaç és més nou que aquest {name}",
+    "unknown_body": "Obre una cosa que la versió {version} no coneix. Actualitzar {name} ho hauria de resoldre.",
+    "malformed_title": "Aquest enllaç no és del tot correcte",
+    "malformed_body": "Demana {label}, però el paràmetre {param} falta o no és vàlid. No s'ha obert res.",
+    "open_app": "Obre {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Completant l'autorització…",

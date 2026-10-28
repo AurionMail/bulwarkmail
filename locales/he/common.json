@@ -4190,6 +4190,14 @@
     "copied": "הקישור הועתק",
     "copy_failed": "לא ניתן להעתיק את הקישור"
   },
+  "connector_link": {
+    "opening": "פותח…",
+    "unknown_title": "הקישור הזה חדש יותר מ-{name} הזה",
+    "unknown_body": "הוא פותח משהו שגרסה {version} לא מכירה. עדכון של {name} אמור לפתור את זה.",
+    "malformed_title": "הקישור הזה לא לגמרי תקין",
+    "malformed_body": "הוא מבקש {label}, אבל הפרמטר {param} חסר או שגוי. לא נפתח דבר.",
+    "open_app": "פתיחת {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "משלים אימות…",

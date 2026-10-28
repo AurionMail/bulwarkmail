@@ -4189,6 +4189,14 @@
     "copied": "Bağlantı kopyalandı",
     "copy_failed": "Bağlantı kopyalanamadı"
   },
+  "connector_link": {
+    "opening": "Açılıyor…",
+    "unknown_title": "Bu bağlantı bu {name} sürümünden daha yeni",
+    "unknown_body": "{version} sürümünün bilmediği bir şeyi açıyor. {name} güncellenince açılmalı.",
+    "malformed_title": "Bu bağlantı tam doğru değil",
+    "malformed_body": "{label} istiyor, ancak {param} parametresi eksik veya hatalı. Hiçbir şey açılmadı.",
+    "open_app": "{name} uygulamasını aç"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Yetkilendirme tamamlanıyor…",

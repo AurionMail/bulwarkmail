@@ -372,6 +372,14 @@
     "copied": "คัดลอกลิงก์แล้ว",
     "copy_failed": "ไม่สามารถคัดลอกลิงก์ได้"
   },
+  "connector_link": {
+    "opening": "กำลังเปิด…",
+    "unknown_title": "ลิงก์นี้ใหม่กว่า {name} นี้",
+    "unknown_body": "ลิงก์นี้เปิดสิ่งที่เวอร์ชัน {version} ไม่รู้จัก การอัปเดต {name} น่าจะแก้ได้",
+    "malformed_title": "ลิงก์นี้ไม่ถูกต้องนัก",
+    "malformed_body": "ลิงก์ขอ {label} แต่พารามิเตอร์ {param} หายไปหรือไม่ถูกต้อง ไม่มีอะไรถูกเปิด",
+    "open_app": "เปิด {name}"
+  },
   "threads": {
     "messages_one": "{count} ข้อความ",
     "messages_other": "{count} ข้อความ",

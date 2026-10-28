@@ -4189,6 +4189,14 @@
     "copied": "Lenken er kopiert",
     "copy_failed": "Kunne ikke kopiere lenken"
   },
+  "connector_link": {
+    "opening": "Åpner…",
+    "unknown_title": "Denne lenken er nyere enn denne {name}",
+    "unknown_body": "Den åpner noe versjon {version} ikke kjenner til. En oppdatering av {name} bør løse det.",
+    "malformed_title": "Denne lenken er ikke helt riktig",
+    "malformed_body": "Den ber om {label}, men parameteren {param} mangler eller er ugyldig. Ingenting ble åpnet.",
+    "open_app": "Åpne {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Fullfører autorisering…",

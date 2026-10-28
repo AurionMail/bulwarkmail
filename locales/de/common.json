@@ -4189,6 +4189,14 @@
     "copied": "Link kopiert",
     "copy_failed": "Link konnte nicht kopiert werden"
   },
+  "connector_link": {
+    "opening": "Wird geöffnet…",
+    "unknown_title": "Dieser Link ist neuer als dieses {name}",
+    "unknown_body": "Er öffnet etwas, das Version {version} nicht kennt. Nach einem Update von {name} sollte es funktionieren.",
+    "malformed_title": "Dieser Link stimmt nicht ganz",
+    "malformed_body": "Er verlangt {label}, aber sein Parameter {param} fehlt oder ist ungültig. Es wurde nichts geöffnet.",
+    "open_app": "{name} öffnen"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Autorisierung wird abgeschlossen…",

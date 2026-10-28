@@ -4189,6 +4189,14 @@
     "copied": "Link gekopieerd",
     "copy_failed": "Kon de link niet kopiëren"
   },
+  "connector_link": {
+    "opening": "Openen…",
+    "unknown_title": "Deze link is nieuwer dan deze {name}",
+    "unknown_body": "Hij opent iets wat versie {version} niet kent. Bijwerken van {name} zou dat moeten oplossen.",
+    "malformed_title": "Deze link klopt niet helemaal",
+    "malformed_body": "Hij vraagt om {label}, maar de parameter {param} ontbreekt of is ongeldig. Er is niets geopend.",
+    "open_app": "{name} openen"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Autorisatie voltooien…",
