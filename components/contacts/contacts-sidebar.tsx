@@ -738,7 +738,7 @@ export function ContactsSidebar({
           <ContextMenuSeparator />
           <ContextMenuItem
             icon={Trash2}
-            label={t("form.delete")}
+            label={t("groups.delete")}
             onClick={() => {
               closeGroupContextMenu();
               onDeleteGroup?.(groupContextMenu.data!.id);

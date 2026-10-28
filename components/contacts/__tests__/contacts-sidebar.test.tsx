@@ -59,9 +59,9 @@ describe('ContactsSidebar — compose to group', () => {
     renderSidebar();
     fireEvent.contextMenu(screen.getByText('Team'));
     expect(screen.getByText('groups.send_email')).toBeInTheDocument();
-    // and the existing Edit/Delete entries still render
+    // and the existing Edit/Delete entries still render, Delete named as in the group's own ⋮
     expect(screen.getByText('groups.edit')).toBeInTheDocument();
-    expect(screen.getByText('form.delete')).toBeInTheDocument();
+    expect(screen.getByText('groups.delete')).toBeInTheDocument();
   });
 
   it('calls onComposeGroup(groupId, field) when a To/Cc/Bcc item is clicked', () => {
