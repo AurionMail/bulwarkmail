@@ -8,6 +8,8 @@ import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { AccountInfo, EmailPushConfig, Mailbox } from '@/lib/jmap/types';
 import { isJmapSetError, jmapErrorType } from '@/lib/jmap/jmap-error';
 import { DEFAULT_RELAY_BASE_URL } from '@/lib/push-relays';
+import { isBuiltInHost, relayAllowed } from '@/lib/outgoing-hosts';
+import { noThirdPartyTraffic } from '@/lib/third-party-mode';
 import { IS_LITE } from '@/lib/lite';
 import {
   EMPTY_NOTIFICATION_MUTES,
@@ -35,6 +37,16 @@ function deviceClientIdKey(accountId: string): string {
 
 function subscriptionIdKey(accountId: string): string {
   return SUBSCRIPTION_ID_PREFIX + accountId;
+}
+
+/**
+ * The relay base a registration was made with. The server's PushSubscription
+ * points at it, so a later change of relay (the admin's list, or the built-in
+ * one going away with no third-party traffic, #903) needs a new record.
+ */
+const RELAY_BASE_PREFIX = 'bulwark.push.relayBase.v1.';
+function relayBaseKey(accountId: string): string {
+  return RELAY_BASE_PREFIX + accountId;
 }
 
 function emailPushRefusedKey(accountId: string): string {
@@ -433,7 +445,9 @@ export function isWebPushSupported(): boolean {
   );
 }
 
+/** Every relay request is built here, so the built-in relay can't be reached in the no-third-party mode (#903). */
 function buildRelayUrl(base: string, suffix: string): string {
+  if (!relayAllowed(base)) throw new Error('The built-in push relay is off: this server does not contact outside services');
   return base.replace(/\/+$/, '') + suffix;
 }
 
@@ -847,6 +861,7 @@ export async function enableWebPush(
   const verificationCode = await pollVerificationCode(relayBaseUrl, deviceClientId);
   await params.client.verifyPushSubscription(serverAssignedId, verificationCode);
   localStorage.setItem(subIdKey, serverAssignedId);
+  localStorage.setItem(relayBaseKey(accountId), relayBaseUrl);
   if (replacedServerId) {
     await params.client.destroyPushSubscription(replacedServerId).catch(() => undefined);
   }
@@ -890,10 +905,11 @@ export async function disableWebPush(params: DisableWebPushParams): Promise<void
     await params.client.destroyPushSubscription(id).catch(() => undefined);
   }
   localStorage.removeItem(subIdKey);
+  localStorage.removeItem(relayBaseKey(accountId));
   // Enabling again starts from the full emailPush map.
   localStorage.removeItem(emailPushRefusedKey(accountId));
 
-  if (deviceClientId && relayBaseUrl) {
+  if (deviceClientId && relayBaseUrl && relayAllowed(relayBaseUrl)) {
     await fetch(
       buildRelayUrl(relayBaseUrl, `/api/push/register/${encodeURIComponent(deviceClientId)}`),
       { method: 'DELETE' },
@@ -980,7 +996,7 @@ export async function revokePushDevice(params: {
   }
 
   await params.client.destroyPushSubscription(params.device.id);
-  if (relayBaseUrl && params.device.deviceClientId) {
+  if (relayBaseUrl && relayAllowed(relayBaseUrl) && params.device.deviceClientId) {
     await fetch(
       buildRelayUrl(
         relayBaseUrl,
@@ -1071,9 +1087,29 @@ async function runResync(accountId: string, params: ResyncWebPushParams): Promis
     // isWebPushEnabled (it requires a live browser subscription) would do.
     if (!isWebPushSupported() || Notification.permission !== 'granted'
       || !localStorage.getItem(subscriptionIdKey(accountId))) return false;
-    if (!params.force && !(await resyncDue(accountId))) return false;
+    // Registered with the built-in relay before third-party traffic was
+    // turned off, and no relay of the organisation's own to move to: drop the
+    // server's PushSubscription so the mail server stops pinging that relay
+    // (#903). disableWebPush skips the relay itself.
+    if (!params.relayBaseUrl && noThirdPartyTraffic()) {
+      await disableWebPush({ client: params.client });
+      return false;
+    }
+    // The registration points at another relay than the one to use now (the
+    // admin changed the list, or the built-in relay went away with no
+    // third-party traffic): make a new server record that points here. A
+    // registration from before the relay was remembered counts as the
+    // built-in one in that mode.
+    const current = (params.relayBaseUrl ?? DEFAULT_RELAY_BASE_URL).replace(/\/+$/, '');
+    const registeredWith = localStorage.getItem(relayBaseKey(accountId));
+    const moved = !!current && (
+      (registeredWith !== null && registeredWith !== current)
+      || (noThirdPartyTraffic() && (registeredWith === null || isBuiltInHost(registeredWith)) && !isBuiltInHost(current))
+    );
+    if (!moved && !params.force && !(await resyncDue(accountId))) return false;
     await enableWebPush({
       client: params.client,
+      forceRecreate: moved,
       relayBaseUrl: params.relayBaseUrl,
       accountLabel: params.accountLabel,
       inboxOnly: params.inboxOnly,

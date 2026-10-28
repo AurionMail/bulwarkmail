@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { configManager } from '@/lib/admin/config-manager';
+import { isNoThirdPartyTrafficOn } from '@/lib/admin/third-party-mode';
 import { TARGET_NAMES } from '@/lib/connector/registry';
 
 /**
@@ -28,7 +29,7 @@ import { TARGET_NAMES } from '@/lib/connector/registry';
 export async function GET() {
   await configManager.ensureLoaded();
 
-  if (!configManager.get<boolean>('connectorEnabled', true)) {
+  if (!configManager.get<boolean>('connectorEnabled', true) || await isNoThirdPartyTrafficOn()) {
     return new NextResponse(null, { status: 404 });
   }
 

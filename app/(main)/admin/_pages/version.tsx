@@ -24,6 +24,7 @@ interface VersionAdminStatus {
   endpoint: string;
   defaultEndpoint: string;
   disabledByEnv: boolean;
+  disabledByNoThirdPartyTraffic?: boolean;
   lastCheckedAt: string | null;
   lastSuccessAt: string | null;
   nextScheduledAt: string | null;
@@ -206,6 +207,11 @@ export function VersionPage() {
               {data.disabledByEnv ? 'Yes' : 'No'}
             </span>
           </SettingItem>
+          {data.disabledByNoThirdPartyTraffic && (
+            <SettingItem label="Off: no third-party traffic" description="NO_THIRD_PARTY_TRAFFIC is on, so this server never asks the version endpoint. See Organisation > Security.">
+              <span className="text-sm font-medium text-amber-600 dark:text-amber-400">Yes</span>
+            </SettingItem>
+          )}
         </SettingsSection>
       </div>
     </div>

@@ -24,6 +24,7 @@ import {
   PenLine,
   LayoutList,
   Database,
+  Users,
   X,
   type AppIcon,
 } from '@/components/icons';
@@ -48,6 +49,8 @@ import { FilesSettingsComponent } from '@/components/settings/files-settings';
 import { ContactsSettings } from '@/components/settings/contacts-settings';
 import { AddonsSettings } from '@/components/settings/addons-settings';
 import { NotificationSettings } from '@/components/settings/notification-settings';
+import { DelegatesSettings } from '@/components/settings/delegates/delegates-settings';
+import { useRestriction } from '@/hooks/use-restriction';
 import { PluginIframeSlot } from '@/components/plugins/plugin-iframe-slot';
 import { offersForSlot as pluginOffersForSlot, subscribe as pluginRegistrySubscribe, get as getActivePlugin } from '@/lib/plugin-sandbox/registry';
 import { AdvancedSettingsProvider, AdvancedSettingsSwitch, SectionNav, scrollToSettingsSection } from '@/components/settings/settings-section';
@@ -127,6 +130,7 @@ const tabIcons: Record<Tab, AppIcon> = {
   filters: Filter,
   organize: FolderOpen,
   security: Shield,
+  sharing: Users,
   calendar: Calendar,
   contacts: BookUser,
   files: HardDrive,
@@ -254,6 +258,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   const router = useRouter();
   const t = useTranslations('settings');
   const tSidebar = useTranslations('sidebar');
+  const tDelegates = useTranslations('delegates');
   useDocumentTitle(tSidebar('settings'));
   const { client, isAuthenticated, logout, checkAuth, isLoading: authLoading } = useAuthStore();
   const { showAppsModal, inlineApp, loadedApps, handleManageApps, handleInlineApp, closeInlineApp, closeAppsModal } = useSidebarApps();
@@ -266,6 +271,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   const appName = productName(configAppName);
   const { isFeatureEnabled } = usePolicyStore();
   const archiveActionEnabled = isFeatureEnabled('archiveActionEnabled');
+  const delegationHidden = useRestriction('delegation').hidden;
   // A tab in the URL wins over the persisted one; without it, nothing changes.
   const [activeTab, setActiveTab] = useState<SettingsTabId>(
     () => targetFromDeepLink(linkSegments)?.tab ?? readPersistedTab(),
@@ -629,11 +635,17 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   const supportsCalendar = client?.supportsCalendars() ?? false;
   const supportsSieve = client?.supportsSieve() ?? false;
   const supportsFiles = client?.supportsFiles() ?? false;
+  // Delegates (Settings > Sharing) needs someone to share with and something to share.
+  const supportsSharing = !delegationHidden && !!client?.getShareTargets && (client?.supportsPrincipals() ?? false)
+    && ((client?.supportsMailboxSharing?.() ?? false)
+      || (supportsCalendar && isFeatureEnabled('calendarEnabled'))
+      || ((client?.supportsContacts() ?? false) && isFeatureEnabled('contactsEnabled')));
 
   const tabs: TabDef[] = [
     // You and the app
     { id: 'account', label: t('tabs.account'), icon: tabIcons.account, group: 'top' },
     ...(stalwartFeaturesEnabled ? [{ id: 'security' as Tab, label: t('tabs.security'), icon: tabIcons.security, group: 'top' as TabGroup }] : []),
+    ...(supportsSharing ? [{ id: 'sharing' as Tab, label: tDelegates('tab'), icon: tabIcons.sharing, group: 'top' as TabGroup }] : []),
     { id: 'notifications', label: t('tabs.notifications'), icon: tabIcons.notifications, group: 'top' },
     { id: 'general', label: t('tabs.general'), icon: tabIcons.general, group: 'top' },
     { id: 'appearance', label: t('tabs.appearance'), icon: tabIcons.appearance, group: 'top' },
@@ -783,6 +795,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       {effectiveActiveTab === 'filters' && <FilterSettings />}
       {effectiveActiveTab === 'organize' && <OrganizeSettings />}
       {effectiveActiveTab === 'security' && <AccountSecuritySettings />}
+      {effectiveActiveTab === 'sharing' && <DelegatesSettings />}
       {effectiveActiveTab === 'calendar' && (
         managedAccountId
           ? <CalendarManagementSettings />

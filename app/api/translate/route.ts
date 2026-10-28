@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 import { readFileEnv } from "@/lib/read-file-env";
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
+import { isNoThirdPartyTrafficOn, thirdPartyRefusal } from '@/lib/admin/third-party-mode';
 
 // Host-side proxy backing the "Translate" plugin (manifest apiPostPaths:
 // ["/api/translate"]). The plugin slot iframe POSTs { text, target, source,
@@ -284,6 +285,10 @@ export async function POST(request: NextRequest) {
   const target = typeof body.target === 'string' && body.target.trim() ? body.target.trim() : 'en';
   const source = typeof body.source === 'string' && body.source.trim() ? body.source.trim() : 'auto';
   const provider: Provider = body.provider === 'libretranslate' ? 'libretranslate' : 'mymemory';
+  // MyMemory is a public service; the admin's own LibreTranslate is not (#903).
+  if (provider === 'mymemory' && await isNoThirdPartyTrafficOn()) {
+    return thirdPartyRefusal('Translation through MyMemory');
+  }
 
   if (!text) {
     return NextResponse.json({ error: 'No text to translate' }, { status: 400 });

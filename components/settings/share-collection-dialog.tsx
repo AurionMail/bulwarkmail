@@ -6,129 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { X, Loader2, UserPlus, Trash2, Users, ChevronDown } from "@/components/icons";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
-import type { Principal, PrincipalDirectoryStatus, CalendarRights, AddressBookRights, FileNodeRights, MailboxRights } from "@/lib/jmap/types";
+import type { Principal, PrincipalDirectoryStatus } from "@/lib/jmap/types";
+import { detectPreset, presetRights, type AnyRights, type RolePreset, type ShareKind } from "@/lib/jmap/share-rights";
 import { loadPrincipalDirectory } from "@/lib/jmap/principal-directory";
 import { toast } from "@/stores/toast-store";
-
-type ShareKind = "calendar" | "addressBook" | "file" | "mailbox";
-type AnyRights = CalendarRights | AddressBookRights | FileNodeRights | MailboxRights;
-
-type RolePreset = "freeBusy" | "read" | "readWrite" | "manager" | "custom";
-
-const CALENDAR_PRESETS: Record<Exclude<RolePreset, "custom">, CalendarRights> = {
-  freeBusy: {
-    mayReadFreeBusy: true, mayReadItems: false, mayWriteAll: false, mayWriteOwn: false,
-    mayUpdatePrivate: false, mayRSVP: false, mayShare: false, mayDelete: false,
-  },
-  read: {
-    mayReadFreeBusy: true, mayReadItems: true, mayWriteAll: false, mayWriteOwn: false,
-    mayUpdatePrivate: false, mayRSVP: false, mayShare: false, mayDelete: false,
-  },
-  readWrite: {
-    mayReadFreeBusy: true, mayReadItems: true, mayWriteAll: true, mayWriteOwn: true,
-    mayUpdatePrivate: true, mayRSVP: true, mayShare: false, mayDelete: false,
-  },
-  manager: {
-    mayReadFreeBusy: true, mayReadItems: true, mayWriteAll: true, mayWriteOwn: true,
-    mayUpdatePrivate: true, mayRSVP: true, mayShare: true, mayDelete: true,
-  },
-};
-
-const ADDRESS_BOOK_PRESETS: Record<Exclude<RolePreset, "custom" | "freeBusy">, AddressBookRights> = {
-  read: { mayRead: true, mayWrite: false, mayShare: false, mayDelete: false },
-  readWrite: { mayRead: true, mayWrite: true, mayShare: false, mayDelete: false },
-  manager: { mayRead: true, mayWrite: true, mayShare: true, mayDelete: true },
-};
-
-const FILE_PRESETS: Record<Exclude<RolePreset, "custom" | "freeBusy">, FileNodeRights> = {
-  read: {
-    mayRead: true, mayAddChildren: false, mayRename: false,
-    mayDelete: false, mayModifyContent: false, mayShare: false,
-  },
-  readWrite: {
-    mayRead: true, mayAddChildren: true, mayRename: true,
-    mayDelete: true, mayModifyContent: true, mayShare: false,
-  },
-  manager: {
-    mayRead: true, mayAddChildren: true, mayRename: true,
-    mayDelete: true, mayModifyContent: true, mayShare: true,
-  },
-};
-
-// Mail folder rights (RFC 8621 §2 + mail:share). "Read & write" lets the
-// grantee file, flag and remove mail; "Manager" additionally lets them
-// rename/delete the folder, create subfolders, send as it and re-share.
-const MAILBOX_PRESETS: Record<Exclude<RolePreset, "custom" | "freeBusy">, MailboxRights> = {
-  read: {
-    mayReadItems: true, mayAddItems: false, mayRemoveItems: false, maySetSeen: true,
-    maySetKeywords: false, mayCreateChild: false, mayRename: false, mayDelete: false,
-    maySubmit: false, mayShare: false,
-  },
-  readWrite: {
-    mayReadItems: true, mayAddItems: true, mayRemoveItems: true, maySetSeen: true,
-    maySetKeywords: true, mayCreateChild: false, mayRename: false, mayDelete: false,
-    maySubmit: false, mayShare: false,
-  },
-  manager: {
-    mayReadItems: true, mayAddItems: true, mayRemoveItems: true, maySetSeen: true,
-    maySetKeywords: true, mayCreateChild: true, mayRename: true, mayDelete: true,
-    maySubmit: true, mayShare: true,
-  },
-};
-
-function detectMailboxPreset(r: MailboxRights): RolePreset {
-  for (const [name, preset] of Object.entries(MAILBOX_PRESETS) as [Exclude<RolePreset, "custom" | "freeBusy">, MailboxRights][]) {
-    const keys = Object.keys(preset) as (keyof MailboxRights)[];
-    if (keys.every((k) => preset[k] === (r[k] ?? false))) {
-      return name;
-    }
-  }
-  return "custom";
-}
-
-function detectCalendarPreset(r: CalendarRights): RolePreset {
-  for (const [name, preset] of Object.entries(CALENDAR_PRESETS) as [Exclude<RolePreset, "custom">, CalendarRights][]) {
-    if ((Object.keys(preset) as (keyof CalendarRights)[]).every((k) => preset[k] === r[k])) {
-      return name;
-    }
-  }
-  return "custom";
-}
-
-function detectAddressBookPreset(r: AddressBookRights): RolePreset {
-  for (const [name, preset] of Object.entries(ADDRESS_BOOK_PRESETS) as [Exclude<RolePreset, "custom" | "freeBusy">, AddressBookRights][]) {
-    const keys = Object.keys(preset) as (keyof AddressBookRights)[];
-    if (keys.every((k) => preset[k] === (r[k] ?? false))) {
-      return name;
-    }
-  }
-  return "custom";
-}
-
-function detectFilePreset(r: FileNodeRights): RolePreset {
-  for (const [name, preset] of Object.entries(FILE_PRESETS) as [Exclude<RolePreset, "custom" | "freeBusy">, FileNodeRights][]) {
-    const keys = Object.keys(preset) as (keyof FileNodeRights)[];
-    if (keys.every((k) => preset[k] === (r[k] ?? false))) {
-      return name;
-    }
-  }
-  return "custom";
-}
-
-function presetRights(kind: ShareKind, preset: RolePreset): AnyRights | undefined {
-  if (preset === "custom") return undefined;
-  if (kind === "calendar") return CALENDAR_PRESETS[preset as keyof typeof CALENDAR_PRESETS];
-  if (kind === "file") return FILE_PRESETS[preset as keyof typeof FILE_PRESETS];
-  if (kind === "mailbox") return MAILBOX_PRESETS[preset as keyof typeof MAILBOX_PRESETS];
-  return ADDRESS_BOOK_PRESETS[preset as keyof typeof ADDRESS_BOOK_PRESETS];
-}
-
-function detectPreset(kind: ShareKind, rights: AnyRights): RolePreset {
-  if (kind === "calendar") return detectCalendarPreset(rights as CalendarRights);
-  if (kind === "file") return detectFilePreset(rights as FileNodeRights);
-  if (kind === "mailbox") return detectMailboxPreset(rights as MailboxRights);
-  return detectAddressBookPreset(rights as AddressBookRights);
-}
+import { useRestriction } from "@/hooks/use-restriction";
+import { allowedLevels } from "@/lib/delegation/delegation";
+import { OrgLockedNote } from "./org-locked-note";
 
 interface ShareCollectionDialogProps {
   client: IJMAPClient;
@@ -159,6 +43,9 @@ export function ShareCollectionDialog({
   const [search, setSearch] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  // The admin's `sharingRights`: without write, only the read presets.
+  const sharingRights = useRestriction("sharingRights");
+  const writeAllowed = allowedLevels(sharingRights.allowedValues).includes("write");
 
   // Load principals on mount
   useEffect(() => {
@@ -198,8 +85,15 @@ export function ShareCollectionDialog({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  const presetOptions: RolePreset[] = [
+    ...(kind === "calendar" ? ["freeBusy" as const] : []),
+    "read",
+    ...(writeAllowed ? ["readWrite" as const, "manager" as const] : []),
+  ];
+
   const handleSetRights = async (principalId: string, preset: RolePreset) => {
     if (preset === "custom") return; // custom is read-only here
+    if (!(presetOptions as readonly RolePreset[]).includes(preset)) return;
     const rights = presetRights(kind, preset);
     if (!rights) return;
     setSavingId(principalId);
@@ -255,9 +149,7 @@ export function ShareCollectionDialog({
     return Object.entries(shareWith || {}) as [string, AnyRights][];
   }, [shareWith]);
 
-  const presetOptions = kind === "calendar"
-    ? ["freeBusy", "read", "readWrite", "manager"] as const
-    : ["read", "readWrite", "manager"] as const;
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -285,6 +177,7 @@ export function ShareCollectionDialog({
 
         <div className="px-6 py-4 space-y-4 overflow-y-auto">
           <p className="text-sm text-muted-foreground">{t("description")}</p>
+          {!writeAllowed && <OrgLockedNote />}
 
           {sharedEntries.length === 0 && !showAdd && (
             <div className="text-sm text-muted-foreground italic py-4 text-center">
@@ -331,8 +224,9 @@ export function ShareCollectionDialog({
                         {presetOptions.map((p) => (
                           <option key={p} value={p}>{t(`preset.${p}`)}</option>
                         ))}
-                        {preset === "custom" && (
-                          <option value="custom">{t("preset.custom")}</option>
+                        {/* A grant the admin no longer lets users give stays named, but can't be picked. */}
+                        {!presetOptions.includes(preset) && (
+                          <option value={preset} disabled>{t(`preset.${preset}`)}</option>
                         )}
                       </select>
                       <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" />

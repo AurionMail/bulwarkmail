@@ -12,6 +12,8 @@ import {
   directoryJson,
   getDirectoryChannel,
   getDirectoryUrl,
+  directoryOff,
+  DIRECTORY_OFF_MESSAGE,
   historyFor,
   installedExtensions,
   installedStateOf,
@@ -65,6 +67,9 @@ export async function GET(
   try {
     const result = await requireAdminAuth(request);
     if ('error' in result) return result.error;
+    if (await directoryOff()) {
+      return NextResponse.json({ error: DIRECTORY_OFF_MESSAGE, code: 'no-third-party-traffic' }, { status: 403 });
+    }
 
     const { slug } = await params;
     const requested = request.nextUrl.searchParams.get('version');

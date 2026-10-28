@@ -103,6 +103,7 @@ import { useSettingsStore } from "@/stores/settings-store";
 import { useShallow } from "zustand/react/shallow";
 import { useEffectiveMailLayout } from "@/hooks/use-effective-mail-layout";
 import { registerComposeFlush } from "@/lib/compose-flush-registry";
+import { useExternalRecipientConfirmStore } from "@/stores/external-recipient-confirm-store";
 import { useUIStore } from "@/stores/ui-store";
 import { useContactStore, getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
 import { toast } from "@/stores/toast-store";
@@ -115,6 +116,7 @@ import { useAccountStore } from "@/stores/account-store";
 import { useEmailStore, resolveEmailBlobContext, emailWriteSource, emailLinkSource, type EmailBlobContext } from "@/stores/email-store";
 import { useThemeStore } from "@/stores/theme-store";
 import { EmailIdentityBadge } from "./email-identity-badge";
+import { ExternalSenderChip } from "./external-sender-chip";
 import { UnsubscribeBanner } from "./unsubscribe-banner";
 import { CalendarInvitationBanner } from "./calendar-invitation-banner";
 import { ReadReceiptBanner } from "./read-receipt-banner";
@@ -149,6 +151,7 @@ import type { AttachmentInfo, AttachmentPreview } from "@/lib/plugin-types";
 import { useAttachmentDrag, isDragOutSupported, type AttachmentDragSource } from "@/hooks/use-attachment-drag";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import { useArchiveActionEnabled } from "@/lib/archive-gate";
+import { useNoThirdPartyTraffic } from "@/hooks/use-third-party-mode";
 
 /** The More menu's two drill-downs: a folder list and a tag list. */
 type MoreMenuSub = 'move' | 'tag' | 'rules';
@@ -175,7 +178,8 @@ interface EmailViewerProps {
   onMarkAsRead?: (emailId: string, read: boolean, opts?: { automatic?: boolean }) => void;
   onSetTag?: (emailId: string, tagId: string | null) => void;
   onDownloadAttachment?: (blobId: string, name: string, type?: string, forceDownload?: boolean, source?: EmailBlobContext) => void;
-  onQuickReply?: (body: string) => Promise<void>;
+  /** Resolves false when nothing was sent (the user went back), so the text stays. */
+  onQuickReply?: (body: string) => Promise<boolean | void>;
   /** Keeps the typed quick reply as a draft before an automatic sign-out (lib/compose-flush-registry.ts). */
   onSaveQuickReplyDraft?: (body: string) => Promise<void>;
   onMarkAsSpam?: () => void;
@@ -857,6 +861,7 @@ export function MvExpandedConversationCard({
             {!compact && sender?.name && sender.email && (
               <span className="text-xs text-muted-foreground truncate">&lt;{sender.email}&gt;</span>
             )}
+            <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} className="self-center" />
             <span className="ms-auto ps-2 text-xs text-muted-foreground whitespace-nowrap">
               {compact ? formatDate(emailDisplayDate(email)) : mvSenderDate(emailDisplayDate(email), timeFormat)}
             </span>
@@ -1090,6 +1095,10 @@ export function EmailViewer({
   const tWelcome = useTranslations('welcome');
   const quickReplyEnabled = useSettingsStore((state) => state.quickReplyEnabled);
   const externalContentPolicy = useSettingsStore((state) => state.externalContentPolicy);
+  // No third-party traffic (#903): remote content never loads, whatever the
+  // policy or trust says, and nothing offers to load it.
+  const remoteBlockedByOrg = useNoThirdPartyTraffic();
+  const tThirdParty = useTranslations('third_party');
   const messageSpacing = useSettingsStore((state) => state.messageSpacing);
   const plainTextFont = useSettingsStore((state) => state.plainTextFont);
   const mailAttachmentAction = useSettingsStore((state) => state.mailAttachmentAction);
@@ -1374,7 +1383,9 @@ export function EmailViewer({
   const [isQuickReplyFocused, setIsQuickReplyFocused] = useState(false);
   const [isSendingQuickReply, setIsSendingQuickReply] = useState(false);
   // An automatic sign-out keeps typed quick-reply text as a draft; text on
-  // its way out as a reply needs none.
+  // its way out as a reply needs none. A reply still waiting on the
+  // "Send outside your organisation?" question hasn't gone out: the question
+  // is answered with Back and the text kept as a draft.
   const quickReplyDraftRef = useRef({ text: quickReplyText, sending: isSendingQuickReply, save: onSaveQuickReplyDraft });
   quickReplyDraftRef.current = { text: quickReplyText, sending: isSendingQuickReply, save: onSaveQuickReplyDraft };
   const hasQuickReplyDraft = quickReplyText.trim().length > 0 && !!onSaveQuickReplyDraft;
@@ -1382,7 +1393,12 @@ export function EmailViewer({
     if (!hasQuickReplyDraft) return;
     return registerComposeFlush(async () => {
       const { text, sending, save } = quickReplyDraftRef.current;
-      if (sending || !text.trim() || !save) return;
+      if (!text.trim() || !save) return;
+      if (sending) {
+        const confirm = useExternalRecipientConfirmStore.getState();
+        if (!confirm.pending) return;
+        confirm.cancelAll();
+      }
       await save(text);
     });
   }, [hasQuickReplyDraft]);
@@ -1390,9 +1406,12 @@ export function EmailViewer({
     if (!quickReplyText.trim() || !onQuickReply || isSendingQuickReply) return;
     setIsSendingQuickReply(true);
     try {
-      await onQuickReply(quickReplyText);
-      setQuickReplyText("");
-      setIsQuickReplyFocused(false);
+      const sent = await onQuickReply(quickReplyText);
+      // Back on a pre-send question keeps what the user typed.
+      if (sent !== false) {
+        setQuickReplyText("");
+        setIsQuickReplyFocused(false);
+      }
     } catch (error) {
       console.error("Failed to send quick reply:", error);
       // The text stays in the box, so say why it did not go out.
@@ -2484,6 +2503,7 @@ export function EmailViewer({
   //   'ask'   = block until the user allows this message or trusts the sender.
   const shouldBlockExternal = useMemo(() => {
     if (!email) return false;
+    if (remoteBlockedByOrg) return true;
     const senderEmail = email.from?.[0]?.email?.toLowerCase();
     const senderIsTrusted = senderEmail
       ? isSenderTrusted(senderEmail) || (trustedSendersAddressBook && isTrustedAddressBookSender(senderEmail))
@@ -2496,7 +2516,7 @@ export function EmailViewer({
     // permission changes, so they're deliberately omitted from deps (matches
     // the srcDoc rebuild contract described on `emailContent`).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [email, externalContentPolicy, allowExternalContent]);
+  }, [email, externalContentPolicy, allowExternalContent, remoteBlockedByOrg]);
 
   // Sanitize and prepare email HTML content
   const emailContent = useMemo(() => {
@@ -5062,6 +5082,7 @@ export function EmailViewer({
                     {mvViewer && sender?.email && sender?.name && (
                       <span className="text-xs text-muted-foreground truncate">&lt;{sender.email}&gt;</span>
                     )}
+                    <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} />
                     <EmailIdentityBadge email={email} identities={identities} />
                     {shouldShowUnsubBanner && listHeaders?.listUnsubscribe && (
                       <UnsubscribeBanner
@@ -5351,6 +5372,7 @@ export function EmailViewer({
                 ) : (
                   <span className="text-sm font-semibold text-foreground">{t('unknown_sender')}</span>
                 )}
+                <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} />
                 <EmailIdentityBadge email={email} identities={identities} />
                 {shouldShowUnsubBanner && listHeaders?.listUnsubscribe && (
                   <UnsubscribeBanner
@@ -5538,6 +5560,7 @@ export function EmailViewer({
                           onViewContact={handleViewContactSidebar}
                           className="text-sm text-start"
                         />
+                        <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} />
                         {senderVerification && (
                           <span
                             className={cn(
@@ -5856,7 +5879,7 @@ export function EmailViewer({
 
         {/* Unified Notification Banner - External Content + Calendar Invitation + Read Receipt */}
         {(senderVerification ||
-          (hasBlockedContent && !allowExternalContent && externalContentPolicy !== 'allow') ||
+          (hasBlockedContent && (remoteBlockedByOrg || (!allowExternalContent && externalContentPolicy !== 'allow'))) ||
           hasCalendarInvitation ||
           (readReceiptResponse === 'ask' && shouldOfferReadReceipt)) && (
           <div className="border-b border-border bg-muted/30 isolate">
@@ -5886,8 +5909,8 @@ export function EmailViewer({
                 )}
 
                 {/* External Content Controls */}
-                {hasBlockedContent && !allowExternalContent && externalContentPolicy !== 'allow' && (
-                  <div className="flex items-start gap-3 py-1">
+                {hasBlockedContent && (remoteBlockedByOrg || (!allowExternalContent && externalContentPolicy !== 'allow')) && (
+                  <div className="flex items-start gap-3 py-1" data-testid="external-content-notice">
                     <div className="w-10 h-10 rounded-full bg-info/15 text-info flex items-center justify-center flex-shrink-0 shadow-sm">
                       <Image className="w-5 h-5" />
                     </div>
@@ -5897,9 +5920,10 @@ export function EmailViewer({
                           External Content
                         </div>
                         <div className="text-sm font-medium text-foreground break-words">
-                          {t('external_content_warning')}
+                          {remoteBlockedByOrg ? tThirdParty('remote_content_blocked') : t('external_content_warning')}
                         </div>
                       </div>
+                      {!remoteBlockedByOrg && (
                       <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                         {externalContentPolicy === 'ask' && (
                           <button
@@ -5932,6 +5956,7 @@ export function EmailViewer({
                           </button>
                         )}
                       </div>
+                      )}
                     </div>
                   </div>
                 )}

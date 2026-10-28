@@ -9,6 +9,7 @@ import {
   disabledByEnv,
   DEFAULT_VERSION_ENDPOINT,
 } from '@/lib/version-check';
+import { isNoThirdPartyTrafficOn } from '@/lib/admin/third-party-mode';
 
 /**
  * GET /api/admin/version
@@ -27,6 +28,7 @@ export async function GET(request: NextRequest) {
         endpoint: effectiveEndpoint(state),
         defaultEndpoint: DEFAULT_VERSION_ENDPOINT,
         disabledByEnv: disabledByEnv(),
+        disabledByNoThirdPartyTraffic: await isNoThirdPartyTrafficOn(),
         lastCheckedAt: state.lastCheckedAt,
         lastSuccessAt: state.lastSuccessAt,
         nextScheduledAt: state.nextScheduledAt,

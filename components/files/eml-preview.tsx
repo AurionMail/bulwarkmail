@@ -6,6 +6,7 @@ import { emailIframeCsp, sanitizeEmailBodyForIframe } from "@/lib/email-sanitiza
 import { getEffectiveTimeZone } from "@/lib/timezone";
 import { stripBidiControls } from "@/lib/bidi";
 import { useSettingsStore } from "@/stores/settings-store";
+import { useNoThirdPartyTraffic } from "@/hooks/use-third-party-mode";
 
 // A parsed message/rfc822 (.eml), as produced by postal-mime. Only the fields
 // this preview renders are typed.
@@ -43,7 +44,9 @@ function escapeHtml(s: string): string {
 // (FilePreviewModal); this is pure presentation.
 export function EmlPreview({ message }: { message: ParsedEml }) {
   const t = useTranslations("email_viewer");
-  const blockRemote = useSettingsStore((state) => state.externalContentPolicy) !== "allow";
+  // Always blocked with no third-party traffic (#903).
+  const remoteBlockedByOrg = useNoThirdPartyTraffic();
+  const blockRemote = useSettingsStore((state) => state.externalContentPolicy) !== "allow" || remoteBlockedByOrg;
 
   // dir="auto" on a wrapper we control lets the first strong character pick
   // the direction, matching the main viewer.

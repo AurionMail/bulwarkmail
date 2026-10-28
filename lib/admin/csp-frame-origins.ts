@@ -11,6 +11,7 @@
 
 import { getPluginRegistry } from './plugin-registry';
 import { sanitizeFrameOrigins } from '../extension-origins';
+import { isNoThirdPartyTrafficOn } from './third-party-mode';
 
 export {
   isValidFrameOrigin,
@@ -40,6 +41,12 @@ export async function getEnabledPluginFrameOrigins(): Promise<string[]> {
   if (now - cachedAt < CACHE_TTL_MS) return cachedOrigins;
 
   try {
+    // No outside frames at all while the server stays off outside hosts (#903).
+    if (await isNoThirdPartyTrafficOn()) {
+      cachedOrigins = [];
+      cachedAt = now;
+      return [];
+    }
     const registry = await getPluginRegistry();
     // Dev plugins (PLUGIN_DEV_DIR) are served next to the installed ones and
     // need their embeds allowed too.

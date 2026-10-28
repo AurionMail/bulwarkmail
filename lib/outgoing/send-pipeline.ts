@@ -18,7 +18,7 @@
 
 import { debug } from '@/lib/debug';
 
-export type SendSurface = 'composer' | 'quick-reply';
+export type SendSurface = 'composer' | 'quick-reply' | 'calendar-invitation';
 
 export interface OutgoingContext {
   surface: SendSurface;
@@ -26,12 +26,15 @@ export interface OutgoingContext {
   to: string[];
   cc: string[];
   bcc: string[];
+  /** The From address: the identity's, or one typed over it in the composer. */
   fromEmail?: string;
   identityId?: string;
   /**
-   * The identity the message goes out from and the signed-in account it
-   * belongs to (its local account id; the active account when left out).
-   * identityId can name an identity of another account ("<account>::<id>").
+   * The identity the message goes out from (its own address, never a From
+   * typed over it) and the signed-in account (AccountEntry id) it goes out
+   * through; the active account when left out. identityId can name an
+   * identity of another account ("<account>::<id>"). Checks and finalisers
+   * use that account's policy and identities.
    */
   sender?: { name: string; email: string; accountId?: string | null };
   /** compose, reply, replyAll or forward; quick reply is a reply. */

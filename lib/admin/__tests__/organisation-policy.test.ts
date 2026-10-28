@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_ORGANISATION_POLICY,
   normalizeDomainList,
+  parseDomainList,
   sanitizeOrganisationPolicy,
 } from '@/lib/admin/organisation-policy';
 import { applyLitePolicy } from '@/lib/lite-config';
@@ -31,6 +32,14 @@ describe('sanitizeOrganisationPolicy', () => {
   it('normalises domain lists from text or arrays', () => {
     expect(normalizeDomainList(['A.org', 'a.org', 'x'])).toEqual(['a.org']);
     expect(normalizeDomainList(42)).toBeUndefined();
+  });
+
+  it('takes IDN domains in ASCII form and names what it left out', () => {
+    expect(parseDomainList('Bücher.de, xn--bcher-kva.de, @partner.example, *.sub.example\nnot a domain, x')).toEqual({
+      domains: ['xn--bcher-kva.de', 'partner.example', 'sub.example'],
+      rejected: ['not', 'a', 'domain', 'x'],
+    });
+    expect(parseDomainList(['bad_domain.example', 'ok.example'])).toEqual({ domains: ['ok.example'], rejected: ['bad_domain.example'] });
   });
 });
 

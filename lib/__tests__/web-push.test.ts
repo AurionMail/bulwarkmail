@@ -16,8 +16,11 @@ import {
   revokePushDevice,
   waitForWebPushResync,
 } from '@/lib/web-push';
+import { DEFAULT_RELAY_BASE_URL } from '@/lib/push-relays';
+import { setNoThirdPartyTraffic } from '@/lib/third-party-mode';
 
 const RELAY = 'https://relay.example';
+const RELAY_BASE_KEY = `bulwark.push.relayBase.v1.${'acct-1'}`;
 const ACCOUNT_ID = 'acct-1';
 const THIS_DEVICE = 'aaaaaaaabbbbbbbbccccccccdddddddd';
 const OTHER_DEVICE = '11111111222222223333333344444444';
@@ -469,6 +472,52 @@ describe('enableWebPush', () => {
 // Registrations made before the client learned about the delivery filter are
 // repaired in the background on app start - nobody should have to find the
 // settings toggle to stop the spam pushes.
+describe('resyncWebPush when the relay changed (#903)', () => {
+  afterEach(() => setNoThirdPartyTraffic(false));
+
+  it('moves a registration made with the built-in relay to the admin relay with no third-party traffic', async () => {
+    setNoThirdPartyTraffic(true);
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    localStorage.setItem(SUB_KEY, 'push-old');
+    localStorage.setItem(RELAY_BASE_KEY, DEFAULT_RELAY_BASE_URL);
+    const client = makeClient([sub('push-old', THIS_DEVICE, { url: `${DEFAULT_RELAY_BASE_URL}/api/push/jmap/${THIS_DEVICE}` })]);
+    const calls = installFetch({});
+
+    expect(await resyncWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false })).toBe(true);
+    // A new server record that points at the admin relay replaces the old one.
+    expect((client.createPushSubscription as ReturnType<typeof vi.fn>).mock.calls[0][0]).toMatchObject({ url: `${RELAY}/api/push/jmap/${THIS_DEVICE}` });
+    expect(client.destroyed).toContain('push-old');
+    expect(client.updatePushSubscription).not.toHaveBeenCalled();
+    expect(localStorage.getItem(RELAY_BASE_KEY)).toBe(RELAY);
+    expect(calls.some((c) => c.url.startsWith(DEFAULT_RELAY_BASE_URL))).toBe(false);
+  });
+
+  it('treats a registration from before the relay was recorded as the built-in one in that mode', async () => {
+    setNoThirdPartyTraffic(true);
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    localStorage.setItem(SUB_KEY, 'push-old');
+    const client = makeClient([sub('push-old', THIS_DEVICE)]);
+    installFetch({});
+
+    expect(await resyncWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false })).toBe(true);
+    expect(client.createPushSubscription).toHaveBeenCalledTimes(1);
+    expect(client.destroyed).toContain('push-old');
+  });
+
+  it('re-registers inside the daily limit when the admin switched relays, and only once', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    localStorage.setItem(SUB_KEY, 'push-old');
+    localStorage.setItem(RELAY_BASE_KEY, 'https://old-relay.example');
+    const client = makeClient([sub('push-old', THIS_DEVICE)]);
+    installFetch({});
+
+    expect(await resyncWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false })).toBe(true);
+    expect(client.createPushSubscription).toHaveBeenCalledTimes(1);
+    expect(await resyncWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false })).toBe(false);
+    expect(client.createPushSubscription).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('resyncWebPush', () => {
   it('repairs a lost browser subscription for an account that previously opted in', async () => {
     localStorage.setItem(DEVICE_KEY, THIS_DEVICE);

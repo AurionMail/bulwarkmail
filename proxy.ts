@@ -10,6 +10,8 @@ import {
   pickAppFrameOriginsCookie,
 } from "./lib/security/app-frame-origins";
 import { configManager } from "./lib/admin/config-manager";
+import { isNoThirdPartyTrafficOn } from "./lib/admin/third-party-mode";
+import { listReachableHosts, noThirdPartyCspSources } from "./lib/admin/reachable-hosts";
 import { getWopiEditorOrigins } from "./lib/wopi/discovery";
 import { detectSetupState } from "./lib/setup/state";
 import { isServedOverHttps } from "./lib/security/request-protocol";
@@ -298,11 +300,29 @@ export async function proxy(request: NextRequest) {
   // itself gets its own origin and nothing else, so fetch(), images, fonts
   // and CSS url() can't carry data to a host the manifest didn't name. Its
   // own origin stays because the router refetches the page as RSC.
+  //
+  // With no third-party traffic (#903) the page itself gets the same kind of
+  // fence: its own origin plus the hosts the deployment configured (JMAP
+  // servers, OAuth issuer, relays, a self-hosted directory, sidebar apps,
+  // WOPI, LibreTranslate, branding images). It catches whatever the in-app
+  // switches miss, privileged plugins and plugin avatar URLs included.
+  const noThirdParty = !isSandboxPath && await isNoThirdPartyTrafficOn();
+  const ownHosts = noThirdParty
+    ? noThirdPartyCspSources(
+        listReachableHosts({ get: (key) => configManager.get(key), policy: configManager.getPolicy(), env: process.env }),
+        configManager.get<boolean>("allowCustomJmapEndpoint", false) === true,
+      )
+    : null;
+  const own = (sources: string[]) => (sources.length > 0 ? ` ${sources.join(" ")}` : "");
   const connectSrc = isSandboxPath
     ? `'self'`
+    : ownHosts ? `'self'${own(ownHosts.connect)}`
     : isDev ? `'self' http: https: ws: wss:` : `'self' https:`;
-  const imgSrc = isSandboxPath ? `'self' data: blob:` : `'self' data: blob: https:`;
-  const fontSrc = isSandboxPath ? `'self' data:` : `'self' https: data:`;
+  const imgSrc = isSandboxPath ? `'self' data: blob:`
+    : ownHosts ? `'self' data: blob:${own(ownHosts.other)}` : `'self' data: blob: https:`;
+  const fontSrc = isSandboxPath ? `'self' data:`
+    : ownHosts ? `'self' data:${own(ownHosts.other)}` : `'self' https: data:`;
+  const mediaSrc = ownHosts ? `'self' blob:${own(ownHosts.other)}` : `'self' blob:`;
 
   // The admin dashboard and the setup wizard are never framed. The embedding
   // allowance is for the mail UI a portal wraps; a framed admin page is a
@@ -349,7 +369,7 @@ export async function proxy(request: NextRequest) {
 
   const frameOrigins: string[] = [];
   const seenFrameOrigins = new Set<string>();
-  for (const origin of [...pluginFrameOrigins, ...managedAppFrameOrigins, ...appFrameOrigins, ...wopiOrigins]) {
+  for (const origin of [...pluginFrameOrigins, ...managedAppFrameOrigins, ...appFrameOrigins, ...wopiOrigins, ...(ownHosts?.other ?? [])]) {
     const key = origin.toLowerCase();
     if (seenFrameOrigins.has(key)) continue;
     seenFrameOrigins.add(key);
@@ -375,7 +395,7 @@ export async function proxy(request: NextRequest) {
     // form must not post anywhere: that would be a way out past connect-src.
     isSandboxPath ? `form-action 'none'` : `form-action ${["'self'", ...wopiOrigins].join(" ")}`,
     `frame-ancestors ${frameAncestors}`,
-    `media-src 'self' blob:`,
+    `media-src ${mediaSrc}`,
   ].join("; ");
 
   // Skip intl middleware for routes outside the localized app tree.

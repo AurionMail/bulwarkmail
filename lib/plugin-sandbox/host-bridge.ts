@@ -7,12 +7,13 @@
 // `event.source === iframe.contentWindow`. The iframe's runtime pins the
 // parent on the first inbound message.
 
-import type { InstalledPlugin, SlotName, PluginTier } from '../plugin-types';
+import type { HostFeaturesView, InstalledPlugin, SlotName, PluginTier } from '../plugin-types';
 import { dispatchApiCall } from './host-api';
 import { SANDBOX_PATH, SANDBOX_PRIVILEGED_PATH, type RegionalSnapshot } from './protocol';
 export type { RegionalSnapshot };
 import { withBasePath } from '../browser-navigation';
 import { snapshotHostTheme, type ThemeSnapshot } from './host-theme';
+import { snapshotHostFeatures, watchHostFeatures } from './host-features';
 import { effectiveSettings } from '../plugin-settings';
 import { clampSlotHeight, clampSlotWidth, isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
 import { resolveDateLocale } from '../utils';
@@ -252,6 +253,13 @@ function pushThemeToFrames(): void {
   }
 }
 
+/** Every frame hears about a Bulwark feature that replaces plugins turning on or off. */
+function pushHostFeaturesToFrames(features: HostFeaturesView): void {
+  for (const instance of liveInstances) {
+    try { instance.setHostFeatures(features); } catch { /* one broken iframe must not stop the rest */ }
+  }
+}
+
 function ensureThemeWatcher(): void {
   if (themeWatcher || typeof MutationObserver === 'undefined' || typeof document === 'undefined') return;
   let scheduled = false;
@@ -414,6 +422,7 @@ export class SandboxInstance {
     hostContainer.appendChild(this.iframe);
     liveInstances.add(this);
     if (this.mode === 'slot') ensureThemeWatcher();
+    watchHostFeatures(pushHostFeaturesToFrames);
 
     // Send init after the iframe runtime signals it's ready.
     this.readyPromise.then(() => {
@@ -637,6 +646,16 @@ export class SandboxInstance {
     this.send({ type: 'theme-change', theme });
   }
 
+  /** Push what api.host.features says now; before init it goes into the init payload. */
+  setHostFeatures(features: HostFeaturesView): void {
+    if (this.destroyed) return;
+    if (this.pendingInit) {
+      this.pendingInit.hostFeatures = features;
+      return;
+    }
+    this.send({ type: 'host-change', features });
+  }
+
   /** Push the plugin's current settings (see effectiveSettings). */
   setSettings(settings: Record<string, unknown>): void {
     if (this.destroyed) return;
@@ -735,6 +754,7 @@ export function createBackgroundInstance(opts: BackgroundOptions): SandboxInstan
     code: opts.code,
     locale: opts.locale,
     regional: opts.regional ?? snapshotRegionalSettings(opts.locale),
+    hostFeatures: snapshotHostFeatures(),
   };
   return new SandboxInstance(
     opts.plugin,
@@ -764,6 +784,7 @@ export function createSlotInstance(opts: SlotOptions): SandboxInstance {
     locale: opts.locale,
     regional: opts.regional ?? snapshotRegionalSettings(opts.locale),
     theme: snapshotHostTheme(),
+    hostFeatures: snapshotHostFeatures(),
   };
   return new SandboxInstance(opts.plugin, payload, opts.hostContainer, opts.onResize, opts.onFloatingDropdown);
 }
