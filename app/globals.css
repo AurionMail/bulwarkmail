@@ -965,7 +965,8 @@ optgroup {
 }
 
 /* RTL: mirror directional icons (chevrons/arrows) so prev/next, back/forward,
-   and panel-collapse affordances point the correct way in right-to-left layouts.
+   reply/forward and panel-collapse affordances point the correct way in
+   right-to-left layouts.
    Tabler emits a `tabler-icon-<name>` class per icon, so we target the
    directional ones only — vertical chevrons (up/down) are intentionally left. */
 [dir="rtl"] .tabler-icon-chevron-left,
@@ -976,6 +977,10 @@ optgroup {
 [dir="rtl"] .tabler-icon-arrow-right,
 [dir="rtl"] .tabler-icon-arrow-big-left,
 [dir="rtl"] .tabler-icon-arrow-big-right,
+[dir="rtl"] .tabler-icon-arrow-back-up,
+[dir="rtl"] .tabler-icon-arrow-back-up-double,
+[dir="rtl"] .tabler-icon-arrow-forward-up,
+[dir="rtl"] .tabler-icon-arrow-forward-up-double,
 [dir="rtl"] .tabler-icon-layout-sidebar-left,
 [dir="rtl"] .tabler-icon-layout-sidebar-right {
   transform: scaleX(-1);
