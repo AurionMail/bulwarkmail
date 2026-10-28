@@ -4323,7 +4323,19 @@
     "date_within": "Дата",
     "search_in": "Искать в",
     "has_attachment_check": "Есть вложения",
-    "search": "Найти"
+    "search": "Найти",
+    "not_starred": "Без звёздочки",
+    "no_attachment": "Без вложений",
+    "any_time": "За всё время",
+    "past_week": "За неделю",
+    "past_month": "За месяц",
+    "past_year": "За год",
+    "custom_range": "Свой период",
+    "any_size": "Любой размер",
+    "larger_than_mb": "Больше {size} МБ",
+    "custom_size": "Свой размер",
+    "done": "Готово",
+    "name_or_address": "Имя или адрес"
   },
   "welcome": {
     "title": "Добро пожаловать в ваш почтовый ящик",

@@ -90,6 +90,7 @@ import { jmapErrorType } from "@/lib/jmap/jmap-error";
 import { isFilterEmpty, activeFilterCount, DEFAULT_SEARCH_FILTERS } from "@/lib/jmap/search-utils";
 import { SearchBox, type ContactSearchField } from "@/components/search/search-box";
 import { FilterPanelHost } from "@/components/search/filter-panel-host";
+import { SearchFilterPanel, SELECT_CLASS } from "@/components/search/search-filter-panel";
 import type { ContactSuggestion } from "@/lib/search-suggestions";
 import type { Attachment, SendEmailResult } from "@/lib/jmap/types";
 import { peekListAttachments, requestListAttachments, type ListAttachmentSource, type LoadListAttachments } from "@/lib/list-attachments";
@@ -110,7 +111,6 @@ import { useIdentitySync } from "@/hooks/use-identity-sync";
 import { useIsEmbedded } from "@/hooks/use-is-embedded";
 import { useProTabStore } from "@/stores/pro-tab-store";
 import { useProMultiAccountMailboxes } from "@/hooks/use-pro-multi-account-mailboxes";
-import { Input } from "@/components/ui/input";
 import { FilePreviewModal } from "@/components/files/file-preview-modal";
 import { WopiEditor } from "@/components/files/wopi-editor";
 import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
@@ -120,7 +120,7 @@ import { computeReplyThreadingHeaders } from "@/lib/email-threading";
 import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
 import { resolveComposeAccountEmail } from "@/lib/reply-identity";
 import { useProMultiAccountIdentities } from "@/hooks/use-pro-multi-account-identities";
-import { Filter, ChevronDown, X, Paperclip, Star, Mail, MailOpen, RotateCcw, PenSquare, CheckSquare, Square, AlertTriangle, ArrowLeft, RefreshCw, Reply, ReplyAll, Forward, Archive, Trash2, FolderInput, ShieldAlert, ShieldCheck, Folder } from "@/components/icons";
+import { Filter, X, Mail, MailOpen, PenSquare, CheckSquare, Square, AlertTriangle, ArrowLeft, RefreshCw, Reply, ReplyAll, Forward, Archive, Trash2, FolderInput, ShieldAlert, ShieldCheck, Folder } from "@/components/icons";
 import { useRegisterCommands } from "@/lib/command-registry";
 import { MoveToDialog } from "@/components/email/move-to-dialog";
 import { ResizeHandle } from "@/components/layout/resize-handle";
@@ -259,7 +259,6 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const [moveDialogEmail, setMoveDialogEmail] = useState<Email | null>(null);
   // The scheduled message Reschedule was picked for in the list's menu.
   const [rescheduleTarget, setRescheduleTarget] = useState<Email | null>(null);
-  const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   // Column resize state (disable transitions during drag)
   const [isResizing, setIsResizing] = useState(false);
   const dragStartWidth = useRef(0);
@@ -3781,9 +3780,19 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       clearTimeout(advancedSearchDebounceRef.current);
     }
     advancedSearchDebounceRef.current = setTimeout(() => {
+      advancedSearchDebounceRef.current = null;
       if (client) advancedSearch(client);
     }, 300);
   }, [client, advancedSearch]);
+
+  // Runs the search at once, dropping a run still waiting on the debounce.
+  const runAdvancedSearchNow = async () => {
+    if (advancedSearchDebounceRef.current) {
+      clearTimeout(advancedSearchDebounceRef.current);
+      advancedSearchDebounceRef.current = null;
+    }
+    await handleAdvancedSearch();
+  };
 
   useEffect(() => {
     return () => {
@@ -4580,22 +4589,6 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     });
   };
 
-  const ToggleChip = ({ icon, label, value, onClick }: { icon: React.ReactNode; label: string; value: boolean | null; onClick: () => void }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-colors border",
-        value === true && "bg-primary/10 border-primary/30 text-primary",
-        value === false && "bg-muted border-border text-muted-foreground line-through",
-        value === null && "bg-background border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground"
-      )}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-
   // The folder the advanced search runs in. Scopes the search only - it does
   // not navigate the mail list. `rerun` re-queries straight away when a search
   // is running; Mountain View's form waits for its Search button instead.
@@ -5118,165 +5111,22 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                         false,
                       ) : undefined}
                     />
-                  ) : (<>
-                  {/* Quick toggle filters + clear */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <ToggleChip
-                        icon={<Paperclip className="w-3.5 h-3.5" />}
-                        label={t("advanced_search.has_attachment")}
-                        value={searchFilters.hasAttachment}
-                        onClick={() => { const next = searchFilters.hasAttachment === null ? true : searchFilters.hasAttachment ? false : null; setSearchFilters({ hasAttachment: next }); handleAdvancedSearch(); }}
-                      />
-                      <ToggleChip
-                        icon={<Star className="w-3.5 h-3.5" />}
-                        label={t("advanced_search.starred")}
-                        value={searchFilters.isStarred}
-                        onClick={() => { const next = searchFilters.isStarred === null ? true : searchFilters.isStarred ? false : null; setSearchFilters({ isStarred: next }); handleAdvancedSearch(); }}
-                      />
-                      <ToggleChip
-                        icon={searchFilters.isUnread === false ? <MailOpen className="w-3.5 h-3.5" /> : <Mail className="w-3.5 h-3.5" />}
-                        label={searchFilters.isUnread === false ? t("advanced_search.read") : t("advanced_search.unread")}
-                        value={searchFilters.isUnread}
-                        onClick={() => { const next = searchFilters.isUnread === null ? true : searchFilters.isUnread ? false : null; setSearchFilters({ isUnread: next }); handleAdvancedSearch(); }}
-                      />
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => { clearSearchFilters(); setShowAdvancedFields(false); if (client) advancedSearch(client); }} className="h-7 px-2 text-xs text-muted-foreground">
-                        <RotateCcw className="w-3 h-3 me-1" />
-                        {t("advanced_search.clear")}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* "More" expand for advanced fields */}
-                  <button
-                    type="button"
-                    onClick={() => setShowAdvancedFields(!showAdvancedFields)}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", showAdvancedFields && "rotate-180")} />
-                    <span>{t("advanced_search.title")}</span>
-                  </button>
-
-                  {/* Advanced fields */}
-                  {showAdvancedFields && (
-                    <div className="space-y-2.5 animate-in slide-in-from-top-1 fade-in duration-150">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-xs text-muted-foreground mb-1 block">{t("advanced_search.from")}</label>
-                          <Input
-                            value={searchFilters.from}
-                            onChange={(e) => { setSearchFilters({ from: e.target.value }); handleAdvancedSearchDebounced(); }}
-                            placeholder={t("advanced_search.from_placeholder")}
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs text-muted-foreground mb-1 block">{t("advanced_search.to")}</label>
-                          <Input
-                            value={searchFilters.to}
-                            onChange={(e) => { setSearchFilters({ to: e.target.value }); handleAdvancedSearchDebounced(); }}
-                            placeholder={t("advanced_search.to_placeholder")}
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">{t("advanced_search.subject")}</label>
-                        <Input
-                          value={searchFilters.subject}
-                          onChange={(e) => { setSearchFilters({ subject: e.target.value }); handleAdvancedSearchDebounced(); }}
-                          placeholder={t("advanced_search.subject_placeholder")}
-                          className="h-8 text-sm"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">{t("advanced_search.body")}</label>
-                        <Input
-                          value={searchFilters.body}
-                          onChange={(e) => { setSearchFilters({ body: e.target.value }); handleAdvancedSearchDebounced(); }}
-                          placeholder={t("advanced_search.body_placeholder")}
-                          className="h-8 text-sm"
-                        />
-                      </div>
-
-                      {/* Folder selector. Scopes the search only - it does not
-                          navigate the mail list. It defaults to "All folders
-                          except Spam and Trash", or to Spam/Trash itself while
-                          that folder is open (defaultSearchScopeFor), and keeps
-                          whatever the user picked. Both folder-less scopes span
-                          the own AND the group/shared accounts' folders (#1082);
-                          "All folders" also searches Trash and Junk. The shared
-                          folders are listed under their owner, and subfolders
-                          are indented under their parent as in the sidebar
-                          (a native select has no tree, so the indent is
-                          non-breaking spaces, as in the filter rule modal).
-                          The unified views already search across every
-                          account's folders, so it is hidden there. */}
-                      {!isUnifiedView && (
-                        <div>
-                          <label className="text-xs text-muted-foreground mb-1 block">{t("advanced_search.folder")}</label>
-                          {renderSearchFolderSelect(
-                            "w-full h-8 text-sm rounded-md border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
-                            true,
-                          )}
-                        </div>
-                      )}
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-xs text-muted-foreground mb-1 block">{t("advanced_search.date_after")}</label>
-                          <Input
-                            type="date"
-                            value={searchFilters.dateAfter}
-                            onChange={(e) => { setSearchFilters({ dateAfter: e.target.value }); handleAdvancedSearch(); }}
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs text-muted-foreground mb-1 block">{t("advanced_search.date_before")}</label>
-                          <Input
-                            type="date"
-                            value={searchFilters.dateBefore}
-                            onChange={(e) => { setSearchFilters({ dateBefore: e.target.value }); handleAdvancedSearch(); }}
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Message size (Email/query minSize / maxSize, RFC 8621 §4.4.1) */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-xs text-muted-foreground mb-1 block">{t("advanced_search.size_min")}</label>
-                          <Input
-                            type="number"
-                            min={1}
-                            inputMode="numeric"
-                            value={searchFilters.minSizeKb}
-                            onChange={(e) => { setSearchFilters({ minSizeKb: e.target.value }); handleAdvancedSearch(); }}
-                            className="h-8 text-sm"
-                            data-testid="advanced-search-min-size"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs text-muted-foreground mb-1 block">{t("advanced_search.size_max")}</label>
-                          <Input
-                            type="number"
-                            min={1}
-                            inputMode="numeric"
-                            value={searchFilters.maxSizeKb}
-                            onChange={(e) => { setSearchFilters({ maxSizeKb: e.target.value }); handleAdvancedSearch(); }}
-                            className="h-8 text-sm"
-                            data-testid="advanced-search-max-size"
-                          />
-                        </div>
-                      </div>
-                    </div>
+                  ) : (
+                    <SearchFilterPanel
+                      filters={searchFilters}
+                      onChange={(patch, mode) => {
+                        setSearchFilters(patch);
+                        if (mode === "debounced") handleAdvancedSearchDebounced();
+                        else void runAdvancedSearchNow();
+                      }}
+                      onClearAll={() => { clearSearchFilters(); void runAdvancedSearchNow(); }}
+                      onDone={() => {
+                        if (advancedSearchDebounceRef.current) void runAdvancedSearchNow();
+                        toggleAdvancedSearch();
+                      }}
+                      folderSelect={!isUnifiedView ? renderSearchFolderSelect(SELECT_CLASS, true) : undefined}
+                    />
                   )}
-                  </>)}
                 </FilterPanelHost>
               )}
             </div>

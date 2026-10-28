@@ -953,7 +953,19 @@
     "date_within": "วันที่",
     "search_in": "ค้นหาใน",
     "has_attachment_check": "มีไฟล์แนบ",
-    "search": "ค้นหา"
+    "search": "ค้นหา",
+    "not_starred": "ไม่ติดดาว",
+    "no_attachment": "ไม่มีไฟล์แนบ",
+    "any_time": "ทุกเวลา",
+    "past_week": "สัปดาห์ที่แล้ว",
+    "past_month": "เดือนที่แล้ว",
+    "past_year": "ปีที่แล้ว",
+    "custom_range": "กำหนดช่วงเอง",
+    "any_size": "ทุกขนาด",
+    "larger_than_mb": "ใหญ่กว่า {size} MB",
+    "custom_size": "กำหนดขนาดเอง",
+    "done": "เสร็จสิ้น",
+    "name_or_address": "ชื่อหรือที่อยู่"
   },
   "global_search": {
     "title": "ค้นหาทุกรายการ",

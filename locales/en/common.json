@@ -4452,7 +4452,19 @@
     "date_within": "Date",
     "search_in": "Search in",
     "has_attachment_check": "Has attachment",
-    "search": "Search"
+    "search": "Search",
+    "not_starred": "Not starred",
+    "no_attachment": "No attachments",
+    "any_time": "Any time",
+    "past_week": "Past week",
+    "past_month": "Past month",
+    "past_year": "Past year",
+    "custom_range": "Custom range",
+    "any_size": "Any size",
+    "larger_than_mb": "Larger than {size} MB",
+    "custom_size": "Custom size",
+    "done": "Done",
+    "name_or_address": "Name or address"
   },
   "welcome": {
     "title": "Welcome to your mailbox",

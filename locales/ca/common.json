@@ -4452,7 +4452,19 @@
     "date_within": "Data",
     "search_in": "Cerca a",
     "has_attachment_check": "Té fitxers adjunts",
-    "search": "Cerca"
+    "search": "Cerca",
+    "not_starred": "Sense destacar",
+    "no_attachment": "Sense adjunts",
+    "any_time": "Qualsevol data",
+    "past_week": "Darrera setmana",
+    "past_month": "Darrer mes",
+    "past_year": "Darrer any",
+    "custom_range": "Interval personalitzat",
+    "any_size": "Qualsevol mida",
+    "larger_than_mb": "Més de {size} MB",
+    "custom_size": "Mida personalitzada",
+    "done": "Fet",
+    "name_or_address": "Nom o adreça"
   },
   "welcome": {
     "title": "Us donem la benvinguda a la bústia",

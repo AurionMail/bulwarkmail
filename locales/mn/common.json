@@ -4452,7 +4452,19 @@
     "date_within": "Огноо",
     "search_in": "Хайх газар",
     "has_attachment_check": "Хавсралттай",
-    "search": "Хайх"
+    "search": "Хайх",
+    "not_starred": "Одгүй",
+    "no_attachment": "Хавсралтгүй",
+    "any_time": "Хэзээ ч",
+    "past_week": "Өнгөрсөн долоо хоног",
+    "past_month": "Өнгөрсөн сар",
+    "past_year": "Өнгөрсөн жил",
+    "custom_range": "Өөрийн хугацаа",
+    "any_size": "Ямар ч хэмжээ",
+    "larger_than_mb": "{size} MB-аас их",
+    "custom_size": "Өөрийн хэмжээ",
+    "done": "Болсон",
+    "name_or_address": "Нэр эсвэл хаяг"
   },
   "welcome": {
     "title": "Таны шуудангийн хайрцагт тавтай морил",

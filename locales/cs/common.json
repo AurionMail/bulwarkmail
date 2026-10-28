@@ -4323,7 +4323,19 @@
     "date_within": "Datum",
     "search_in": "Hledat v",
     "has_attachment_check": "Má přílohu",
-    "search": "Hledat"
+    "search": "Hledat",
+    "not_starred": "Bez hvězdičky",
+    "no_attachment": "Bez příloh",
+    "any_time": "Kdykoli",
+    "past_week": "Poslední týden",
+    "past_month": "Poslední měsíc",
+    "past_year": "Poslední rok",
+    "custom_range": "Vlastní období",
+    "any_size": "Libovolná velikost",
+    "larger_than_mb": "Větší než {size} MB",
+    "custom_size": "Vlastní velikost",
+    "done": "Hotovo",
+    "name_or_address": "Jméno nebo adresa"
   },
   "welcome": {
     "title": "Vítejte ve své poštovní schránce",

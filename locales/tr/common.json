@@ -4452,7 +4452,19 @@
     "date_within": "Tarih",
     "search_in": "Şurada ara",
     "has_attachment_check": "Eki var",
-    "search": "Ara"
+    "search": "Ara",
+    "not_starred": "Yıldızsız",
+    "no_attachment": "Eki olmayan",
+    "any_time": "Herhangi bir zaman",
+    "past_week": "Geçen hafta",
+    "past_month": "Geçen ay",
+    "past_year": "Geçen yıl",
+    "custom_range": "Özel aralık",
+    "any_size": "Herhangi bir boyut",
+    "larger_than_mb": "{size} MB'tan büyük",
+    "custom_size": "Özel boyut",
+    "done": "Bitti",
+    "name_or_address": "Ad veya adres"
   },
   "welcome": {
     "title": "Posta kutunuza hoş geldiniz",

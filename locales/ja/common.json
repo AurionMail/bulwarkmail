@@ -4323,7 +4323,19 @@
     "date_within": "日付",
     "search_in": "検索対象",
     "has_attachment_check": "添付ファイルあり",
-    "search": "検索"
+    "search": "検索",
+    "not_starred": "スターなし",
+    "no_attachment": "添付ファイルなし",
+    "any_time": "期間指定なし",
+    "past_week": "過去 1 週間",
+    "past_month": "過去 1 か月",
+    "past_year": "過去 1 年",
+    "custom_range": "期間を指定",
+    "any_size": "サイズ指定なし",
+    "larger_than_mb": "{size} MB より大きい",
+    "custom_size": "サイズを指定",
+    "done": "完了",
+    "name_or_address": "名前またはアドレス"
   },
   "welcome": {
     "title": "メールボックスへようこそ",

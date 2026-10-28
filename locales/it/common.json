@@ -4323,7 +4323,19 @@
     "date_within": "Data",
     "search_in": "Cerca in",
     "has_attachment_check": "Con allegati",
-    "search": "Cerca"
+    "search": "Cerca",
+    "not_starred": "Non preferiti",
+    "no_attachment": "Senza allegati",
+    "any_time": "Qualsiasi data",
+    "past_week": "Ultima settimana",
+    "past_month": "Ultimo mese",
+    "past_year": "Ultimo anno",
+    "custom_range": "Intervallo personalizzato",
+    "any_size": "Qualsiasi dimensione",
+    "larger_than_mb": "Più di {size} MB",
+    "custom_size": "Dimensione personalizzata",
+    "done": "Fatto",
+    "name_or_address": "Nome o indirizzo"
   },
   "welcome": {
     "title": "Benvenuto nella tua casella di posta",

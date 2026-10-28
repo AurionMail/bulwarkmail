@@ -4323,7 +4323,19 @@
     "date_within": "Date",
     "search_in": "Rechercher dans",
     "has_attachment_check": "Contient une pièce jointe",
-    "search": "Rechercher"
+    "search": "Rechercher",
+    "not_starred": "Non suivis",
+    "no_attachment": "Sans pièces jointes",
+    "any_time": "N'importe quand",
+    "past_week": "Semaine dernière",
+    "past_month": "Mois dernier",
+    "past_year": "Année dernière",
+    "custom_range": "Période personnalisée",
+    "any_size": "Toutes tailles",
+    "larger_than_mb": "Plus de {size} Mo",
+    "custom_size": "Taille personnalisée",
+    "done": "Terminé",
+    "name_or_address": "Nom ou adresse"
   },
   "welcome": {
     "title": "Bienvenue dans votre boite mail",

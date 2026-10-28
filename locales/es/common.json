@@ -4323,7 +4323,19 @@
     "date_within": "Fecha",
     "search_in": "Buscar en",
     "has_attachment_check": "Tiene archivos adjuntos",
-    "search": "Buscar"
+    "search": "Buscar",
+    "not_starred": "Sin destacar",
+    "no_attachment": "Sin adjuntos",
+    "any_time": "Cualquier fecha",
+    "past_week": "Última semana",
+    "past_month": "Último mes",
+    "past_year": "Último año",
+    "custom_range": "Intervalo personalizado",
+    "any_size": "Cualquier tamaño",
+    "larger_than_mb": "Más de {size} MB",
+    "custom_size": "Tamaño personalizado",
+    "done": "Listo",
+    "name_or_address": "Nombre o dirección"
   },
   "welcome": {
     "title": "Bienvenido a tu buzón",

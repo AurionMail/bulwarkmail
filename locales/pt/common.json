@@ -4323,7 +4323,19 @@
     "date_within": "Data",
     "search_in": "Pesquisar em",
     "has_attachment_check": "Com anexo",
-    "search": "Pesquisar"
+    "search": "Pesquisar",
+    "not_starred": "Não favoritos",
+    "no_attachment": "Sem anexos",
+    "any_time": "Qualquer data",
+    "past_week": "Última semana",
+    "past_month": "Último mês",
+    "past_year": "Último ano",
+    "custom_range": "Período personalizado",
+    "any_size": "Qualquer tamanho",
+    "larger_than_mb": "Maior que {size} MB",
+    "custom_size": "Tamanho personalizado",
+    "done": "Concluído",
+    "name_or_address": "Nome ou endereço"
   },
   "welcome": {
     "title": "Bem-vindo à sua caixa de entrada",

@@ -4452,7 +4452,19 @@
     "date_within": "Kuupäev",
     "search_in": "Otsi kaustast",
     "has_attachment_check": "Sisaldab manust",
-    "search": "Otsi"
+    "search": "Otsi",
+    "not_starred": "Tähistamata",
+    "no_attachment": "Manusteta",
+    "any_time": "Igal ajal",
+    "past_week": "Viimane nädal",
+    "past_month": "Viimane kuu",
+    "past_year": "Viimane aasta",
+    "custom_range": "Kohandatud vahemik",
+    "any_size": "Iga suurus",
+    "larger_than_mb": "Suurem kui {size} MB",
+    "custom_size": "Kohandatud suurus",
+    "done": "Valmis",
+    "name_or_address": "Nimi või aadress"
   },
   "welcome": {
     "title": "Tere tulemast sinu postkasti",

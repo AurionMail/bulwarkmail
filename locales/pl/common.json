@@ -4323,7 +4323,19 @@
     "date_within": "Data",
     "search_in": "Szukaj w",
     "has_attachment_check": "Z załącznikiem",
-    "search": "Szukaj"
+    "search": "Szukaj",
+    "not_starred": "Bez gwiazdki",
+    "no_attachment": "Bez załączników",
+    "any_time": "Dowolny czas",
+    "past_week": "Ostatni tydzień",
+    "past_month": "Ostatni miesiąc",
+    "past_year": "Ostatni rok",
+    "custom_range": "Własny zakres",
+    "any_size": "Dowolny rozmiar",
+    "larger_than_mb": "Większe niż {size} MB",
+    "custom_size": "Własny rozmiar",
+    "done": "Gotowe",
+    "name_or_address": "Imię lub adres"
   },
   "welcome": {
     "title": "Witaj w swojej skrzynce pocztowej",

@@ -4452,7 +4452,19 @@
     "date_within": "التاريخ",
     "search_in": "البحث في",
     "has_attachment_check": "يحتوي على مرفق",
-    "search": "بحث"
+    "search": "بحث",
+    "not_starred": "بدون نجمة",
+    "no_attachment": "بدون مرفقات",
+    "any_time": "أي وقت",
+    "past_week": "الأسبوع الماضي",
+    "past_month": "الشهر الماضي",
+    "past_year": "السنة الماضية",
+    "custom_range": "نطاق مخصص",
+    "any_size": "أي حجم",
+    "larger_than_mb": "أكبر من {size} ميغابايت",
+    "custom_size": "حجم مخصص",
+    "done": "تم",
+    "name_or_address": "الاسم أو العنوان"
   },
   "welcome": {
     "title": "مرحبًا بك في صندوق بريدك",

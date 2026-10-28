@@ -4323,7 +4323,19 @@
     "date_within": "날짜",
     "search_in": "검색 위치",
     "has_attachment_check": "첨부파일 있음",
-    "search": "검색"
+    "search": "검색",
+    "not_starred": "별표 없음",
+    "no_attachment": "첨부파일 없음",
+    "any_time": "모든 기간",
+    "past_week": "지난 1주",
+    "past_month": "지난 1개월",
+    "past_year": "지난 1년",
+    "custom_range": "기간 직접 지정",
+    "any_size": "모든 크기",
+    "larger_than_mb": "{size}MB 초과",
+    "custom_size": "크기 직접 지정",
+    "done": "완료",
+    "name_or_address": "이름 또는 주소"
   },
   "welcome": {
     "title": "웹메일에 오신 것을 환영해요!",

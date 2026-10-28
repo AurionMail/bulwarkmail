@@ -4452,7 +4452,19 @@
     "date_within": "تاریخ",
     "search_in": "جستجو در",
     "has_attachment_check": "دارای پیوست",
-    "search": "جستجو"
+    "search": "جستجو",
+    "not_starred": "بدون ستاره",
+    "no_attachment": "بدون پیوست",
+    "any_time": "هر زمان",
+    "past_week": "هفته گذشته",
+    "past_month": "ماه گذشته",
+    "past_year": "سال گذشته",
+    "custom_range": "بازه دلخواه",
+    "any_size": "هر اندازه",
+    "larger_than_mb": "بزرگ‌تر از {size} مگابایت",
+    "custom_size": "اندازه دلخواه",
+    "done": "انجام شد",
+    "name_or_address": "نام یا نشانی"
   },
   "welcome": {
     "title": "به صندوق پستی خود خوش آمدید",

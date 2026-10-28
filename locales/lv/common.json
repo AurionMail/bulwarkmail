@@ -4323,7 +4323,19 @@
     "date_within": "Datums",
     "search_in": "Meklēt",
     "has_attachment_check": "Ar pielikumu",
-    "search": "Meklēt"
+    "search": "Meklēt",
+    "not_starred": "Bez zvaigznītes",
+    "no_attachment": "Bez pielikumiem",
+    "any_time": "Jebkurā laikā",
+    "past_week": "Pēdējā nedēļa",
+    "past_month": "Pēdējais mēnesis",
+    "past_year": "Pēdējais gads",
+    "custom_range": "Pielāgots periods",
+    "any_size": "Jebkurš izmērs",
+    "larger_than_mb": "Lielāks par {size} MB",
+    "custom_size": "Pielāgots izmērs",
+    "done": "Gatavs",
+    "name_or_address": "Vārds vai adrese"
   },
   "welcome": {
     "title": "Laipni lūdzam jūsu pastkastē",

@@ -4323,7 +4323,19 @@
     "date_within": "Datum",
     "search_in": "Zoeken in",
     "has_attachment_check": "Met bijlage",
-    "search": "Zoeken"
+    "search": "Zoeken",
+    "not_starred": "Zonder ster",
+    "no_attachment": "Zonder bijlagen",
+    "any_time": "Altijd",
+    "past_week": "Afgelopen week",
+    "past_month": "Afgelopen maand",
+    "past_year": "Afgelopen jaar",
+    "custom_range": "Aangepaste periode",
+    "any_size": "Elke grootte",
+    "larger_than_mb": "Groter dan {size} MB",
+    "custom_size": "Aangepaste grootte",
+    "done": "Klaar",
+    "name_or_address": "Naam of adres"
   },
   "welcome": {
     "title": "Welkom bij uw mailbox",

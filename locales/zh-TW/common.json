@@ -4452,7 +4452,19 @@
     "date_within": "日期",
     "search_in": "搜尋範圍",
     "has_attachment_check": "包含附件",
-    "search": "搜尋"
+    "search": "搜尋",
+    "not_starred": "未加星號",
+    "no_attachment": "無附件",
+    "any_time": "任何時間",
+    "past_week": "過去一週",
+    "past_month": "過去一個月",
+    "past_year": "過去一年",
+    "custom_range": "自訂範圍",
+    "any_size": "任意大小",
+    "larger_than_mb": "大於 {size} MB",
+    "custom_size": "自訂大小",
+    "done": "完成",
+    "name_or_address": "姓名或地址"
   },
   "welcome": {
     "title": "歡迎使用您的信件匣",

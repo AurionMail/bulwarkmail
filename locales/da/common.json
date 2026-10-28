@@ -4452,7 +4452,19 @@
     "date_within": "Dato",
     "search_in": "Søg i",
     "has_attachment_check": "Har vedhæftet fil",
-    "search": "Søg"
+    "search": "Søg",
+    "not_starred": "Uden stjerne",
+    "no_attachment": "Uden vedhæftninger",
+    "any_time": "Når som helst",
+    "past_week": "Seneste uge",
+    "past_month": "Seneste måned",
+    "past_year": "Seneste år",
+    "custom_range": "Tilpasset periode",
+    "any_size": "Alle størrelser",
+    "larger_than_mb": "Større end {size} MB",
+    "custom_size": "Tilpasset størrelse",
+    "done": "Færdig",
+    "name_or_address": "Navn eller adresse"
   },
   "welcome": {
     "title": "Velkommen til din postkasse",

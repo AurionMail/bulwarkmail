@@ -4452,7 +4452,19 @@
     "date_within": "Dátum",
     "search_in": "Keresés itt",
     "has_attachment_check": "Van melléklete",
-    "search": "Keresés"
+    "search": "Keresés",
+    "not_starred": "Csillag nélkül",
+    "no_attachment": "Csatolmány nélkül",
+    "any_time": "Bármikor",
+    "past_week": "Elmúlt hét",
+    "past_month": "Elmúlt hónap",
+    "past_year": "Elmúlt év",
+    "custom_range": "Egyéni időszak",
+    "any_size": "Bármilyen méret",
+    "larger_than_mb": "Nagyobb mint {size} MB",
+    "custom_size": "Egyéni méret",
+    "done": "Kész",
+    "name_or_address": "Név vagy cím"
   },
   "welcome": {
     "title": "Üdvözlünk a postafiókodban",

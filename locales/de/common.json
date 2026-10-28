@@ -4323,7 +4323,19 @@
     "date_within": "Datum",
     "search_in": "Suchen in",
     "has_attachment_check": "Mit Anhang",
-    "search": "Suchen"
+    "search": "Suchen",
+    "not_starred": "Nicht markiert",
+    "no_attachment": "Ohne Anhänge",
+    "any_time": "Beliebig",
+    "past_week": "Letzte Woche",
+    "past_month": "Letzter Monat",
+    "past_year": "Letztes Jahr",
+    "custom_range": "Eigener Zeitraum",
+    "any_size": "Beliebig",
+    "larger_than_mb": "Größer als {size} MB",
+    "custom_size": "Eigene Größe",
+    "done": "Fertig",
+    "name_or_address": "Name oder Adresse"
   },
   "welcome": {
     "title": "Willkommen in Ihrem Postfach",

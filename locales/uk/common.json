@@ -4323,7 +4323,19 @@
     "date_within": "Дата",
     "search_in": "Шукати в",
     "has_attachment_check": "Є вкладення",
-    "search": "Шукати"
+    "search": "Шукати",
+    "not_starred": "Без зірочки",
+    "no_attachment": "Без додатків",
+    "any_time": "За весь час",
+    "past_week": "За тиждень",
+    "past_month": "За місяць",
+    "past_year": "За рік",
+    "custom_range": "Власний період",
+    "any_size": "Будь-який розмір",
+    "larger_than_mb": "Більше {size} МБ",
+    "custom_size": "Власний розмір",
+    "done": "Готово",
+    "name_or_address": "Ім'я або адреса"
   },
   "welcome": {
     "title": "Ласкаво просимо до вашої поштової скриньки",

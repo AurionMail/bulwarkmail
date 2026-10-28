@@ -4241,7 +4241,19 @@
     "date_within": "תאריך",
     "search_in": "חיפוש ב",
     "has_attachment_check": "יש קובץ מצורף",
-    "search": "חיפוש"
+    "search": "חיפוש",
+    "not_starred": "ללא כוכב",
+    "no_attachment": "ללא קבצים מצורפים",
+    "any_time": "בכל זמן",
+    "past_week": "השבוע האחרון",
+    "past_month": "החודש האחרון",
+    "past_year": "השנה האחרונה",
+    "custom_range": "טווח מותאם",
+    "any_size": "כל גודל",
+    "larger_than_mb": "גדול מ-{size} MB",
+    "custom_size": "גודל מותאם",
+    "done": "סיום",
+    "name_or_address": "שם או כתובת"
   },
   "welcome": {
     "title": "ברוך הבא לתיבת הדואר שלך",

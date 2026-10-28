@@ -4452,7 +4452,19 @@
     "date_within": "Dátum",
     "search_in": "Hľadať v",
     "has_attachment_check": "Má prílohu",
-    "search": "Hľadať"
+    "search": "Hľadať",
+    "not_starred": "Bez hviezdičky",
+    "no_attachment": "Bez príloh",
+    "any_time": "Kedykoľvek",
+    "past_week": "Posledný týždeň",
+    "past_month": "Posledný mesiac",
+    "past_year": "Posledný rok",
+    "custom_range": "Vlastné obdobie",
+    "any_size": "Ľubovoľná veľkosť",
+    "larger_than_mb": "Väčšie ako {size} MB",
+    "custom_size": "Vlastná veľkosť",
+    "done": "Hotovo",
+    "name_or_address": "Meno alebo adresa"
   },
   "welcome": {
     "title": "Vitajte vo svojej poštovej schránke",
