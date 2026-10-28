@@ -3293,6 +3293,12 @@
     "preview_cc": "副本：{list}"
   },
   "contacts": {
+    "print": {
+      "name": "姓名",
+      "count": "{count, plural, other {# 位聯絡人}}",
+      "entries": "{count, plural, other {# 個項目}}",
+      "search": "搜尋：{query}"
+    },
     "directory": {
       "title": "通訊錄目錄",
       "search_placeholder": "搜尋姓名或電子郵件地址",

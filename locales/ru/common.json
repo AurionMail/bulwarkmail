@@ -3293,6 +3293,12 @@
     "preview_cc": "Копия: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "Имя",
+      "count": "{count, plural, one {# контакт} few {# контакта} many {# контактов} other {# контакта}}",
+      "entries": "{count, plural, one {# запись} few {# записи} many {# записей} other {# записи}}",
+      "search": "Поиск: {query}"
+    },
     "directory": {
       "title": "Справочник",
       "search_placeholder": "Поиск по имени или адресу",

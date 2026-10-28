@@ -3293,6 +3293,12 @@
     "preview_cc": "CC: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "Navn",
+      "count": "{count, plural, one {# kontakt} other {# kontakter}}",
+      "entries": "{count, plural, one {# post} other {# poster}}",
+      "search": "Søgning: {query}"
+    },
     "directory": {
       "title": "Adressefortegnelse",
       "search_placeholder": "Søg efter navn eller e-mailadresse",

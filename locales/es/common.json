@@ -3293,6 +3293,12 @@
     "preview_cc": "CC: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "Nombre",
+      "count": "{count, plural, one {# contacto} other {# contactos}}",
+      "entries": "{count, plural, one {# entrada} other {# entradas}}",
+      "search": "Búsqueda: {query}"
+    },
     "directory": {
       "title": "Directorio",
       "search_placeholder": "Buscar nombre o dirección de correo",

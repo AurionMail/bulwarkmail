@@ -3293,6 +3293,12 @@
     "preview_cc": "نسخة: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "الاسم",
+      "count": "{count, plural, zero {لا جهات اتصال} one {جهة اتصال واحدة} two {جهتا اتصال} few {# جهات اتصال} many {# جهة اتصال} other {# جهة اتصال}}",
+      "entries": "{count, plural, zero {لا إدخالات} one {إدخال واحد} two {إدخالان} few {# إدخالات} many {# إدخالًا} other {# إدخال}}",
+      "search": "بحث: {query}"
+    },
     "directory": {
       "title": "الدليل",
       "search_placeholder": "ابحث عن اسم أو عنوان بريد",

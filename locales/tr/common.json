@@ -3293,6 +3293,12 @@
     "preview_cc": "CC: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "Ad",
+      "count": "{count, plural, one {# kişi} other {# kişi}}",
+      "entries": "{count, plural, one {# kayıt} other {# kayıt}}",
+      "search": "Arama: {query}"
+    },
     "directory": {
       "title": "Dizin",
       "search_placeholder": "Ad veya e-posta adresi ara",

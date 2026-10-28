@@ -3293,6 +3293,12 @@
     "preview_cc": "CC: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "Nome",
+      "count": "{count, plural, one {# contatto} other {# contatti}}",
+      "entries": "{count, plural, one {# voce} other {# voci}}",
+      "search": "Ricerca: {query}"
+    },
     "directory": {
       "title": "Rubrica aziendale",
       "search_placeholder": "Cerca nome o indirizzo email",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Mail, UserPlus, BookUser } from "@/components/icons";
+import { Mail, UserPlus, BookUser, Printer } from "@/components/icons";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { DirectoryEntry } from "@/stores/contact-store";
@@ -10,11 +10,14 @@ interface DirectoryEntryDetailProps {
   entry: DirectoryEntry | null;
   onCompose: (entry: DirectoryEntry) => void;
   onAddToContacts: (entry: DirectoryEntry) => void;
+  /** Print the entry on a sheet of its own. */
+  onPrint?: (entry: DirectoryEntry) => void;
 }
 
 /** Read-only view of one directory entry. */
-export function DirectoryEntryDetail({ entry, onCompose, onAddToContacts }: DirectoryEntryDetailProps) {
+export function DirectoryEntryDetail({ entry, onCompose, onAddToContacts, onPrint }: DirectoryEntryDetailProps) {
   const t = useTranslations("contacts.directory");
+  const tCommon = useTranslations("common");
 
   if (!entry) {
     return (
@@ -44,6 +47,12 @@ export function DirectoryEntryDetail({ entry, onCompose, onAddToContacts }: Dire
             <UserPlus className="w-4 h-4 me-1.5" />
             {t("add_to_contacts")}
           </Button>
+          {onPrint && (
+            <Button size="sm" variant="outline" onClick={() => onPrint(entry)}>
+              <Printer className="w-4 h-4 me-1.5" />
+              {tCommon("print")}
+            </Button>
+          )}
         </div>
       </div>
       <dl className="px-6 py-4 space-y-3 text-sm">

@@ -2538,6 +2538,12 @@
     "remove_filter": "นำตัวกรอง {label} ออก"
   },
   "contacts": {
+    "print": {
+      "name": "ชื่อ",
+      "count": "{count, plural, other {ผู้ติดต่อ # รายการ}}",
+      "entries": "{count, plural, other {# รายการ}}",
+      "search": "ค้นหา: {query}"
+    },
     "directory": {
       "title": "ไดเรกทอรีกลาง",
       "search_placeholder": "ค้นหาชื่อหรือที่อยู่อีเมล",

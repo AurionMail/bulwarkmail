@@ -3293,6 +3293,12 @@
     "preview_cc": "CC: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "Naam",
+      "count": "{count, plural, one {# contact} other {# contacten}}",
+      "entries": "{count, plural, one {# vermelding} other {# vermeldingen}}",
+      "search": "Zoeken: {query}"
+    },
     "directory": {
       "title": "Adresboek van de organisatie",
       "search_placeholder": "Zoek naam of e-mailadres",

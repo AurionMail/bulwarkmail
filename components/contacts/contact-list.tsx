@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { Search, BookUser, Trash2, Users, Download, X, UserPlus, CheckSquare, Square, Filter, Mail, Phone, Image as ImageIcon, RotateCcw, Menu, ArrowDownAZ, Loader2, FolderInput, Upload } from "@/components/icons";
+import { Search, BookUser, Trash2, Users, Download, X, UserPlus, CheckSquare, Square, Filter, Mail, Phone, Image as ImageIcon, RotateCcw, Menu, ArrowDownAZ, Loader2, FolderInput, Upload, Printer } from "@/components/icons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -10,6 +10,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { ContactListItem } from "./contact-list-item";
 import { ContactContextMenu } from "./contact-context-menu";
 import { useContactExportBusy } from "./contact-export";
+import { ContactListPrint } from "./contact-print-views";
 import { PluginActions } from "@/components/plugins/plugin-actions";
 import { isContextMenuKey, useContextMenu } from "@/hooks/use-context-menu";
 import { PhoneHeaderActions } from "@/components/layout/phone-header-actions";
@@ -131,6 +132,10 @@ interface ContactListProps {
   phoneMenuItems?: (close: () => void) => React.ReactNode;
   /** The first fetch is still running: show placeholders, not "No contacts yet". */
   isLoading?: boolean;
+  /** Print the list as it is on screen (filtered, sorted, grouped). */
+  onPrint?: () => void;
+  /** Set while the list is being printed: the name of what it shows. */
+  printTitle?: string | null;
 }
 
 export function ContactList({
@@ -160,8 +165,11 @@ export function ContactList({
   emptyView = false,
   onImport,
   isLoading = false,
+  onPrint,
+  printTitle,
 }: ContactListProps) {
   const t = useTranslations("contacts");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
   const density = useSettingsStore((state) => state.density);
   const groupByLetter = useSettingsStore((state) => state.groupContactsByLetter);
@@ -448,6 +456,15 @@ export function ContactList({
                 </span>
               )}
             </IconButton>
+            {onPrint && (
+              <IconButton
+                label={tCommon("print")}
+                onClick={onPrint}
+                className="hidden md:inline-flex flex-shrink-0 text-muted-foreground hover:text-foreground"
+              >
+                <Printer />
+              </IconButton>
+            )}
             <PhoneHeaderActions below="md" menuItems={phoneMenuItems} />
           </div>
         </div>
@@ -762,6 +779,15 @@ export function ContactList({
           })()
         )}
       </div>
+
+      {printTitle != null && (
+        <ContactListPrint
+          title={printTitle}
+          contacts={sorted}
+          sections={groupByLetter ? groupedSections : null}
+          searchQuery={searchQuery}
+        />
+      )}
 
       {contextMenu.data && (
         <ContactContextMenu

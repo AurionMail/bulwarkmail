@@ -3293,6 +3293,12 @@
     "preview_cc": "DW: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "Nazwa",
+      "count": "{count, plural, one {# kontakt} few {# kontakty} many {# kontaktów} other {# kontaktu}}",
+      "entries": "{count, plural, one {# wpis} few {# wpisy} many {# wpisów} other {# wpisu}}",
+      "search": "Wyszukiwanie: {query}"
+    },
     "directory": {
       "title": "Katalog",
       "search_placeholder": "Szukaj nazwy lub adresu e-mail",

@@ -3211,6 +3211,12 @@
     "preview_cc": "עותק: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "שם",
+      "count": "{count, plural, one {איש קשר אחד} two {# אנשי קשר} other {# אנשי קשר}}",
+      "entries": "{count, plural, one {רשומה אחת} two {# רשומות} other {# רשומות}}",
+      "search": "חיפוש: {query}"
+    },
     "directory": {
       "title": "ספרייה",
       "search_placeholder": "חיפוש שם או כתובת דוא״ל",

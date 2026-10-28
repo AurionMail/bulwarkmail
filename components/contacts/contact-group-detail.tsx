@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Users, Pencil, Trash2, UserMinus, Mail, MoreVertical } from "@/components/icons";
+import { Users, Pencil, Trash2, UserMinus, Mail, MoreVertical, Printer } from "@/components/icons";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { Avatar } from "@/components/ui/avatar";
@@ -20,6 +20,8 @@ interface ContactGroupDetailProps {
   onSelectMember: (id: string) => void;
   /** Compose an email to every member with the recipients placed in `field`. */
   onComposeGroup?: (field: "to" | "cc" | "bcc") => void;
+  /** Print the group and its members. */
+  onPrint?: () => void;
   isMobile?: boolean;
   className?: string;
 }
@@ -32,10 +34,12 @@ export function ContactGroupDetail({
   onRemoveMember,
   onSelectMember,
   onComposeGroup,
+  onPrint,
   isMobile,
   className,
 }: ContactGroupDetailProps) {
   const t = useTranslations("contacts");
+  const tCommon = useTranslations("common");
   const groupName = getContactDisplayName(group);
   // Delete sits in a ⋮, as on a contact's page (R6).
   const menu = useContextMenu<null>();
@@ -74,6 +78,7 @@ export function ContactGroupDetail({
             </IconButton>
             <ContextMenu ref={menu.menuRef} isOpen={menu.contextMenu.isOpen} position={menu.contextMenu.position} onClose={menu.closeContextMenu}>
               <ContextMenuItem icon={Pencil} label={t("groups.edit")} onClick={() => { menu.closeContextMenu(); onEdit(); }} />
+              {onPrint && <ContextMenuItem icon={Printer} label={tCommon("print")} onClick={() => { menu.closeContextMenu(); onPrint(); }} />}
               <ContextMenuSeparator />
               <ContextMenuItem icon={Trash2} label={t("groups.delete")} destructive onClick={() => { menu.closeContextMenu(); onDelete(); }} />
             </ContextMenu>

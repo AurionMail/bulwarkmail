@@ -3293,6 +3293,12 @@
     "preview_cc": "رونوشت: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "نام",
+      "count": "{count, plural, one {# مخاطب} other {# مخاطب}}",
+      "entries": "{count, plural, one {# مورد} other {# مورد}}",
+      "search": "جستجو: {query}"
+    },
     "directory": {
       "title": "فهرست سازمانی",
       "search_placeholder": "جستجوی نام یا نشانی ایمیل",

@@ -3293,6 +3293,12 @@
     "preview_cc": "Kópia: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "Meno",
+      "count": "{count, plural, one {# kontakt} few {# kontakty} many {# kontaktu} other {# kontaktov}}",
+      "entries": "{count, plural, one {# položka} few {# položky} many {# položky} other {# položiek}}",
+      "search": "Hľadanie: {query}"
+    },
     "directory": {
       "title": "Adresár organizácie",
       "search_placeholder": "Hľadať meno alebo e-mailovú adresu",

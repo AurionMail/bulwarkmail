@@ -3293,6 +3293,12 @@
     "preview_cc": "참조: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "이름",
+      "count": "{count, plural, other {연락처 #개}}",
+      "entries": "{count, plural, other {항목 #개}}",
+      "search": "검색: {query}"
+    },
     "directory": {
       "title": "디렉터리",
       "search_placeholder": "이름 또는 이메일 주소 검색",

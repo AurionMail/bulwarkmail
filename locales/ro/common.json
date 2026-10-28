@@ -3293,6 +3293,12 @@
     "preview_cc": "CC: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "Nume",
+      "count": "{count, plural, one {# contact} few {# contacte} other {# de contacte}}",
+      "entries": "{count, plural, one {# intrare} few {# intrări} other {# de intrări}}",
+      "search": "Căutare: {query}"
+    },
     "directory": {
       "title": "Director",
       "search_placeholder": "Caută nume sau adresă de e-mail",

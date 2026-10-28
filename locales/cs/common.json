@@ -3293,6 +3293,12 @@
     "preview_cc": "Kopie: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "Jméno",
+      "count": "{count, plural, one {# kontakt} few {# kontakty} many {# kontaktu} other {# kontaktů}}",
+      "entries": "{count, plural, one {# položka} few {# položky} many {# položky} other {# položek}}",
+      "search": "Hledání: {query}"
+    },
     "directory": {
       "title": "Adresář organizace",
       "search_placeholder": "Hledat jméno nebo e-mailovou adresu",

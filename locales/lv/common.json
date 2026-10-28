@@ -3293,6 +3293,12 @@
     "preview_cc": "Kopija: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "Vārds",
+      "count": "{count, plural, zero {# kontaktpersonu} one {# kontaktpersona} other {# kontaktpersonas}}",
+      "entries": "{count, plural, zero {# ierakstu} one {# ieraksts} other {# ieraksti}}",
+      "search": "Meklēšana: {query}"
+    },
     "directory": {
       "title": "Katalogs",
       "search_placeholder": "Meklēt vārdu vai e-pasta adresi",

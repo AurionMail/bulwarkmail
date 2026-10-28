@@ -1,10 +1,10 @@
 "use client";
 
 import { Suspense, useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
-import { ArrowLeft, Users, UsersRound, AlertTriangle, Plus, UserPlus, Upload, BookPlus } from "@/components/icons";
+import { ArrowLeft, Users, UsersRound, AlertTriangle, Plus, UserPlus, Upload, BookPlus, Printer } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { ContextMenuItem } from "@/components/ui/context-menu";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -17,7 +17,7 @@ import { ContactGroupDetail } from "@/components/contacts/contact-group-detail";
 import { ContactsSidebar, type ContactCategory } from "@/components/contacts/contacts-sidebar";
 import { ContactImportDialog } from "@/components/contacts/contact-import-dialog";
 import { AddressBookPickerDialog } from "@/components/contacts/address-book-picker-dialog";
-import { DirectoryBrowser, directoryKey } from "@/components/contacts/directory-browser";
+import { DirectoryBrowser, directoryKey, filterDirectory } from "@/components/contacts/directory-browser";
 import { DirectoryEntryDetail } from "@/components/contacts/directory-entry-detail";
 import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { exportContacts } from "@/components/contacts/contact-export";
@@ -56,6 +56,16 @@ import { useLeaveGuard } from "@/lib/leave-guard";
 import { useDeleteCategory } from "@/hooks/use-delete-category";
 import { MvTopBar } from "@/components/layout/mv-top-bar";
 import { useMountainViewShell } from "@/hooks/use-mountain-view-shell";
+import { usePrintListener, usePrinting } from "@/components/print/print-root";
+import { requestPrint, usePrintStore } from "@/stores/print-store";
+import { printContact, resolveContactsPrint } from "@/components/contacts/contact-print";
+import {
+  ContactGroupPrintSheet,
+  ContactListPrint,
+  ContactPrintSheet,
+  DirectoryEntryPrintSheet,
+  DirectoryListPrint,
+} from "@/components/contacts/contact-print-views";
 
 type View =
   | "list"
@@ -78,6 +88,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   const linkSegments = useLiteLinkSegments('contacts', routeSegments);
   const t = useTranslations("contacts");
   const tSidebar = useTranslations("sidebar");
+  const tCommon = useTranslations("common");
   useDocumentTitle(tSidebar("contacts"));
   const contactsEnabled = usePolicyStore((s) => s.isFeatureEnabled('contactsEnabled'));
   const { client, isAuthenticated, logout, checkAuth, isLoading: authLoading } = useAuthStore();
@@ -147,6 +158,10 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   const { dialogProps: confirmDialogProps, confirm: confirmDialog } = useConfirmDialog();
   const isMobile = useIsMobile();
   const isDesktop = useIsDesktop();
+  const locale = useLocale();
+  usePrintListener();
+  const printing = usePrinting();
+  const printTarget = usePrintStore((s) => s.target);
   const isEmbedded = useIsEmbedded();
   // Mountain View's desktop chrome: its top bar in place of the left rail.
   const mvShell = useMountainViewShell(isEmbedded);
@@ -928,6 +943,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
       return (
         <DirectoryEntryDetail
           entry={directoryPrincipals.find((e) => directoryKey(e) === openDirectoryKey) ?? null}
+          onPrint={(entry) => { void requestPrint({ kind: "directory-entry", entry }); }}
           onCompose={(entry) => handleComposeDirectory([entry])}
           onAddToContacts={guard(handleAddDirectoryEntryToContacts)}
         />
@@ -961,6 +977,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
             onDelete={handleDeleteGroup}
             onRemoveMember={handleRemoveGroupMember}
             onComposeGroup={(field) => handleComposeGroupFromSidebar(selectedGroup.id, field)}
+            onPrint={() => { void requestPrint({ kind: "contact-group", group: selectedGroup }); }}
             isMobile={isMobile}
             onSelectMember={guard((id: string) => {
               setSelectedContact(id);
@@ -1067,6 +1084,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                 : undefined
             }
             onMoveTo={selectedContact && canMoveContacts ? () => handleMoveContacts([selectedContact.id]) : undefined}
+            onPrint={selectedContact ? () => { void printContact(selectedContact); } : undefined}
             isMobile={isMobile}
           />
         );
@@ -1087,6 +1105,43 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
 
   const showListPanel = !isMobile || view === "list";
   const showRightPanel = !isMobile || view !== "list";
+
+  // The print copy (Ctrl+P or Print): the contact, group or directory entry
+  // that is open, else the list as it is on screen.
+  const printContent = printing ? resolveContactsPrint(printTarget, {
+    directory: activeCategory === "directory",
+    detailShown: showRightPanel,
+    view,
+    selectedContact,
+    selectedGroup,
+    openDirectoryEntry: directoryPrincipals.find((e) => directoryKey(e) === openDirectoryKey) ?? null,
+  }) : null;
+  const listTitle = activeCategory === "all" ? t("tabs.all")
+    : activeCategory === "uncategorized" ? t("no_category")
+      : activeCategory === "directory" ? t("directory.title")
+        : "addressBookId" in activeCategory ? addressBooks.find((b) => b.id === activeCategory.addressBookId)?.name ?? t("title")
+          : "keyword" in activeCategory ? activeCategory.keyword
+            : getContactDisplayName(groups.find((g) => g.id === activeCategory.groupId) ?? ({} as ContactCard)) || t("title");
+  // The list prints itself, with its filters and letter groups; a phone
+  // showing something else prints what the list would hold.
+  const printCopy = (() => {
+    switch (printContent?.kind) {
+      case "contact": return <ContactPrintSheet contact={printContent.contact} photoUri={printContent.photoUri} />;
+      case "group": return <ContactGroupPrintSheet group={printContent.group} members={getGroupMembers(printContent.group.id)} />;
+      case "directory-entry": return <DirectoryEntryPrintSheet entry={printContent.entry} />;
+      case "directory-list":
+        return showListPanel ? null : <DirectoryListPrint entries={filterDirectory(directoryPrincipals, "", locale)} />;
+      case "list":
+        return showListPanel ? null : (
+          <ContactListPrint
+            title={listTitle}
+            contacts={[...displayedContacts].sort((a, b) => getContactDisplayName(a).localeCompare(getContactDisplayName(b), locale))}
+            searchQuery={searchQuery}
+          />
+        );
+      default: return null;
+    }
+  })();
 
   const mobileBackToList = () => {
     if (returnToEmail) {
@@ -1248,6 +1303,8 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                       onSelectedChange={setDirectorySelection}
                       onOpen={(entry) => { setOpenDirectoryKey(directoryKey(entry)); setView("directory-detail"); }}
                       activeKey={openDirectoryKey}
+                      onPrint={() => { void requestPrint({ kind: "directory-list" }); }}
+                      printing={printContent?.kind === "directory-list"}
                       onMenuClick={isNarrow ? () => setNarrowSidebarOpen(true) : undefined}
                       className="flex-1"
                     />
@@ -1299,9 +1356,12 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                     <>
                       <ContextMenuItem icon={UsersRound} label={t("groups.create")} onClick={() => { close(); guard(handleCreateGroup)(); }} />
                       <ContextMenuItem icon={Upload} label={t("import.title")} onClick={() => { close(); setShowImportDialog(true); }} />
+                      <ContextMenuItem icon={Printer} label={tCommon("print")} onClick={() => { close(); void requestPrint({ kind: "contact-list" }); }} />
                     </>
                   )}
                   isLoading={supportsSync && !contactsLoaded}
+                  onPrint={() => { void requestPrint({ kind: "contact-list" }); }}
+                  printTitle={printContent?.kind === "list" ? listTitle : null}
                 />
                 )}
                 {/* The phone's create button, as in Mail and Files (R7). */}
@@ -1459,6 +1519,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
         );
       })()}
       </div>
+      {printCopy}
     </div>
   );
 }

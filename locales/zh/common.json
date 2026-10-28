@@ -3293,6 +3293,12 @@
     "preview_cc": "抄送：{list}"
   },
   "contacts": {
+    "print": {
+      "name": "姓名",
+      "count": "{count, plural, other {# 位联系人}}",
+      "entries": "{count, plural, other {# 个条目}}",
+      "search": "搜索：{query}"
+    },
     "directory": {
       "title": "通讯录目录",
       "search_placeholder": "搜索姓名或邮箱地址",

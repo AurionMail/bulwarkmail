@@ -3293,6 +3293,12 @@
     "preview_cc": "CC: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "Nom",
+      "count": "{count, plural, one {# contacte} other {# contactes}}",
+      "entries": "{count, plural, one {# entrada} other {# entrades}}",
+      "search": "Cerca: {query}"
+    },
     "directory": {
       "title": "Directori",
       "search_placeholder": "Cerca un nom o una adreça electrònica",

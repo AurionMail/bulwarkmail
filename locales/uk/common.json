@@ -3293,6 +3293,12 @@
     "preview_cc": "Копія: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "Ім’я",
+      "count": "{count, plural, one {# контакт} few {# контакти} many {# контактів} other {# контакту}}",
+      "entries": "{count, plural, one {# запис} few {# записи} many {# записів} other {# запису}}",
+      "search": "Пошук: {query}"
+    },
     "directory": {
       "title": "Довідник",
       "search_placeholder": "Пошук за ім'ям або адресою",

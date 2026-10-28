@@ -3293,6 +3293,12 @@
     "preview_cc": "Másolat: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "Név",
+      "count": "{count, plural, one {# névjegy} other {# névjegy}}",
+      "entries": "{count, plural, one {# bejegyzés} other {# bejegyzés}}",
+      "search": "Keresés: {query}"
+    },
     "directory": {
       "title": "Címtár",
       "search_placeholder": "Név vagy e-mail-cím keresése",

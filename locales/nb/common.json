@@ -3293,6 +3293,12 @@
     "preview_cc": "CC: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "Navn",
+      "count": "{count, plural, one {# kontakt} other {# kontakter}}",
+      "entries": "{count, plural, one {# oppføring} other {# oppføringer}}",
+      "search": "Søk: {query}"
+    },
     "directory": {
       "title": "Katalog",
       "search_placeholder": "Søk etter navn eller e-postadresse",

@@ -3293,6 +3293,12 @@
     "preview_cc": "CC：{list}"
   },
   "contacts": {
+    "print": {
+      "name": "名前",
+      "count": "{count, plural, other {#件の連絡先}}",
+      "entries": "{count, plural, other {#件}}",
+      "search": "検索: {query}"
+    },
     "directory": {
       "title": "ディレクトリ",
       "search_placeholder": "名前またはメールアドレスで検索",

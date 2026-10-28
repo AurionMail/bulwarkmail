@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { Search, X, RefreshCw, Loader2, Lock, AlertCircle, BookUser, CheckSquare, Square, ChevronLeft, ChevronRight, Menu, Users, MapPin, Box } from "@/components/icons";
+import { Search, X, RefreshCw, Loader2, Lock, AlertCircle, BookUser, CheckSquare, Square, ChevronLeft, ChevronRight, Menu, Users, MapPin, Box, Printer } from "@/components/icons";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import { useContactStore, type DirectoryEntry } from "@/stores/contact-store";
+import { DirectoryListPrint } from "./contact-print-views";
 
 export const DIRECTORY_PAGE_SIZE = 50;
 
@@ -45,6 +46,10 @@ interface DirectoryBrowserProps {
   activeKey?: string | null;
   onMenuClick?: () => void;
   autoFocusSearch?: boolean;
+  /** Print the entries the search leaves (all pages). */
+  onPrint?: () => void;
+  /** Set while the list is being printed. */
+  printing?: boolean;
   className?: string;
 }
 
@@ -61,10 +66,13 @@ export function DirectoryBrowser({
   activeKey,
   onMenuClick,
   autoFocusSearch,
+  onPrint,
+  printing = false,
   className,
 }: DirectoryBrowserProps) {
   const t = useTranslations("contacts.directory");
   const tContacts = useTranslations("contacts");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
   const entries = useContactStore((s) => s.directoryPrincipals);
   const status = useContactStore((s) => s.directoryStatus);
@@ -186,6 +194,17 @@ export function DirectoryBrowser({
           >
             <RefreshCw className={cn("w-4 h-4", status === "loading" && "animate-spin [animation-direction:reverse]")} />
           </button>
+          {onPrint && (
+            <button
+              type="button"
+              onClick={onPrint}
+              className="flex-shrink-0 p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              title={tCommon("print")}
+              aria-label={tCommon("print")}
+            >
+              <Printer className="w-4 h-4" />
+            </button>
+          )}
         </div>
         {entries.length > 0 && status === "error" && (
           <p role="alert" className="mt-2 text-xs text-destructive">{t("refresh_failed")}</p>
@@ -274,6 +293,7 @@ export function DirectoryBrowser({
           )}
         </div>
       )}
+      {printing && <DirectoryListPrint entries={filtered} searchQuery={query} />}
     </div>
   );
 }

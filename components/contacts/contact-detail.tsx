@@ -3,7 +3,7 @@
 import { useEffect, useRef, useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { contactDateParts, formatContactDate } from "@/lib/contact-dates";
-import { Mail, Phone, Building, MapPin, StickyNote, Pencil, BookUser, Copy, Send, Globe, Cake, KeyRound, Users, Briefcase, Heart, Languages, Calendar, UserCircle, MoreVertical } from "@/components/icons";
+import { Mail, Phone, Building, MapPin, StickyNote, Pencil, BookUser, Copy, Send, Globe, Cake, KeyRound, Users, Briefcase, Heart, Languages, Calendar, UserCircle, MoreVertical, Printer } from "@/components/icons";
 import { Avatar } from "@/components/ui/avatar";
 import { MailtoLink } from "@/components/ui/mailto-link";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,8 @@ interface ContactDetailProps {
   onMoveTo?: () => void;
   /** Compose an email to this contact in the app (no OS mailto handoff). */
   onCompose?: () => void;
+  /** Print the contact on a sheet of its own. */
+  onPrint?: () => void;
   isMobile?: boolean;
   className?: string;
 }
@@ -71,8 +73,9 @@ function getCompletedYears(dateInput: AnniversaryDate): number | null {
 }
 
 
-export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDuplicate, onMoveTo, onCompose, isMobile, className }: ContactDetailProps) {
+export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDuplicate, onMoveTo, onCompose, onPrint, isMobile, className }: ContactDetailProps) {
   const t = useTranslations("contacts");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
   // The ⋮ shows the contact's menu, the one right-click shows in the list (R6).
   const moreMenu = useContextMenu<ContactCard>();
@@ -174,6 +177,11 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
               <Pencil className="w-4 h-4 me-1" />
               {t("form.edit_title")}
             </Button>
+            {onPrint && (
+              <IconButton variant="outline" size="sm" label={tCommon("print")} onClick={onPrint} className="touch-manipulation">
+                <Printer />
+              </IconButton>
+            )}
             <IconButton
               variant="outline"
               size="sm"

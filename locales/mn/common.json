@@ -3293,6 +3293,12 @@
     "preview_cc": "Хуулбар: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "Нэр",
+      "count": "{count, plural, one {# харилцагч} other {# харилцагч}}",
+      "entries": "{count, plural, one {# бичлэг} other {# бичлэг}}",
+      "search": "Хайлт: {query}"
+    },
     "directory": {
       "title": "Лавлах",
       "search_placeholder": "Нэр эсвэл имэйл хаяг хайх",

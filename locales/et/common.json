@@ -3293,6 +3293,12 @@
     "preview_cc": "CC: {list}"
   },
   "contacts": {
+    "print": {
+      "name": "Nimi",
+      "count": "{count, plural, one {# kontakt} other {# kontakti}}",
+      "entries": "{count, plural, one {# kirje} other {# kirjet}}",
+      "search": "Otsing: {query}"
+    },
     "directory": {
       "title": "Kataloog",
       "search_placeholder": "Otsi nime või e-posti aadressi",
