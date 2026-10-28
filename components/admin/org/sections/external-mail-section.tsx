@@ -5,7 +5,8 @@ import { Download, Info } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { SettingItem, SettingsSection, ToggleSwitch } from '@/components/settings/settings-section';
 import { AdminLink } from '@/components/admin/admin-link';
-import { normalizeDomainList } from '@/lib/admin/organisation-policy';
+import { parseDomainList } from '@/lib/admin/organisation-policy';
+import { toUnicodeDomain } from '@/lib/idn';
 import { apiFetch } from '@/lib/browser-navigation';
 import { EXTERNAL_MAIL_WARNING_PLUGIN_ID } from '@/lib/plugin-sandbox/host-features';
 import { InheritNote } from '../org-page';
@@ -59,13 +60,17 @@ export function ExternalMailSection({ draft }: { draft: OrgPolicyDraft }) {
   const anyOn = senderLabel.value || recipientWarning.value;
 
   // The list is typed as text and taken apart when the field is left, so a
-  // half-typed domain isn't thrown away on every key.
-  const joined = domains.value.join('\n');
+  // half-typed domain isn't thrown away on every key. It is stored in ASCII
+  // (xn--) form and shown in Unicode; entries that aren't domains are named.
+  const stored = domains.value.join('\n');
+  const joined = domains.value.map(toUnicodeDomain).join('\n');
   const [text, setText] = useState(joined);
+  const [rejected, setRejected] = useState<string[]>([]);
   useEffect(() => { setText(joined); }, [joined]);
   const commitDomains = (raw: string) => {
-    const next = normalizeDomainList(raw) ?? [];
-    if (next.join('\n') !== joined) draft.setOrgValue('externalMail', 'domains', next);
+    const parsed = parseDomainList(raw) ?? { domains: [], rejected: [] };
+    setRejected(parsed.rejected);
+    if (parsed.domains.join('\n') !== stored) draft.setOrgValue('externalMail', 'domains', parsed.domains);
     else setText(joined);
   };
 
@@ -76,7 +81,9 @@ export function ExternalMailSection({ draft }: { draft: OrgPolicyDraft }) {
       const res = await apiFetch(`/api/admin/plugins/${EXTERNAL_MAIL_WARNING_PLUGIN_ID}/config`);
       if (!res.ok) throw new Error(String(res.status));
       const config = (await res.json()) as Record<string, unknown>;
-      const fromPlugin = normalizeDomainList(config.safeDomains) ?? [];
+      const parsed = parseDomainList(config.safeDomains) ?? { domains: [], rejected: [] };
+      const fromPlugin = parsed.domains;
+      setRejected(parsed.rejected);
       const added = fromPlugin.filter((d) => !domains.value.includes(d));
       if (added.length > 0) draft.setOrgValue('externalMail', 'domains', [...domains.value, ...added]);
       draft.setMessage({
@@ -137,10 +144,15 @@ export function ExternalMailSection({ draft }: { draft: OrgPolicyDraft }) {
           spellCheck={false}
           className="w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
+        {rejected.length > 0 && (
+          <p className="text-xs text-destructive" role="status" data-testid="org-external-domains-rejected">
+            Left out, not a domain: {rejected.join(', ')}
+          </p>
+        )}
         <InheritNote
           draft={draft}
           own={domains.own}
-          everyone={domains.everyone.length ? domains.everyone.join(', ') : 'none'}
+          everyone={domains.everyone.length ? domains.everyone.map(toUnicodeDomain).join(', ') : 'none'}
           onReset={() => draft.clearOrgValue('externalMail', 'domains')}
         />
         {plugin && (

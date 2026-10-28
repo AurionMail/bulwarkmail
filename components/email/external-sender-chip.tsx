@@ -17,7 +17,7 @@ export function useExternalSenderDomain(fromEmail: string | null | undefined): s
   const identities = useAuthStore((s) => s.identities);
   return useMemo(() => {
     if (!externalMail?.senderLabel) return null;
-    const internal = internalDomains(externalMail.domains, (identities ?? []).map((identity) => identity.email));
+    const internal = internalDomains((identities ?? []).map((identity) => identity.email), externalMail.domains);
     return externalSenderDomain(fromEmail, internal);
   }, [externalMail, identities, fromEmail]);
 }

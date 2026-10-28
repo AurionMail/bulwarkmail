@@ -11,6 +11,7 @@
  */
 
 import type { EmailTemplate } from '@/lib/template-types';
+import { toAsciiDomain } from '@/lib/idn';
 
 /** Details a user fills in once for the organisation signature. */
 export const SIGNATURE_FIELDS = ['title', 'department', 'phone', 'mobile'] as const;
@@ -101,18 +102,36 @@ function count(value: unknown, max: number): number | undefined {
   return Math.min(max, Math.max(0, Math.round(value)));
 }
 
-/** Lowercased, trimmed, deduplicated domains; "@example.com" and "*.example.com" are taken as example.com. */
-export function normalizeDomainList(value: unknown): string[] | undefined {
+/**
+ * A domain list taken apart: the usable domains, lowercased, deduplicated
+ * and in ASCII form (an IDN like bücher.de becomes xn--bcher-kva.de, the
+ * form mail servers use), and the entries that aren't domains.
+ * "@example.com" and "*.example.com" are taken as example.com. Undefined for
+ * anything that isn't a string or an array.
+ */
+export function parseDomainList(value: unknown): { domains: string[]; rejected: string[] } | undefined {
   const raw = typeof value === 'string' ? value.split(/[\s,;]+/) : Array.isArray(value) ? value : undefined;
   if (!raw) return undefined;
   const out = new Set<string>();
+  const rejected: string[] = [];
   for (const item of raw) {
     if (typeof item !== 'string') continue;
-    const domain = item.trim().toLowerCase().replace(/^\*\./, '').replace(/^@/, '').replace(/\.+$/, '');
-    if (domain && DOMAIN_RE.test(domain)) out.add(domain);
-    if (out.size >= MAX_DOMAINS) break;
+    const entry = item.trim();
+    if (!entry) continue;
+    const bare = entry.toLowerCase().replace(/^\*\./, '').replace(/^@/, '').replace(/\.+$/, '');
+    const domain = bare ? toAsciiDomain(bare) : null;
+    if (domain && DOMAIN_RE.test(domain)) {
+      if (out.size < MAX_DOMAINS) out.add(domain);
+    } else {
+      rejected.push(entry);
+    }
   }
-  return [...out];
+  return { domains: [...out], rejected };
+}
+
+/** The usable domains of a list (see parseDomainList). */
+export function normalizeDomainList(value: unknown): string[] | undefined {
+  return parseDomainList(value)?.domains;
 }
 
 function sanitizeLibrary(value: unknown): OrgTemplate[] | undefined {

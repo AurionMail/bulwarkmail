@@ -82,6 +82,17 @@ describe('External mail section', () => {
     fireEvent.change(field, { target: { value: 'partner.com, Sister.example\n@third.test' } });
     fireEvent.blur(field);
     expect(latest!.orgValue('externalMail', 'domains').value).toEqual(['partner.com', 'sister.example', 'third.test']);
+    expect(screen.queryByTestId('org-external-domains-rejected')).toBeNull();
+  });
+
+  it('stores an IDN in ASCII, shows it in Unicode and names entries that are not domains', async () => {
+    await renderSection();
+    const field = screen.getByTestId('org-external-domains') as HTMLTextAreaElement;
+    fireEvent.change(field, { target: { value: 'bücher.de\nnot_a_domain, x' } });
+    fireEvent.blur(field);
+    expect(latest!.orgValue('externalMail', 'domains').value).toEqual(['xn--bcher-kva.de']);
+    expect(screen.getByTestId('org-external-domains-rejected').textContent).toContain('not_a_domain, x');
+    await waitFor(() => expect(field.value).toBe('bücher.de'));
   });
 
   it('offers no import and no note without the plugin', async () => {

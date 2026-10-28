@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   addressDomain,
+  addressKey,
   contactAddresses,
   coreExternalWarningsOn,
   currentInternalDomains,
@@ -52,13 +53,38 @@ describe('domainMatches', () => {
 
 describe('internalDomains', () => {
   it('always counts the identity domains and adds the admin list', () => {
-    expect(internalDomains([], ['me@example.org'])).toEqual(['example.org']);
-    expect(internalDomains(['partner.com'], ['me@example.org', 'alias@Example.org'])).toEqual(['partner.com', 'example.org']);
+    expect(internalDomains(['me@example.org'], [])).toEqual(['example.org']);
+    expect(internalDomains(['me@example.org', 'alias@Example.org'], ['partner.com'])).toEqual(['example.org', 'partner.com']);
+  });
+
+  it('keeps the identity domains when the admin list fills the cap', () => {
+    const full = Array.from({ length: 500 }, (_, i) => `partner${i}.example`);
+    const internal = internalDomains(['me@own.example'], full);
+    expect(internal).toHaveLength(500);
+    expect(internal[0]).toBe('own.example');
+  });
+});
+
+describe('IDN domains', () => {
+  it('compares Unicode and xn-- forms as the same domain, on both sides', () => {
+    // The admin typed it in Unicode, the server delivers xn--.
+    const internal = internalDomains([], ['bücher.de']);
+    expect(internal).toEqual(['xn--bcher-kva.de']);
+    expect(isExternalAddress('anna@xn--bcher-kva.de', internal)).toBe(false);
+    expect(isExternalAddress('anna@bücher.de', internal)).toBe(false);
+    expect(isExternalAddress('anna@eu.bücher.de', internal)).toBe(false);
+    expect(isExternalAddress('anna@buecher.de', internal)).toBe(true);
+    // An identity on an IDN domain counts in whichever form the address has.
+    expect(isExternalAddress('x@münchen.example', internalDomains(['me@xn--mnchen-3ya.example'], []))).toBe(false);
+  });
+
+  it('matches a contact written in Unicode against an xn-- recipient', () => {
+    expect(addressKey('Anna@Bücher.de')).toBe(addressKey('anna@xn--bcher-kva.de'));
   });
 });
 
 describe('isExternalAddress', () => {
-  const internal = internalDomains(['partner.com'], ['me@example.org']);
+  const internal = internalDomains(['me@example.org'], ['partner.com']);
   it('is external only outside the identity domains and the list, subdomains included', () => {
     expect(isExternalAddress('bob@example.org', internal)).toBe(false);
     expect(isExternalAddress('x@eu.partner.com', internal)).toBe(false);
@@ -114,7 +140,7 @@ describe('the active account', () => {
   it('combines the policy domains with the identity domains', () => {
     setExternalMail({ domains: ['partner.com'] });
     useAuthStore.setState({ identities: [identity('org-alice@example.org')] });
-    expect(currentInternalDomains()).toEqual(['partner.com', 'example.org']);
+    expect(currentInternalDomains()).toEqual(['example.org', 'partner.com']);
   });
 
   it('collects the addresses of every contact', () => {
