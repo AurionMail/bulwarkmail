@@ -48,6 +48,7 @@ vi.mock('@/lib/stalwart/auth-context', () => ({
   setStalwartAuthContext: vi.fn(),
   setStalwartAuthContextInStore: vi.fn(),
   clearStalwartAuthContextInStore: vi.fn(),
+  readStalwartAuthContextFromStore: () => null,
 }));
 
 vi.mock('@/lib/telemetry/login-tracker', () => ({ recordLogin: vi.fn() }));

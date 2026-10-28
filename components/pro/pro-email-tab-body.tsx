@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { getDraftTextBody } from '@/lib/email-body-selection';
 import { messagePriorityFromHeaders } from '@/lib/message-priority';
 import { useArchiveActionEnabled } from '@/lib/archive-gate';
+import { saveQuickReplyDraft } from '@/lib/outgoing/quick-reply-envelope';
 
 interface ProEmailTabBodyProps {
   tabId: string;
@@ -399,6 +400,12 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
     handleReply(body);
   }, [handleReply]);
 
+  // Before an automatic sign-out: the typed quick reply is kept as a draft.
+  const handleSaveQuickReplyDraft = useCallback(async (body: string) => {
+    if (!client || !email) return;
+    await saveQuickReplyDraft({ client, email, identities, body, replyPrefix: t('email_composer.prefix.reply') });
+  }, [client, email, identities, t]);
+
   const handleEditDraft = useCallback(() => {
     if (!email) return;
 
@@ -473,6 +480,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
           onSetTag={handleSetTag}
           onDownloadAttachment={handleDownloadAttachment}
           onQuickReply={handleQuickReply}
+          onSaveQuickReplyDraft={handleSaveQuickReplyDraft}
           onEditDraft={handleEditDraft}
           onMoveToMailbox={handleMoveToMailbox}
           currentUserEmail={client?.getUsername()}
