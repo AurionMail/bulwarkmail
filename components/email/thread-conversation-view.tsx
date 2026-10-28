@@ -23,11 +23,6 @@ import { formatDate, formatFileSize, cn, cleanPreview } from "@/lib/utils";
 import { IconButton } from "@/components/ui/icon-button";
 import { PaneSpinner } from "@/components/ui/spinner";
 import {
-  Archive,
-  Mail,
-  ShieldAlert,
-  ShieldCheck,
-  Trash2,
   ArrowLeft,
   ChevronDown,
   ChevronUp,
@@ -62,6 +57,7 @@ import { useDeviceDetection } from "@/hooks/use-media-query";
 import { usePluginRenderedBody } from "@/hooks/use-plugin-rendered-body";
 import { emailToReadView } from "@/lib/plugin-projection";
 import { AttachmentPluginMenu, ReaderAboveQuoteSlot } from "./reader-plugin-surfaces";
+import { ConversationHeaderActions, type ConversationActions } from "./conversation-header-actions";
 
 export type ConversationAttachmentHandler = (
   blobId: string, name: string, type: string | undefined, source: EmailBlobContext,
@@ -82,14 +78,10 @@ interface ThreadConversationViewProps {
   /** Role of the folder the conversation was opened from, for plugin actions limited to some folders. */
   mailboxRole?: string | null;
   /**
-   * The conversation's actions in the header, as the list row offers them
-   * (on the row's newest message): Archive, Delete, Report spam / Not spam,
-   * Mark as unread.
+   * The conversation's actions in the header, on its newest message as the
+   * list row offers them: Archive, Delete, Move and ⋮ with the rest.
    */
-  onArchive?: () => void;
-  onDelete?: () => void;
-  onToggleSpam?: () => void;
-  onMarkUnread?: () => void;
+  actions?: ConversationActions;
 }
 
 // Helper function to get file icon based on mime type or extension
@@ -206,10 +198,7 @@ export function ThreadConversationView({
   blobSource,
   onMarkAsRead,
   mailboxRole,
-  onArchive,
-  onDelete,
-  onToggleSpam,
-  onMarkUnread,
+  actions,
 }: ThreadConversationViewProps) {
   const t = useTranslations();
   const externalContent = useConversationExternalContent();
@@ -269,35 +258,15 @@ export function ThreadConversationView({
           <ArrowLeft />
         </IconButton>
         <div className="flex-1 min-w-0">
-          <h1 className="font-semibold text-foreground break-words" dir="auto">
+          {/* Two lines at most, so a long subject leaves the actions their room. */}
+          <h1 className="font-semibold text-foreground break-words line-clamp-2" dir="auto" title={thread.latestEmail.subject || undefined}>
             {thread.latestEmail.subject || t("email_viewer.no_subject")}
           </h1>
           <p className="text-sm text-muted-foreground">
             {t("threads.messages_other", { count: emails.length })}
           </p>
         </div>
-        <div className="flex items-center flex-shrink-0 -me-2" data-testid="conversation-actions">
-          {onArchive && (
-            <IconButton size="icon-lg" onClick={onArchive} label={t('context_menu.archive')}>
-              <Archive />
-            </IconButton>
-          )}
-          {onDelete && (
-            <IconButton size="icon-lg" onClick={onDelete} label={t('context_menu.delete')}>
-              <Trash2 />
-            </IconButton>
-          )}
-          {onToggleSpam && (
-            <IconButton size="icon-lg" onClick={onToggleSpam} label={mailboxRole === 'junk' ? t('context_menu.not_spam') : t('context_menu.mark_as_spam')}>
-              {mailboxRole === 'junk' ? <ShieldCheck /> : <ShieldAlert />}
-            </IconButton>
-          )}
-          {onMarkUnread && (
-            <IconButton size="icon-lg" onClick={onMarkUnread} label={t('context_menu.mark_unread')}>
-              <Mail />
-            </IconButton>
-          )}
-        </div>
+        {actions && <ConversationHeaderActions email={thread.latestEmail} actions={actions} />}
       </div>
 
       {/* Email Cards */}

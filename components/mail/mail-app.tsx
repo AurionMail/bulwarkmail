@@ -5530,28 +5530,32 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   }
                 }}
                 mailboxRole={mailboxes.find(m => m.id === selectedMailbox)?.role ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined)}
-                // What the list row does with the conversation, then back to
-                // the list, which now shows what is left.
-                onArchive={archiveActionEnabled ? () => {
+                // What the list row does with the conversation's newest
+                // message. What takes it out of the folder goes back to the
+                // list first, which then shows what is left.
+                actions={(() => {
                   const target = conversationThread.latestEmail;
-                  handleMobileBack();
-                  void handleArchive(target);
-                } : undefined}
-                onDelete={() => {
-                  const target = conversationThread.latestEmail;
-                  handleMobileBack();
-                  void handleDelete(target);
-                }}
-                onToggleSpam={conversationSpamApplicable ? () => {
-                  const target = conversationThread.latestEmail;
-                  handleMobileBack();
-                  void (conversationInJunk ? handleUndoSpam(target) : handleMarkAsSpam(target));
-                } : undefined}
-                onMarkUnread={client ? () => {
-                  const target = conversationThread.latestEmail;
-                  handleMobileBack();
-                  void markAsRead(client, target.id, false, emailKeyFor(target)).catch(toastUpdateFailure);
-                } : undefined}
+                  const leaving = (run: () => unknown) => () => { handleMobileBack(); void run(); };
+                  return {
+                    mailboxes,
+                    selectedMailbox,
+                    currentMailboxRole: conversationRole,
+                    onArchive: archiveActionEnabled ? leaving(() => handleArchive(target)) : undefined,
+                    onDelete: leaving(() => handleDelete(target)),
+                    onMoveToMailbox: (mailboxId: string) => leaving(() => handleMoveToMailbox(target.id, mailboxId, emailKeyFor(target)))(),
+                    onForwardAsAttachment: () => void handleForwardAsAttachment(target),
+                    onMarkAsRead: client ? (read: boolean) => {
+                      const run = () => markAsRead(client, target.id, read, emailKeyFor(target)).catch(toastUpdateFailure);
+                      // Marked unread, the conversation is done with for now.
+                      if (read) void run(); else leaving(run)();
+                    } : undefined,
+                    onToggleStar: client ? () => void toggleStar(client, target.id, emailKeyFor(target)).catch(toastUpdateFailure) : undefined,
+                    onTogglePinned: () => void handleTogglePinned(target),
+                    onSetTag: (tagId: string | null) => void handleSetTag(target.id, tagId, emailKeyFor(target)),
+                    onMarkAsSpam: conversationSpamApplicable && !conversationInJunk ? leaving(() => handleMarkAsSpam(target)) : undefined,
+                    onUndoSpam: conversationInJunk ? leaving(() => handleUndoSpam(target)) : undefined,
+                  };
+                })()}
               />
             ) : (
               <>
