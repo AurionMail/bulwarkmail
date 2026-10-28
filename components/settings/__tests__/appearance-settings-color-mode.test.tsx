@@ -28,11 +28,11 @@ beforeEach(() => {
 describe('appearance settings color mode (#1280)', () => {
   it('shows the mode as managed while the theme policy locks it', () => {
     usePolicyStore.setState({ policy: { ...DEFAULT_POLICY, themePolicy: { ...DEFAULT_THEME_POLICY, lockColorMode: true } } });
-    expect(within(renderModeItem()).getByLabelText('Managed by administrator')).toBeInTheDocument();
+    expect(within(renderModeItem()).getByText('settings.org_locked')).toBeInTheDocument();
   });
 
   it('leaves the mode to the user otherwise, even with a default', () => {
     usePolicyStore.setState({ policy: { ...DEFAULT_POLICY, themePolicy: { ...DEFAULT_THEME_POLICY, defaultColorMode: 'light' } } });
-    expect(within(renderModeItem()).queryByLabelText('Managed by administrator')).toBeNull();
+    expect(within(renderModeItem()).queryByText('settings.org_locked')).toBeNull();
   });
 });
