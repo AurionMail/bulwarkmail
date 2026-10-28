@@ -465,13 +465,18 @@ export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
       <MenuLevelContext.Provider value={level}>
         <div
           ref={setRefs}
+          // w-max: before the first clamp the menu sits where it opened,
+          // often near the window's right edge, and would shrink to the room
+          // left there. Clamped by that narrower width, it then grows and
+          // jumps left (the ⋮ menu slid in).
           className={cn(
-            "fixed z-50 min-w-[200px] outline-none",
+            "fixed z-50 w-max min-w-[200px] outline-none",
             CONTEXT_MENU_PANEL_CLASS
           )}
           style={{
             left: renderPosition.x,
             top: renderPosition.y,
+            maxWidth: `calc(100vw - ${2 * VIEWPORT_MARGIN}px)`,
             visibility: isPositioned ? "visible" : "hidden",
           }}
           role="menu"
