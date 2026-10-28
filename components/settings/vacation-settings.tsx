@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { SettingsSection, SettingItem, ToggleSwitch, Select } from './settings-section';
 import { Button } from '@/components/ui/button';
@@ -15,10 +15,16 @@ import { ownDomains } from '@/lib/sieve/vacation-audience';
 import { sanitizeEmailHtml } from '@/lib/email-sanitization';
 import { htmlToPlainText } from '@/lib/html-to-text';
 import { isValidEmail } from '@/lib/validation';
-import { Loader2, AlertTriangle, Eye, EyeOff } from '@/components/icons';
+import { Loader2, AlertTriangle, Eye, EyeOff, Check } from '@/components/icons';
 import { toast } from '@/stores/toast-store';
+import { cn } from '@/lib/utils';
 
 const STALWART_VACATION_LIMITS = { subject: 511, body: 2047 };
+
+// The page saves as you go, like every settings page: switches and menus at
+// once, typing once it pauses.
+const SAVE_AT_ONCE = 0;
+const SAVE_AFTER_TYPING = 800;
 
 function byteLength(value: string): number {
   return new TextEncoder().encode(value).length;
@@ -50,6 +56,9 @@ function utcToLocalDatetime(utcIso: string): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+const DATE_FIELD =
+  'px-3 py-1.5 text-sm rounded-md bg-muted border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-150 hover:border-muted-foreground';
 
 // The latest moment the date fields offer: a later year has no room in the
 // four digits a stored date has.
@@ -123,7 +132,6 @@ export function VacationSettings() {
   const [htmlEnabled, setHtmlEnabled] = useState(!!htmlBody);
   const [localHtmlBody, setLocalHtmlBody] = useState(htmlBody || '');
   const [showPreview, setShowPreview] = useState(false);
-  const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
   const [forwardEnabled, setForwardEnabled] = useState(forward?.enabled ?? false);
   const [forwardTo, setForwardTo] = useState(forward?.to ?? '');
   const [forwardKeep, setForwardKeep] = useState(forward?.keepCopy ?? false);
@@ -138,29 +146,60 @@ export function VacationSettings() {
     }
   }, [client, isSupported, managedAccountId, fetchVacationResponse]);
 
+  // The fields take what the server has when it loads and on an account
+  // switch. What comes back from a save made here is what was sent: the
+  // fields keep what was typed while it ran. Only what the user changed is
+  // saved, never a render that hasn't caught up with a load yet.
+  const touched = useRef(false);
+  const lastSent = useRef<{ reply: string; forward: boolean } | null>(null);
+  const syncedAccount = useRef<string | null>(null);
+  const storedReply = JSON.stringify([isEnabled, fromDate, toDate, subject, textBody, htmlBody]);
   useEffect(() => {
-    setLocalEnabled(isEnabled);
-    setFromInput(fromDate ? utcToLocalDatetime(fromDate) : '');
-    setToInput(toDate ? utcToLocalDatetime(toDate) : '');
-    setHalfFilled({ from: false, to: false });
-    setLocalSubject(subject);
-    setLocalTextBody(textBody);
-    setHtmlEnabled(!!htmlBody);
-    setLocalHtmlBody(htmlBody || '');
-  }, [accountKey, isEnabled, fromDate, toDate, subject, textBody, htmlBody]);
+    if (isLoading) return;
+    const newAccount = syncedAccount.current !== accountKey;
+    syncedAccount.current = accountKey;
+    const sent = newAccount ? null : lastSent.current;
+    if (newAccount) lastSent.current = null;
+    const stored = useVacationStore.getState();
+    if (!sent || sent.reply !== storedReply) {
+      touched.current = false;
+      setLocalEnabled(stored.isEnabled);
+      setFromInput(stored.fromDate ? utcToLocalDatetime(stored.fromDate) : '');
+      setToInput(stored.toDate ? utcToLocalDatetime(stored.toDate) : '');
+      setHalfFilled({ from: false, to: false });
+      setLocalSubject(stored.subject);
+      setLocalTextBody(stored.textBody);
+      setHtmlEnabled(!!stored.htmlBody);
+      setLocalHtmlBody(stored.htmlBody || '');
+    }
+    // Forwarding a save didn't send takes what the server has now; one it
+    // sent stays as set here, also when its filters part failed and it
+    // waits to be saved again.
+    if (!sent || sent.reply !== storedReply || !sent.forward) {
+      setForwardEnabled(stored.forward?.enabled ?? false);
+      setForwardTo(stored.forward?.to ?? '');
+      setForwardKeep(stored.forward?.keepCopy ?? false);
+    }
+    setAudienceOnly(stored.audience?.only ?? 'all');
+  }, [accountKey, isLoading, storedReply, forward, audience]);
 
-  useEffect(() => {
-    setForwardEnabled(forward?.enabled ?? false);
-    setForwardTo(forward?.to ?? '');
-    setForwardKeep(forward?.keepCopy ?? false);
-  }, [accountKey, forward]);
-
-  useEffect(() => {
-    setAudienceOnly(audience?.only ?? 'all');
-  }, [accountKey, audience]);
+  // How long the next save waits, set by the control that changed.
+  const saveDelay = useRef(SAVE_AT_ONCE);
+  const changeNow = <T,>(set: (value: T) => void) => (value: T) => {
+    touched.current = true;
+    saveDelay.current = SAVE_AT_ONCE;
+    set(value);
+  };
+  const changeTyped = <T,>(set: (value: T) => void) => (value: T) => {
+    touched.current = true;
+    saveDelay.current = SAVE_AFTER_TYPING;
+    set(value);
+  };
 
   // Reads a date field as the browser holds it, half filled in or not.
   const readDateField = (field: 'from' | 'to', input: HTMLInputElement) => {
+    touched.current = true;
+    saveDelay.current = SAVE_AFTER_TYPING;
     (field === 'from' ? setFromInput : setToInput)(input.value);
     const half = input.validity.badInput;
     setHalfFilled((current) => (current[field] === half ? current : { ...current, [field]: half }));
@@ -223,53 +262,24 @@ export function VacationSettings() {
     };
   }, [sizeLimits, localSubject, payload]);
 
-  const validate = useCallback(() => {
-    const warnings: string[] = [];
+  // Checked as you type, under the field they are about.
+  const endBeforeStart = !!(localFromDate && localToDate && new Date(localToDate) <= new Date(localFromDate));
+  const fromError = localFromDate === null || halfFilled.from ? t('warnings.invalid_date') : null;
+  const toError = localToDate === null || halfFilled.to
+    ? t('warnings.invalid_date')
+    : endBeforeStart ? t('warnings.end_before_start') : null;
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  // Only a start the user just set: a stored one passes while they are away.
+  const fromWarning = !fromError && localFromDate && localFromDate !== fromDate && new Date(localFromDate) < todayStart
+    ? t('warnings.start_in_past')
+    : null;
+  const hasHtmlContent = htmlEnabled && !!htmlToPlainText(localHtmlBody).trim();
+  const bodyWarning = oversize.body && sizeLimits
+    ? t('warnings.body_too_long', { max: sizeLimits.body })
+    : localEnabled && !localTextBody.trim() && !hasHtmlContent ? t('warnings.empty_body') : null;
 
-    if (datesUnusable) {
-      warnings.push(t('warnings.invalid_date'));
-    }
-    if (localFromDate && localToDate && new Date(localToDate) <= new Date(localFromDate)) {
-      warnings.push(t('warnings.end_before_start'));
-    }
-
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    if (localFromDate && new Date(localFromDate) < todayStart) {
-      warnings.push(t('warnings.start_in_past'));
-    }
-
-    const hasHtmlContent = htmlEnabled && !!htmlToPlainText(localHtmlBody).trim();
-    if (localEnabled && !localTextBody.trim() && !hasHtmlContent) {
-      warnings.push(t('warnings.empty_body'));
-    }
-
-    if (oversize.subject && sizeLimits) {
-      warnings.push(t('warnings.subject_too_long', { max: sizeLimits.subject }));
-    }
-    if (oversize.body && sizeLimits) {
-      warnings.push(t('warnings.body_too_long', { max: sizeLimits.body }));
-    }
-
-    if (forwardInvalid) {
-      warnings.push(t('warnings.forward_address'));
-    }
-    if (forwardOverLimit) {
-      warnings.push(tFilters('forward_limit', { count: forwardLimit }));
-    }
-    if (notRunning) {
-      warnings.push(t('warnings.not_running'));
-    }
-
-    setValidationWarnings(warnings);
-    return warnings;
-  }, [datesUnusable, localFromDate, localToDate, localEnabled, localTextBody, htmlEnabled, localHtmlBody, oversize, sizeLimits, forwardInvalid, forwardOverLimit, forwardLimit, notRunning, t, tFilters]);
-
-  useEffect(() => {
-    validate();
-  }, [validate]);
-
-  const hasChanges =
+  const userChanges =
     localEnabled !== isEnabled ||
     (localFromDate || null) !== (fromDate || null) ||
     (localToDate || null) !== (toDate || null) ||
@@ -277,14 +287,21 @@ export function VacationSettings() {
     localTextBody !== textBody ||
     (htmlEnabled ? localHtmlBody : '') !== (htmlBody || '') ||
     forwardChanged ||
-    audienceChanged ||
-    // Saving sets right what is stored but does not run.
-    notRunning;
+    audienceChanged;
 
   const hasBlockingError =
     datesUnusable ||
     !!(localFromDate && localToDate && new Date(localToDate) <= new Date(localFromDate)) ||
     oversize.subject || oversize.body || forwardInvalid;
+
+  // What a save would store, to tell one change from the next.
+  const snapshot = JSON.stringify([
+    localEnabled, localFromDate, localToDate, localSubject, payload, forwardSettings, audienceSettings,
+  ]);
+  // A save that failed or was stopped isn't tried again until something changes.
+  const [refusedSnapshot, setRefusedSnapshot] = useState<string | null>(null);
+  const [savedOnce, setSavedOnce] = useState(false);
+  const savingSnapshot = useRef<string | null>(null);
 
   const handleSave = async () => {
     if (!client) return;
@@ -294,10 +311,17 @@ export function VacationSettings() {
       setHalfFilled(half);
       return;
     }
-    validate();
     if (hasBlockingError) return;
 
     const { sanitizedHtml, textBody } = payload;
+    const sent = snapshot;
+    savingSnapshot.current = sent;
+    lastSent.current = {
+      reply: JSON.stringify([
+        localEnabled, localFromDate || null, localToDate || null, localSubject, textBody, sanitizedHtml,
+      ]),
+      forward: forwardChanged,
+    };
 
     try {
       const saved = await updateVacationResponse(client, {
@@ -312,14 +336,38 @@ export function VacationSettings() {
       }, managedAccountId ?? undefined);
 
       // false: a plugin stopped the change and is expected to have said why.
-      if (saved) toast.success(tNotifications('vacation_saved'));
+      if (saved) setSavedOnce(true);
+      else setRefusedSnapshot(sent);
     } catch (error) {
       console.error('Failed to save vacation response:', error);
+      setRefusedSnapshot(sent);
       toast.error(tNotifications(
         error instanceof VacationFiltersError ? 'vacation_filters_save_failed' : 'vacation_save_failed',
       ));
+    } finally {
+      savingSnapshot.current = null;
     }
   };
+
+  // The latest save, and whether one is waiting, for the timer and for
+  // leaving the page.
+  const saveRef = useRef(handleSave);
+  saveRef.current = handleSave;
+  const canAutoSave = !!client && userChanges && !hasBlockingError && snapshot !== refusedSnapshot;
+  const waitingRef = useRef(false);
+  waitingRef.current = canAutoSave && savingSnapshot.current !== snapshot;
+
+  // Leaving the page (another settings page, another app) saves what is
+  // still waiting for its timer.
+  useEffect(() => () => {
+    if (waitingRef.current && touched.current) void saveRef.current();
+  }, []);
+
+  useEffect(() => {
+    if (!canAutoSave || isSaving || !touched.current) return;
+    const timer = setTimeout(() => { void saveRef.current(); }, saveDelay.current);
+    return () => clearTimeout(timer);
+  }, [canAutoSave, isSaving, snapshot]);
 
   if (!isSupported) {
     return (
@@ -354,6 +402,22 @@ export function VacationSettings() {
 
   return (
     <div className="space-y-6">
+      <div role="status" aria-live="polite" className="flex justify-end items-center gap-1.5 min-h-4 -mb-4 text-xs text-muted-foreground">
+        {isSaving ? (
+          <><Loader2 className="w-3.5 h-3.5 animate-spin" />{t('saving')}</>
+        ) : savedOnce && !userChanges ? (
+          <><Check className="w-3.5 h-3.5" />{t('saved')}</>
+        ) : null}
+      </div>
+      {notRunning && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-600 dark:text-amber-400">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <span className="flex-1 min-w-0">{t('warnings.not_running')}</span>
+          <Button size="xs" variant="outline" onClick={() => void handleSave()} disabled={isSaving || hasBlockingError}>
+            {t('save')}
+          </Button>
+        </div>
+      )}
       {/* The period is the absence: the auto-reply and forwarding both keep to it. */}
       <SettingsSection title={t('title')} description={t('description')}>
         <SettingItem
@@ -367,10 +431,13 @@ export function VacationSettings() {
             value={fromInput}
             onChange={(e) => readDateField('from', e.currentTarget)}
             onBlur={(e) => readDateField('from', e.currentTarget)}
-            aria-invalid={localFromDate === null || halfFilled.from}
-            className="px-3 py-1.5 text-sm rounded-md bg-muted border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-150 hover:border-muted-foreground"
+            aria-invalid={!!fromError}
+            aria-describedby={fromError ? 'vacation-from-error' : undefined}
+            className={cn(DATE_FIELD, fromError && 'border-destructive hover:border-destructive')}
           />
         </SettingItem>
+        <FieldMessage id="vacation-from-error" text={fromError} />
+        <FieldMessage text={fromWarning} warning />
         <SettingItem
           label={t('date_range.end')}
           description={t('date_range.end_description')}
@@ -382,17 +449,19 @@ export function VacationSettings() {
             value={toInput}
             onChange={(e) => readDateField('to', e.currentTarget)}
             onBlur={(e) => readDateField('to', e.currentTarget)}
-            aria-invalid={localToDate === null || halfFilled.to}
-            className="px-3 py-1.5 text-sm rounded-md bg-muted border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-150 hover:border-muted-foreground"
+            aria-invalid={!!toError}
+            aria-describedby={toError ? 'vacation-to-error' : undefined}
+            className={cn(DATE_FIELD, toError && 'border-destructive hover:border-destructive')}
           />
         </SettingItem>
+        <FieldMessage id="vacation-to-error" text={toError} />
       </SettingsSection>
 
       <SettingsSection id="reply" title={t('auto_reply.title')} description={t('status.description')}>
         <SettingItem label={t('status.label')}>
           <StatusSwitch
             checked={localEnabled}
-            onChange={setLocalEnabled}
+            onChange={changeNow(setLocalEnabled)}
             activeLabel={t('status.active')}
             inactiveLabel={t('status.inactive')}
           />
@@ -404,7 +473,7 @@ export function VacationSettings() {
           >
             <Select
               value={audienceOnly}
-              onChange={(value) => setAudienceOnly(value as 'all' | 'internal' | 'external')}
+              onChange={(value) => changeNow(setAudienceOnly)(value as 'all' | 'internal' | 'external')}
               options={[
                 { value: 'all', label: t('audience.all') },
                 { value: 'internal', label: t('audience.internal') },
@@ -420,11 +489,13 @@ export function VacationSettings() {
           <input
             type="text"
             value={localSubject}
-            onChange={(e) => setLocalSubject(e.target.value)}
+            onChange={(e) => changeTyped(setLocalSubject)(e.target.value)}
             placeholder={t('message.subject_placeholder')}
+            aria-invalid={oversize.subject}
             className="w-64 px-3 py-1.5 text-sm rounded-md bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-150 hover:border-muted-foreground"
           />
         </SettingItem>
+        <FieldMessage text={oversize.subject && sizeLimits ? t('warnings.subject_too_long', { max: sizeLimits.subject }) : null} />
         <div className="py-3">
           <label htmlFor="vacation-body" className="text-sm font-medium text-foreground block mb-1">
             {t('message.body_label')}
@@ -435,24 +506,25 @@ export function VacationSettings() {
           <textarea
             id="vacation-body"
             value={localTextBody}
-            onChange={(e) => setLocalTextBody(e.target.value)}
+            onChange={(e) => changeTyped(setLocalTextBody)(e.target.value)}
             placeholder={t('message.body_placeholder')}
             rows={6}
             className="w-full px-3 py-2 text-sm rounded-md bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-150 hover:border-muted-foreground resize-y"
           />
+          <FieldMessage text={bodyWarning} warning={!oversize.body} />
         </div>
         <SettingItem
           label={t('message.html_label')}
           description={t('message.html_description')}
         >
-          <ToggleSwitch checked={htmlEnabled} onChange={setHtmlEnabled} />
+          <ToggleSwitch checked={htmlEnabled} onChange={changeNow(setHtmlEnabled)} />
         </SettingItem>
         {htmlEnabled && (
           <div className="pb-3">
             <div className="rounded-md border border-border overflow-hidden">
               <RichTextEditor
                 content={localHtmlBody}
-                onChange={setLocalHtmlBody}
+                onChange={changeTyped(setLocalHtmlBody)}
                 placeholder={t('message.html_placeholder')}
               />
             </div>
@@ -507,7 +579,7 @@ export function VacationSettings() {
           <SettingItem label={t('forward.enabled_label')}>
             <StatusSwitch
               checked={forwardEnabled}
-              onChange={setForwardEnabled}
+              onChange={changeNow(setForwardEnabled)}
               activeLabel={t('status.active')}
               inactiveLabel={t('status.inactive')}
             />
@@ -518,47 +590,40 @@ export function VacationSettings() {
                 <input
                   type="email"
                   value={forwardTo}
-                  onChange={(e) => setForwardTo(e.target.value)}
+                  onChange={(e) => changeTyped(setForwardTo)(e.target.value)}
                   placeholder={t('forward.to_placeholder')}
                   aria-label={t('forward.to_label')}
                   aria-invalid={forwardInvalid}
-                  className="w-64 px-3 py-1.5 text-sm rounded-md bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-150 hover:border-muted-foreground"
+                  className="w-64 max-w-full px-3 py-1.5 text-sm rounded-md bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-150 hover:border-muted-foreground"
                 />
               </SettingItem>
+              <FieldMessage text={forwardInvalid ? t('warnings.forward_address') : null} />
               <SettingItem label={t('forward.keep_label')} description={t('forward.keep_description')}>
-                <ToggleSwitch checked={forwardKeep} onChange={setForwardKeep} />
+                <ToggleSwitch checked={forwardKeep} onChange={changeNow(setForwardKeep)} />
               </SettingItem>
+              <FieldMessage text={forwardOverLimit ? tFilters('forward_limit', { count: forwardLimit }) : null} warning />
             </>
           )}
         </SettingsSection>
       )}
 
-      {validationWarnings.length > 0 && (
-        <div className="space-y-2">
-          {validationWarnings.map((warning, i) => (
-            <div key={i} className="flex items-start gap-2 text-sm text-warning">
-              <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <span>{warning}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="flex justify-end">
-        <Button
-          onClick={handleSave}
-          disabled={isSaving || !hasChanges || hasBlockingError}
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="w-4 h-4 me-2 animate-spin" />
-              {t('saving')}
-            </>
-          ) : (
-            t('save')
-          )}
-        </Button>
-      </div>
     </div>
+  );
+}
+
+/** A line under a field: an error that stops the save, or a warning. */
+function FieldMessage({ id, text, warning = false }: { id?: string; text: string | null; warning?: boolean }) {
+  if (!text) return null;
+  return (
+    <p
+      id={id}
+      className={cn(
+        'flex items-start gap-1.5 -mt-1 pb-2 text-xs',
+        warning ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400',
+      )}
+    >
+      <AlertTriangle className="w-3.5 h-3.5 mt-px flex-shrink-0" />
+      <span>{text}</span>
+    </p>
   );
 }

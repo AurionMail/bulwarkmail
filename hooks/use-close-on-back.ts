@@ -1,85 +1,81 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { generateUUID } from "@/lib/utils";
 
-const STATE_KEY = "__closeOnBack";
-
-// Closing one overlay leaves a Back traversal in flight; the next one must
-// not push its entry until that has landed, or the Back would pop it.
-let pendingBack: Promise<void> | null = null;
-
-interface UseCloseOnBackOptions {
-  /** Whether the overlay is open: it holds a history entry while it is. */
-  open: boolean;
-  /** Called when browser Back (or the phone's back gesture) leaves the entry. */
-  onBack: () => void;
-  /**
-   * Whether Back should stay on the overlay for now, e.g. an editor with
-   * unsaved changes that asks first: the entry is put back, so a later Back
-   * asks again, and `onBack` decides whether to close.
-   */
-  shouldHold?: () => boolean;
-  enabled?: boolean;
-}
+// Closing one layer can leave an asynchronous Back traversal in flight. The
+// next layer must not install its popstate listener until that completes, or
+// the traversal would close it at once.
+let pendingHistoryBack: Promise<void> | null = null;
 
 /**
- * Browser Back closes an overlay instead of leaving the page (R5). The
- * overlay gets a history entry of its own while it is open; closing it any
- * other way takes that entry back off, so no stray steps are left for Back
- * to walk through. The URL is left alone: the entry copies the current one,
- * Next's router state included, and after the clean-up Back the address bar
- * is set to whatever the page showed last.
+ * Lets the browser's Back (and the phone's back gesture) close an overlay
+ * instead of leaving the page: while `active`, the overlay holds a history
+ * entry of its own, and Back calls `onBack`. Closed any other way, the entry
+ * is taken back off, so the history ends where it was.
+ *
+ * `onBack` runs after the entry is gone. A layer that decides to stay open
+ * (an editor that asked "Discard changes?" and heard "Keep editing") calls
+ * the returned `rearm` to hold an entry again. `armed` tells whether the
+ * entry is there now, e.g. before a `router.back()` that must leave for real.
  */
-export function useCloseOnBack({ open, onBack, shouldHold, enabled = true }: UseCloseOnBackOptions) {
+export function useCloseOnBack(onBack: () => void, active = true): { rearm: () => void; armed: () => boolean } {
   const onBackRef = useRef(onBack);
   onBackRef.current = onBack;
-  const shouldHoldRef = useRef(shouldHold);
-  shouldHoldRef.current = shouldHold;
+  const rearmRef = useRef<() => void>(() => {});
+  const armedRef = useRef(false);
 
   useEffect(() => {
-    if (!open || !enabled || typeof window === "undefined") return;
-    const entryId = generateUUID();
+    if (!active) return;
     let cancelled = false;
-    let pushed = false;
-    const push = () => {
-      window.history.pushState({ ...window.history.state, [STATE_KEY]: entryId }, "");
-      pushed = true;
-    };
+    let entryId: string | null = null;
+    let poppedByBack = false;
+
     const onPop = () => {
-      if ((window.history.state as Record<string, unknown> | null)?.[STATE_KEY] === entryId) return;
-      pushed = false;
-      if (shouldHoldRef.current?.()) push();
+      if (!entryId) return;
+      entryId = null;
+      armedRef.current = false;
+      poppedByBack = true;
+      window.removeEventListener("popstate", onPop);
       onBackRef.current();
     };
-    // Deferred so Strict Mode's setup/cleanup/setup doesn't push and pop.
-    const timer = window.setTimeout(async () => {
-      if (pendingBack) await pendingBack;
-      if (cancelled) return;
-      push();
+    const push = () => {
+      if (cancelled || entryId) return;
+      entryId = generateUUID();
+      armedRef.current = true;
+      poppedByBack = false;
+      window.history.pushState({ ...window.history.state, __filePreview: entryId }, "");
       window.addEventListener("popstate", onPop);
+    };
+    rearmRef.current = push;
+
+    // Deferred, so Strict Mode's setup/cleanup/setup replay can cancel the
+    // first setup without scheduling a browser Back traversal.
+    const timer = window.setTimeout(async () => {
+      if (pendingHistoryBack) await pendingHistoryBack;
+      push();
     }, 0);
+
     return () => {
       cancelled = true;
+      rearmRef.current = () => {};
+      armedRef.current = false;
       window.clearTimeout(timer);
       window.removeEventListener("popstate", onPop);
-      if (!pushed || (window.history.state as Record<string, unknown> | null)?.[STATE_KEY] !== entryId) return;
-      // After this commit's effects, so the URL the page writes for the
-      // closed state is the one restored once Back has landed.
-      queueMicrotask(() => {
-        // A navigation in the same commit (leaving the calendar through the
-        // rail) has pushed its own entry by now: that one must not be undone.
-        if ((window.history.state as Record<string, unknown> | null)?.[STATE_KEY] !== entryId) return;
-        const url = window.location.href;
-        pendingBack = new Promise<void>((resolve) => {
+      const ours = entryId;
+      if (ours && !poppedByBack && window.history.state?.__filePreview === ours) {
+        pendingHistoryBack = new Promise<void>((resolve) => {
           window.addEventListener("popstate", () => {
-            if (window.location.href !== url) window.history.replaceState(window.history.state, "", url);
-            pendingBack = null;
+            pendingHistoryBack = null;
             resolve();
           }, { once: true });
         });
         window.history.back();
-      });
+      }
     };
-  }, [open, enabled]);
+  }, [active]);
+
+  // The same object every render, so callers can list it as a dependency.
+  const [api] = useState(() => ({ rearm: () => rearmRef.current(), armed: () => armedRef.current }));
+  return api;
 }

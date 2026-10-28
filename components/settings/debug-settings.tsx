@@ -16,7 +16,7 @@ export function DebugSettings() {
 
   return (
     <SettingsSection id="debug" advanced title={t('debug_mode.label')} description={t('debug_mode.description')}>
-      <SettingItem label={t('debug_mode.label')} description={t('debug_mode.description')} locked={isSettingLocked('debugMode')}>
+      <SettingItem label={t('debug_mode.toggle')} description={t('debug_mode.description')} locked={isSettingLocked('debugMode')}>
         <ToggleSwitch checked={debugMode} onChange={(checked) => updateSetting('debugMode', checked)} />
       </SettingItem>
 

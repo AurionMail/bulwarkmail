@@ -124,3 +124,22 @@ describe('TagPicker', () => {
     expect(screen.getByText('Clients')).toBeInTheDocument();
   });
 });
+
+describe('TagPicker new tag', () => {
+  it('creates a tag from the picker and puts it on the message', async () => {
+    const { fireEvent, render, screen } = await import('@testing-library/react');
+    const { useSettingsStore } = await import('@/stores/settings-store');
+    const { TagPicker } = await import('../tag-picker');
+    useSettingsStore.setState({ emailKeywords: [] } as never);
+    const onToggle = vi.fn();
+    render(<TagPicker selectedIds={[]} onToggle={onToggle} />);
+    fireEvent.click(screen.getByTestId('tag-picker-new'));
+    const field = screen.getByRole('textbox', { name: 'new_tag_placeholder' });
+    fireEvent.change(field, { target: { value: 'Receipts' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    const created = useSettingsStore.getState().emailKeywords;
+    expect(created).toHaveLength(1);
+    expect(created[0].label).toBe('Receipts');
+    expect(onToggle).toHaveBeenCalledWith(created[0].id);
+  });
+});

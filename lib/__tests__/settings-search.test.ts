@@ -2,154 +2,94 @@ import { describe, it, expect } from 'vitest';
 import en from '@/locales/en/common.json';
 import {
   type SettingsSearchTab,
-  type SubResult,
-  collectSubResults,
-  flattenStrings,
+  descriptionKeyFor,
   getByPath,
-  tabSearchPaths,
+  matchesAllWords,
+  tabKeywords,
+  settingsSubResults,
+  tabSearchEntries,
   withAppName,
 } from '../settings-search';
 
-function subResultsFor(tab: SettingsSearchTab): SubResult[] {
-  const list: SubResult[] = [];
-  for (const path of tabSearchPaths[tab]) {
-    collectSubResults(getByPath(en, path), list);
-  }
-  return list;
-}
-
-function haystackFor(tab: SettingsSearchTab): string {
-  const strings: string[] = [];
-  for (const path of tabSearchPaths[tab]) {
-    flattenStrings(getByPath(en, path), strings);
-  }
-  return strings.join(' ').toLowerCase();
-}
-
-function labelsFor(tab: SettingsSearchTab): string[] {
-  return subResultsFor(tab).map((r) => r.label);
-}
-
-describe('collectSubResults', () => {
-  it('emits flat `key` / `key_desc` string pairs as a labelled sub-result', () => {
-    const list: SubResult[] = [];
-    collectSubResults(
-      {
-        title: 'Calendar settings',
-        free_scroll: 'Free scrolling',
-        free_scroll_desc: 'Scroll continuously',
-        hover_preview_off: 'Disabled',
-      },
-      list
-    );
-    expect(list).toEqual([
-      { label: 'Calendar settings', description: undefined },
-      { label: 'Free scrolling', description: 'Scroll continuously' },
-    ]);
-  });
-
-  it('still emits label/description objects and *_label keys', () => {
-    const list: SubResult[] = [];
-    collectSubResults(
-      {
-        name_label: 'Name',
-        nested: { label: 'Theme', description: 'Pick one', dark: 'Dark' },
-      },
-      list
-    );
-    expect(list).toEqual([
-      { label: 'Name' },
-      { label: 'Theme', description: 'Pick one' },
-    ]);
-  });
-});
+const labelsFor = (tab: SettingsSearchTab) => settingsSubResults(en, tab, 'Bulwark').map((r) => r.label);
+const resultsFor = (tab: SettingsSearchTab, query: string) =>
+  settingsSubResults(en, tab, 'Bulwark').filter((r) => matchesAllWords(`${r.label} ${r.description ?? ''}`, query));
 
 describe('settings search index (English messages)', () => {
-  it('every tab path resolves to a translation subtree', () => {
-    const missing: string[] = [];
-    for (const paths of Object.values(tabSearchPaths)) {
-      for (const path of paths) {
-        if (getByPath(en, path) === undefined) missing.push(path);
+  it('every entry names a label that exists, without a raw placeholder', () => {
+    const broken: string[] = [];
+    for (const entries of Object.values(tabSearchEntries)) {
+      for (const entry of entries) {
+        const label = getByPath(en, entry.label);
+        if (typeof label !== 'string' || /\{(?!appName\})/.test(label)) broken.push(entry.label);
       }
     }
-    expect(missing).toEqual([]);
+    expect(broken).toEqual([]);
   });
 
-  it('lists the calendar toggles as sub-results', () => {
-    const labels = labelsFor('calendar');
-    expect(labels).toContain('Free scrolling');
-    expect(labels).toContain('Show week numbers');
-    expect(labels).toContain('Organize invitations as');
-    expect(labels).toContain('Parse email invitations');
-    expect(labelsFor('notifications')).toContain('Unread Count on Tab and App Icon');
-    expect(labelsFor('notifications')).not.toContain('Parse email invitations');
-    expect(labels).toContain('Contact birthday calendar');
-    // Option values are not settings of their own.
-    expect(labels).not.toContain('Disabled');
+  it('finds a description next to its label', () => {
+    expect(descriptionKeyFor('settings.email_behavior.send_delay.label', en)).toBe('settings.email_behavior.send_delay.description');
+    expect(descriptionKeyFor('settings.contacts.group_by_letter_label', en)).toBe('settings.contacts.group_by_letter_description');
+    expect(descriptionKeyFor('calendar.settings.calendar_free_scroll', en)).toBe('calendar.settings.calendar_free_scroll_desc');
   });
 
-  it('finds the newer mail settings on their tabs', () => {
+  it('lists each setting under the page that draws it', () => {
+    expect(labelsFor('calendar')).toContain('Free scrolling');
+    expect(labelsFor('calendar')).toContain('Show week numbers');
+    expect(labelsFor('notifications')).toContain('Unread count on the tab and app icon');
+    expect(labelsFor('message_list')).toContain('Sender favicons');
     expect(labelsFor('message_list')).toContain('Clear search when switching folders');
-    expect(labelsFor('message_list')).toContain('Swipe right action (mobile)');
-    expect(labelsFor('message_list')).toContain('Message list order');
-    expect(labelsFor('reading')).toContain('Trusted Senders');
-    expect(labelsFor('reading')).toContain('Email (.eml) filename');
-    expect(labelsFor('reading')).not.toContain('Delete Action');
+    expect(labelsFor('reading')).toContain('Trusted senders');
     expect(labelsFor('composing')).toContain('Undo send / send delay');
-    expect(labelsFor('composing')).toContain('Request read receipts by default');
-    expect(labelsFor('composing')).toContain('Email Templates');
-    expect(labelsFor('composing')).toContain('Quick Reply');
-    expect(labelsFor('composing')).toContain('Placeholder warning');
-    expect(labelsFor('composing')).not.toContain('Sub-Address Delimiter');
-    expect(labelsFor('appearance')).toContain('Pro Interface (Experimental)');
-    expect(labelsFor('account')).toContain('Tell accounts apart');
-    expect(labelsFor('account')).toContain('Your Identities');
-    expect(labelsFor('appearance')).toContain('Themes');
     expect(labelsFor('general')).toContain('Time zone');
-    expect(labelsFor('general')).toContain('Email links');
-    expect(labelsFor('organize')).toContain('Nested Tags');
-    expect(haystackFor('organize')).toContain('standard folder roles');
+    expect(labelsFor('organize')).toContain('Nested tags');
   });
 
-  it('matches the calendar tab for a free-scroll query', () => {
-    expect(haystackFor('calendar')).toContain('free scrolling');
-    expect(haystackFor('general')).toContain('time zone');
+  // SET-5: whole namespaces were indexed, so results led to pages without
+  // the row (Sender Favicons under Backup & reset, Phone under Contacts,
+  // Default Mail Program under Composing) or showed "Level {n} criterion".
+  it('does not list settings a page does not draw', () => {
+    expect(labelsFor('backup')).not.toContain('Sender favicons');
+    expect(labelsFor('backup')).not.toContain('Keyboard shortcuts');
+    expect(labelsFor('contacts')).not.toContain('Phone');
+    expect(labelsFor('composing')).not.toContain('Default Mail Program');
+    for (const tab of Object.keys(tabSearchEntries) as SettingsSearchTab[]) {
+      expect(labelsFor(tab).filter((l) => l.includes('{'))).toEqual([]);
+    }
+  });
+
+  // SET-6: these found nothing, or not the right row.
+  it('finds the settings people searched for', () => {
+    expect(resultsFor('message_list', 'inbox type').map((r) => r.label)).toEqual(['Inbox type']);
+    expect(resultsFor('calendar', 'import calendar').map((r) => r.label)).toContain('Import calendar');
+    expect(resultsFor('composing', 'mention').map((r) => r.label).slice(0, 2)).toEqual(['Mention recipients with @', 'Contacts in @ mentions']);
+    expect(resultsFor('security', 'two-factor').map((r) => r.label)).toContain('Two-factor authentication');
+    expect(resultsFor('filters', 'new rule').map((r) => r.label)).toEqual(['New rule']);
+    // "add rule" finds the Filters page itself.
+    expect(matchesAllWords(tabKeywords.filters, 'add rule')).toBe(true);
+  });
+
+  it('matches every word of a query, in any order', () => {
+    const text = 'Signature Position Where to insert your signature in replies';
+    expect(matchesAllWords(text, 'replies signature')).toBe(true);
+    expect(matchesAllWords(text, 'signature replies')).toBe(true);
+    expect(matchesAllWords(text, 'signature forwarding')).toBe(false);
+    expect(resultsFor('composing', 'reply signature').map((r) => r.label)).toContain('Signature position');
+  });
+
+  it('marks the rows the Advanced switch hides', () => {
+    const advanced = settingsSubResults(en, 'message_list', 'Bulwark').filter((r) => r.advanced).map((r) => r.label);
+    expect(advanced).toContain('Emails per page');
+    expect(advanced).not.toContain('Sender favicons');
   });
 });
 
 describe('{appName} in the index (#1314)', () => {
-  const index = (appName: string) => {
-    const list: SubResult[] = [];
-    const strings: string[] = [];
-    for (const path of tabSearchPaths.general) {
-      const node = withAppName(getByPath(en, path), appName);
-      collectSubResults(node, list);
-      flattenStrings(node, strings);
-    }
-    return { list, haystack: strings.join(' ').toLowerCase() };
-  };
-
-  it('never keeps the raw placeholder', () => {
-    for (const tab of Object.keys(tabSearchPaths) as SettingsSearchTab[]) {
-      for (const path of tabSearchPaths[tab]) {
-        expect(JSON.stringify(withAppName(getByPath(en, path), 'Bulwark')) ?? '').not.toContain('{appName}');
-      }
-    }
-  });
-
-  it('finds Default apps by "bulwark" on a stock install', () => {
-    const { list, haystack } = index('Bulwark');
-    expect(haystack).toContain('bulwark');
-    expect(list.some((r) => r.description?.includes('Bulwark'))).toBe(true);
-  });
-
-  it('finds Default apps by the configured name', () => {
-    const { list, haystack } = index('Rath Mail');
-    expect(haystack).toContain('rath mail');
-    const links: string[] = [];
-    flattenStrings(withAppName(getByPath(en, 'protocol_handlers'), 'Rath Mail'), links);
-    expect(links.join(' ').toLowerCase()).not.toContain('bulwark');
-    expect(list.some((r) => r.description?.includes('Rath Mail'))).toBe(true);
+  it('fills in the configured name', () => {
+    const results = settingsSubResults(en, 'general', 'Rath Mail');
+    const text = results.map((r) => `${r.label} ${r.description ?? ''}`).join(' ');
+    expect(text).not.toContain('{appName}');
+    expect(text).toContain('Rath Mail');
   });
 
   it('leaves other values alone', () => {

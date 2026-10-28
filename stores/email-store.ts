@@ -96,6 +96,67 @@ export function resolveSelectedEmails(state: {
   return [...found.values()];
 }
 
+/** A message's folders and read state before an action moved it. */
+export interface EmailRestorePoint {
+  id: string;
+  /** The server's own folder ids, not the list's `account:id` names. */
+  mailboxIds: Record<string, boolean>;
+  seen: boolean;
+}
+
+/** Restore points of one login and JMAP account, as the action reached them. */
+export interface EmailRestoreBatch {
+  client: IJMAPClient;
+  accountId?: string;
+  points: EmailRestorePoint[];
+}
+
+/**
+ * Where `emails` are now, so the toast's Undo can put them back after a
+ * delete to Trash, an archive, a move or "remove from folder". Taken before
+ * the action, routed the way the action is (resolveEmailActionContext).
+ */
+export function restoreBatchesFor(emails: Email[], client: IJMAPClient): EmailRestoreBatch[] {
+  const batches: EmailRestoreBatch[] = [];
+  for (const email of emails) {
+    if (!email.mailboxIds) continue;
+    let context: ReturnType<typeof resolveEmailActionContext>;
+    try {
+      context = resolveEmailActionContext(email, client);
+    } catch {
+      continue;
+    }
+    const prefix = context.accountId ? `${context.accountId}:` : null;
+    const mailboxIds: Record<string, boolean> = {};
+    for (const [id, inIt] of Object.entries(email.mailboxIds)) {
+      if (inIt) mailboxIds[prefix && id.startsWith(prefix) ? id.slice(prefix.length) : id] = true;
+    }
+    if (Object.keys(mailboxIds).length === 0) continue;
+    let batch = batches.find(b => b.client === context.client && b.accountId === context.accountId);
+    if (!batch) {
+      batch = { client: context.client, accountId: context.accountId, points: [] };
+      batches.push(batch);
+    }
+    if (!batch.points.some(p => p.id === email.id)) {
+      batch.points.push({ id: email.id, mailboxIds, seen: !!email.keywords?.$seen });
+    }
+  }
+  return batches;
+}
+
+/** restoreBatchesFor the selected messages, taken before a batch action. */
+export function restoreBatchesForSelection(client: IJMAPClient): EmailRestoreBatch[] {
+  return restoreBatchesFor(resolveSelectedEmails(useEmailStore.getState()), client);
+}
+
+/** Delete to Trash in an account that has no Trash folder; nothing was deleted. */
+export class TrashMailboxNotFoundError extends Error {
+  constructor() {
+    super('Trash mailbox not found - cannot move email to trash');
+    this.name = 'TrashMailboxNotFoundError';
+  }
+}
+
 /** Enough of an email to key a selection by its owning account. */
 type SelectableEmail = Pick<Email, 'id' | 'sourceClientAccountId' | 'sourceAccountId'>;
 
@@ -362,8 +423,16 @@ interface EmailStore {
    * them: an id alone can name rows of several accounts there.
    */
   moveEmailsToMailbox: (client: IJMAPClient, emailIds: string[], mailboxId: string, destLocalAccountId?: string | null, rows?: Email[]) => Promise<boolean>;
-  /** `emailKey` (emailKeyFor of the row) picks the right row when the id repeats across accounts. */
-  moveThreadToMailbox: (client: IJMAPClient, emailId: string, mailboxId: string, emailKey?: string) => Promise<boolean>;
+  /**
+   * Move the conversation's messages that are in the picked message's folder
+   * (the open folder, else the one folder the message is in); the others,
+   * such as your own message in Sent, stay where they are. `emailKey`
+   * (emailKeyFor of the row) picks the right row when the id repeats across
+   * accounts. `onMoved` gets where the moved messages were, for Undo.
+   */
+  moveThreadToMailbox: (client: IJMAPClient, emailId: string, mailboxId: string, emailKey?: string, onMoved?: (restore: EmailRestoreBatch[]) => void) => Promise<boolean>;
+  /** Undo for a move: put the messages back (restoreBatchesFor) and reload the list and counts. */
+  restoreEmails: (client: IJMAPClient, batches: EmailRestoreBatch[]) => Promise<void>;
   /**
    * Take messages out of the open folder only, leaving them in their other
    * folders (#615). Acts on those of `emails` that removalFolder and
@@ -2894,12 +2963,14 @@ function findTrashMailbox(
   });
 }
 
-// Deleting a selection in this folder destroys it rather than moving it to
-// the trash: in Trash, and in Junk when the user chose that. batchDelete
-// decides the same way.
+// Deleting in this folder destroys the mail rather than moving it to the
+// trash: in Trash, in Junk when the user chose that, and everywhere when the
+// "Delete action" setting says "Delete permanently". batchDelete and the
+// single delete decide the same way.
 export function bulkDeleteIsPermanent(mailbox: { role?: string | null } | undefined): boolean {
-  if (mailbox?.role === 'trash') return true;
-  return mailbox?.role === 'junk' && useSettingsStore.getState().permanentlyDeleteJunk;
+  const settings = useSettingsStore.getState();
+  if (mailbox?.role === 'trash' || settings.deleteAction === 'permanent') return true;
+  return mailbox?.role === 'junk' && settings.permanentlyDeleteJunk;
 }
 
 // Whether deleting several selected emails asks first. A permanent delete
@@ -4201,7 +4272,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         // No trash folder found in this account. Surface the failure rather
         // than silently destroying the email - the user asked to move it to
         // trash, not to permanently delete it.
-        throw new Error('Trash mailbox not found - cannot move email to trash');
+        throw new TrashMailboxNotFoundError();
       }
 
       // Permanent delete - in the email's own account, like the batch path.
@@ -4836,15 +4907,22 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     }
   },
 
-  moveThreadToMailbox: async (client, emailId, destinationMailboxId, emailKey): Promise<boolean> => {
+  moveThreadToMailbox: async (client, emailId, destinationMailboxId, emailKey, onMoved): Promise<boolean> => {
     const isTarget = singleEmailMatcher(emailId, emailKey);
     try {
       const state = get();
       const email = state.emails.find(isTarget)
         ?? ((!!state.selectedEmail && isTarget(state.selectedEmail)) ? state.selectedEmail : null);
+      // The one message moves on its own: Undo puts back what the row says.
+      const moveOne = async () => {
+        const restore = email ? restoreBatchesFor([email], client) : [];
+        const moved = await get().moveToMailbox(client, emailId, destinationMailboxId, emailKey);
+        if (moved) onMoved?.(restore);
+        return moved;
+      };
 
       if (!email?.threadId) {
-        return await get().moveToMailbox(client, emailId, destinationMailboxId, emailKey);
+        return await moveOne();
       }
 
       // In unified view route to the email's own account (client + that
@@ -4854,13 +4932,31 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const jmapDestId = destMailbox?.originalId || destinationMailboxId;
 
       const thread = await effectiveClient.getThread(email.threadId, accountId);
-      const threadEmailIds = thread?.emailIds?.length ? thread.emailIds : [emailId];
-
-      if (threadEmailIds.length <= 1) {
-        return await get().moveToMailbox(client, emailId, destinationMailboxId, emailKey);
+      const memberIds = thread?.emailIds?.length ? thread.emailIds : [emailId];
+      // Only the members in the folder the message is picked from move: the
+      // conversation's other messages (your reply in Sent, a draft) stay.
+      // Without a known source folder only the picked message moves.
+      const sourceId = moveSourceMailboxId([email], mailboxes);
+      const source = sourceId ? mailboxes.find(mb => mb.id === sourceId) : undefined;
+      const sourceJmapId = source ? (source.originalId || source.id) : null;
+      let threadEmailIds = [emailId];
+      let restorePoints: EmailRestorePoint[] = [];
+      if (sourceJmapId && memberIds.length > 1) {
+        const members = await effectiveClient.getEmailFields(memberIds, ['id', 'mailboxIds', 'keywords'], accountId);
+        const inSource = members.filter(m => (m.mailboxIds as Record<string, boolean> | undefined)?.[sourceJmapId]);
+        threadEmailIds = [...new Set([emailId, ...inSource.map(m => m.id as string)])];
+        restorePoints = inSource.map(m => ({
+          id: m.id as string,
+          mailboxIds: { ...(m.mailboxIds as Record<string, boolean>) },
+          seen: !!(m.keywords as Record<string, boolean> | undefined)?.$seen,
+        }));
       }
 
-      const move = { emailIds: threadEmailIds, fromMailboxId: moveSourceMailboxId([email], mailboxes), toMailboxId: destinationMailboxId };
+      if (threadEmailIds.length <= 1) {
+        return await moveOne();
+      }
+
+      const move = { emailIds: threadEmailIds, fromMailboxId: sourceId, toMailboxId: destinationMailboxId };
       if (!(await allowEmailMove(move, mailboxes))) return false;
 
       await effectiveClient.batchMoveEmails(threadEmailIds, jmapDestId, accountId);
@@ -4888,6 +4984,11 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         };
       });
       emitEmailMove(move, mailboxes);
+      if (onMoved) {
+        const picked = restoreBatchesFor([email], client)[0]?.points ?? [];
+        const points = [...restorePoints, ...picked.filter(p => !restorePoints.some(r => r.id === p.id))];
+        onMoved([{ client: effectiveClient, accountId, points }]);
+      }
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : "Failed to move email thread"
@@ -4895,6 +4996,15 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       throw error;
     }
     return true;
+  },
+
+  restoreEmails: async (client, batches): Promise<void> => {
+    for (const batch of batches) {
+      if (batch.points.length > 0) await batch.client.restoreEmails(batch.points, batch.accountId);
+    }
+    // Back in the list the user is looking at, and the folder counts with it.
+    await get().refreshCurrentMailbox(client);
+    void get().fetchMailboxes(client);
   },
 
   searchEmails: async (client, typedQuery) => {

@@ -652,6 +652,19 @@ export class DemoJMAPClient implements IJMAPClient {
     this.recalcMailboxCounts();
   }
 
+  async restoreEmails(emails: Array<{ id: string; mailboxIds: Record<string, boolean>; seen?: boolean }>): Promise<void> {
+    for (const { id, mailboxIds, seen } of emails) {
+      const email = this.data.emails.find(e => e.id === id);
+      if (!email) continue;
+      email.mailboxIds = { ...mailboxIds };
+      if (seen !== undefined) {
+        if (seen) email.keywords.$seen = true;
+        else delete email.keywords.$seen;
+      }
+    }
+    this.recalcMailboxCounts();
+  }
+
   async emptyMailbox(mailboxId: string, _accountId?: string): Promise<number> {
     const before = this.data.emails.length;
     this.data.emails = this.data.emails.filter(e => !e.mailboxIds[mailboxId]);
@@ -1408,7 +1421,18 @@ export class DemoJMAPClient implements IJMAPClient {
   }
 
   async destroyFileNodes(ids: string[]): Promise<{ destroyed: string[]; notDestroyed: string[] }> {
+    // Like the server: a folder goes with everything in it (emptying the trash).
     const idSet = new Set(ids);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const n of this.data.fileNodes) {
+        if (n.parentId && idSet.has(n.parentId) && !idSet.has(n.id)) {
+          idSet.add(n.id);
+          grew = true;
+        }
+      }
+    }
     this.data.fileNodes = this.data.fileNodes.filter(n => !idSet.has(n.id));
     return { destroyed: ids, notDestroyed: [] };
   }

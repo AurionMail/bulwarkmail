@@ -14,6 +14,11 @@ export interface ParsedMailto {
   htmlBody?: string;
   /** Only from api.compose.open: files the plugin uploaded, attached as they are. */
   attachments?: Array<{ blobId: string; name: string; type: string; size: number }>;
+  /**
+   * Started in the app itself (Contacts' "Send email"), not by the OS: it is
+   * written from the account in use, without asking which one.
+   */
+  inApp?: boolean;
 }
 
 const MAX_RECIPIENTS = 200;

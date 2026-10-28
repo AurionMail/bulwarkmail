@@ -30,6 +30,14 @@ import { RecipientMention, RecipientMentionList, type RecipientMentionListHandle
 import { MentionChipCard, setMentionRecipients } from "@/components/email/mention-chip";
 import { mentionSuggestions, type MentionCandidate, type MentionContact } from "@/lib/recipient-mentions";
 import { cn } from "@/lib/utils";
+import { PromptDialog } from "@/components/ui/prompt-dialog";
+
+/** A typed address without a scheme ("example.com") becomes a web link. */
+export function withLinkScheme(value: string): string {
+  return /^[a-z][a-z0-9+.-]*:/i.test(value) || value.startsWith("#") || value.startsWith("/")
+    ? value
+    : `https://${value}`;
+}
 import { useSettingsStore } from "@/stores/settings-store";
 import { useTranslations } from "next-intl";
 import {
@@ -394,24 +402,40 @@ export function RichTextEditor({
     if (editor) setMentionRecipients(editor, mentionCandidates ? mentionCandidates.map((c) => c.email) : null);
   }, [editor, mentionCandidates]);
 
+  // Insert link asks for the address in the app's own dialog; on a link it
+  // starts from the current address and offers "Remove link".
+  // The selection is kept from when the dialog opened: the dialog takes the
+  // focus, and with it the editor's selection.
+  const [linkDialog, setLinkDialog] = useState<{ href: string; from: number; to: number } | null>(null);
   const addLink = useCallback(() => {
     if (!editor) return;
-    const previousUrl = editor.getAttributes("link").href;
-    const url = window.prompt("URL", previousUrl);
-    if (url === null) return;
-    if (url === "") {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
-      return;
-    }
+    const previousUrl = editor.getAttributes("link").href as string | undefined;
+    const { from, to } = editor.state.selection;
+    setLinkDialog({ href: previousUrl ?? "", from, to });
+  }, [editor]);
+  const applyLink = useCallback((url: string) => {
+    if (!editor || !linkDialog) return;
     editor
       .chain()
       .focus()
+      .setTextSelection({ from: linkDialog.from, to: linkDialog.to })
       .extendMarkRange("link")
       .setLink({ href: url })
       .run();
-  }, [editor]);
+  }, [editor, linkDialog]);
+  const removeLink = useCallback(() => {
+    if (!editor || !linkDialog) return;
+    editor
+      .chain()
+      .focus()
+      .setTextSelection({ from: linkDialog.from, to: linkDialog.to })
+      .extendMarkRange("link")
+      .unsetLink()
+      .run();
+  }, [editor, linkDialog]);
 
   const tToolbar = useTranslations("email_composer.toolbar");
+  const tCommon = useTranslations("common");
   const [tableMenuOpen, setTableMenuOpen] = useState(false);
   const tableWrapperRef = useRef<HTMLDivElement>(null);
   const [colorMenuOpen, setColorMenuOpen] = useState(false);
@@ -837,7 +861,7 @@ export function RichTextEditor({
                   <div className="h-px bg-border my-1" />
                   <button
                     type="button"
-                    className="flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-start text-red-600 dark:text-red-400"
+                    className="flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-start text-destructive"
                     onClick={() => { editor.chain().focus().deleteTable().run(); setTableMenuOpen(false); }}
                   >
                     <Trash2 className="w-4 h-4" /> {tToolbar("delete_table")}
@@ -903,6 +927,18 @@ export function RichTextEditor({
         />,
         document.body
       )}
+
+      <PromptDialog
+        isOpen={!!linkDialog}
+        onClose={() => setLinkDialog(null)}
+        title={linkDialog?.href ? tToolbar("edit_link") : tToolbar("insert_link")}
+        placeholder={tToolbar("link_address")}
+        defaultValue={linkDialog?.href ?? ""}
+        confirmText={tCommon("save")}
+        validate={(value) => (/\s/.test(value) ? tToolbar("link_invalid") : null)}
+        onSubmit={(value) => applyLink(withLinkScheme(value))}
+        extraAction={linkDialog?.href ? { label: tToolbar("remove_link"), onClick: removeLink } : undefined}
+      />
     </div>
   );
 }

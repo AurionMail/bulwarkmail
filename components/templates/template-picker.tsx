@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { X, Search, Star, FileText } from '@/components/icons';
-import { cn } from '@/lib/utils';
+import { Search, Star, FileText, Settings } from '@/components/icons';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Dialog } from '@/components/ui/dialog';
 import { useTemplateStore } from '@/stores/template-store';
 import { useAuthStore } from '@/stores/auth-store';
-import { useFocusTrap } from '@/hooks/use-focus-trap';
+import { TemplateManagerModal } from './template-manager-modal';
 import {
   getPlaceholdersFromTemplate,
   getAutoFilledPlaceholders,
@@ -32,12 +33,9 @@ export function TemplatePicker({ isOpen, onClose, onSelect }: TemplatePickerProp
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
   const [showFillModal, setShowFillModal] = useState(false);
-
-  const modalRef = useFocusTrap({
-    isActive: isOpen && !showFillModal,
-    onEscape: onClose,
-    restoreFocus: true,
-  });
+  // "Manage templates" (MAIL-31): the template manager in place of the
+  // picker, which comes back when it closes.
+  const [showManager, setShowManager] = useState(false);
 
   const favorites = getFavorites();
   const recent = getRecent();
@@ -126,31 +124,23 @@ export function TemplatePicker({ isOpen, onClose, onSelect }: TemplatePickerProp
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
-        <div
-          ref={modalRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="template-picker-title"
-          className={cn(
-            'bg-background border border-border rounded-lg shadow-xl',
-            'w-full max-w-md max-h-[70vh] overflow-hidden',
-            'animate-in zoom-in-95 duration-200'
-          )}
-        >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <h2 id="template-picker-title" className="text-sm font-semibold text-foreground">{t('picker_title')}</h2>
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+      <Dialog
+        isOpen={!showFillModal && !showManager}
+        onClose={onClose}
+        title={t('picker_title')}
+        className="max-h-[70vh]"
+        bodyClassName="px-0 pb-0 mt-3 border-t border-border"
+        footer={
+          <Button variant="outline" size="sm" className="me-auto mt-3" onClick={() => setShowManager(true)}>
+            <Settings className="w-4 h-4" />
+            {t('manage')}
+          </Button>
+        }
+      >
 
           <div className="px-4 py-2 border-b border-border">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -193,8 +183,9 @@ export function TemplatePicker({ isOpen, onClose, onSelect }: TemplatePickerProp
               </>
             )}
           </div>
-        </div>
-      </div>
+      </Dialog>
+
+      {showManager && <TemplateManagerModal isOpen onClose={() => setShowManager(false)} />}
 
       {showFillModal && selectedTemplate && (
         <PlaceholderFillModal

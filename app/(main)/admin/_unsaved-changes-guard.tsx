@@ -1,16 +1,42 @@
 'use client';
 
-import { useEffect, useId } from 'react';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle } from '@/components/icons';
-import { useFocusTrap } from '@/hooks/use-focus-trap';
+import { useEffect, useRef } from 'react';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useAdminUnsavedStore, selectHasUnsaved } from '@/stores/admin-unsaved-store';
+
+// Marks the history entry the guard puts on top of a page with unsaved
+// edits. It carries a copy of the page entry's own state, so Next's router
+// treats it as that page.
+const GUARD_KEY = '__adminUnsavedGuard';
+
+function onGuardEntry(): boolean {
+  const state = window.history.state as Record<string, unknown> | null;
+  return !!state && state[GUARD_KEY] === true;
+}
+
+// Marks the page's own entry under the copy, so Back onto it is told apart
+// from a later visit to the same page.
+const GUARDED_KEY = '__adminUnsavedGuarded';
+
+/** Puts the copy on top; returns the mark left on the page's entry under it. */
+function pushGuardEntry(): string {
+  const state = (window.history.state as Record<string, unknown> | null) ?? {};
+  const mark = `${Date.now()}-${Math.random()}`;
+  window.history.replaceState({ ...state, [GUARDED_KEY]: mark }, '', window.location.href);
+  window.history.pushState({ ...state, [GUARDED_KEY]: mark, [GUARD_KEY]: true }, '', window.location.href);
+  return mark;
+}
+
+function guardedMark(): unknown {
+  const state = window.history.state as Record<string, unknown> | null;
+  return state?.[GUARDED_KEY];
+}
 
 /**
  * Asks before the admin leaves a section with unsaved edits (#1255). Tab
  * buttons and sign out go through requestLeave themselves; links anywhere on
- * the page are caught here, and closing or reloading the tab gets the
- * browser's own prompt.
+ * the page are caught here, so are browser Back and the phone's back
+ * gesture, and closing or reloading the tab gets the browser's own prompt.
  */
 export function UnsavedChangesGuard() {
   const hasUnsaved = useAdminUnsavedStore(selectHasUnsaved);
@@ -19,22 +45,39 @@ export function UnsavedChangesGuard() {
   const confirmLeave = useAdminUnsavedStore((s) => s.confirmLeave);
   const cancelLeave = useAdminUnsavedStore((s) => s.cancelLeave);
   const isOpen = pendingLeave !== null;
-  const id = useId();
 
-  const dialogRef = useFocusTrap({ isActive: isOpen, restoreFocus: true });
-
-  // On document, not the dialog, so Escape means "Stay" wherever focus is.
+  // Back and the back gesture are a same-document popstate (the pages switch
+  // through pushState), which can't be cancelled. So while something is
+  // unsaved a copy of the page's entry sits on top: Back only takes that
+  // one off, the page stays, and the prompt asks. Stay puts the copy back;
+  // Leave goes back past the page for real.
+  // The mark on the page entry the copy was put on top of.
+  const guard = useRef<string | null>(null);
   useEffect(() => {
-    if (!isOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      e.preventDefault();
-      e.stopPropagation();
-      cancelLeave();
+    if (!hasUnsaved || onGuardEntry()) return;
+    guard.current = pushGuardEntry();
+  }, [hasUnsaved]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      // Landing on the page's own entry under the copy: Back took the copy off.
+      if (onGuardEntry() || !guard.current || guardedMark() !== guard.current) return;
+      if (!selectHasUnsaved(useAdminUnsavedStore.getState())) {
+        // A copy left over from edits saved or discarded since: Back goes
+        // on as asked.
+        guard.current = null;
+        window.history.back();
+        return;
+      }
+      guard.current = pushGuardEntry();
+      useAdminUnsavedStore.getState().requestLeave(() => {
+        guard.current = null;
+        window.history.go(-2);
+      });
     };
-    document.addEventListener('keydown', onKeyDown, true);
-    return () => document.removeEventListener('keydown', onKeyDown, true);
-  }, [isOpen, cancelLeave]);
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   useEffect(() => {
     if (!hasUnsaved) return;
@@ -76,39 +119,16 @@ export function UnsavedChangesGuard() {
     return () => document.removeEventListener('click', onClick, true);
   }, [hasUnsaved, requestLeave]);
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center z-[60] p-4 animate-in fade-in duration-150"
-      onMouseDown={(e) => { if (e.target === e.currentTarget) cancelLeave(); }}
-    >
-      <div
-        ref={dialogRef}
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby={`${id}-title`}
-        aria-describedby={`${id}-message`}
-        className="bg-background border border-border rounded-lg shadow-xl w-full max-w-md animate-in zoom-in-95 duration-200"
-      >
-        <div className="p-6 flex items-start gap-4">
-          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
-            <AlertTriangle className="w-5 h-5 text-destructive" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h2 id={`${id}-title`} className="text-lg font-semibold text-foreground">
-              Unsaved changes
-            </h2>
-            <p id={`${id}-message`} className="mt-2 text-sm text-muted-foreground">
-              You have changes that haven&apos;t been saved. If you leave now, they will be lost.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center justify-end gap-3 px-6 pb-6">
-          <Button variant="outline" onClick={cancelLeave}>Stay</Button>
-          <Button variant="destructive" onClick={confirmLeave} className="shadow-sm">Leave</Button>
-        </div>
-      </div>
-    </div>
+    <ConfirmDialog
+      isOpen={isOpen}
+      onClose={cancelLeave}
+      onConfirm={confirmLeave}
+      title="Unsaved changes"
+      message="You have changes that haven't been saved. If you leave now, they will be lost."
+      cancelText="Stay"
+      confirmText="Leave"
+      variant="destructive"
+    />
   );
 }

@@ -6,7 +6,7 @@ import { Loader2 } from '@/components/icons';
 import { apiFetch } from '@/lib/browser-navigation';
 import { Button } from '@/components/ui/button';
 import { AdminPageHeader } from '@/components/admin/page-header';
-import { Flash, useFlash } from '@/components/admin/flash-message';
+import { useAdminFeedback } from '@/components/admin/feedback';
 import { inputClass } from '@/components/admin/config-items';
 import { cn } from '@/lib/utils';
 
@@ -15,7 +15,7 @@ export default function ChangePasswordPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [message, setMessage] = useFlash();
+  const setMessage = useAdminFeedback();
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -61,7 +61,6 @@ export default function ChangePasswordPage() {
     <div className="max-w-md">
       <AdminPageHeader title="Change password" description="The password for this admin panel. At least 8 characters." back={{ href: '/admin', label: 'Overview' }} />
 
-      <Flash message={message} onDismiss={() => setMessage(null)} />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {fields.map((field) => (

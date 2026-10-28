@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Menu, ArrowLeft, Plus, Search, X } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -36,6 +37,8 @@ interface MobileHeaderProps {
   /** Mountain View: opens the merged across-accounts inbox from the avatar's popover. */
   onSelectAllInboxes?: () => void;
   allInboxesSelected?: boolean;
+  /** The app's entries at the top of the ⋮ menu; `close` shuts the menu. */
+  menuItems?: (close: () => void) => ReactNode;
 }
 
 export function MobileHeader({
@@ -52,6 +55,7 @@ export function MobileHeader({
   searchActive = false,
   onSelectAllInboxes,
   allInboxesSelected = false,
+  menuItems,
 }: MobileHeaderProps) {
   const t = useTranslations('sidebar');
   const { toggleSidebar, goBack, sidebarOpen } = useUIStore(useShallow((state) => ({ toggleSidebar: state.toggleSidebar, goBack: state.goBack, sidebarOpen: state.sidebarOpen })));
@@ -168,7 +172,7 @@ export function MobileHeader({
           </Button>
         )}
 
-        <PhoneHeaderMenu />
+        <PhoneHeaderMenu menuItems={menuItems} />
 
         {/* Which account you are reading is otherwise only visible after
             opening the drawer. Last in this group so it sits on the far

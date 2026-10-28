@@ -99,3 +99,19 @@ describe('EmailContextMenu batch forward as attachment', () => {
     expect((screen.getByTestId('ctx-batch-forward-as-attachment') as HTMLButtonElement).disabled).toBe(true);
   });
 });
+
+describe('EmailContextMenu on a scheduled message', () => {
+  const scheduled = { ...email, isScheduled: true, scheduledUndoStatus: 'pending' } as unknown as Email;
+
+  it('offers Cancel send', () => {
+    const onCancelScheduledSend = vi.fn();
+    renderMenu({ email: scheduled, onCancelScheduledSend, onCancelScheduledForEdit: vi.fn(), onRescheduleScheduled: vi.fn() });
+    fireEvent.click(screen.getByTestId('ctx-cancel-scheduled-send'));
+    expect(onCancelScheduledSend).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves it out for an encrypted message, which cannot go back to Drafts', () => {
+    renderMenu({ email: { ...scheduled, isSmimeScheduled: true } as Email, onCancelScheduledSend: vi.fn(), onCancelScheduledForEdit: vi.fn() });
+    expect(screen.queryByTestId('ctx-cancel-scheduled-send')).toBeNull();
+  });
+});

@@ -156,5 +156,5 @@ export function getSymlinkIcon(size: FileIconSize, label: string) {
 }
 
 export function getFolderIcon(size: FileIconSize, colored = true) {
-  return <Folder className={`${ICON_SIZE_CLASSES[size]} shrink-0 ${colored ? "text-blue-500" : "text-muted-foreground"}`} />;
+  return <Folder className={`${ICON_SIZE_CLASSES[size]} shrink-0 ${colored ? "text-primary" : "text-muted-foreground"}`} />;
 }

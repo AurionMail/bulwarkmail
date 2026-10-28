@@ -86,7 +86,7 @@ import type { ParsedWebcal } from "@/lib/protocol-handlers/webcal";
 import { appPath, buildCalendarPath, parseCalendarPath, type CalendarDeepLink } from "@/lib/deep-links";
 import { consumePendingDeepLinkEntry, subscribePendingDeepLink } from "@/lib/deep-link-handoff";
 import { useDeepLinkUrl } from "@/hooks/use-deep-link-url";
-import { useCloseOnBack } from "@/hooks/use-close-on-back";
+import { useCloseOnBack } from "@/hooks/use-calendar-close-on-back";
 import { useCalendarEventSearch } from "@/hooks/use-calendar-event-search";
 import { CalendarSearchField, CalendarSearchResults } from "@/components/calendar/calendar-search";
 import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";

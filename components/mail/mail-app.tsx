@@ -37,7 +37,7 @@ import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
 import { messagePriorityFromHeaders, type MessagePriority } from "@/lib/message-priority";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
-import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, resolveEmailActionContext, emailWriteSource, emailLinkSource, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, isAggregateListView, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
+import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, resolveEmailActionContext, emailWriteSource, emailLinkSource, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, isAggregateListView, removalFolder, canRemoveFromFolder, restoreBatchesFor, restoreBatchesForSelection, TrashMailboxNotFoundError, type EmailRestoreBatch } from "@/stores/email-store";
 import { findDraftIdentityIdForLogin, listRowSource, resolveDraftSource, type DraftSource } from "@/lib/draft-source";
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
@@ -46,7 +46,7 @@ import { cancelFailureToast, partlyRefusedWarning, rescheduleFailureToast } from
 import { formatRejectedRecipients, RescheduleRestoredError } from "@/lib/jmap/client";
 import { subscribePushStateChanges } from "@/lib/push-events";
 import { createMailPushListener } from "@/lib/mail-push-listener";
-import { runBatchEmailAction } from "@/lib/email-action-toast";
+import { runBatchEmailAction, toastWithUndo, undoLabels, undoMoveAction } from "@/lib/email-action-toast";
 import { MailboxShareDialog } from "@/components/layout/mailbox-share-dialog";
 import { ShareNotificationToaster } from "@/components/layout/share-notification-toaster";
 import { CalendarEventNotificationToaster } from "@/components/layout/calendar-event-notification-toaster";
@@ -80,6 +80,9 @@ import {
   ComposerErrorFallback,
 } from "@/components/error";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ScheduleSendDialog } from "@/components/email/schedule-send-dialog";
+import { MailSortMenu, MailFolderMenu, MailFolderMenuItems } from "@/components/email/mail-list-menus";
+import { ContextMenuItem } from "@/components/ui/context-menu";
 import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { DragDropProvider } from "@/contexts/drag-drop-context";
 import { jmapErrorType } from "@/lib/jmap/jmap-error";
@@ -117,7 +120,9 @@ import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
 import { findDraftIdentityId, findReplyIdentityId, resolveComposeAccountEmail } from "@/lib/reply-identity";
 import { buildReplyRecipients, isSelfSent } from "@/lib/reply-recipients";
 import { useProMultiAccountIdentities } from "@/hooks/use-pro-multi-account-identities";
-import { Filter, ChevronDown, X, Paperclip, Star, Mail, MailOpen, RotateCcw, PenSquare, PenLine, CheckSquare, Square, AlertTriangle, ArrowLeft } from "@/components/icons";
+import { Filter, ChevronDown, X, Paperclip, Star, Mail, MailOpen, RotateCcw, PenSquare, CheckSquare, Square, AlertTriangle, ArrowLeft, RefreshCw, Reply, ReplyAll, Forward, Archive, Trash2, FolderInput, ShieldAlert, ShieldCheck, Folder } from "@/components/icons";
+import { useRegisterCommands } from "@/lib/command-registry";
+import { MoveToDialog } from "@/components/email/move-to-dialog";
 import { ResizeHandle } from "@/components/layout/resize-handle";
 import { Button } from "@/components/ui/button";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -213,6 +218,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // Static Lite build: the route params are empty, read the link from the URL.
   const linkSegments = useLiteLinkSegments('mail', routeSegments);
   const t = useTranslations();
+  const tNotifications = useTranslations('notifications');
+  // The toasts' Undo after a delete to Trash, archive, move or spam report.
+  const undo = undoLabels(tNotifications);
   const tCommon = useTranslations('common');
   const appName = productName(useConfig().appName);
   const tQuote = useTranslations('quote_header');
@@ -245,6 +253,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const { showAppsModal, inlineApp, loadedApps, handleManageApps, handleInlineApp, closeInlineApp, closeAppsModal } = useSidebarApps();
   const [initialCheckDone, setInitialCheckDone] = useState(() => useAuthStore.getState().isAuthenticated && !!useAuthStore.getState().client);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  // The message the palette's "Move to…" was picked for.
+  const [moveDialogEmail, setMoveDialogEmail] = useState<Email | null>(null);
+  // The scheduled message Reschedule was picked for in the list's menu.
+  const [rescheduleTarget, setRescheduleTarget] = useState<Email | null>(null);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   // Column resize state (disable transitions during drag)
   const [isResizing, setIsResizing] = useState(false);
@@ -307,30 +319,6 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const trustedSendersAddressBook = useSettingsStore((state) => state.trustedSendersAddressBook);
   const sendDelaySeconds = useSettingsStore((state) => state.sendDelaySeconds);
   const { loadTrustedSendersBook, trustedSendersLoaded, loadRecentRecipients } = useContactStore(useShallow((state) => ({ loadTrustedSendersBook: state.loadTrustedSendersBook, trustedSendersLoaded: state.trustedSendersLoaded, loadRecentRecipients: state.loadRecentRecipients })));
-
-  const promptForRescheduleDelayedUntil = useCallback((): string | null => {
-    const value = window.prompt(t('email_viewer.reschedule_prompt'));
-    if (!value) return null;
-    const time = new Date(value).getTime();
-    if (!Number.isFinite(time)) {
-      toast.error(t('email_composer.schedule_send_invalid'));
-      return null;
-    }
-    if (time <= Date.now()) {
-      toast.error(t('email_composer.schedule_send_future'));
-      return null;
-    }
-    if (!client?.hasDelayedSend()) {
-      toast.error(t('email_composer.schedule_send_unsupported'));
-      return null;
-    }
-    const maxDelayedSend = client.getMaxDelayedSend();
-    if (maxDelayedSend > 0 && time > Date.now() + maxDelayedSend * 1000) {
-      toast.error(t('email_composer.schedule_send_too_late'));
-      return null;
-    }
-    return new Date(time).toISOString();
-  }, [client, t]);
 
   // Load trusted senders address book when feature is enabled
   useEffect(() => {
@@ -430,7 +418,6 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     markAsRead,
     toggleStar,
     patchEmailKeywords,
-    moveToMailbox,
     moveToMailboxCrossAware,
     moveThreadToMailbox,
     searchEmails,
@@ -521,7 +508,6 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     markAsRead: state.markAsRead,
     toggleStar: state.toggleStar,
     patchEmailKeywords: state.patchEmailKeywords,
-    moveToMailbox: state.moveToMailbox,
     moveToMailboxCrossAware: state.moveToMailboxCrossAware,
     moveThreadToMailbox: state.moveThreadToMailbox,
     searchEmails: state.searchEmails,
@@ -937,8 +923,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (isScheduledView) return;
       if (shortcutsTargetSelection && client) {
         const count = selectedEmailKeys.size;
+        const restore = restoreBatchesForSelection(client);
         await runBatchEmailAction(() => batchArchive(client), {
           success: t('notifications.emails_archived', { count }),
+          undo: undoMoveAction(client, restore, undo),
           error: t('notifications.error_archiving'),
           describeError: (error) => error instanceof ArchiveMailboxNotFoundError
             ? t('email_viewer.archive_mailbox_not_found')
@@ -949,7 +937,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       }
     } : undefined,
     onDelete: async () => {
-      if (isScheduledView) return;
+      // Delete on a scheduled message cancels the send, back into Drafts.
+      if (isScheduledView) {
+        if (selectedEmail) await handleCancelScheduledSend(selectedEmail);
+        return;
+      }
       if (shortcutsTargetSelection && client) {
         const currentMailbox = mailboxes.find(m => m.id === selectedMailbox);
         const permanent = bulkDeleteIsPermanent(currentMailbox);
@@ -969,9 +961,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           if (!confirmed) return;
         }
         const count = selectedEmailKeys.size;
+        const restore = permanent ? null : restoreBatchesForSelection(client);
         await runBatchEmailAction(() => batchDelete(client, permanent), {
           success: t('notifications.emails_deleted', { count }),
           error: t('notifications.error_deleting'),
+          undo: undoMoveAction(client, restore, undo),
         });
       } else if (selectedEmail) {
         handleDelete();
@@ -1010,11 +1004,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         // The spam actions take bare ids of the viewed account: resolve the
         // selection keys through the loaded rows and thread members.
         const ids = resolveSelectedEmails(useEmailStore.getState()).map(e => e.id);
+        const restore = restoreBatchesForSelection(client);
         try {
           if (isInJunk) {
-            if (await batchUndoSpam(client, ids)) toast.success(t('email_viewer.spam.toast_not_spam_batch', { count: ids.length }));
+            if (await batchUndoSpam(client, ids)) toastWithUndo(t('email_viewer.spam.toast_not_spam_batch', { count: ids.length }), undoMoveAction(client, restore, undo));
           } else {
-            if (await batchMarkAsSpam(client, ids)) toast.success(t('email_viewer.spam.toast_batch', { count: ids.length }));
+            if (await batchMarkAsSpam(client, ids)) toastWithUndo(t('email_viewer.spam.toast_batch', { count: ids.length }), undoMoveAction(client, restore, undo));
           }
         } catch (error) {
           console.error("Failed to batch toggle spam:", error);
@@ -1425,6 +1420,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
   const handleMailtoProtocolRequest = useCallback(async (pending: ParsedMailto) => {
     if (!(await mailtoAllowed(pending))) return;
+    // From another app of this webmail: the account in use, no question.
+    if (pending.inApp) {
+      openMailtoDraft(pending);
+      return;
+    }
     const protocolAccounts = getMailtoProtocolAccounts();
     if (protocolAccounts.length > 1) {
       setPendingMailtoAccountChoice(pending);
@@ -1916,6 +1916,24 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // back once there is nothing left to read, so tablet never ends up on an
   // empty reading pane with only the bottom bar.
   const readingPaneEmpty = !showComposer && !conversationThread && !selectedEmail && !isLoadingEmail;
+  // The phone conversation's Report spam / Not spam, as in the list: not on
+  // your own outgoing mail.
+  const conversationRole = mailboxes.find(m => m.id === selectedMailbox)?.role ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined);
+  const conversationInJunk = conversationRole === 'junk';
+  const conversationSpamApplicable = !['sent', 'drafts', 'scheduled'].includes(conversationRole || '');
+  // Emptying is offered where it is the usual thing to do: Spam and Trash.
+  const folderIsEmptyable = conversationRole === 'junk' || conversationRole === 'trash';
+  // Stable handlers for the list header's folder ⋮, so it (memoized) doesn't
+  // re-render with every render of the mail app; they read the latest state.
+  const folderMenuLatest = useRef({ markRead: () => {}, markAllRead: () => {}, empty: () => {} });
+  folderMenuLatest.current = {
+    markRead: () => { if (selectedMailbox) void handleMarkFolderRead(selectedMailbox); },
+    markAllRead: () => { void handleMarkAllFoldersRead(); },
+    empty: () => { if (selectedMailbox) void handleEmptyFolderFromContextMenu(selectedMailbox); },
+  };
+  const folderMenuMarkRead = useCallback(() => folderMenuLatest.current.markRead(), []);
+  const folderMenuMarkAllRead = useCallback(() => folderMenuLatest.current.markAllRead(), []);
+  const folderMenuEmpty = useCallback(() => folderMenuLatest.current.empty(), []);
   useEffect(() => {
     if (readingPaneEmpty && !tabletListVisible) setTabletListVisible(true);
   }, [readingPaneEmpty, tabletListVisible, setTabletListVisible]);
@@ -2408,6 +2426,20 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   };
 
   /** When a scheduled message goes out, as the user reads times, if known. */
+  // Reschedule from the list's menu, which does not wait for it: report here.
+  const rescheduleListEmail = async (email: Email, delayedUntil: string) => {
+    if (!client || !email.emailSubmissionId || !email.scheduledIdentityId) return;
+    try {
+      const result = await rescheduleScheduledEmail(client, email.emailSubmissionId, email.id, email.scheduledIdentityId, delayedUntil, email.scheduledAccountId);
+      const refused = partlyRefusedWarning(result, tComposer);
+      if (refused) toast.warning(refused);
+    } catch (error) {
+      console.error('Failed to reschedule the scheduled send:', error);
+      const { title, message } = rescheduleFailureToast(error, tViewer, tComposer, scheduledTime(email.scheduledSendAt));
+      toast.error(title, message ? { message } : undefined);
+    }
+  };
+
   const scheduledTime = (sendAt: string | undefined) =>
     sendAt ? formatDateTime(sendAt, useSettingsStore.getState().timeFormat) : undefined;
 
@@ -2435,6 +2467,19 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       toastCancelFailure(error, tViewer('cancel_scheduled_failed'));
       return undefined;
     }
+  };
+
+  // "Cancel send": nothing goes out, and the message is back in Drafts. An
+  // S/MIME message can't go back (it is encrypted) and only offers "Cancel
+  // and compose again".
+  const handleCancelScheduledSend = async (email: Email) => {
+    if (email.isSmimeScheduled || email.scheduledUndoStatus !== 'pending') return;
+    const restored = await cancelScheduledForEdit(email);
+    if (restored === undefined) return;
+    toast.success(
+      tViewer('send_cancelled'),
+      t('notifications.moved_to_mailbox', { mailbox: t('sidebar.mailboxes.drafts') }),
+    );
   };
 
   useEffect(() => {
@@ -2809,11 +2854,13 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           ?? actionMailboxes.find(m => m.role === unifiedRole))
       : actionMailboxes.find(m => m.id === selectedMailbox);
     const isInTrash = currentMailbox?.role === 'trash';
-    const isInJunk = currentMailbox?.role === 'junk';
-    const permanentlyDeleteJunk = useSettingsStore.getState().permanentlyDeleteJunk;
+    // Trash, Junk with "permanently delete junk", or the "Delete permanently"
+    // setting: the mail is destroyed, so ask first, as the batch delete does.
+    // A move to Trash gets Undo instead.
+    const permanent = bulkDeleteIsPermanent(currentMailbox);
+    const restore = permanent ? null : restoreBatchesFor([emailToDelete], client);
 
-    if (isInTrash || (isInJunk && permanentlyDeleteJunk)) {
-      // In trash or junk with permanent delete enabled: confirm before permanently deleting
+    if (permanent) {
       const confirmed = await confirmDialog({
         title: t('email_list.permanent_delete_confirm_title'),
         message: t('email_list.permanent_delete_confirm_message'),
@@ -2821,38 +2868,22 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         variant: "destructive",
       });
       if (!confirmed) return;
+    }
 
-      try {
-        // false: a plugin stopped it and said why, so no "deleted" here.
-        if (await deleteEmail(client, emailToDelete.id, true, emailKeyFor(emailToDelete))) toast.success(t('notifications.email_deleted'));
-      } catch (error) {
-        console.error("Failed to permanently delete email:", error);
-        toast.error(t('notifications.error_deleting'), error instanceof Error ? error.message : undefined);
+    // The store's delete reads the "Delete action" setting: move to the
+    // email's own account's trash (marking it read when asked), or destroy
+    // it. In Trash it always destroys. (#281 for the account routing)
+    try {
+      // false: a plugin stopped it and said why, so no "deleted" here.
+      if (await deleteEmail(client, emailToDelete.id, isInTrash, emailKeyFor(emailToDelete))) {
+        toastWithUndo(t('notifications.email_deleted'), undoMoveAction(client, restore, undo));
       }
-    } else {
-      // Not in trash: always move to trash (in the email's own account). Scope
-      // the trash lookup to the email's account: for a shared/group source every
-      // mailbox in the list is `isShared`, so we match by accountId instead of
-      // excluding shared (otherwise no trash is found and the delete fails). (#281)
-      const matchesScope = (m: Mailbox) =>
-        action.accountId ? m.accountId === action.accountId : !m.isShared;
-      const trashMailbox =
-        actionMailboxes.find(m => m.role === 'trash' && matchesScope(m)) ??
-        actionMailboxes.find(m => {
-          if (!matchesScope(m)) return false;
-          const lower = m.name.toLowerCase();
-          return lower.includes('trash') || lower.includes('deleted');
-        });
-      if (trashMailbox) {
-        try {
-          if (await moveToMailbox(client, emailToDelete.id, trashMailbox.id, emailKeyFor(emailToDelete))) toast.success(t('notifications.email_deleted'));
-        } catch (error) {
-          console.error("Failed to move email to trash:", error);
-          toast.error(error instanceof Error ? error.message : 'Failed to move email to trash');
-        }
-      } else {
-        toast.error('Trash mailbox not found - cannot move email to trash');
-      }
+    } catch (error) {
+      console.error("Failed to delete email:", error);
+      toast.error(
+        t('notifications.error_deleting'),
+        error instanceof TrashMailboxNotFoundError ? t('notifications.trash_not_found') : error instanceof Error ? error.message : undefined,
+      );
     }
   };
 
@@ -2869,7 +2900,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const archiveAccountId = archiveClientId ? emailToArchive.sourceAccountId : undefined;
     const archiveClient = archiveClientId ? useAuthStore.getState().getClientForAccount(archiveClientId) : client;
     if (!archiveClient) {
-      toast.error(t('notifications.error_archiving'), 'Not connected');
+      toast.error(t('notifications.error_archiving'), t('notifications.not_connected'));
       return;
     }
     // Read fresh mailboxes from the store – batch archive calls this in a loop,
@@ -2903,8 +2934,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (!archiveMailbox) return; // a plugin refused the Archive folder
 
       let archived: boolean;
+      let restore: EmailRestoreBatch[] | null = null;
+      const keepRestore = (batches: EmailRestoreBatch[]) => { restore = batches; };
       if (archiveMode === 'single') {
-        archived = await moveThreadToMailbox(client, emailToArchive.id, archiveMailbox.id, emailKeyFor(emailToArchive));
+        archived = await moveThreadToMailbox(client, emailToArchive.id, archiveMailbox.id, emailKeyFor(emailToArchive), keepRestore);
       } else {
         const emailDate = new Date(emailToArchive.receivedAt);
         const year = emailDate.getFullYear().toString();
@@ -2929,7 +2962,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         }
 
         if (archiveMode === 'year') {
-          archived = await moveThreadToMailbox(client, emailToArchive.id, yearMailbox.id, emailKeyFor(emailToArchive));
+          archived = await moveThreadToMailbox(client, emailToArchive.id, yearMailbox.id, emailKeyFor(emailToArchive), keepRestore);
         } else {
           const yearId = yearMailbox.originalId || yearMailbox.id;
           const afterYear = readMailboxes();
@@ -2939,7 +2972,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             if (!monthMailbox) return; // a plugin refused the folder
             await refreshMailboxes();
           }
-          archived = await moveThreadToMailbox(client, emailToArchive.id, monthMailbox.id, emailKeyFor(emailToArchive));
+          archived = await moveThreadToMailbox(client, emailToArchive.id, monthMailbox.id, emailKeyFor(emailToArchive), keepRestore);
         }
       }
       if (!archived) return;
@@ -2951,7 +2984,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         setConversationEmails([]);
       }
 
-      toast.success(t('notifications.email_archived'));
+      toastWithUndo(t('notifications.email_archived'), undoMoveAction(client, restore, undo));
       void refreshMailboxes();
     } catch (error) {
       console.error("Failed to archive email:", error);
@@ -2974,10 +3007,18 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const destinationList = [mailboxes, ...Object.values(accountMailboxes)]
       .find(list => list.some(m => m.id === mailboxId));
     const destination = destinationList?.find(m => m.id === mailboxId);
+    // Undo for a move within the message's own account; a move to another
+    // account copies the message there, which Undo can't take back.
+    const email = useEmailStore.getState().emails.find(e => (emailKey ? emailKeyFor(e) === emailKey : e.id === emailId));
+    const sourceFolder = [mailboxes, ...Object.values(accountMailboxes)].flat().find(m => m.id === selectedMailbox);
+    const sourceAccount = email?.sourceAccountId ?? sourceFolder?.accountId;
+    const crossAccount = !!destination?.accountId && !!sourceAccount && destination.accountId !== sourceAccount;
+    const restore = email && !crossAccount ? restoreBatchesFor([email], client) : null;
     try {
       if (!(await moveToMailboxCrossAware(client, emailId, mailboxId, emailKey))) return;
-      toast.success(
+      toastWithUndo(
         t('notifications.email_moved'),
+        undoMoveAction(client, restore, undo),
         destination && destinationList
           ? t('notifications.moved_to_mailbox', { mailbox: getMailboxPath(destination, destinationList) })
           : undefined,
@@ -3922,7 +3963,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     let delayedUntil: string | undefined;
     if (sendDelaySeconds > 0) {
       if (!client.hasDelayedSend()) {
-        const confirmed = window.confirm(t('email_composer.send_delay_unsupported_confirm'));
+        const confirmed = await confirmDialog({
+          title: t('email_composer.send_delay_unsupported_title'),
+          message: t('email_composer.send_delay_unsupported_confirm'),
+          confirmText: t('email_composer.send'),
+        });
         if (!confirmed) return;
       } else {
         delayedUntil = new Date(Date.now() + sendDelaySeconds * 1000).toISOString();
@@ -3939,7 +3984,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const result = await sendEmail(
       client,
       recipients,
-      buildReplySubject(selectedEmail.subject || "(no subject)", t('email_composer.prefix.reply')),
+      buildReplySubject(selectedEmail.subject || t('email_viewer.no_subject'), t('email_composer.prefix.reply')),
       finalBody,
       undefined,
       undefined,
@@ -4171,6 +4216,54 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     onSidebarClose: () => setSidebarOpen(false),
     onAccountMailboxSelect: handleAccountMailboxSelect,
   });
+
+  // Mail's commands in the palette (Ctrl/⌘+K), on the open message, plus a
+  // "Go to" for every folder. Compose is the palette's own.
+  const paletteEmail = isScheduledView ? null : selectedEmail;
+  const hasPaletteEmail = () => !!paletteEmail;
+  useRegisterCommands(t('sidebar.mail'), [
+    { id: 'reply', label: t('context_menu.reply'), icon: Reply, shortcut: 'r', when: hasPaletteEmail, run: () => void handleReply() },
+    { id: 'reply-all', label: t('context_menu.reply_all'), icon: ReplyAll, shortcut: 'a', when: hasPaletteEmail, run: () => void handleReplyAll() },
+    { id: 'forward', label: t('context_menu.forward'), icon: Forward, shortcut: 'f', when: hasPaletteEmail, run: () => void handleForward() },
+    {
+      id: 'archive', label: t('context_menu.archive'), icon: Archive, shortcut: 'e',
+      when: () => !!paletteEmail && archiveActionEnabled && conversationRole !== 'archive',
+      run: () => void handleArchive(paletteEmail),
+    },
+    { id: 'delete', label: t('context_menu.delete'), icon: Trash2, shortcut: '#', when: hasPaletteEmail, run: () => void handleDelete(paletteEmail) },
+    {
+      id: 'move', label: t('context_menu.move_to_dialog'), icon: FolderInput, keywords: [t('context_menu.move_to')],
+      when: hasPaletteEmail, run: () => setMoveDialogEmail(paletteEmail),
+    },
+    {
+      id: 'mark-unread', label: t('context_menu.mark_unread'), icon: Mail, shortcut: 'u',
+      when: () => !!paletteEmail?.keywords?.$seen,
+      run: () => { if (client && paletteEmail) void markAsRead(client, paletteEmail.id, false, emailKeyFor(paletteEmail)).catch(toastUpdateFailure); },
+    },
+    {
+      id: 'mark-read', label: t('context_menu.mark_read'), icon: MailOpen, shortcut: 'Shift + I',
+      when: () => !!paletteEmail && !paletteEmail.keywords?.$seen,
+      run: () => { if (client && paletteEmail) void markAsRead(client, paletteEmail.id, true, emailKeyFor(paletteEmail)).catch(toastUpdateFailure); },
+    },
+    {
+      id: 'spam', label: conversationInJunk ? t('context_menu.not_spam') : t('context_menu.mark_as_spam'),
+      icon: conversationInJunk ? ShieldCheck : ShieldAlert, shortcut: '!',
+      when: () => !!paletteEmail && conversationSpamApplicable,
+      run: () => void (conversationInJunk ? handleUndoSpam(paletteEmail) : handleMarkAsSpam(paletteEmail)),
+    },
+    ...mailboxes
+      .filter((mb) => !mb.id.startsWith('shared-') && mb.id !== selectedMailbox)
+      .map((mb) => {
+        const name = localizeMailboxName(mb.role, mb.name, (k) => t(`sidebar.mailboxes.${k}`));
+        return {
+          id: `go-${mb.id}`,
+          label: t('context_menu.go_to_folder', { folder: name }),
+          icon: Folder,
+          keywords: [name],
+          run: () => void handleMailboxSelect(mb.id),
+        };
+      }),
+  ], !isEmbedded);
 
   if (!initialCheckDone || authLoading || (!isAuthenticated || !client)) {
     return (
@@ -4593,6 +4686,17 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   return (
     <DragDropProvider>
       <div ref={appRootRef} className={cn("flex flex-col overflow-hidden pt-[env(safe-area-inset-top)]", mvShell ? "bg-[var(--mv-canvas)]" : "bg-background", isEmbedded ? "h-full" : "h-dvh")}>
+        {/* Rail and folders are many Tab stops: jump past them (WCAG 2.4.1). */}
+        <a
+          href="#message-list"
+          onClick={(e) => {
+            e.preventDefault();
+            document.getElementById('message-list')?.focus();
+          }}
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:start-2 focus:z-[70] focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-md focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          {t('email_list.skip_to_list')}
+        </a>
         <AppTopBannerSlot />
         {refreshIndicator}
         {isRateLimited && rateLimitSecondsLeft !== null && (
@@ -4604,7 +4708,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         )}
         {connectionLost && (
           <div className="flex items-center justify-center gap-2 bg-destructive/10 border-b border-destructive/30 text-destructive text-sm py-1.5 px-4 flex-shrink-0">
-            <RotateCcw className="h-3.5 w-3.5 animate-spin" />
+            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
             <span>{tCommon('reconnecting')}</span>
           </div>
         )}
@@ -4794,13 +4898,38 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
               title={currentMailboxName}
               sidebarId={sidebarId}
               onOpenSearch={isMobile ? () => setMobileSearchOpen(true) : undefined}
-              searchPlaceholder={searchQuery || t('sidebar.search_placeholder_hint')}
+              // No "(press /)" on a phone: there is no key to press (R8).
+              searchPlaceholder={searchQuery || t('sidebar.search_placeholder')}
               searchActive={!!searchQuery}
               onClearSearch={handleClearSearch}
               onSelectAllInboxes={
                 allInboxesReachable ? () => handleMailboxSelect(UNIFIED_MAILBOX_IDS.inbox) : undefined
               }
               allInboxesSelected={allInboxesSelected}
+              // The list's own actions, which have no room in the phone bar:
+              // the list header's select-all, refresh and folder ⋮.
+              menuItems={isScheduledView ? undefined : (close) => (
+                <>
+                  <ContextMenuItem
+                    icon={CheckSquare}
+                    label={t('email_list.batch_actions.select_all')}
+                    disabled={activeEmails.length === 0}
+                    onClick={() => { close(); selectAllEmails(); }}
+                  />
+                  <ContextMenuItem
+                    icon={RefreshCw}
+                    label={tCommon('refresh')}
+                    disabled={!client || isManualRefreshing}
+                    onClick={() => { close(); void handleManualRefresh(); }}
+                  />
+                  <MailFolderMenuItems
+                    onMarkFolderRead={selectedMailbox ? () => handleMarkFolderRead(selectedMailbox) : undefined}
+                    onMarkAllFoldersRead={handleMarkAllFoldersRead}
+                    onEmptyFolder={folderIsEmptyable && selectedMailbox ? () => void handleEmptyFolderFromContextMenu(selectedMailbox) : undefined}
+                    onPicked={close}
+                  />
+                </>
+              )}
             />
 
             {/* Search Bar + Inline Advanced Filters. On phones this is not a
@@ -4822,9 +4951,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     onClick={() => setMobileSearchOpen(false)}
                     aria-label={t('sidebar.mobile.go_back')}
                   >
-                    <ArrowLeft className="h-5 w-5 rtl:-scale-x-100" />
+                    <ArrowLeft className="h-5 w-5" />
                   </Button>
-                  <span className="font-medium truncate">{t('sidebar.search_placeholder_hint')}</span>
+                  <span className="font-medium truncate">{t('sidebar.search_placeholder')}</span>
                 </div>
               )}
               {mvShell ? (
@@ -4905,11 +5034,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   >
                     <Filter className="w-4 h-4" />
                     {!isAdvancedSearchOpen && activeFilterCount(searchFilters) > 0 && (
-                      <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
+                      <span className="absolute -top-1 -end-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
                         {activeFilterCount(searchFilters)}
                       </span>
                     )}
                   </button>
+                  <MailSortMenu folderRole={conversationRole} disabled={isScheduledView} className="flex-shrink-0 text-muted-foreground" />
                   <button
                     type="button"
                     onClick={handleManualRefresh}
@@ -4922,8 +5052,16 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     title={tCommon("refresh")}
                     aria-label={tCommon("refresh")}
                   >
-                    <RotateCcw className={cn("w-4 h-4", isManualRefreshing && "animate-spin")} />
+                    <RefreshCw className={cn("w-4 h-4", isManualRefreshing && "animate-spin")} />
                   </button>
+                  {/* The folder's actions, as the Mountain View list ⋮ has them. */}
+                  <MailFolderMenu
+                    disabled={isScheduledView}
+                    className="flex-shrink-0 text-muted-foreground"
+                    onMarkFolderRead={selectedMailbox ? folderMenuMarkRead : undefined}
+                    onMarkAllFoldersRead={folderMenuMarkAllRead}
+                    onEmptyFolder={folderIsEmptyable && selectedMailbox ? folderMenuEmpty : undefined}
+                  />
                   {/* Plugin buttons (top-bar-actions). On phones they sit in
                       the header's overflow menu instead (MobileHeader). */}
                   {!isMobile && (
@@ -5161,21 +5299,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   setShowComposer(true);
                   if (isMobile) setActiveView('viewer');
                 }}
-                onRescheduleScheduled={async (email) => {
-                  const delayedUntil = promptForRescheduleDelayedUntil();
-                  if (delayedUntil && client && email.emailSubmissionId && email.scheduledIdentityId) {
-                    // The context menu does not wait for this; report here.
-                    try {
-                      const result = await rescheduleScheduledEmail(client, email.emailSubmissionId, email.id, email.scheduledIdentityId, delayedUntil, email.scheduledAccountId);
-                      const refused = partlyRefusedWarning(result, tComposer);
-                      if (refused) toast.warning(refused);
-                    } catch (error) {
-                      console.error('Failed to reschedule the scheduled send:', error);
-                      const { title, message } = rescheduleFailureToast(error, tViewer, tComposer, scheduledTime(email.scheduledSendAt));
-                      toast.error(title, message ? { message } : undefined);
-                    }
-                  }
-                }}
+                onRescheduleScheduled={(email) => setRescheduleTarget(email)}
+                onCancelScheduledSend={handleCancelScheduledSend}
                 onEmailSelect={handleEmailSelect}
                 onOpenSearchResult={handleEmailSelect}
                 onEmailPrefetch={handleEmailPrefetch}
@@ -5231,6 +5356,15 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 }}
                 onBatchForwardAsAttachment={() => {
                   void handleBatchForwardAsAttachment();
+                }}
+                onClearSearch={() => void handleClearSearch()}
+                onCompose={() => {
+                  void withComposeGate('compose', {}, () => {
+                    startFreshComposerSession();
+                    setComposerMode('compose');
+                    setShowComposer(true);
+                    if (isMobile) setActiveView('viewer');
+                  });
                 }}
                 onMarkAsRead={async (email, read) => {
                   if (client) {
@@ -5351,7 +5485,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 }}
                 className="flex items-center gap-3 px-4 py-2.5 bg-primary/10 border-b border-primary/20 hover:bg-primary/15 transition-colors cursor-pointer w-full text-start"
               >
-                <PenLine className="w-4 h-4 text-primary shrink-0" />
+                <PenSquare className="w-4 h-4 text-primary shrink-0" />
                 <div className="flex-1 min-w-0">
                   <span className="text-sm font-medium text-primary">{t('email_composer.continue_draft')}</span>
                   {pendingDraft.subject && (
@@ -5398,6 +5532,28 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   }
                 }}
                 mailboxRole={mailboxes.find(m => m.id === selectedMailbox)?.role ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined)}
+                // What the list row does with the conversation, then back to
+                // the list, which now shows what is left.
+                onArchive={archiveActionEnabled ? () => {
+                  const target = conversationThread.latestEmail;
+                  handleMobileBack();
+                  void handleArchive(target);
+                } : undefined}
+                onDelete={() => {
+                  const target = conversationThread.latestEmail;
+                  handleMobileBack();
+                  void handleDelete(target);
+                }}
+                onToggleSpam={conversationSpamApplicable ? () => {
+                  const target = conversationThread.latestEmail;
+                  handleMobileBack();
+                  void (conversationInJunk ? handleUndoSpam(target) : handleMarkAsSpam(target));
+                } : undefined}
+                onMarkUnread={client ? () => {
+                  const target = conversationThread.latestEmail;
+                  handleMobileBack();
+                  void markAsRead(client, target.id, false, emailKeyFor(target)).catch(toastUpdateFailure);
+                } : undefined}
               />
             ) : (
               <>
@@ -5486,6 +5642,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                       // Restored through the active login's client (see the list's Cancel and edit).
                       if (restored) await handleEditDraft(restored, { accountId: selectedEmail.scheduledAccountId, localAccountId: activeAccountId ?? undefined }).catch(reportDraftOpenFailure);
                     }}
+                    onCancelScheduledSend={() => { if (selectedEmail) void handleCancelScheduledSend(selectedEmail); }}
                     onRescheduleScheduled={async (delayedUntil) => {
                       if (client && selectedEmail?.emailSubmissionId && selectedEmail.scheduledIdentityId) {
                         const result = await rescheduleScheduledEmail(client, selectedEmail.emailSubmissionId, selectedEmail.id, selectedEmail.scheduledIdentityId, delayedUntil, selectedEmail.scheduledAccountId);
@@ -5577,6 +5734,30 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           />
         )}
         <ConfirmDialog {...confirmDialogProps} />
+        {moveDialogEmail && <MoveToDialog
+          email={moveDialogEmail}
+          mailboxes={mailboxes}
+          selectedMailbox={selectedMailbox}
+          onClose={() => setMoveDialogEmail(null)}
+          onMove={(mailboxId) => {
+            if (moveDialogEmail) void handleMoveToMailbox(moveDialogEmail.id, mailboxId, emailKeyFor(moveDialogEmail));
+          }}
+        />}
+        {rescheduleTarget && (
+          <ScheduleSendDialog
+            isOpen
+            onClose={() => setRescheduleTarget(null)}
+            title={t('email_viewer.reschedule_send')}
+            supported={!!client?.hasDelayedSend()}
+            maxDelayedSend={client?.getMaxDelayedSend() ?? 0}
+            initialDate={rescheduleTarget.scheduledSendAt ? new Date(rescheduleTarget.scheduledSendAt) : undefined}
+            onSchedule={(delayedUntil) => {
+              const email = rescheduleTarget;
+              setRescheduleTarget(null);
+              void rescheduleListEmail(email, delayedUntil);
+            }}
+          />
+        )}
         <PromptDialog {...promptDialogProps} />
         {client && sharingMailbox && (
           <MailboxShareDialog

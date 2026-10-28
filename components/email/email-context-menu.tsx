@@ -28,25 +28,23 @@ import {
   FolderInput,
   FolderX,
   Tag,
-  Inbox,
-  Send,
-  File,
-  Folder,
   ShieldAlert,
   ShieldCheck,
-  EditIcon,
   CalendarClock,
+  CalendarX,
   Paperclip,
   Link as LinkIcon,
   MessagesSquare,
   Copy,
   Search,
+  Pencil,
 } from "@/components/icons";
 import { buildMailPath } from "@/lib/deep-links";
 import { useCopyLink } from "@/hooks/use-copy-link";
 import { buildMailboxTree, MailboxNode } from "@/lib/utils";
 import { buildMoveTargets, resolveMoveOwnerAccountId } from "@/lib/move-targets";
 import { localizeMailboxName } from "@/lib/mailbox-label";
+import { moveMailboxIcon } from "./move-target-list";
 import { getEmailTagIds } from "@/lib/thread-utils";
 import { TagPicker } from "./tag-picker";
 import { RulesContextSubMenu } from "./rules-menu";
@@ -106,6 +104,7 @@ interface EmailContextMenuProps {
   onUndoSpam?: () => void;
   onEditDraft?: () => void;
   onCancelScheduledForEdit?: () => void;
+  onCancelScheduledSend?: () => void;
   onRescheduleScheduled?: () => void;
   // Batch actions
   onBatchMarkAsRead?: (read: boolean) => void;
@@ -130,24 +129,6 @@ interface EmailContextMenuProps {
   onCopyToAccount?: (accountId: string, mailboxId: string) => void;
   onBatchForwardAsAttachment?: () => void;
 }
-
-// Get mailbox icon based on role
-const getMailboxIcon = (role?: string) => {
-  switch (role) {
-    case "inbox":
-      return Inbox;
-    case "sent":
-      return Send;
-    case "drafts":
-      return File;
-    case "trash":
-      return Trash2;
-    case "archive":
-      return Archive;
-    default:
-      return Folder;
-  }
-};
 
 export function EmailContextMenu({
   email,
@@ -190,6 +171,7 @@ export function EmailContextMenu({
   onBatchForwardAsAttachment,
   onEditDraft,
   onCancelScheduledForEdit,
+  onCancelScheduledSend,
   onRescheduleScheduled,
   copyTargets,
   onCopyToAccount,
@@ -256,7 +238,7 @@ export function EmailContextMenu({
     onPick: (mailboxId: string) => void,
   ): React.ReactNode =>
     nodes.map((node) => {
-      const Icon = getMailboxIcon(node.role);
+      const Icon = moveMailboxIcon(node.role);
       const nodeLabel = localizeMailboxName(node.role, node.name, (k) => tSidebar(`mailboxes.${k}`));
       return (
         <div key={node.id}>
@@ -570,11 +552,21 @@ export function EmailContextMenu({
             disabled={!onRescheduleScheduled}
           />
           <ContextMenuItem
-            icon={EditIcon}
+            icon={Pencil}
             label={email.isSmimeScheduled ? t("cancel_and_compose_again") : t("cancel_and_edit")}
             onClick={() => handleAction(onCancelScheduledForEdit!)}
             disabled={!onCancelScheduledForEdit}
           />
+          {/* Back into Drafts. An S/MIME message can't go back (it is
+              encrypted), so it only offers "Cancel and compose again". */}
+          {onCancelScheduledSend && !email.isSmimeScheduled && (
+            <ContextMenuItem
+              icon={CalendarX}
+              label={t("cancel_scheduled_send")}
+              testId="ctx-cancel-scheduled-send"
+              onClick={() => handleAction(onCancelScheduledSend)}
+            />
+          )}
         </>
       )}
 
@@ -603,7 +595,7 @@ export function EmailContextMenu({
       {!isScheduled && !showBatchActions && isDraft && onEditDraft && (
         <>
           <ContextMenuItem
-            icon={EditIcon}
+            icon={Pencil}
             label={t("edit_draft")}
             onClick={() => handleAction(onEditDraft)}
           />

@@ -160,3 +160,12 @@ describe('ShareCollectionDialog directory', () => {
     expect(screen.queryByText('no_principals')).toBeNull();
   });
 });
+
+describe('ShareCollectionDialog focus', () => {
+  it('takes the focus when it opens and has a named close button', async () => {
+    renderDialog(fullDirectory());
+    const dialog = screen.getByRole('dialog');
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+    expect(screen.getAllByRole('button', { name: 'close' }).length).toBeGreaterThan(0);
+  });
+});

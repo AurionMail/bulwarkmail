@@ -125,7 +125,8 @@ describe('email viewer More actions menu', () => {
     flushFrames();
 
     const subMenu = screen.getByRole('menu', { name: 'move_to' });
-    tap(within(subMenu).getByRole('menuitem', { name: /Archive/ }));
+    // Named as the sidebar names it (the i18n mock renders the key).
+    tap(within(subMenu).getByRole('menuitem', { name: /mailboxes.archive/ }));
 
     expect(onMoveToMailbox).toHaveBeenCalledWith('archive');
   });
@@ -179,5 +180,23 @@ describe('email viewer More actions menu', () => {
     // Closing keeps the transition so the panel slides out instead of vanishing.
     expect(panel.className).toContain('translate-x-full');
     expect(panel.className).toContain('transition-transform');
+  });
+});
+
+describe('phone More panel parity', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'setTimeout'] });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('offers the message and conversation links the row menu has, and no keyboard shortcuts', () => {
+    renderViewer({ onShowShortcuts: vi.fn() } as never);
+    openMoreMenu();
+    const menu = screen.getByRole('menu', { name: 'more_actions' });
+    expect(within(menu).getByRole('menuitem', { name: /copy_message/ })).toBeTruthy();
+    expect(within(menu).getByRole('menuitem', { name: /copy_conversation/ })).toBeTruthy();
+    expect(within(menu).queryByRole('menuitem', { name: /keyboard_shortcuts/ })).toBeNull();
   });
 });

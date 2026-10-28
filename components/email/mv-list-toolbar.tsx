@@ -11,20 +11,20 @@ import {
   Mail,
   MailOpen,
   MoreVertical,
-  RotateCcw,
   Search,
   ShieldAlert,
   ShieldCheck,
   Square,
   Tag,
   Trash2,
+  RefreshCw,
 } from "@/components/icons";
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShallow } from "zustand/react/shallow";
-import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
+import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder, restoreBatchesForSelection } from "@/stores/email-store";
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
-import { runBatchEmailAction } from "@/lib/email-action-toast";
+import { runBatchEmailAction, toastWithUndo, undoLabels, undoMoveAction } from "@/lib/email-action-toast";
 import { toast } from "@/stores/toast-store";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useMenuNavigation } from "@/hooks/use-menu-navigation";
@@ -108,7 +108,6 @@ export function MvListToolbar({
 }: MvListToolbarProps) {
   const t = useTranslations("email_list");
   const tBatch = useTranslations("email_list.batch_actions");
-  const tActions = useTranslations("settings.email_behavior.hover_actions");
   const archiveActionEnabled = useArchiveActionEnabled();
   const tFolder = useTranslations("mailbox_context_menu");
   const tMenu = useTranslations("context_menu");
@@ -117,6 +116,7 @@ export function MvListToolbar({
   const tViewer = useTranslations("email_viewer");
   const tNotifications = useTranslations("notifications");
   const tSpam = useTranslations("email_viewer.spam");
+  const undo = undoLabels(tNotifications);
 
   const client = useAuthStore((s) => s.client);
   const {
@@ -232,7 +232,7 @@ export function MvListToolbar({
   // rejected promise or a store error turns into an error toast instead of
   // an unhandled rejection with nothing on screen.
   const run = async (
-    action: () => Promise<void>,
+    action: () => Promise<boolean | void>,
     messages?: Parameters<typeof runBatchEmailAction>[1],
   ) => {
     if (!client || isProcessing) return;
@@ -279,9 +279,11 @@ export function MvListToolbar({
         });
         if (!confirmed) return;
       }
-      await runBatchEmailAction(() => batchDelete(client, isInTrash), {
+      const restore = permanent ? null : restoreBatchesForSelection(client);
+      await runBatchEmailAction(() => batchDelete(client, permanent), {
         success: tNotifications("emails_deleted", { count: selectionCount }),
         error: tNotifications("error_deleting"),
+        undo: undoMoveAction(client, restore, undo),
       });
     });
 
@@ -360,11 +362,11 @@ export function MvListToolbar({
   const handleMove = (mailboxId: string) => {
     setMoveOpen(false);
     const count = selectionCount;
-    void run(async () => {
-      if (client) await batchMoveToMailbox(client, mailboxId);
-    }, {
+    const restore = client ? restoreBatchesForSelection(client) : null;
+    void run(async () => (client ? batchMoveToMailbox(client, mailboxId) : false), {
       success: tNotifications("emails_moved", { count }),
       error: tNotifications("move_failed"),
+      undo: undoMoveAction(client, restore, undo),
     });
   };
 
@@ -381,11 +383,12 @@ export function MvListToolbar({
     run(async () => {
       if (!client) return;
       const ids = resolveSelectedEmails(useEmailStore.getState()).map((email) => email.id);
+      const restore = restoreBatchesForSelection(client);
       try {
         if (isInJunk) {
-          if (await batchUndoSpam(client, ids)) toast.success(tSpam("toast_not_spam_batch", { count: ids.length }));
+          if (await batchUndoSpam(client, ids)) toastWithUndo(tSpam("toast_not_spam_batch", { count: ids.length }), undoMoveAction(client, restore, undo));
         } else {
-          if (await batchMarkAsSpam(client, ids)) toast.success(tSpam("toast_batch", { count: ids.length }));
+          if (await batchMarkAsSpam(client, ids)) toastWithUndo(tSpam("toast_batch", { count: ids.length }), undoMoveAction(client, restore, undo));
         }
       } catch {
         toast.error(isInJunk ? tSpam("error_not_spam") : tSpam("error"));
@@ -422,7 +425,7 @@ export function MvListToolbar({
       </button>
 
       <ToolbarButton
-        icon={RotateCcw}
+        icon={RefreshCw}
         label={tCommon("refresh")}
         onClick={onRefresh}
         disabled={!client || isRefreshing}
@@ -507,13 +510,14 @@ export function MvListToolbar({
           {archiveActionEnabled && (
             <ToolbarButton
               icon={Archive}
-              label={tActions("archive")}
-              onClick={() => run(async () => { if (client) await batchArchive(client); }, {
+              label={tMenu("archive")}
+              onClick={() => run(async () => (client ? batchArchive(client) : false), {
                 success: tNotifications("emails_archived", { count: selectionCount }),
                 error: tNotifications("error_archiving"),
                 describeError: (error) => error instanceof ArchiveMailboxNotFoundError
                   ? tViewer("archive_mailbox_not_found")
                   : undefined,
+                undo: undoMoveAction(client, client ? restoreBatchesForSelection(client) : null, undo),
               })}
               disabled={isProcessing}
               busy={isProcessing}
@@ -522,7 +526,7 @@ export function MvListToolbar({
           {spamApplicable && (
             <ToolbarButton
               icon={isInJunk ? ShieldCheck : ShieldAlert}
-              label={isInJunk ? tActions("not_spam") : tActions("spam")}
+              label={isInJunk ? tMenu("not_spam") : tMenu("mark_as_spam")}
               onClick={handleSpam}
               disabled={isProcessing}
             />
@@ -540,7 +544,7 @@ export function MvListToolbar({
             label={tBatch("delete")}
             onClick={handleDelete}
             disabled={isProcessing}
-            className="hover:text-red-600 dark:hover:text-red-400"
+            className="hover:text-destructive"
           />
           {/* Gmail's order: what to do with it, how it reads, where it goes. */}
           <div className="w-px h-6 bg-border mx-1 shrink-0" />

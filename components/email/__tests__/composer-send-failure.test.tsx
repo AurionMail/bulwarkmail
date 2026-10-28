@@ -1,8 +1,9 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import React from 'react';
 import { EmailComposer } from '../email-composer';
 import { RecipientsRejectedError, SubmissionQuotaError } from '@/lib/jmap/client';
+import { useSettingsStore } from '@/stores/settings-store';
 
 // ─── Heavy component mocks (mirrors composer-reopened-draft-signature.test.tsx) ─
 
@@ -245,5 +246,24 @@ describe('composer send failures', () => {
     expect(title).toBe('send_recipients_rejected');
     expect(message).toBe('nobody@example.net (550 5.1.2 Relay not allowed.)');
     expect(screen.getByDisplayValue('Hello')).toBeInTheDocument();
+  });
+
+  // An account without send delay asks in the app's own dialog, not
+  // window.confirm, before the message goes out at once.
+  it('asks in a dialog before sending without the delay the account lacks', async () => {
+    const nativeConfirm = vi.spyOn(window, 'confirm');
+    useSettingsStore.setState({ sendDelaySeconds: 10 } as never);
+    try {
+      const onSend = vi.fn().mockResolvedValue(undefined);
+      render(<EmailComposer initialData={DRAFT} onSend={onSend} />);
+      fireEvent.click(screen.getAllByTestId('composer-send')[0]);
+      const dialog = await screen.findByRole('alertdialog', { name: 'send_delay_unsupported_title' });
+      expect(nativeConfirm).not.toHaveBeenCalled();
+      expect(onSend).not.toHaveBeenCalled();
+      fireEvent.click(within(dialog).getByRole('button', { name: 'send' }));
+      await waitFor(() => expect(onSend).toHaveBeenCalledTimes(1));
+    } finally {
+      useSettingsStore.setState({ sendDelaySeconds: 0 } as never);
+    }
   });
 });

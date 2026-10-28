@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { useCloseOnBack } from '../use-close-on-back';
+import { useCloseOnBack } from '../use-calendar-close-on-back';
 
 const entry = () => (window.history.state as Record<string, unknown> | null)?.__closeOnBack;
 

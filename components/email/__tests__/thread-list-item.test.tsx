@@ -828,3 +828,32 @@ describe('ThreadListItem open message', () => {
     expect(container.querySelector('[aria-current="true"]') !== null).toBe(open);
   });
 });
+
+describe('ThreadListItem fallbacks', () => {
+  it('names a message without subject or sender in the user\'s language', () => {
+    renderRow(makeEmail({ subject: '', from: [] }));
+    // The i18n mock renders the keys.
+    expect(screen.getByText('no_subject')).toBeInTheDocument();
+    expect(screen.getByText('unknown_sender')).toBeInTheDocument();
+    expect(screen.queryByText('(no subject)')).toBeNull();
+  });
+});
+
+describe('ThreadListItem swipe on a conversation', () => {
+  it('archives the conversation\'s row like a single message\'s', () => {
+    useUIStore.setState({ isMobile: true, isTablet: false, isDesktop: false });
+    useSettingsStore.setState({ swipeRightAction: 'archive', swipeLeftAction: 'delete' } as never);
+    const first = makeEmail({ id: 'a', threadId: 't', receivedAt: '2024-01-15T09:00:00Z' });
+    const second = makeEmail({ id: 'b', threadId: 't', receivedAt: '2024-01-15T10:00:00Z' });
+    const [thread] = groupEmailsByThread([first, second]);
+    const onArchive = vi.fn();
+    const { container } = render(
+      <ThreadListItem thread={thread} isExpanded={false} onToggleExpand={() => {}} onEmailSelect={() => {}} onArchive={onArchive} onDelete={vi.fn()} />,
+    );
+    const row = container.querySelector('[data-unread]')!;
+    fireEvent.touchStart(row, { touches: [{ clientX: 10, clientY: 10 }] });
+    fireEvent.touchMove(row, { touches: [{ clientX: 160, clientY: 12 }] });
+    fireEvent.touchEnd(row);
+    expect(onArchive).toHaveBeenCalledWith(expect.objectContaining({ id: 'b' }));
+  });
+});

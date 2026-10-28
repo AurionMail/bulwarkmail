@@ -23,6 +23,8 @@ interface PromptDialogProps {
   validate?: (value: string) => string | null;
   /** Select only the part before the last dot ("report" of "report.pdf"), for file names. */
   selectBaseName?: boolean;
+  /** A third button at the start of the footer, e.g. "Remove link"; closes the dialog. */
+  extraAction?: { label: string; onClick: () => void };
 }
 
 /** The selection range for a name: all of it, or the part before the extension. */
@@ -45,6 +47,7 @@ export function PromptDialog({
   cancelText,
   validate,
   selectBaseName = false,
+  extraAction,
 }: PromptDialogProps) {
   const t = useTranslations("confirm_dialog");
   const id = useId();
@@ -93,6 +96,22 @@ export function PromptDialog({
       onSubmit={handleSubmit}
       footer={
         <>
+          {extraAction && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="me-auto"
+              onClick={() => {
+                try {
+                  extraAction.onClick();
+                } finally {
+                  onClose();
+                }
+              }}
+            >
+              {extraAction.label}
+            </Button>
+          )}
           <Button type="button" variant="outline" onClick={onClose}>
             {resolvedCancelText}
           </Button>

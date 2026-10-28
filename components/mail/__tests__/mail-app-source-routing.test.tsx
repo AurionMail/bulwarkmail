@@ -185,14 +185,15 @@ describe('the open message of a group account in a tag view', () => {
     render(<MailApp />);
     fireEvent.click(await screen.findByText('stub archive', {}, { timeout: 5000 }));
     await waitFor(() => expect(moveThreadToMailbox).toHaveBeenCalled());
-    expect(moveThreadToMailbox).toHaveBeenCalledWith(client, 'eaaaaab', 'ce:k', 'login-a/ce:eaaaaab');
+    expect(moveThreadToMailbox).toHaveBeenCalledWith(client, 'eaaaaab', 'ce:k', 'login-a/ce:eaaaaab', expect.any(Function));
   });
 
   it('is deleted into the group\'s Deleted Items, not the own one', async () => {
+    client.moveToTrash = vi.fn().mockResolvedValue(undefined);
     render(<MailApp />);
     fireEvent.click(await screen.findByText('stub delete', {}, { timeout: 5000 }));
-    await waitFor(() => expect(moveToMailbox).toHaveBeenCalled());
-    expect(moveToMailbox).toHaveBeenCalledWith(client, 'eaaaaab', 'ce:b', 'login-a/ce:eaaaaab');
+    await waitFor(() => expect(client.moveToTrash).toHaveBeenCalled());
+    expect(client.moveToTrash).toHaveBeenCalledWith('eaaaaab', 'b', 'ce', false);
   });
 });
 
@@ -214,7 +215,7 @@ describe('archiving a group message by month', () => {
     fireEvent.click(await screen.findByText('stub archive', {}, { timeout: 5000 }));
     await waitFor(() => expect(moveThreadToMailbox).toHaveBeenCalled());
     expect(client.createMailbox).not.toHaveBeenCalled();
-    expect(moveThreadToMailbox).toHaveBeenCalledWith(client, 'eaaaaab', 'ce:m1', 'login-a/ce:eaaaaab');
+    expect(moveThreadToMailbox).toHaveBeenCalledWith(client, 'eaaaaab', 'ce:m1', 'login-a/ce:eaaaaab', expect.any(Function));
   });
 
   it('reuses them with the group\'s Inbox open', async () => {
@@ -224,7 +225,7 @@ describe('archiving a group message by month', () => {
     fireEvent.click(await screen.findByText('stub archive', {}, { timeout: 5000 }));
     await waitFor(() => expect(moveThreadToMailbox).toHaveBeenCalled());
     expect(client.createMailbox).not.toHaveBeenCalled();
-    expect(moveThreadToMailbox).toHaveBeenCalledWith(client, 'eaaaaab', 'ce:m1', 'eaaaaab');
+    expect(moveThreadToMailbox).toHaveBeenCalledWith(client, 'eaaaaab', 'ce:m1', 'eaaaaab', expect.any(Function));
   });
 
   // The own account has a folder with the server id of the group's Archive,
@@ -241,7 +242,7 @@ describe('archiving a group message by month', () => {
     render(<MailApp />);
     fireEvent.click(await screen.findByText('stub archive', {}, { timeout: 5000 }));
     await waitFor(() => expect(moveThreadToMailbox).toHaveBeenCalled());
-    expect(moveThreadToMailbox).toHaveBeenCalledWith(client, 'eaaaaab', 'ce:m1', 'eaaaaab');
+    expect(moveThreadToMailbox).toHaveBeenCalledWith(client, 'eaaaaab', 'ce:m1', 'eaaaaab', expect.any(Function));
   });
 
   it('creates a missing year folder in the group account with the group\'s Inbox open', async () => {
