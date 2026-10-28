@@ -788,7 +788,7 @@ function SidebarRow({
       ref={rowRef}
       {...rowProps}
       {...dropProps}
-      {...(onOpenMenu ? longPress : {})}
+      {...(onOpenMenu ? longPress.handlers : {})}
       onContextMenu={onContextMenu}
       className={cn(
         // 32px rows, 44px on touch (R1).

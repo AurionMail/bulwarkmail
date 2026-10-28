@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 const LONG_PRESS_DURATION = 500;
 const MOVE_THRESHOLD = 10;
@@ -69,5 +69,12 @@ export function useLongPress(
     firedRef.current = false;
   }, [cancel]);
 
-  return { onTouchStart, onTouchEnd, onTouchMove, onTouchCancel, isPressed };
+  // `handlers` holds only the touch handlers, safe to spread onto a DOM
+  // element; spreading the whole result would put `isPressed` on it.
+  const handlers = useMemo(
+    () => ({ onTouchStart, onTouchEnd, onTouchMove, onTouchCancel }),
+    [onTouchStart, onTouchEnd, onTouchMove, onTouchCancel]
+  );
+
+  return { onTouchStart, onTouchEnd, onTouchMove, onTouchCancel, isPressed, handlers };
 }

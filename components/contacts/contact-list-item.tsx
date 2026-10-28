@@ -67,7 +67,7 @@ export function ContactListItem({ contact, isSelected, isChecked, hasSelection, 
   return (
     <div
       ref={rowRef}
-      {...(onLongPress ? longPress : {})}
+      {...(onLongPress ? longPress.handlers : {})}
       role="option"
       aria-selected={isSelected || isChecked}
       tabIndex={isFocused ? 0 : -1}

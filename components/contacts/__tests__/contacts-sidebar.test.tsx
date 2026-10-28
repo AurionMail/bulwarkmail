@@ -38,6 +38,20 @@ function renderSidebar(onComposeGroup = vi.fn()) {
   return onComposeGroup;
 }
 
+// First in the file: React warns about an unknown DOM prop only once per run.
+describe('ContactsSidebar — row props', () => {
+  it('keeps the long-press state off the row element', () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      renderSidebar();
+      const unknownProp = errors.mock.calls.some((args) => args.some((a) => String(a).includes('isPressed')));
+      expect(unknownProp).toBe(false);
+    } finally {
+      errors.mockRestore();
+    }
+  });
+});
+
 describe('ContactsSidebar — compose to group', () => {
   beforeEach(() => vi.clearAllMocks());
 
