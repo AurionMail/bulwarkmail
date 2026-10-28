@@ -42,6 +42,7 @@ function getRegisteredGroups(): CommandGroup[] {
 import { useAuthStore } from '@/stores/auth-store';
 import { useContactStore } from '@/stores/contact-store';
 import { useToastStore } from '@/stores/toast-store';
+import { interceptLeave } from '@/lib/leave-guard';
 
 export const alice: ContactCard = {
   id: 'c-alice',
@@ -144,6 +145,29 @@ describe('ContactsApp', () => {
     fireEvent.click(screen.getByText('Bob Jones'));
     fireEvent.click(screen.getByText('Carol King'), { shiftKey: true });
     expect([...useContactStore.getState().selectedContactIds].sort()).toEqual(['c-bob', 'c-carol']);
+  });
+
+  it('has the rail and tab bar ask before they leave a contact form with changes', async () => {
+    renderContacts();
+    fireEvent.click(screen.getByText('Alice Smith'));
+    fireEvent.click(screen.getByRole('button', { name: /detail.edit|edit/ }));
+    fireEvent.change(screen.getByPlaceholderText('middle_name'), { target: { value: 'Marie' } });
+
+    // A rail link wired as the real one is: interceptLeave first.
+    const navigated = vi.fn();
+    const link = document.createElement('a');
+    link.addEventListener('click', (e) => { if (!interceptLeave(e)) navigated(); });
+    document.body.appendChild(link);
+    try {
+      act(() => { link.click(); });
+      const dialog = await screen.findByRole('alertdialog');
+      expect(within(dialog).getByText('form.discard_title')).toBeInTheDocument();
+      expect(navigated).not.toHaveBeenCalled();
+      fireEvent.click(within(dialog).getByRole('button', { name: 'form.discard' }));
+      await waitFor(() => expect(navigated).toHaveBeenCalledOnce());
+    } finally {
+      link.remove();
+    }
   });
 
   it('leaves an untouched contact form without asking', () => {

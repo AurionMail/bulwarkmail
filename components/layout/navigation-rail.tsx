@@ -27,6 +27,7 @@ import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { useStalwartAdmin } from "@/hooks/use-stalwart-admin";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
 import { getPathPrefix, withBasePath } from "@/lib/browser-navigation";
+import { interceptLeave } from "@/lib/leave-guard";
 import { Avatar } from "@/components/ui/avatar";
 import { toUnicodeEmail } from "@/lib/idn";
 import { usePluginPages, pluginPageHref, isPluginPageActive } from "@/hooks/use-plugin-pages";
@@ -351,6 +352,7 @@ export function NavigationRail({
 
   const handleNavClick = (itemId: 'mail' | 'calendar' | 'contacts' | 'files' | 'settings') =>
     (e: React.MouseEvent) => {
+      if (interceptLeave(e)) return;
       if (onNavigate) {
         const intercepted = onNavigate(itemId);
         if (intercepted !== false) {
@@ -421,7 +423,7 @@ export function NavigationRail({
             <Link
               key={`plugin-page:${page.pluginId}:${page.id}`}
               href={pluginPageHref(page)}
-              onClick={() => { if (activeAppId) onCloseInlineApp?.(); }}
+              onClick={(e) => { if (interceptLeave(e)) return; if (activeAppId) onCloseInlineApp?.(); }}
               data-plugin-page-link={`${page.pluginId}/${page.id}`}
               title={page.pluginName}
               className={cn(
@@ -633,7 +635,7 @@ export function NavigationRail({
             <Link
               key={`plugin-page:${page.pluginId}:${page.id}`}
               href={pluginPageHref(page)}
-              onClick={() => { if (activeAppId) onCloseInlineApp?.(); }}
+              onClick={(e) => { if (interceptLeave(e)) return; if (activeAppId) onCloseInlineApp?.(); }}
               data-plugin-page-link={`${page.pluginId}/${page.id}`}
               className={cn(
                 "relative flex items-center gap-2.5 rounded-md transition-colors duration-150",

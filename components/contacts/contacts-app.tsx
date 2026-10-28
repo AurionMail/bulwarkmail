@@ -52,6 +52,7 @@ import { useLiteLinkSegments } from "@/hooks/use-lite-link-segments";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useRegisterCommands } from "@/lib/command-registry";
 import { useCloseOnBack } from "@/hooks/use-close-on-back";
+import { useLeaveGuard } from "@/lib/leave-guard";
 import { useDeleteCategory } from "@/hooks/use-delete-category";
 import { MvTopBar } from "@/components/layout/mv-top-bar";
 import { useMountainViewShell } from "@/hooks/use-mountain-view-shell";
@@ -172,18 +173,23 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   useEffect(() => {
     if (view !== "create" && view !== "edit" && view !== "group-create" && view !== "group-edit") setEditorDirty(false);
   }, [view, setEditorDirty]);
+  const askDiscard = useCallback(() => confirmDialog({
+    title: t("form.discard_title"),
+    message: t("form.discard_message"),
+    confirmText: t("form.discard"),
+    cancelText: t("form.keep_editing"),
+    variant: "destructive",
+  }), [confirmDialog, t]);
   const confirmDiscard = useCallback(async () => {
     if (!editorDirtyRef.current) return true;
-    const discard = await confirmDialog({
-      title: t("form.discard_title"),
-      message: t("form.discard_message"),
-      confirmText: t("form.discard"),
-      cancelText: t("form.keep_editing"),
-      variant: "destructive",
-    });
+    const discard = await askDiscard();
     if (discard) setEditorDirty(false);
     return discard;
-  }, [confirmDialog, t, setEditorDirty]);
+  }, [askDiscard, setEditorDirty]);
+  // The rail and the phone tab bar ask too, before they leave Contacts. Only
+  // ask there: leaving unmounts the form, and clearing it first would let the
+  // Back guard below take its history step back over the navigation.
+  useLeaveGuard(() => editorDirtyRef.current, askDiscard);
   const guard = <A extends unknown[]>(action: (...args: A) => unknown) => (...args: A): void => {
     if (!editorDirtyRef.current) {
       action(...args);
