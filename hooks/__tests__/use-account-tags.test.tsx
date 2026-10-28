@@ -18,7 +18,7 @@ function setEntry(scope: TagScope, entry: Partial<SharedTagsEntry>) {
   useSharedTagsStore.setState((state) => ({
     entries: {
       ...state.entries,
-      [sharedTagsKey(scope.loginId, scope.accountId)]: { status: 'ready', tags: [], discovered: {}, loadedAt: 1, ...entry },
+      [sharedTagsKey(scope.loginId, scope.accountId)]: { status: 'ready', tags: [], stored: null, pending: [], discovered: {}, loadedAt: 1, discoveredAt: 1, readFailedAt: null, ...entry },
     },
   }));
 }
@@ -46,6 +46,12 @@ describe('tag names and colours per account', () => {
 
   it('keeps the own tags in a group account whose server keeps no metadata', () => {
     setEntry(TEAM, { status: 'unsupported' });
+    badge('urgent', TEAM);
+    expect(screen.getByText('My urgent')).toBeInTheDocument();
+  });
+
+  it('keeps the own tags while the shared ones couldn\'t be read', () => {
+    setEntry(TEAM, { status: 'unavailable', tags: [{ id: 'urgent', label: 'Stale', color: 'red' }] });
     badge('urgent', TEAM);
     expect(screen.getByText('My urgent')).toBeInTheDocument();
   });

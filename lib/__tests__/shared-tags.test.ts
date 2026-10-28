@@ -1,78 +1,90 @@
 import { describe, expect, it } from 'vitest';
 import {
+  EMPTY_SHARED_TAGS,
   groupAccountTags,
   parseSharedTags,
-  removeSharedTag,
-  sharedTagsValue,
-  upsertSharedTag,
+  planSharedTagsSave,
+  readSharedTags,
+  sharedDefinitions,
 } from '../shared-tags';
 import { MetadataTooLargeError } from '../jmap/bulwark-metadata';
 
 // Shared tag definitions of a group account, as they sit in the metadata of
-// its Inbox: `{ list: KeywordDefinition[] }` (Stalwart takes only objects as
-// namespace values).
+// its Inbox: a map by tag id under `tags`, changed one tag at a time.
 
-describe('parseSharedTags', () => {
-  it('reads the definitions under list', () => {
-    expect(parseSharedTags({ list: [{ id: 'urgent', label: 'Urgent', color: 'red' }] }))
-      .toEqual([{ id: 'urgent', label: 'Urgent', color: 'red' }]);
+const MAP = {
+  tags: {
+    urgent: { label: 'Urgent', color: 'red' },
+    other: { label: 'Other', color: 'chartreuse', icon: 'flame' },
+  },
+  note: 'kept',
+};
+
+describe('readSharedTags', () => {
+  it('reads the map by id and keeps fields it doesn\'t know', () => {
+    const stored = readSharedTags(MAP);
+    expect(stored.patchable).toBe(true);
+    expect(stored.entries.other).toEqual({ label: 'Other', color: 'chartreuse', icon: 'flame' });
+    expect(stored.extra).toEqual({ note: 'kept' });
   });
 
-  it('takes a bare array another client may have written', () => {
-    expect(parseSharedTags([{ id: 'urgent', label: 'Urgent', color: 'red' }])).toHaveLength(1);
+  it('reads the earlier list and bare-array shapes, for converting', () => {
+    const fromList = readSharedTags({ list: [{ id: 'urgent', label: 'Urgent', color: 'red' }, { id: 'URGENT', label: 'Twice' }] });
+    expect(fromList).toEqual({ entries: { urgent: { label: 'Urgent', color: 'red' } }, extra: {}, patchable: false });
+    expect(readSharedTags([{ id: 'later', label: 'Later', color: 'blue' }]).entries).toEqual({ later: { label: 'Later', color: 'blue' } });
   });
 
-  it('drops what cannot be a tag and keeps the first of an id in any case', () => {
-    const tags = parseSharedTags({
-      list: [
-        { id: 'urgent', label: 'Urgent', color: 'red' },
-        { id: 'URGENT', label: 'Twice', color: 'blue' },
-        { id: 'has space', label: 'Bad', color: 'red' },
-        { id: 'ctl\u0001', label: 'Bad', color: 'red' },
-        { label: 'No id', color: 'red' },
-        'urgent',
-        null,
-        { id: 'later', label: '   ', color: 'not-a-colour', visibility: 'sometimes' },
-      ],
-    });
-    expect(tags).toEqual([
+  it('drops what cannot be a tag', () => {
+    const stored = readSharedTags({ tags: { 'has space': { label: 'x' }, 'ctl\u0001': { label: 'x' }, fine: 'not an object', ok: {} } });
+    expect(Object.keys(stored.entries)).toEqual(['ok']);
+    expect(readSharedTags(undefined)).toEqual(EMPTY_SHARED_TAGS);
+  });
+});
+
+describe('sharedDefinitions', () => {
+  it('names each tag, shows a color it doesn\'t know as grey, and sorts by name', () => {
+    expect(sharedDefinitions(readSharedTags(MAP))).toEqual([
+      { id: 'other', label: 'Other', color: 'gray' },
       { id: 'urgent', label: 'Urgent', color: 'red' },
-      // An empty name falls back to the id, an unknown colour to grey.
-      { id: 'later', label: 'later', color: 'gray' },
     ]);
-  });
-
-  it('reads nothing from a missing or odd value', () => {
-    expect(parseSharedTags(undefined)).toEqual([]);
-    expect(parseSharedTags({ list: 'x' })).toEqual([]);
-    expect(parseSharedTags(7)).toEqual([]);
+    expect(parseSharedTags({ tags: { x: { color: 'blue' } } })).toEqual([{ id: 'x', label: 'x', color: 'blue' }]);
   });
 });
 
-describe('sharedTagsValue', () => {
-  it('writes id, name, colour and visibility only', () => {
-    expect(sharedTagsValue([{ id: 'a', label: 'A', color: 'red', addedBy: 'plugin-x', visibility: 'unread' }]))
-      .toEqual({ list: [{ id: 'a', label: 'A', color: 'red', visibility: 'unread' }] });
+describe('planSharedTagsSave', () => {
+  it('patches only the tags that change', () => {
+    const { patches, result } = planSharedTagsSave(readSharedTags(MAP), [
+      { id: 'new/child', value: { label: 'Child', color: 'blue' } },
+      { id: 'URGENT', value: null },
+    ]);
+    expect(patches).toEqual([
+      { path: ['tags', 'new/child'], value: { label: 'Child', color: 'blue' } },
+      { path: ['tags', 'urgent'], value: null },
+    ]);
+    expect(Object.keys(result.entries).sort()).toEqual(['new/child', 'other']);
   });
 
-  it('refuses a list larger than one metadata entry', () => {
-    const many = Array.from({ length: 200 }, (_, i) => ({ id: `tag-number-${i}`, label: `Tag number ${i}`, color: 'blue' }));
-    expect(() => sharedTagsValue(many)).toThrow(MetadataTooLargeError);
-    expect(() => sharedTagsValue(many.slice(0, 20))).not.toThrow();
-  });
-});
-
-describe('upsertSharedTag and removeSharedTag', () => {
-  const list = [{ id: 'urgent', label: 'Urgent', color: 'red' }, { id: 'later', label: 'Later', color: 'blue' }];
-
-  it('adds a new tag at the end and replaces one with the same id in place', () => {
-    expect(upsertSharedTag(list, { id: 'new', label: 'New', color: 'green' }).map((t) => t.id)).toEqual(['urgent', 'later', 'new']);
-    expect(upsertSharedTag(list, { id: 'Urgent', label: 'Very urgent', color: 'red-dark' })[0])
-      .toEqual({ id: 'urgent', label: 'Very urgent', color: 'red-dark' });
+  it('keeps the fields of a changed tag it doesn\'t know, and its color unless one was picked', () => {
+    const { patches } = planSharedTagsSave(readSharedTags(MAP), [{ id: 'other', value: { label: 'Renamed' } }]);
+    expect(patches).toEqual([{ path: ['tags', 'other'], value: { label: 'Renamed', color: 'chartreuse', icon: 'flame' } }]);
   });
 
-  it('removes by id in any case', () => {
-    expect(removeSharedTag(list, 'URGENT')).toEqual([{ id: 'later', label: 'Later', color: 'blue' }]);
+  it('writes an earlier shape once, whole, as the map', () => {
+    const { patches, result } = planSharedTagsSave(
+      readSharedTags({ list: [{ id: 'urgent', label: 'Urgent', color: 'red' }] }),
+      [{ id: 'later', value: { label: 'Later', color: 'blue' } }],
+    );
+    expect(patches).toEqual([{ path: [], value: { tags: { urgent: { label: 'Urgent', color: 'red' }, later: { label: 'Later', color: 'blue' } } } }]);
+    expect(result.patchable).toBe(true);
+  });
+
+  it('refuses more than 8 KB of UTF-8, counted in bytes not characters', () => {
+    // 100 names of 30 two-byte characters: about 4.9 K characters, over 8 K bytes.
+    const changes = Array.from({ length: 100 }, (_, i) => ({ id: `t${i}`, value: { label: 'ä'.repeat(30), color: 'red' } }));
+    const json = JSON.stringify({ tags: Object.fromEntries(changes.map((c) => [c.id, c.value])) });
+    expect(json.length).toBeLessThan(8192);
+    expect(() => planSharedTagsSave(EMPTY_SHARED_TAGS, changes)).toThrow(MetadataTooLargeError);
+    expect(() => planSharedTagsSave(EMPTY_SHARED_TAGS, changes.slice(0, 50))).not.toThrow();
   });
 });
 
@@ -84,7 +96,6 @@ describe('groupAccountTags', () => {
       false,
     );
     expect(definitions.map((t) => t.id)).toEqual(['urgent', 'q3-invoices']);
-    expect(definitions[0]).toEqual({ id: 'urgent', label: 'Urgent', color: 'red' });
     expect(definitions[1].label).toBe('Q3 Invoices');
     expect(discoveredIds).toEqual(['q3-invoices']);
   });

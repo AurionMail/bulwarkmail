@@ -1,4 +1,4 @@
-import { advertisesMailboxMetadata, bulwarkEntries, MAX_METADATA_ENTRY_BYTES, METADATA_CAPABILITY, MetadataTooLargeError, MetadataUnsupportedError, metadataValueBytes, namespaceFor } from "./bulwark-metadata";
+import { advertisesMailboxMetadata, bulwarkEntries, escapeMetadataPathSegment, MAX_METADATA_ENTRY_BYTES, METADATA_CAPABILITY, MetadataPatchError, MetadataTooLargeError, MetadataUnsupportedError, metadataValueBytes, namespaceFor } from "./bulwark-metadata";
 import { IncompleteDeleteError } from "./delete-error";
 import { ArchiveEmailsError } from "./archive-error";
 import { generateUUID } from '@/lib/utils';
@@ -7161,6 +7161,40 @@ export class JMAPClient implements IJMAPClient {
     if (value !== null && metadataValueBytes(value) > MAX_METADATA_ENTRY_BYTES) {
       throw new MetadataTooLargeError(`The entry is larger than ${MAX_METADATA_ENTRY_BYTES} bytes`);
     }
+    await this.updateInboxMetadata(id, { [`${property}/${namespaceFor(key)}`]: value }, options);
+  }
+
+  /**
+   * Whether the account advertises vendor metadata on mailboxes, whatever
+   * its last request did (supportsBulwarkMetadata also pauses after a
+   * failure). False means the server keeps no metadata for this account.
+   */
+  advertisesBulwarkMetadata(accountId?: string): boolean {
+    const id = accountId || this.accountId;
+    return advertisesMailboxMetadata(this.accounts[id]?.accountCapabilities as Record<string, unknown> | undefined);
+  }
+
+  /**
+   * Changes values inside one Bulwark metadata entry of the account's Inbox
+   * and nothing else: each patch path (segments, escaped here) is set, null
+   * removes it, an empty path is the whole entry. Returns the Mailbox state
+   * after the change, so a caller can recognise the push of its own write.
+   * Throws MetadataTooLargeError (the server's size limit),
+   * MetadataPatchError (a parent of a path doesn't exist) and
+   * MetadataUnsupportedError.
+   */
+  async patchBulwarkMetadata(accountId: string | undefined, key: string, patches: Array<{ path: string[]; value: unknown }>): Promise<{ newState?: string }> {
+    const id = accountId || this.accountId;
+    if (!this.supportsBulwarkMetadata(id)) throw new MetadataUnsupportedError();
+    const update: Record<string, unknown> = {};
+    for (const { path, value } of patches) {
+      update[[`metadata/${namespaceFor(key)}`, ...path.map(escapeMetadataPathSegment)].join("/")] = value;
+    }
+    return { newState: await this.updateInboxMetadata(id, update) };
+  }
+
+  /** One Mailbox/set of the Inbox's metadata; answers the new Mailbox state. */
+  private async updateInboxMetadata(id: string, update: Record<string, unknown>, options?: { private?: boolean }): Promise<string | undefined> {
     let inboxId = this.metadataInboxIds.get(id);
     if (!inboxId) {
       await this.getBulwarkMetadata(id, options);
@@ -7168,7 +7202,7 @@ export class JMAPClient implements IJMAPClient {
       if (!inboxId) throw new MetadataUnsupportedError();
     }
     const response = await this.request([
-      ["Mailbox/set", { accountId: id, update: { [inboxId]: { [`${property}/${namespaceFor(key)}`]: value } } }, "0"],
+      ["Mailbox/set", { accountId: id, update: { [inboxId]: update } }, "0"],
     ], ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:mail", METADATA_CAPABILITY]);
     const [method, result] = response.methodResponses?.[0] ?? [];
     if (method !== "Mailbox/set") {
@@ -7177,8 +7211,11 @@ export class JMAPClient implements IJMAPClient {
     const notUpdated = (result as { notUpdated?: Record<string, { type?: string; description?: string }> }).notUpdated?.[inboxId];
     if (notUpdated) {
       if (/exceeds the maximum/i.test(notUpdated.description ?? "")) throw new MetadataTooLargeError(notUpdated.description!);
+      if (notUpdated.type === "invalidPatch") throw new MetadataPatchError(notUpdated.description || "A parent of the patched value does not exist");
       throw new Error(notUpdated.description || `Failed to save metadata (${notUpdated.type ?? "unknown"})`);
     }
+    const newState = (result as { newState?: unknown }).newState;
+    return typeof newState === "string" ? newState : undefined;
   }
 
   /**

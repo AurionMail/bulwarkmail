@@ -38,6 +38,23 @@ export class MetadataUnsupportedError extends Error {
   }
 }
 
+/** A patch inside an entry whose parent value doesn't exist (yet, or any more). */
+export class MetadataPatchError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'MetadataPatchError';
+  }
+}
+
+/**
+ * One segment of a patch path inside a metadata entry, escaped the JSON
+ * Pointer way (`~` as `~0`, `/` as `~1`), which Stalwart v1.0.0 decodes:
+ * a tag id `work/clients` is the segment `work~1clients`.
+ */
+export function escapeMetadataPathSegment(segment: string): string {
+  return segment.replace(/~/g, '~0').replace(/\//g, '~1');
+}
+
 /** `tags`, `template.<id>`: lowercase, digits, dashes, dot-separated. */
 export function isValidMetadataKey(key: string): boolean {
   return key.length <= 120 && KEY_RE.test(key);
