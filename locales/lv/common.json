@@ -701,14 +701,11 @@
     "contact_added": "Kontakts pievienots",
     "save_to_files": {
       "title": "Saglabāt failos",
-      "location": "Mape",
-      "root": "Mani faili",
       "save_here": "Saglabāt šeit",
       "saved": "Saglabāts failos",
       "saved_to": "Mapē {folder}",
       "failed": "Neizdevās saglabāt failos",
-      "load_failed": "Neizdevās ielādēt mapes. Mēģiniet vēlreiz.",
-      "no_folders": "Šeit nav mapju. Saglabājiet šeit vai atgriezieties."
+      "load_failed": "Neizdevās ielādēt mapes. Mēģiniet vēlreiz."
     }
   },
   "email_composer": {

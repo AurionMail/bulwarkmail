@@ -701,14 +701,11 @@
     "contact_added": "Dodano kontakt",
     "save_to_files": {
       "title": "Zapisz w Plikach",
-      "location": "Folder",
-      "root": "Moje pliki",
       "save_here": "Zapisz tutaj",
       "saved": "Zapisano w Plikach",
       "saved_to": "W folderze {folder}",
       "failed": "Nie udało się zapisać w Plikach",
-      "load_failed": "Nie udało się wczytać folderów. Spróbuj ponownie.",
-      "no_folders": "Brak folderów. Zapisz tutaj lub wróć."
+      "load_failed": "Nie udało się wczytać folderów. Spróbuj ponownie."
     }
   },
   "email_composer": {

@@ -701,14 +701,11 @@
     "contact_added": "Contact adăugat",
     "save_to_files": {
       "title": "Salvează în Fișiere",
-      "location": "Dosar",
-      "root": "Fișierele mele",
       "save_here": "Salvează aici",
       "saved": "Salvat în Fișiere",
       "saved_to": "În {folder}",
       "failed": "Nu s-a putut salva în Fișiere",
-      "load_failed": "Dosarele nu au putut fi încărcate. Încearcă din nou.",
-      "no_folders": "Nu există dosare aici. Salvează aici sau întoarce-te."
+      "load_failed": "Dosarele nu au putut fi încărcate. Încearcă din nou."
     }
   },
   "email_composer": {

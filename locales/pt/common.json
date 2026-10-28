@@ -701,14 +701,11 @@
     "contact_added": "Contacto adicionado",
     "save_to_files": {
       "title": "Guardar em Ficheiros",
-      "location": "Pasta",
-      "root": "Os meus ficheiros",
       "save_here": "Guardar aqui",
       "saved": "Guardado em Ficheiros",
       "saved_to": "Em {folder}",
       "failed": "Não foi possível guardar em Ficheiros",
-      "load_failed": "Não foi possível carregar as pastas. Tente novamente.",
-      "no_folders": "Não há pastas aqui. Guarde aqui ou volte atrás."
+      "load_failed": "Não foi possível carregar as pastas. Tente novamente."
     }
   },
   "email_composer": {

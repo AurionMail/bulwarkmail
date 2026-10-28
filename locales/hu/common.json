@@ -701,14 +701,11 @@
     "contact_added": "Névjegy hozzáadva",
     "save_to_files": {
       "title": "Mentés a Fájlokba",
-      "location": "Mappa",
-      "root": "Saját fájlok",
       "save_here": "Mentés ide",
       "saved": "Mentve a Fájlokba",
       "saved_to": "Ide: {folder}",
       "failed": "Nem sikerült menteni a Fájlokba",
-      "load_failed": "Nem sikerült betölteni a mappákat. Próbálja újra.",
-      "no_folders": "Itt nincsenek mappák. Mentsen ide, vagy lépjen vissza."
+      "load_failed": "Nem sikerült betölteni a mappákat. Próbálja újra."
     }
   },
   "email_composer": {

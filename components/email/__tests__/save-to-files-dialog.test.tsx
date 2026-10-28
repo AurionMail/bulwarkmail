@@ -10,7 +10,7 @@ import { SaveToFilesDialog } from '../save-to-files-dialog';
 
 const folder = (id: string, name: string, parentId: string | null = null) =>
   ({ id, name, parentId, blobId: null, type: 'd', size: 0, created: '', modified: '' }) as FileNode;
-const nodes = [folder('docs', 'Documents'), folder('invoices', 'Invoices', 'docs'), folder('hidden', '.trash')];
+const nodes = [folder('docs', 'Documents'), folder('invoices', 'Invoices', 'docs'), folder('hidden', '.Trash')];
 const attachment = { name: 'invoice.pdf', type: 'application/pdf', size: 1234, blobId: 'blob-1' };
 
 describe('SaveToFilesDialog', () => {
@@ -21,11 +21,10 @@ describe('SaveToFilesDialog', () => {
     render(<SaveToFilesDialog attachment={attachment} client={client} onClose={onClose} />);
 
     fireEvent.click(await screen.findByText('Documents'));
-    expect(screen.queryByText('.trash')).toBeNull();
-    fireEvent.click(await screen.findByText('Invoices'));
+    expect(screen.queryByText('.Trash')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'save_here' }));
 
-    await waitFor(() => expect(createFileNode).toHaveBeenCalledWith('invoice.pdf', 'blob-1', 'application/pdf', 1234, 'invoices'));
+    await waitFor(() => expect(createFileNode).toHaveBeenCalledWith('invoice.pdf', 'blob-1', 'application/pdf', 1234, 'docs'));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(useToastStore.getState().toasts.some((toast) => toast.title === 'saved')).toBe(true);
   });

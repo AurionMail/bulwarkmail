@@ -701,14 +701,11 @@
     "contact_added": "Contact toegevoegd",
     "save_to_files": {
       "title": "Opslaan in Bestanden",
-      "location": "Map",
-      "root": "Mijn bestanden",
       "save_here": "Hier opslaan",
       "saved": "Opgeslagen in Bestanden",
       "saved_to": "In {folder}",
       "failed": "Kon niet opslaan in Bestanden",
-      "load_failed": "Kon je mappen niet laden. Probeer het opnieuw.",
-      "no_folders": "Hier zijn geen mappen. Sla hier op of ga terug."
+      "load_failed": "Kon je mappen niet laden. Probeer het opnieuw."
     }
   },
   "email_composer": {

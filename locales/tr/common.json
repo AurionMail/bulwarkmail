@@ -701,14 +701,11 @@
     "contact_added": "Kişi eklendi",
     "save_to_files": {
       "title": "Dosyalar'a kaydet",
-      "location": "Klasör",
-      "root": "Dosyalarım",
       "save_here": "Buraya kaydet",
       "saved": "Dosyalar'a kaydedildi",
       "saved_to": "{folder} içine",
       "failed": "Dosyalar'a kaydedilemedi",
-      "load_failed": "Klasörler yüklenemedi. Yeniden deneyin.",
-      "no_folders": "Burada klasör yok. Buraya kaydedin veya geri dönün."
+      "load_failed": "Klasörler yüklenemedi. Yeniden deneyin."
     }
   },
   "email_composer": {

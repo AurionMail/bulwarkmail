@@ -701,14 +701,11 @@
     "contact_added": "S'ha afegit el contacte",
     "save_to_files": {
       "title": "Desa a Fitxers",
-      "location": "Carpeta",
-      "root": "Els meus fitxers",
       "save_here": "Desa aquí",
       "saved": "S'ha desat a Fitxers",
       "saved_to": "A {folder}",
       "failed": "No s'ha pogut desar a Fitxers",
-      "load_failed": "No s'han pogut carregar les carpetes. Torna-ho a provar.",
-      "no_folders": "Aquí no hi ha carpetes. Desa-ho aquí o torna enrere."
+      "load_failed": "No s'han pogut carregar les carpetes. Torna-ho a provar."
     }
   },
   "email_composer": {

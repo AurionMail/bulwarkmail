@@ -701,14 +701,11 @@
     "contact_added": "Kontakt lagt til",
     "save_to_files": {
       "title": "Lagre i Filer",
-      "location": "Mappe",
-      "root": "Mine filer",
       "save_here": "Lagre her",
       "saved": "Lagret i Filer",
       "saved_to": "I {folder}",
       "failed": "Kunne ikke lagre i Filer",
-      "load_failed": "Kunne ikke laste inn mappene. Prøv igjen.",
-      "no_folders": "Ingen mapper her. Lagre her eller gå tilbake."
+      "load_failed": "Kunne ikke laste inn mappene. Prøv igjen."
     }
   },
   "email_composer": {

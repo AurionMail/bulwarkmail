@@ -701,14 +701,11 @@
     "contact_added": "Kontakt lisatud",
     "save_to_files": {
       "title": "Salvesta failidesse",
-      "location": "Kaust",
-      "root": "Minu failid",
       "save_here": "Salvesta siia",
       "saved": "Salvestatud failidesse",
       "saved_to": "Kausta {folder}",
       "failed": "Failidesse salvestamine ei õnnestunud",
-      "load_failed": "Kaustu ei õnnestunud laadida. Proovige uuesti.",
-      "no_folders": "Siin pole kaustu. Salvestage siia või minge tagasi."
+      "load_failed": "Kaustu ei õnnestunud laadida. Proovige uuesti."
     }
   },
   "email_composer": {

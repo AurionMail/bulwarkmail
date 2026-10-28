@@ -701,14 +701,11 @@
     "contact_added": "Kontakt přidán",
     "save_to_files": {
       "title": "Uložit do Souborů",
-      "location": "Složka",
-      "root": "Moje soubory",
       "save_here": "Uložit sem",
       "saved": "Uloženo do Souborů",
       "saved_to": "Do složky {folder}",
       "failed": "Nepodařilo se uložit do Souborů",
-      "load_failed": "Složky se nepodařilo načíst. Zkuste to znovu.",
-      "no_folders": "Nejsou tu žádné složky. Uložte sem nebo se vraťte."
+      "load_failed": "Složky se nepodařilo načíst. Zkuste to znovu."
     }
   },
   "email_composer": {

@@ -701,14 +701,11 @@
     "contact_added": "連絡先を追加しました",
     "save_to_files": {
       "title": "ファイルに保存",
-      "location": "フォルダ",
-      "root": "マイファイル",
       "save_here": "ここに保存",
       "saved": "ファイルに保存しました",
       "saved_to": "{folder} に保存",
       "failed": "ファイルに保存できませんでした",
-      "load_failed": "フォルダを読み込めませんでした。もう一度お試しください。",
-      "no_folders": "ここにはフォルダがありません。ここに保存するか、戻ってください。"
+      "load_failed": "フォルダを読み込めませんでした。もう一度お試しください。"
     }
   },
   "email_composer": {

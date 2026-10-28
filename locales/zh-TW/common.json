@@ -701,14 +701,11 @@
     "contact_added": "已新增聯絡人",
     "save_to_files": {
       "title": "儲存到檔案",
-      "location": "資料夾",
-      "root": "我的檔案",
       "save_here": "儲存在這裡",
       "saved": "已儲存到檔案",
       "saved_to": "在 {folder} 中",
       "failed": "無法儲存到檔案",
-      "load_failed": "無法載入資料夾。請再試一次。",
-      "no_folders": "這裡沒有資料夾。儲存在這裡或返回。"
+      "load_failed": "無法載入資料夾。請再試一次。"
     }
   },
   "email_composer": {
