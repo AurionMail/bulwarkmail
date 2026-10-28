@@ -4,8 +4,9 @@ import { useState, useCallback, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Plus, Trash2 } from "@/components/icons";
-import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { Plus, Trash2 } from "@/components/icons";
+import { Dialog } from "@/components/ui/dialog";
+import { useDiscardChanges } from "@/components/settings/use-discard-changes";
 import { toast } from "@/stores/toast-store";
 import type {
   FilterRule,
@@ -189,7 +190,18 @@ export function FilterRuleModal({
   const periodStartRef = useRef<HTMLInputElement>(null);
   const periodEndRef = useRef<HTMLInputElement>(null);
 
-  const modalRef = useFocusTrap({ isActive: true, onEscape: onClose });
+  // Unsaved input is dropped only when the user says so (R5): Escape, the
+  // X and Cancel ask, a click outside is ignored.
+  const draft = JSON.stringify([
+    name, matchType, conditions, actions, stopProcessing, includeSpam, applyToExisting, periodOn, periodStart, periodEnd,
+  ]);
+  const [initialDraft] = useState(draft);
+  const dirty = draft !== initialDraft;
+  const { confirmDiscard, discardDialog } = useDiscardChanges();
+  const requestClose = useCallback(async () => {
+    if (await confirmDiscard(dirty)) onClose();
+  }, [confirmDiscard, dirty, onClose]);
+  const nameRef = useRef<HTMLInputElement>(null);
 
   const { hierarchicalMailboxes, mailboxPathMap } = useMemo(() => {
     const tree = buildMailboxTree(mailboxes.filter((mb) => !mb.isShared));
@@ -411,39 +423,37 @@ export function FilterRuleModal({
     "px-2.5 py-1.5 text-sm rounded-md bg-muted border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-150 cursor-pointer hover:border-muted-foreground";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px]" onClick={onClose} aria-hidden="true" />
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={isEdit ? t("edit_rule") : t("new_rule")}
-        className="relative bg-background border border-border rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200"
-      >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 className="text-lg font-semibold text-foreground">
-            {isEdit ? t("edit_rule") : t("new_rule")}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-md hover:bg-muted transition-colors duration-150 text-muted-foreground hover:text-foreground"
-            aria-label={t("cancel")}
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="px-6 py-4 space-y-6">
+    <>
+    <Dialog
+      isOpen
+      onClose={() => void requestClose()}
+      dirty={dirty}
+      title={isEdit ? t("edit_rule") : t("new_rule")}
+      size="lg"
+      className="max-h-[90vh]"
+      initialFocus={nameRef}
+      footer={
+        <>
+          <Button variant="outline" onClick={() => void requestClose()}>
+            {t("cancel")}
+          </Button>
+          <Button onClick={handleSave} disabled={!name.trim()}>
+            {t("save")}
+          </Button>
+        </>
+      }
+    >
+        <div className="pt-4 space-y-6">
           <div>
             <label className="text-sm font-medium mb-1 block text-foreground">
               {t("rule_name")}
             </label>
             <Input
+              ref={nameRef}
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t("rule_name_placeholder")}
               maxLength={200}
-              autoFocus
             />
           </div>
 
@@ -847,15 +857,8 @@ export function FilterRuleModal({
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border">
-          <Button variant="outline" onClick={onClose}>
-            {t("cancel")}
-          </Button>
-          <Button onClick={handleSave} disabled={!name.trim()}>
-            {t("save")}
-          </Button>
-        </div>
-      </div>
-    </div>
+    </Dialog>
+    {discardDialog}
+    </>
   );
 }
