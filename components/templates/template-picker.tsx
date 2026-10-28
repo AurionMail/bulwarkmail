@@ -15,7 +15,8 @@ import {
   getAutoFilledPlaceholders,
 } from '@/lib/template-utils';
 import type { TemplateSource } from '@/lib/templates/template-sources';
-import { refreshAccountTemplates } from '@/lib/templates/personal-templates';
+import { refreshAccountTemplates, resolveAccountId } from '@/lib/templates/personal-templates';
+import { refreshTeamTemplates } from '@/lib/templates/team-templates';
 import { PlaceholderFillModal } from './placeholder-fill-modal';
 import type { EmailTemplate } from '@/lib/template-types';
 
@@ -47,7 +48,10 @@ export function TemplatePicker({ isOpen, onClose, onSelect, accountId }: Templat
 
   // What another device or a team member changed shows up when the picker opens.
   useEffect(() => {
-    if (isOpen) refreshAccountTemplates(accountId);
+    if (!isOpen) return;
+    refreshAccountTemplates(accountId);
+    const id = resolveAccountId(accountId);
+    if (id) refreshTeamTemplates(id);
   }, [isOpen, accountId]);
 
   const modalRef = useFocusTrap({

@@ -14,7 +14,8 @@ import { useTemplateSourceActions, type TemplateSaveResult } from '@/hooks/use-t
 import { OrgLockedNote } from '@/components/settings/org-locked-note';
 import { filterTemplates } from '@/lib/template-utils';
 import { PERSONAL_SOURCE, type TemplateSource } from '@/lib/templates/template-sources';
-import { refreshAccountTemplates } from '@/lib/templates/personal-templates';
+import { refreshAccountTemplates, resolveAccountId } from '@/lib/templates/personal-templates';
+import { refreshTeamTemplates } from '@/lib/templates/team-templates';
 import type { EmailTemplate } from '@/lib/template-types';
 
 interface TemplateManagerModalProps {
@@ -53,7 +54,10 @@ export function TemplateManagerModal({ isOpen, onClose, accountId }: TemplateMan
   };
 
   useEffect(() => {
-    if (isOpen) refreshAccountTemplates(accountId);
+    if (!isOpen) return;
+    refreshAccountTemplates(accountId);
+    const id = resolveAccountId(accountId);
+    if (id) refreshTeamTemplates(id);
   }, [isOpen, accountId]);
 
   const modalRef = useFocusTrap({

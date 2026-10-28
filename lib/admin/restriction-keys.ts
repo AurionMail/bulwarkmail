@@ -60,6 +60,15 @@ export const RESTRICTION_KEYS: readonly RestrictionKeyDef[] = [
     page: 'org-templates',
     modes: ['hidden'],
   },
+  {
+    key: 'teamTemplates',
+    label: 'Team templates',
+    description: 'Lock: members of a group mailbox can use its templates but not add, change or delete them.',
+    category: 'Composer',
+    type: 'boolean',
+    page: 'org-templates',
+    modes: ['locked'],
+  },
 ];
 
 export function restrictionKeysForPage(page: AdminPageId): RestrictionKeyDef[] {

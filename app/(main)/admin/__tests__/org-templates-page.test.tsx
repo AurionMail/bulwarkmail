@@ -117,4 +117,20 @@ describe('Organisation > Templates', () => {
     await waitFor(() => expect(puts).toHaveLength(1));
     expect((puts[0].restrictions as Record<string, unknown>).personalTemplates).toEqual({ hidden: true });
   });
+
+  it('locks team templates for a group scope only', async () => {
+    stored = JSON.parse(JSON.stringify({
+      ...POLICY,
+      scopes: [...POLICY.scopes, { id: 'team', label: 'Team', match: { groups: ['org-team@example.org'] }, policy: {} }],
+    }));
+    render(<OrgTemplatesPage />);
+    await screen.findAllByTestId('org-template-item');
+    fireEvent.click(screen.getByRole('button', { name: 'Team' }));
+    fireEvent.click(screen.getByLabelText('Lock'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(puts).toHaveLength(1));
+    const scopes = puts[0].scopes as Array<{ id: string; policy: { restrictions?: Record<string, unknown> } }>;
+    expect(scopes.find((scope) => scope.id === 'team')?.policy.restrictions).toEqual({ teamTemplates: { locked: true } });
+    expect((puts[0].restrictions as Record<string, unknown>).teamTemplates).toBeUndefined();
+  });
 });

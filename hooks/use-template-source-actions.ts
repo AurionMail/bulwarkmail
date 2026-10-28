@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import type { EmailTemplate } from '@/lib/template-types';
 import type { TemplateSource } from '@/lib/templates/template-sources';
 import { personalTemplatesFor, resolveAccountId } from '@/lib/templates/personal-templates';
+import { deleteTeamTemplate, saveTeamTemplate } from '@/lib/templates/team-templates';
+import { generateUUID } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAccountTemplatesStore, type LocalOnlyReason } from '@/stores/account-templates-store';
 
@@ -41,18 +43,61 @@ export function useTemplateSourceActions(accountId?: string | null): TemplateSou
   const localOnly = partition?.localOnly ?? NO_LOCAL_ONLY;
   return useMemo(() => {
     const ops = () => personalTemplatesFor(resolveAccountId(resolvedId));
-    const personalOnly = <A extends unknown[]>(fn: (...args: A) => void) =>
-      async (source: TemplateSource, ...args: A): Promise<TemplateSaveResult> => {
-        if (source.kind !== 'personal' || !source.editable) return 'forbidden';
-        fn(...args);
-        return 'ok';
-      };
+    const account = () => resolveAccountId(resolvedId);
+    const group = (source: TemplateSource) => source.key.slice('team:'.length);
+    const now = () => new Date().toISOString();
+    const saveTeam = async (source: TemplateSource, template: EmailTemplate): Promise<TemplateSaveResult> => {
+      const id = account();
+      return id ? saveTeamTemplate(id, group(source), template) : 'failed';
+    };
+    const find = (source: TemplateSource, id: string) => source.templates.find((t) => t.id === id);
     return {
-      add: personalOnly((data: TemplateData) => { ops().add(data); }),
-      update: personalOnly((id: string, data: TemplateData) => ops().update(id, data)),
-      remove: personalOnly((id: string) => ops().remove(id)),
-      duplicate: personalOnly((id: string, suffix: string) => { ops().duplicate(id, suffix); }),
-      toggleFavorite: personalOnly((id: string) => ops().toggleFavorite(id)),
+      add: async (source, data) => {
+        if (!source.editable) return 'forbidden';
+        if (source.kind === 'personal') {
+          ops().add(data);
+          return 'ok';
+        }
+        if (source.kind !== 'team') return 'forbidden';
+        const at = now();
+        return saveTeam(source, { ...data, id: generateUUID(), createdAt: at, updatedAt: at });
+      },
+      update: async (source, id, data) => {
+        if (!source.editable) return 'forbidden';
+        if (source.kind === 'personal') {
+          ops().update(id, data);
+          return 'ok';
+        }
+        const existing = find(source, id);
+        if (source.kind !== 'team' || !existing) return 'forbidden';
+        return saveTeam(source, { ...existing, ...data, id, updatedAt: now() });
+      },
+      remove: async (source, id) => {
+        if (!source.editable) return 'forbidden';
+        if (source.kind === 'personal') {
+          ops().remove(id);
+          return 'ok';
+        }
+        const accountId = account();
+        if (source.kind !== 'team' || !accountId) return 'forbidden';
+        return deleteTeamTemplate(accountId, group(source), id);
+      },
+      duplicate: async (source, id, suffix) => {
+        if (!source.editable) return 'forbidden';
+        if (source.kind === 'personal') {
+          ops().duplicate(id, suffix);
+          return 'ok';
+        }
+        const existing = find(source, id);
+        if (source.kind !== 'team' || !existing) return 'forbidden';
+        const at = now();
+        return saveTeam(source, { ...existing, id: generateUUID(), name: `${existing.name} ${suffix}`, createdAt: at, updatedAt: at });
+      },
+      toggleFavorite: async (source, id) => {
+        if (source.kind !== 'personal' || !source.editable) return 'forbidden';
+        ops().toggleFavorite(id);
+        return 'ok';
+      },
       copyToPersonal: async (template) => {
         ops().add(copyOf(template));
         return 'ok';
