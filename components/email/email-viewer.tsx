@@ -4952,28 +4952,26 @@ export function EmailViewer({
                           "absolute bg-background/95 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-opacity flex items-center justify-center gap-1 px-1.5 rounded-md",
                           thumbUrl ? "top-1 end-1" : "inset-y-0 end-0 rounded-s-none rounded-e-md",
                         )}>
-                          <button
-                            className="p-1 hover:bg-accent rounded transition-colors"
-                            title={t('download')}
+                          <IconButton
+                            label={t('download')}
                             onClick={(e) => { e.stopPropagation(); handleEffectiveAttachmentDownload(attachment); }}
                           >
-                            <Download className="w-3.5 h-3.5 text-foreground" />
-                          </button>
+                            <Download />
+                          </IconButton>
                           {opensPreview && (
-                            <button
-                              className="p-1 hover:bg-accent rounded transition-colors"
-                              title={tFiles('preview')}
+                            <IconButton
+                              label={tFiles('preview')}
                               onClick={(e) => { e.stopPropagation(); handleEffectiveAttachmentOpen(attachment); }}
                             >
-                              <Eye className="w-3.5 h-3.5 text-foreground" />
-                            </button>
+                              <Eye />
+                            </IconButton>
                           )}
                           {canSaveToFiles && attachment.blobId && (
                             <IconButton label={t("save_to_files.title")} onClick={(e) => { e.stopPropagation(); setSaveToFilesTarget(attachment); }}>
                               <FolderInput className="w-4 h-4" />
                             </IconButton>
                           )}
-                          <AttachmentPluginMenu emailId={email?.id} attachment={attachment} iconClassName="w-3.5 h-3.5" />
+                          <AttachmentPluginMenu emailId={email?.id} attachment={attachment} />
                         </div>
                       </div>
                         <AttachmentPluginFrames emailId={email?.id} attachment={attachment} />
@@ -5019,28 +5017,26 @@ export function EmailViewer({
                                 <bdi>{formatFileSize(attachment.size)}</bdi>
                               </span>
                               <div className="absolute inset-y-0 end-0 rounded-e-md bg-background/95 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-opacity flex items-center justify-center gap-1 px-1.5">
-                                <button
-                                  className="p-1 hover:bg-accent rounded transition-colors"
-                                  title={t('download')}
+                                <IconButton
+                                  label={t('download')}
                                   onClick={(e) => { e.stopPropagation(); handleEffectiveAttachmentDownload(attachment); setShowAllBesideAttachments(false); }}
                                 >
-                                  <Download className="w-3.5 h-3.5 text-foreground" />
-                                </button>
+                                  <Download />
+                                </IconButton>
                                 {opensPreview && (
-                                  <button
-                                    className="p-1 hover:bg-accent rounded transition-colors"
-                                    title={tFiles('preview')}
+                                  <IconButton
+                                    label={tFiles('preview')}
                                     onClick={(e) => { e.stopPropagation(); handleEffectiveAttachmentOpen(attachment); setShowAllBesideAttachments(false); }}
                                   >
-                                    <Eye className="w-3.5 h-3.5 text-foreground" />
-                                  </button>
+                                    <Eye />
+                                  </IconButton>
                                 )}
                                 {canSaveToFiles && attachment.blobId && (
                                   <IconButton label={t("save_to_files.title")} onClick={(e) => { e.stopPropagation(); setSaveToFilesTarget(attachment); }}>
                                     <FolderInput className="w-4 h-4" />
                                   </IconButton>
                                 )}
-                                <AttachmentPluginMenu emailId={email?.id} attachment={attachment} iconClassName="w-3.5 h-3.5" />
+                                <AttachmentPluginMenu emailId={email?.id} attachment={attachment} />
                               </div>
                             </div>
                               <AttachmentPluginFrames emailId={email?.id} attachment={attachment} />
@@ -6019,21 +6015,19 @@ export function EmailViewer({
                           )}
                           <AttachmentPluginMenu emailId={email?.id} attachment={attachment} className="flex-shrink-0" iconClassName="w-3.5 h-3.5" />
                           <div className="absolute inset-y-0 end-0 rounded-e-md bg-background/95 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-opacity flex items-center justify-center gap-1 px-1.5">
-                            <button
-                              className="p-1 hover:bg-accent rounded transition-colors"
-                              title={t('download')}
+                            <IconButton
+                              label={t('download')}
                               onClick={(e) => { e.stopPropagation(); handleEffectiveAttachmentDownload(attachment); setShowAllMobileAttachments(false); }}
                             >
-                              <Download className="w-3.5 h-3.5 text-foreground" />
-                            </button>
+                              <Download />
+                            </IconButton>
                             {opensPreview && (
-                              <button
-                                className="p-1 hover:bg-accent rounded transition-colors"
-                                title={tFiles('preview')}
+                              <IconButton
+                                label={tFiles('preview')}
                                 onClick={(e) => { e.stopPropagation(); handleEffectiveAttachmentOpen(attachment); setShowAllMobileAttachments(false); }}
                               >
-                                <Eye className="w-3.5 h-3.5 text-foreground" />
-                              </button>
+                                <Eye />
+                              </IconButton>
                             )}
                           </div>
                         </div>
