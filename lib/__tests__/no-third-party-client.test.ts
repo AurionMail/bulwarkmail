@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_RELAY_BASE_URL, resolveActiveRelayUrl, resolveDefaultRelayUrl, resolvePushRelayOptions } from '@/lib/push-relays';
-import { revokePushDevice, type PushDevice } from '@/lib/web-push';
+import { resyncWebPush, revokePushDevice, type PushDevice } from '@/lib/web-push';
 import { doGetPublicKeyFromWKD } from '@/lib/plugin-sandbox/host-api';
 import { applyLiteConfig } from '@/lib/lite-config';
 import { setNoThirdPartyTraffic, noThirdPartyTraffic, parseNoThirdPartyEnv } from '@/lib/third-party-mode';
@@ -56,6 +56,33 @@ describe('push relays', () => {
     setNoThirdPartyTraffic(false);
     await revokePushDevice({ client, device, relayBaseUrl: DEFAULT_RELAY_BASE_URL });
     expect(fetchSpy).toHaveBeenCalledWith(`${DEFAULT_RELAY_BASE_URL}/api/push/register/abc`, { method: 'DELETE' });
+  });
+});
+
+describe('push registrations made before the mode', () => {
+  it('are removed from the mail server when no relay of the organisation is left', async () => {
+    vi.stubGlobal('PushManager', class {});
+    vi.stubGlobal('Notification', { permission: 'granted' });
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: { getRegistration: async () => undefined },
+    });
+    localStorage.setItem('bulwark.push.subscriptionId.v1.acc1', 'ps1');
+    const client = {
+      getAccountId: () => 'acc1',
+      destroyPushSubscription: vi.fn(async () => {}),
+      listPushSubscriptions: vi.fn(async () => []),
+    } as unknown as IJMAPClient;
+    try {
+      setNoThirdPartyTraffic(true);
+      await resyncWebPush({ client, relayBaseUrl: '', inboxOnly: false });
+      expect(client.destroyPushSubscription).toHaveBeenCalledWith('ps1');
+      expect(localStorage.getItem('bulwark.push.subscriptionId.v1.acc1')).toBeNull();
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      delete (navigator as unknown as Record<string, unknown>).serviceWorker;
+      localStorage.clear();
+    }
   });
 });
 
