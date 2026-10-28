@@ -333,6 +333,8 @@ test.describe('on a server without metadata', () => {
     await alice.waitForTimeout(3000);
     await expect(alice.getByText('Connection lost. Attempting to reconnect')).toHaveCount(0);
     if (ORG_SERVER === '0.16') expect(requests).toEqual([]);
+    // The 1.0 test build advertises metadata, so it was asked (and dropped it).
+    if (ORG_SERVER === '1.0') expect(requests.length).toBeGreaterThan(0);
     await alice.context().close();
   });
 });
