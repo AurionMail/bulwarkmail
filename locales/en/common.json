@@ -661,7 +661,14 @@
   },
   "external_mail": {
     "sender_label": "External",
-    "sender_tooltip": "From outside your organisation: {domain}"
+    "sender_tooltip": "From outside your organisation: {domain}",
+    "confirm_title": "Send outside your organisation?",
+    "confirm_message": "{count, plural, one {This recipient is} other {These # recipients are}} outside your organisation. Send only if you mean to.",
+    "field_to": "To",
+    "field_cc": "Cc",
+    "field_bcc": "Bcc",
+    "send_anyway": "Send anyway",
+    "back": "Back"
   },
   "email_composer": {
     "select_from_directory": "Select from directory",
