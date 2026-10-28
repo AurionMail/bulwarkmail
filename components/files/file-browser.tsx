@@ -704,7 +704,8 @@ export function FileBrowser({
         else if (selected.length > 0) onClearSelection();
         return;
       }
-      if (e.key === "Delete" && selected.length > 0) {
+      // Backspace deletes too, as in Mail (⌘⌫ on a Mac); Alt+↑ goes up.
+      if ((e.key === "Delete" || e.key === "Backspace") && selected.length > 0) {
         e.preventDefault();
         deleteNames(selected);
         return;
@@ -724,7 +725,7 @@ export function FileBrowser({
         onToggleSelect(focusedName);
         return;
       }
-      if ((e.key === "Backspace" || (e.altKey && e.key === "ArrowUp")) && currentPath !== "/") {
+      if (e.altKey && e.key === "ArrowUp" && currentPath !== "/") {
         e.preventDefault();
         navigateUp();
         return;

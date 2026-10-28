@@ -354,4 +354,26 @@ describe('FileBrowser', () => {
     fireEvent.keyDown(input, { key: 'Escape' });
     expect(screen.queryByRole('dialog', { name: 'rename_title' })).toBeNull();
   });
+
+  it("deletes the selection with Backspace, as Mail does, and goes up a folder only with Alt+Up", () => {
+    const onDelete = vi.fn(async () => {});
+    const onNavigate = vi.fn();
+    renderBrowser({ props: { currentPath: '/Documents', selectedResources: new Set(['notes.txt']), onDelete, onNavigate } });
+    fireEvent.keyDown(window, { key: 'Backspace' });
+    expect(onDelete).toHaveBeenCalledWith('notes.txt');
+    expect(onNavigate).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true });
+    expect(onNavigate).toHaveBeenCalled();
+  });
+
+  it("keeps the selection when Escape closes an item's menu", () => {
+    const onClearSelection = vi.fn();
+    renderBrowser({ props: { selectedResources: new Set(['notes.txt', 'Documents']), onClearSelection } });
+    fireEvent.contextMenu(within(list()).getByText('notes.txt'));
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+    fireEvent.keyDown(document.activeElement ?? window, { key: 'Escape' });
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(onClearSelection).not.toHaveBeenCalled();
+  });
 });
