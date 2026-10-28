@@ -673,6 +673,18 @@
     "plugin_panel_hide": "Plugin-Bereich ausblenden",
     "copy": "Kopieren"
   },
+  "external_mail": {
+    "sender_label": "Extern",
+    "sender_tooltip": "Von {domain}, außerhalb Ihrer Organisation",
+    "sender_tooltip_no_domain": "Von einer Adresse ohne Domain, außerhalb Ihrer Organisation",
+    "confirm_title": "Außerhalb Ihrer Organisation senden?",
+    "confirm_message": "{count, plural, one {Dieser Empfänger ist} other {Diese # Empfänger sind}} außerhalb Ihrer Organisation. Senden Sie nur, wenn das so gewollt ist.",
+    "field_to": "An",
+    "field_cc": "Cc",
+    "field_bcc": "Bcc",
+    "send_anyway": "Trotzdem senden",
+    "back": "Zurück"
+  },
   "email_composer": {
     "select_from_directory": "Aus Verzeichnis auswählen",
     "minimize": "Minimieren",

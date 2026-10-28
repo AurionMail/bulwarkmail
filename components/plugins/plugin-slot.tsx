@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useSyncExternalStore } from 'react';
+import React from 'react';
 import type { SlotName } from '@/lib/plugin-types';
-import { offersForSlot, subscribe } from '@/lib/plugin-sandbox/registry';
 import { PluginIframeSlot } from './plugin-iframe-slot';
 import { isInlineSlot } from '@/lib/plugin-sandbox/slot-layout';
+import { usePluginSlotOffers } from '@/hooks/use-plugin-slot-offers';
 import { cn } from '@/lib/utils';
 
 interface PluginSlotProps {
@@ -14,8 +14,8 @@ interface PluginSlotProps {
 }
 
 export function PluginSlot({ name, className, extraProps }: PluginSlotProps) {
-  const getSnapshot = () => offersForSlot(name);
-  const offers = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  // Without a retired plugin's offer while Bulwark does its job (host-features.ts).
+  const offers = usePluginSlotOffers(name);
 
   if (offers.length === 0) return null;
 

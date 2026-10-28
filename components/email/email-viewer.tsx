@@ -103,6 +103,7 @@ import { useSettingsStore } from "@/stores/settings-store";
 import { useShallow } from "zustand/react/shallow";
 import { useEffectiveMailLayout } from "@/hooks/use-effective-mail-layout";
 import { registerComposeFlush } from "@/lib/compose-flush-registry";
+import { useExternalRecipientConfirmStore } from "@/stores/external-recipient-confirm-store";
 import { useUIStore } from "@/stores/ui-store";
 import { useContactStore, getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
 import { toast } from "@/stores/toast-store";
@@ -115,6 +116,7 @@ import { useAccountStore } from "@/stores/account-store";
 import { useEmailStore, resolveEmailBlobContext, emailWriteSource, emailLinkSource, type EmailBlobContext } from "@/stores/email-store";
 import { useThemeStore } from "@/stores/theme-store";
 import { EmailIdentityBadge } from "./email-identity-badge";
+import { ExternalSenderChip } from "./external-sender-chip";
 import { UnsubscribeBanner } from "./unsubscribe-banner";
 import { CalendarInvitationBanner } from "./calendar-invitation-banner";
 import { ReadReceiptBanner } from "./read-receipt-banner";
@@ -175,7 +177,8 @@ interface EmailViewerProps {
   onMarkAsRead?: (emailId: string, read: boolean, opts?: { automatic?: boolean }) => void;
   onSetTag?: (emailId: string, tagId: string | null) => void;
   onDownloadAttachment?: (blobId: string, name: string, type?: string, forceDownload?: boolean, source?: EmailBlobContext) => void;
-  onQuickReply?: (body: string) => Promise<void>;
+  /** Resolves false when nothing was sent (the user went back), so the text stays. */
+  onQuickReply?: (body: string) => Promise<boolean | void>;
   /** Keeps the typed quick reply as a draft before an automatic sign-out (lib/compose-flush-registry.ts). */
   onSaveQuickReplyDraft?: (body: string) => Promise<void>;
   onMarkAsSpam?: () => void;
@@ -857,6 +860,7 @@ export function MvExpandedConversationCard({
             {!compact && sender?.name && sender.email && (
               <span className="text-xs text-muted-foreground truncate">&lt;{sender.email}&gt;</span>
             )}
+            <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} className="self-center" />
             <span className="ms-auto ps-2 text-xs text-muted-foreground whitespace-nowrap">
               {compact ? formatDate(emailDisplayDate(email)) : mvSenderDate(emailDisplayDate(email), timeFormat)}
             </span>
@@ -1374,7 +1378,9 @@ export function EmailViewer({
   const [isQuickReplyFocused, setIsQuickReplyFocused] = useState(false);
   const [isSendingQuickReply, setIsSendingQuickReply] = useState(false);
   // An automatic sign-out keeps typed quick-reply text as a draft; text on
-  // its way out as a reply needs none.
+  // its way out as a reply needs none. A reply still waiting on the
+  // "Send outside your organisation?" question hasn't gone out: the question
+  // is answered with Back and the text kept as a draft.
   const quickReplyDraftRef = useRef({ text: quickReplyText, sending: isSendingQuickReply, save: onSaveQuickReplyDraft });
   quickReplyDraftRef.current = { text: quickReplyText, sending: isSendingQuickReply, save: onSaveQuickReplyDraft };
   const hasQuickReplyDraft = quickReplyText.trim().length > 0 && !!onSaveQuickReplyDraft;
@@ -1382,7 +1388,12 @@ export function EmailViewer({
     if (!hasQuickReplyDraft) return;
     return registerComposeFlush(async () => {
       const { text, sending, save } = quickReplyDraftRef.current;
-      if (sending || !text.trim() || !save) return;
+      if (!text.trim() || !save) return;
+      if (sending) {
+        const confirm = useExternalRecipientConfirmStore.getState();
+        if (!confirm.pending) return;
+        confirm.cancelAll();
+      }
       await save(text);
     });
   }, [hasQuickReplyDraft]);
@@ -1390,9 +1401,12 @@ export function EmailViewer({
     if (!quickReplyText.trim() || !onQuickReply || isSendingQuickReply) return;
     setIsSendingQuickReply(true);
     try {
-      await onQuickReply(quickReplyText);
-      setQuickReplyText("");
-      setIsQuickReplyFocused(false);
+      const sent = await onQuickReply(quickReplyText);
+      // Back on a pre-send question keeps what the user typed.
+      if (sent !== false) {
+        setQuickReplyText("");
+        setIsQuickReplyFocused(false);
+      }
     } catch (error) {
       console.error("Failed to send quick reply:", error);
       // The text stays in the box, so say why it did not go out.
@@ -5062,6 +5076,7 @@ export function EmailViewer({
                     {mvViewer && sender?.email && sender?.name && (
                       <span className="text-xs text-muted-foreground truncate">&lt;{sender.email}&gt;</span>
                     )}
+                    <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} />
                     <EmailIdentityBadge email={email} identities={identities} />
                     {shouldShowUnsubBanner && listHeaders?.listUnsubscribe && (
                       <UnsubscribeBanner
@@ -5351,6 +5366,7 @@ export function EmailViewer({
                 ) : (
                   <span className="text-sm font-semibold text-foreground">{t('unknown_sender')}</span>
                 )}
+                <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} />
                 <EmailIdentityBadge email={email} identities={identities} />
                 {shouldShowUnsubBanner && listHeaders?.listUnsubscribe && (
                   <UnsubscribeBanner
@@ -5538,6 +5554,7 @@ export function EmailViewer({
                           onViewContact={handleViewContactSidebar}
                           className="text-sm text-start"
                         />
+                        <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} />
                         {senderVerification && (
                           <span
                             className={cn(
