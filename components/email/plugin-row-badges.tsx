@@ -6,6 +6,7 @@ import type { EmailListBadge } from "@/lib/plugin-types";
 import { renderHooks } from "@/lib/plugin-hooks";
 import { emailSummary } from "@/lib/plugin-projection";
 import { rowBadgeGeneration, subscribeRowBadges } from "@/lib/plugin-sandbox/row-badges";
+import { PLUGIN_ICON_RE } from "@/lib/plugin-sandbox/actions";
 import { cn } from "@/lib/utils";
 import { iconForName } from "@/components/icons";
 import { TAG_GROUP_CLASS, TAG_LOZENGE_CLASS } from "./tag-badge";
@@ -41,8 +42,6 @@ function cacheKey(email: Email, listeners: number, generation: number): string {
 // variable or a colour name. Anything else (url(), expressions, several
 // declarations) is dropped and the badge keeps the theme colours.
 const SAFE_COLOR = /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla)\([\d\s.,%/+-]+\)|var\(--[a-z0-9-]+\)|[a-z]{3,30})$/i;
-// A host icon name, as for plugin actions.
-const ICON_NAME = /^[A-Za-z0-9:-]{1,40}$/;
 
 // eslint-disable-next-line no-control-regex -- removing control characters is the point
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/g;
@@ -71,7 +70,7 @@ export function normalizeBadges(raw: unknown): EmailListBadge[] {
     const title = cleanText(candidate.title, MAX_TITLE_LENGTH);
     if (title) badge.title = title;
     const icon = cleanText(candidate.icon, 40);
-    if (icon && ICON_NAME.test(icon)) badge.icon = icon;
+    if (icon && PLUGIN_ICON_RE.test(icon)) badge.icon = icon;
     out.push(badge);
   }
   return out;

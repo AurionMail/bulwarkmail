@@ -15,12 +15,10 @@ import {
   type ActionFilter,
   type RegisteredAction,
 } from '@/lib/plugin-sandbox/actions';
-import { mailAccountKind, type MailAccountKind } from '@/lib/plugin-sandbox/account-kind';
+import { mailAccountKind, useConfirmedGroups, type MailAccountKind } from '@/lib/plugin-sandbox/account-kind';
 import type { Email } from '@/lib/jmap/types';
 import { useAuthStore } from '@/stores/auth-store';
 import { resolveEmailBlobContext, useEmailStore } from '@/stores/email-store';
-import { usePolicyStore } from '@/stores/policy-store';
-import { useAccountSubjects } from '@/lib/org/account-subjects';
 
 const EMPTY: RegisteredAction[] = [];
 
@@ -43,12 +41,11 @@ type ActionEmail = Pick<Email, 'id' | 'keywords' | 'sourceAccountId' | 'sourceCl
 /**
  * The account and keywords of `email`, for the actions' `accounts`,
  * `hasKeyword` and `notKeyword` and the click's `accountId`. Follows the
- * group lists as they load, so a team mailbox's actions appear once the
- * server said which accounts are groups.
+ * server's answer on which accounts are groups, so a team mailbox's
+ * actions appear once it is in.
  */
 export function useMessageActionTarget(email: ActionEmail | null | undefined): MessageActionTarget {
-  const subject = usePolicyStore((s) => s.subject);
-  const subjects = useAccountSubjects((s) => s.subjects);
+  const groups = useConfirmedGroups((s) => s.revision);
   const client = useAuthStore((s) => s.client);
   const selectedMailbox = useEmailStore((s) => s.selectedMailbox);
   const mailboxes = useEmailStore((s) => s.mailboxes);
@@ -64,28 +61,27 @@ export function useMessageActionTarget(email: ActionEmail | null | undefined): M
     const accountId = owner.accountId && owner.accountId !== own ? owner.accountId : undefined;
     return {
       ...(accountId ? { accountId } : {}),
-      accountKind: owner.client ? mailAccountKind(owner.client, owner.accountId, owner.clientAccountId) : null,
+      accountKind: owner.client ? mailAccountKind(owner.client, owner.accountId) : null,
       keywords: keywordKey ? keywordKey.split(' ') : [],
     };
     // The group lists, the open folder and its mailboxes decide the account
     // (resolveEmailBlobContext reads them from the stores).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasEmail, keywordKey, sourceAccountId, sourceClientAccountId, client, subject, subjects, selectedMailbox, mailboxes]);
+  }, [hasEmail, keywordKey, sourceAccountId, sourceClientAccountId, client, groups, selectedMailbox, mailboxes]);
 }
 
 /** The account kind of the open folder, for surfaces about the selection (message-bulk-actions). */
 export function useFolderAccountKind(): MailAccountKind | null {
-  const subject = usePolicyStore((s) => s.subject);
-  const subjects = useAccountSubjects((s) => s.subjects);
+  const groups = useConfirmedGroups((s) => s.revision);
   const client = useAuthStore((s) => s.client);
   const selectedMailbox = useEmailStore((s) => s.selectedMailbox);
   const mailboxes = useEmailStore((s) => s.mailboxes);
   return useMemo(() => {
     const owner = resolveEmailBlobContext({}, client);
-    return owner.client ? mailAccountKind(owner.client, owner.accountId, owner.clientAccountId) : null;
+    return owner.client ? mailAccountKind(owner.client, owner.accountId) : null;
     // See useMessageActionTarget.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client, subject, subjects, selectedMailbox, mailboxes]);
+  }, [client, groups, selectedMailbox, mailboxes]);
 }
 
 /** The context a message action's click carries: the surface's, plus the message's account. */

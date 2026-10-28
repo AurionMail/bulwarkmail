@@ -37,8 +37,10 @@ describe('PluginListFilters', () => {
     render(<PluginListFilters mailboxRole="inbox" accountKind="group" onChange={onChange} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Open' }));
-    const active = screen.getByRole('button', { name: 'remove_filter' });
+    // The name stays the label; pressed says it's on, the tooltip how to remove it.
+    const active = screen.getByRole('button', { name: 'Open' });
     expect(active).toHaveAttribute('aria-pressed', 'true');
+    expect(active).toHaveAttribute('title', 'remove_filter');
     expect(active.querySelector('svg')).not.toBeNull();
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(activeListFilterCondition(TEAM)).toEqual({ notKeyword: '$done' });

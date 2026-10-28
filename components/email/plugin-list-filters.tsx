@@ -19,7 +19,7 @@ const NONE = new Set<string>();
 /**
  * The keyword filters plugins offer for this folder (api.ui.setListFilters),
  * as chips in the list header. A chip turns its filter on; an active chip
- * shows a cross and turns it off again. `onChange` loads the list again
+ * is pressed, shows a cross and turns it off again. `onChange` loads the list again
  * whenever the applied filters change, also when a plugin drops one that
  * was on.
  */
@@ -65,8 +65,9 @@ export function PluginListFilters({
             key={filter.key}
             type="button"
             aria-pressed={on}
-            aria-label={on ? t("remove_filter", { label: filter.label }) : filter.label}
-            title={filter.pluginName}
+            // The name stays the filter's label; aria-pressed says it is on,
+            // and the tooltip says a click removes it.
+            title={on ? t("remove_filter", { label: filter.label }) : filter.pluginName}
             data-plugin-list-filter={filter.key}
             onClick={() => setListFilterActive(filter.key)}
             className={cn(
