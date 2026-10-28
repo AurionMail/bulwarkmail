@@ -4573,19 +4573,29 @@ export function EmailComposer({
 
           {/* Right side - Discard + Send (desktop) */}
           <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={handleDiscardClick}
-              data-mv-discard={mvWindow ? "" : undefined}
-              className={cn(
-                "text-sm text-muted-foreground transition-colors",
-                mvWindow ? "grid h-9 w-9 place-items-center rounded-full hover:bg-muted hover:text-foreground" : "hover:text-destructive px-2 py-1 max-md:min-h-11 max-md:px-3",
-              )}
-              title={mvWindow ? t('discard') : undefined}
-              aria-label={mvWindow ? t('discard') : undefined}
-            >
-              {mvWindow ? <Trash2 className="w-5 h-5" /> : t('discard')}
-            </button>
+            {mvWindow ? (
+              <button
+                type="button"
+                onClick={handleDiscardClick}
+                data-mv-discard=""
+                className="grid h-9 w-9 place-items-center rounded-full text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                title={t('discard')}
+                aria-label={t('discard')}
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            ) : (
+              // A standard button beside Send (R1), not bare text.
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleDiscardClick}
+                data-testid="composer-discard"
+                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              >
+                {t('discard')}
+              </Button>
+            )}
             {composerClient?.hasDelayedSend() || hasSendMenuActions ? (
               <div data-mv-send={mvWindow ? "" : undefined} className="relative hidden md:inline-flex">
                 <Button
