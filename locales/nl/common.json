@@ -3303,8 +3303,7 @@
       "copy_location": "Locatie kopiëren",
       "meeting_link": "Vergaderlink",
       "tentative": "Voorlopig",
-      "cancelled": "Geannuleerd",
-      "delete_confirm": "Dit evenement verwijderen?"
+      "cancelled": "Geannuleerd"
     },
     "form": {
       "title": "Titel",
@@ -3319,7 +3318,6 @@
       "calendar_select": "Agenda",
       "save": "Opslaan",
       "cancel": "Annuleren",
-      "delete_confirm": "Weet je zeker dat je dit evenement wilt verwijderen?",
       "color": "Kleur"
     },
     "participants": {
@@ -3420,6 +3418,15 @@
       "keep": "Doorgaan met bewerken",
       "confirm": "Verwerpen"
     },
+    "delete_dialog": {
+      "event_title": "Afspraak verwijderen?",
+      "event_message": "\"{title}\" wordt verwijderd. Dit kan niet ongedaan worden gemaakt.",
+      "event_message_attendees": "\"{title}\" wordt verwijderd en de deelnemers krijgen een annulering.",
+      "task_title": "Taak verwijderen?",
+      "task_message": "\"{title}\" wordt verwijderd. Dit kan niet ongedaan worden gemaakt.",
+      "subscription_title": "Afmelden voor agenda?",
+      "confirm": "Verwijderen"
+    },
     "alerts": {
       "title": "Herinnering",
       "none": "Geen herinnering",
@@ -3512,6 +3519,9 @@
       "event_created": "Evenement aangemaakt",
       "event_updated": "Evenement bijgewerkt",
       "event_deleted": "Evenement verwijderd",
+      "event_delete_error": "Kan afspraak niet verwijderen",
+      "task_deleted": "Taak verwijderd",
+      "task_delete_error": "Kan taak niet verwijderen",
       "calendar_created": "Agenda aangemaakt",
       "calendar_deleted": "Agenda verwijderd",
       "event_move_error": "Evenement verplaatsen mislukt",

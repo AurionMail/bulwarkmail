@@ -3303,8 +3303,7 @@
       "copy_location": "Helyszín másolása",
       "meeting_link": "Találkozó link",
       "tentative": "Előzetes",
-      "cancelled": "Lemondva",
-      "delete_confirm": "Törlöd ezt az eseményt?"
+      "cancelled": "Lemondva"
     },
     "form": {
       "title": "Cím",
@@ -3319,7 +3318,6 @@
       "calendar_select": "Naptár",
       "save": "Mentés",
       "cancel": "Mégse",
-      "delete_confirm": "Biztosan törölni szeretnéd ezt az eseményt?",
       "color": "Szín"
     },
     "participants": {
@@ -3419,6 +3417,15 @@
       "message": "A változtatásai nincsenek mentve.",
       "keep": "Szerkesztés folytatása",
       "confirm": "Elvetés"
+    },
+    "delete_dialog": {
+      "event_title": "Törli az eseményt?",
+      "event_message": "A(z) \"{title}\" törlődik. Ez nem vonható vissza.",
+      "event_message_attendees": "A(z) \"{title}\" törlődik, és a résztvevők lemondást kapnak.",
+      "task_title": "Törli a feladatot?",
+      "task_message": "A(z) \"{title}\" törlődik. Ez nem vonható vissza.",
+      "subscription_title": "Leiratkozik a naptárról?",
+      "confirm": "Törlés"
     },
     "alerts": {
       "title": "Emlékeztetők",
@@ -3538,6 +3545,9 @@
       "event_created": "Esemény létrehozva",
       "event_updated": "Esemény frissítve",
       "event_deleted": "Esemény törölve",
+      "event_delete_error": "Nem sikerült törölni az eseményt",
+      "task_deleted": "Feladat törölve",
+      "task_delete_error": "Nem sikerült törölni a feladatot",
       "calendar_created": "Naptár létrehozva",
       "calendar_deleted": "Naptár törölve",
       "event_move_error": "Nem sikerült áthelyezni az eseményt",

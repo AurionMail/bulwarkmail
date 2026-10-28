@@ -3303,8 +3303,7 @@
       "copy_location": "نسخ الموقع",
       "meeting_link": "رابط الاجتماع",
       "tentative": "مبدئي",
-      "cancelled": "ملغى",
-      "delete_confirm": "حذف هذا الحدث؟"
+      "cancelled": "ملغى"
     },
     "form": {
       "title": "العنوان",
@@ -3319,7 +3318,6 @@
       "calendar_select": "التقويم",
       "save": "حفظ",
       "cancel": "إلغاء",
-      "delete_confirm": "هل أنت متأكد أنك تريد حذف هذا الحدث؟",
       "color": "اللون"
     },
     "participants": {
@@ -3419,6 +3417,15 @@
       "message": "لم يتم حفظ تغييراتك.",
       "keep": "متابعة التعديل",
       "confirm": "تجاهل"
+    },
+    "delete_dialog": {
+      "event_title": "حذف الحدث؟",
+      "event_message": "سيتم حذف \"{title}\". لا يمكن التراجع عن ذلك.",
+      "event_message_attendees": "سيتم حذف \"{title}\" وسيتلقى المشاركون إشعارًا بالإلغاء.",
+      "task_title": "حذف المهمة؟",
+      "task_message": "سيتم حذف \"{title}\". لا يمكن التراجع عن ذلك.",
+      "subscription_title": "إلغاء الاشتراك في التقويم؟",
+      "confirm": "حذف"
     },
     "alerts": {
       "title": "التذكيرات",
@@ -3538,6 +3545,9 @@
       "event_created": "تم إنشاء الحدث",
       "event_updated": "تم تحديث الحدث",
       "event_deleted": "تم حذف الحدث",
+      "event_delete_error": "تعذّر حذف الحدث",
+      "task_deleted": "تم حذف المهمة",
+      "task_delete_error": "تعذّر حذف المهمة",
       "calendar_created": "تم إنشاء التقويم",
       "calendar_deleted": "تم حذف التقويم",
       "event_move_error": "فشل نقل الحدث",

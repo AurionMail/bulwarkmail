@@ -134,7 +134,6 @@ export function EventDetailPopover({
   const [ready, setReady] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [noteExpanded, setNoteExpanded] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isSavingNote, setIsSavingNote] = useState(false);
 
   // Bare addresses (the organizer above all — Stalwart drops its display name)
@@ -230,7 +229,7 @@ export function EventDetailPopover({
     const height = popoverRef.current.offsetHeight;
     setPosition(computePosition(anchorRect, height));
     if (!ready) requestAnimationFrame(() => setReady(true));
-  }, [anchorRect, noteExpanded, showDeleteConfirm, ready]);
+  }, [anchorRect, noteExpanded, ready]);
 
   // Content that grows after the popover was placed (a plugin section reports
   // its height a moment later) moves it again, so it stays in the window.
@@ -350,7 +349,7 @@ export function EventDetailPopover({
         {canEditBody && (
           <button
             type="button"
-            onClick={() => setShowDeleteConfirm(true)}
+            onClick={onDelete}
             className={HEADER_BUTTON}
             aria-label={t("events.delete")}
             title={t("events.delete")}
@@ -376,30 +375,6 @@ export function EventDetailPopover({
           <X className="w-4 h-4" />
         </button>
       </div>
-
-      {showDeleteConfirm && (
-        <div className="mx-4 mt-1 mb-2 flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2">
-          <span className="text-sm text-destructive flex-1">
-            {t("detail.delete_confirm")}
-          </span>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={onDelete}
-            className="h-7 text-xs"
-          >
-            {t("events.delete")}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowDeleteConfirm(false)}
-            className="h-7 text-xs"
-          >
-            {t("form.cancel")}
-          </Button>
-        </div>
-      )}
 
       <div className="flex items-start gap-2.5 px-4 pb-1">
         <span

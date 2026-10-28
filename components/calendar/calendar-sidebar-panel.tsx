@@ -15,6 +15,8 @@ import { sharedCalendarColorKey } from "@/lib/shared-calendar-colors";
 import { toast } from "@/stores/toast-store";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator, ContextMenuSubMenu } from "@/components/ui/context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import { displayNow } from "@/lib/timezone";
 import { readableTextOn } from "@/lib/color-transform";
@@ -231,8 +233,19 @@ export function CalendarSidebarPanel({
     }
   };
 
+  const { dialogProps: confirmDialogProps, confirm: confirmAction } = useConfirmDialog();
+
+  // Removes the feed's calendar and its events: asked first (R3).
   const handleUnsubscribe = async (subId: string) => {
     if (!client) return;
+    const sub = icalSubscriptions.find((s) => s.id === subId);
+    const ok = await confirmAction({
+      title: t('delete_dialog.subscription_title'),
+      message: tSub('confirm_delete', { name: sub?.name ?? '' }),
+      confirmText: tSub('unsubscribe'),
+      variant: 'destructive',
+    });
+    if (!ok) return;
     try {
       await removeICalSubscription(client, subId);
       toast.success(tSub('deleted'));
@@ -599,6 +612,7 @@ export function CalendarSidebarPanel({
       )}
 
       {renderCalendarMenu()}
+      <ConfirmDialog {...confirmDialogProps} />
     </div>
   );
 }

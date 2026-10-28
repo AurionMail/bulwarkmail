@@ -3303,8 +3303,7 @@
       "copy_location": "Копіювати місце",
       "meeting_link": "Посилання на зустріч",
       "tentative": "Орієнтовний",
-      "cancelled": "Скасовано",
-      "delete_confirm": "Видалити цю подію?"
+      "cancelled": "Скасовано"
     },
     "form": {
       "title": "Назва",
@@ -3319,7 +3318,6 @@
       "calendar_select": "Календар",
       "save": "зберегти",
       "cancel": "Скасувати",
-      "delete_confirm": "Ви впевнені, що хочете видалити цю подію?",
       "color": "колір"
     },
     "participants": {
@@ -3420,6 +3418,15 @@
       "keep": "Продовжити редагування",
       "confirm": "Відкинути"
     },
+    "delete_dialog": {
+      "event_title": "Видалити подію?",
+      "event_message": "«{title}» буде видалено. Цю дію не можна скасувати.",
+      "event_message_attendees": "«{title}» буде видалено, а учасники отримають скасування.",
+      "task_title": "Видалити завдання?",
+      "task_message": "«{title}» буде видалено. Цю дію не можна скасувати.",
+      "subscription_title": "Відписатися від календаря?",
+      "confirm": "Видалити"
+    },
     "alerts": {
       "title": "Нагадування",
       "none": "Жодного нагадування",
@@ -3512,6 +3519,9 @@
       "event_created": "Подія створена",
       "event_updated": "Подію оновлено",
       "event_deleted": "Подію видалено",
+      "event_delete_error": "Не вдалося видалити подію",
+      "task_deleted": "Завдання видалено",
+      "task_delete_error": "Не вдалося видалити завдання",
       "calendar_created": "Календар створено",
       "calendar_deleted": "Календар видалено",
       "event_move_error": "Не вдалося перемістити подію",

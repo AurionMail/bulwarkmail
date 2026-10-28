@@ -3303,8 +3303,7 @@
       "copy_location": "Ort kopieren",
       "meeting_link": "Besprechungslink",
       "tentative": "Vorläufig",
-      "cancelled": "Abgesagt",
-      "delete_confirm": "Dieses Ereignis löschen?"
+      "cancelled": "Abgesagt"
     },
     "form": {
       "title": "Titel",
@@ -3319,7 +3318,6 @@
       "calendar_select": "Kalender",
       "save": "Speichern",
       "cancel": "Abbrechen",
-      "delete_confirm": "Sind Sie sicher, dass Sie diesen Termin löschen möchten?",
       "color": "Farbe"
     },
     "participants": {
@@ -3420,6 +3418,15 @@
       "keep": "Weiter bearbeiten",
       "confirm": "Verwerfen"
     },
+    "delete_dialog": {
+      "event_title": "Termin löschen?",
+      "event_message": "„{title}“ wird gelöscht. Das kann nicht rückgängig gemacht werden.",
+      "event_message_attendees": "„{title}“ wird gelöscht, und die Teilnehmer erhalten eine Absage.",
+      "task_title": "Aufgabe löschen?",
+      "task_message": "„{title}“ wird gelöscht. Das kann nicht rückgängig gemacht werden.",
+      "subscription_title": "Kalender abbestellen?",
+      "confirm": "Löschen"
+    },
     "alerts": {
       "title": "Erinnerung",
       "none": "Keine Erinnerung",
@@ -3512,6 +3519,9 @@
       "event_created": "Termin erstellt",
       "event_updated": "Termin aktualisiert",
       "event_deleted": "Termin gelöscht",
+      "event_delete_error": "Termin konnte nicht gelöscht werden",
+      "task_deleted": "Aufgabe gelöscht",
+      "task_delete_error": "Aufgabe konnte nicht gelöscht werden",
       "calendar_created": "Kalender erstellt",
       "calendar_deleted": "Kalender gelöscht",
       "event_move_error": "Termin konnte nicht verschoben werden",

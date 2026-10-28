@@ -3221,8 +3221,7 @@
       "copy_location": "העתק מיקום",
       "meeting_link": "קישור לפגישה",
       "tentative": "טנטטיבי",
-      "cancelled": "בוטל",
-      "delete_confirm": "למחוק את האירוע הזה?"
+      "cancelled": "בוטל"
     },
     "form": {
       "title": "כותרת",
@@ -3237,7 +3236,6 @@
       "calendar_select": "לוּחַ שָׁנָה",
       "save": "שמור",
       "cancel": "לְבַטֵל",
-      "delete_confirm": "האם אתה בטוח שברצונך למחוק את האירוע הזה?",
       "color": "צבע"
     },
     "participants": {
@@ -3338,6 +3336,15 @@
       "keep": "להמשיך לערוך",
       "confirm": "לבטל שינויים"
     },
+    "delete_dialog": {
+      "event_title": "למחוק את האירוע?",
+      "event_message": "\"{title}\" יימחק. לא ניתן לבטל פעולה זו.",
+      "event_message_attendees": "\"{title}\" יימחק והמשתתפים יקבלו הודעת ביטול.",
+      "task_title": "למחוק את המשימה?",
+      "task_message": "\"{title}\" תימחק. לא ניתן לבטל פעולה זו.",
+      "subscription_title": "לבטל את המנוי ללוח השנה?",
+      "confirm": "מחיקה"
+    },
     "alerts": {
       "title": "תזכורת",
       "none": "אין תזכורת",
@@ -3430,6 +3437,9 @@
       "event_created": "האירוע נוצר",
       "event_updated": "האירוע עודכן",
       "event_deleted": "האירוע נמחק",
+      "event_delete_error": "לא ניתן היה למחוק את האירוע",
+      "task_deleted": "המשימה נמחקה",
+      "task_delete_error": "לא ניתן היה למחוק את המשימה",
       "calendar_created": "יומן נוצר",
       "calendar_deleted": "לוח השנה נמחק",
       "event_move_error": "העברת האירוע נכשלה",

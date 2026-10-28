@@ -3303,8 +3303,7 @@
       "copy_location": "Konumu kopyala",
       "meeting_link": "Toplantı bağlantısı",
       "tentative": "Geçici",
-      "cancelled": "İptal edildi",
-      "delete_confirm": "Bu etkinlik silinsin mi?"
+      "cancelled": "İptal edildi"
     },
     "form": {
       "title": "Başlık",
@@ -3319,7 +3318,6 @@
       "calendar_select": "Takvim",
       "save": "Kaydet",
       "cancel": "İptal",
-      "delete_confirm": "Bu etkinliği silmek istediğinizden emin misiniz?",
       "color": "Renk"
     },
     "participants": {
@@ -3419,6 +3417,15 @@
       "message": "Değişiklikleriniz kaydedilmedi.",
       "keep": "Düzenlemeye devam et",
       "confirm": "Değişiklikleri at"
+    },
+    "delete_dialog": {
+      "event_title": "Etkinlik silinsin mi?",
+      "event_message": "\"{title}\" silinecek. Bu işlem geri alınamaz.",
+      "event_message_attendees": "\"{title}\" silinecek ve katılımcılara iptal bildirimi gönderilecek.",
+      "task_title": "Görev silinsin mi?",
+      "task_message": "\"{title}\" silinecek. Bu işlem geri alınamaz.",
+      "subscription_title": "Takvim aboneliği iptal edilsin mi?",
+      "confirm": "Sil"
     },
     "alerts": {
       "title": "Hatırlatıcı",
@@ -3538,6 +3545,9 @@
       "event_created": "Etkinlik oluşturuldu",
       "event_updated": "Etkinlik güncellendi",
       "event_deleted": "Etkinlik silindi",
+      "event_delete_error": "Etkinlik silinemedi",
+      "task_deleted": "Görev silindi",
+      "task_delete_error": "Görev silinemedi",
       "calendar_created": "Takvim oluşturuldu",
       "calendar_deleted": "Takvim silindi",
       "event_move_error": "Etkinlik taşınamadı",

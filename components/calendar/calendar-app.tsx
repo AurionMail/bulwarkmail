@@ -73,7 +73,7 @@ import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { SchedulingDeniedError } from "@/lib/jmap/scheduling-error";
 import { CreateCalendarModal } from "@/components/calendar/create-calendar-modal";
 import { CalendarSidebarHeader } from "@/components/calendar/calendar-sidebar-header";
-import { getUserParticipantId, collectUserCalendarAddresses } from "@/lib/calendar-participants";
+import { getUserParticipantId, collectUserCalendarAddresses, userOrganizes } from "@/lib/calendar-participants";
 import { generateBirthdayEvents, createBirthdayCalendar, BIRTHDAY_CALENDAR_ID } from "@/lib/birthday-calendar";
 import { sharedCalendarColorKey, pickUnusedCalendarColor } from "@/lib/shared-calendar-colors";
 import { debug } from "@/lib/debug";
@@ -736,12 +736,28 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     return true;
   }, [client, editTask, taskStore]);
 
+  // A task delete can't be taken back: ask first (R3), then say how it went.
   const handleDeleteTask = useCallback(async (id: string) => {
     if (!client) return;
-    if (!(await taskStore.deleteTask(client, id))) return;
+    const task = taskStore.tasks.find((x) => x.id === id);
+    const ok = await confirmAction({
+      title: t("delete_dialog.task_title"),
+      message: t("delete_dialog.task_message", { title: task?.title || t("tasks.no_title") }),
+      confirmText: t("delete_dialog.confirm"),
+      variant: "destructive",
+    });
+    if (!ok) return;
+    try {
+      // false: a plugin stopped it and said why.
+      if (!(await taskStore.deleteTask(client, id))) return;
+    } catch (error) {
+      toast.error(describeError(error, t("notifications.task_delete_error")));
+      return;
+    }
+    toast.success(t("notifications.task_deleted"));
     setShowTaskModal(false);
     setEditTask(null);
-  }, [client, taskStore]);
+  }, [client, taskStore, confirmAction, describeError, t]);
 
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1184,12 +1200,30 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       });
       return;
     }
+    // One event: asked here, from every place Delete is offered (R3). A
+    // series gets the scope question above instead.
+    const title = eventToDelete?.title || t("events.no_title");
+    const cancels = !!sendSchedulingMessages && !!eventToDelete && userOrganizes(eventToDelete, currentUserEmails);
+    const ok = await confirmAction({
+      title: t("delete_dialog.event_title"),
+      message: cancels
+        ? t("delete_dialog.event_message_attendees", { title })
+        : t("delete_dialog.event_message", { title }),
+      confirmText: t("delete_dialog.confirm"),
+      variant: "destructive",
+    });
+    if (!ok) return;
     try {
-      if (await deleteEvent(client, id, sendSchedulingMessages)) toast.success(t("notifications.event_deleted"));
-    } catch {
-      toast.error(t("notifications.event_error"));
+      if (!(await deleteEvent(client, id, sendSchedulingMessages))) return;
+      toast.success(t("notifications.event_deleted"));
+      if (editEvent?.id === id) {
+        setShowEventModal(false);
+        setEditEvent(null);
+      }
+    } catch (error) {
+      toast.error(describeError(error, t("notifications.event_delete_error")));
     }
-  }, [client, deleteEvent, events, editEvent, showEventModal, t]);
+  }, [client, deleteEvent, events, editEvent, showEventModal, confirmAction, currentUserEmails, describeError, t]);
 
   const submitRsvp = useCallback(async (
     eventId: string,
@@ -1265,7 +1299,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
         debug.error("Failed to refresh calendar after scope operation");
       }
     } catch (error) {
-      toast.error(describeError(error, t("notifications.event_error")));
+      toast.error(describeError(error, t(type === "delete" ? "notifications.event_delete_error" : "notifications.event_error")));
     }
   }, [client, pendingScopeAction, updateEvent, deleteEvent, createEvent, findMasterEvent, currentUserEmails, resolveContactName, refetchCurrentRange, submitRsvp, describeError, t]);
 
@@ -2184,6 +2218,10 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       <RecurrenceScopeDialog
         isOpen={!!pendingScopeAction}
         actionType={pendingScopeAction?.type || "edit"}
+        note={pendingScopeAction?.type === "delete" && pendingScopeAction.sendScheduling
+          && userOrganizes(pendingScopeAction.event, currentUserEmails)
+          ? t("participants.cancel_notification")
+          : undefined}
         onSelect={handleScopeSelect}
         onClose={() => setPendingScopeAction(null)}
       />

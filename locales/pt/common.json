@@ -3303,8 +3303,7 @@
       "copy_location": "Copiar local",
       "meeting_link": "Link da reunião",
       "tentative": "Provisório",
-      "cancelled": "Cancelado",
-      "delete_confirm": "Excluir este evento?"
+      "cancelled": "Cancelado"
     },
     "form": {
       "title": "Título",
@@ -3319,7 +3318,6 @@
       "calendar_select": "Calendário",
       "save": "Salvar",
       "cancel": "Cancelar",
-      "delete_confirm": "Tem certeza de que deseja excluir este evento?",
       "color": "Cor"
     },
     "participants": {
@@ -3419,6 +3417,15 @@
       "message": "Suas alterações não foram salvas.",
       "keep": "Continuar editando",
       "confirm": "Descartar"
+    },
+    "delete_dialog": {
+      "event_title": "Excluir evento?",
+      "event_message": "\"{title}\" será excluído. Isso não pode ser desfeito.",
+      "event_message_attendees": "\"{title}\" será excluído e os participantes receberão um cancelamento.",
+      "task_title": "Excluir tarefa?",
+      "task_message": "\"{title}\" será excluída. Isso não pode ser desfeito.",
+      "subscription_title": "Cancelar assinatura do calendário?",
+      "confirm": "Excluir"
     },
     "alerts": {
       "title": "Lembrete",
@@ -3538,6 +3545,9 @@
       "event_created": "Evento criado",
       "event_updated": "Evento atualizado",
       "event_deleted": "Evento excluído",
+      "event_delete_error": "Não foi possível excluir o evento",
+      "task_deleted": "Tarefa excluída",
+      "task_delete_error": "Não foi possível excluir a tarefa",
       "calendar_created": "Calendário criado",
       "calendar_deleted": "Calendário excluído",
       "event_move_error": "Falha ao mover o evento",

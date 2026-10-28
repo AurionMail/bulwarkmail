@@ -3303,8 +3303,7 @@
       "copy_location": "Copiază locația",
       "meeting_link": "Link către întâlnire",
       "tentative": "Provizoriu",
-      "cancelled": "Anulat",
-      "delete_confirm": "Doriți să ștergeți acest eveniment?"
+      "cancelled": "Anulat"
     },
     "form": {
       "title": "Titlu",
@@ -3319,7 +3318,6 @@
       "calendar_select": "Calendar",
       "save": "Salvare",
       "cancel": "Anulează",
-      "delete_confirm": "Sunteți sigur că doriți să ștergeți acest eveniment?",
       "color": "Culoare"
     },
     "participants": {
@@ -3419,6 +3417,15 @@
       "message": "Modificările dvs. nu au fost salvate.",
       "keep": "Continuați editarea",
       "confirm": "Renunțați"
+    },
+    "delete_dialog": {
+      "event_title": "Ștergeți evenimentul?",
+      "event_message": "„{title}” va fi șters. Acțiunea nu poate fi anulată.",
+      "event_message_attendees": "„{title}” va fi șters, iar participanții vor primi o anulare.",
+      "task_title": "Ștergeți sarcina?",
+      "task_message": "„{title}” va fi ștearsă. Acțiunea nu poate fi anulată.",
+      "subscription_title": "Vă dezabonați de la calendar?",
+      "confirm": "Ștergeți"
     },
     "alerts": {
       "title": "Memento-uri",
@@ -3538,6 +3545,9 @@
       "event_created": "Eveniment creat",
       "event_updated": "Eveniment actualizat",
       "event_deleted": "Eveniment șters",
+      "event_delete_error": "Evenimentul nu a putut fi șters",
+      "task_deleted": "Sarcină ștearsă",
+      "task_delete_error": "Sarcina nu a putut fi ștearsă",
       "calendar_created": "Calendar creat",
       "calendar_deleted": "Calendar șters",
       "event_move_error": "Nu s-a putut muta evenimentul",

@@ -472,7 +472,6 @@ export function EventModal({
     setPreservedAlerts(preserved);
     setUseDefaultAlerts(false);
   }, [defaultAlerts]);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   // Set synchronously, so a second save in the same tick is refused too.
   const savingRef = useRef(false);
@@ -1249,31 +1248,19 @@ export function EventModal({
         <div className="px-6 py-3 border-t border-border flex-shrink-0 flex items-center justify-between">
           <div className="flex items-center gap-1">
             {onDelete && canEditBody && (
-              showDeleteConfirm ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-destructive">{t("form.delete_confirm")}</span>
-                  <Button variant="outline" size="sm" onClick={() => { onDelete(event.id, hasParticipants || undefined); onClose(); }} className="text-destructive border-destructive/30">
-                    {t("events.delete")}
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(false)}>
-                    {t("form.cancel")}
-                  </Button>
-                </div>
-              ) : (
-                <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(true)} className="text-destructive">
-                  <Trash2 className="w-4 h-4 me-1" />
-                  {t("events.delete")}
-                </Button>
-              )
+              <Button variant="ghost" size="sm" onClick={() => onDelete(event.id, hasParticipants || undefined)} className="text-destructive">
+                <Trash2 className="w-4 h-4 me-1" />
+                {t("events.delete")}
+              </Button>
             )}
-            {onDuplicate && !showDeleteConfirm && (
+            {onDuplicate && (
               <Button variant="ghost" size="sm" onClick={handleDuplicate} aria-label={t("events.duplicate")}>
                 <Copy className="w-4 h-4 me-1" />
                 {t("events.duplicate")}
               </Button>
             )}
           </div>
-          {!showDeleteConfirm && canEditBody && (
+          {canEditBody && (
             <Button onClick={() => setMode("edit")}>
               <Pencil className="w-4 h-4 me-1" />
               {t("events.edit")}
@@ -1601,48 +1588,17 @@ export function EventModal({
       <div className="flex items-center justify-between px-6 py-4 border-t border-border flex-shrink-0 flex-wrap gap-y-2">
         <div className="flex items-center gap-1 w-full">
           {isEdit && onDelete && (
-            showDeleteConfirm ? (
-              <div className="flex items-center gap-2 flex-wrap">
-                <div>
-                  <span className="text-sm text-red-600 dark:text-red-400">
-                    {t("form.delete_confirm")}
-                  </span>
-                  {hasParticipants && (
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {t("participants.cancel_notification")}
-                    </p>
-                  )}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => { onDelete(event!.id, hasParticipants || undefined); onClose(); }}
-                  className="text-red-600 dark:text-red-400 border-red-300 dark:border-red-700 w-full"
-                >
-                  {t("events.delete")}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="w-full"
-                >
-                  {t("form.cancel")}
-                </Button>
-              </div>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowDeleteConfirm(true)}
-                className="text-red-600 dark:text-red-400 w-full"
-              >
-                <Trash2 className="w-4 h-4 me-1" />
-                {t("events.delete")}
-              </Button>
-            )
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onDelete(event!.id, hasParticipants || undefined)}
+              className="text-destructive w-full"
+            >
+              <Trash2 className="w-4 h-4 me-1" />
+              {t("events.delete")}
+            </Button>
           )}
-          {isEdit && onDuplicate && !showDeleteConfirm && (
+          {isEdit && onDuplicate && (
             <Button
               variant="ghost"
               size="sm"
@@ -1656,7 +1612,6 @@ export function EventModal({
           )}
         </div>
 
-        {!showDeleteConfirm && (
         <div className="flex gap-2 w-full">
           <Button
             variant="outline"
@@ -1675,7 +1630,6 @@ export function EventModal({
             {isSaving ? t("subscription.saving") : t("form.save")}
           </Button>
         </div>
-        )}
       </div>
       <ConfirmDialog {...discardDialogProps} />
     </div>

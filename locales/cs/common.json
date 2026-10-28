@@ -3303,8 +3303,7 @@
       "copy_location": "Kopírovat místo",
       "meeting_link": "Odkaz na schůzku",
       "tentative": "Nezávazně",
-      "cancelled": "Zrušeno",
-      "delete_confirm": "Odstranit tuto událost?"
+      "cancelled": "Zrušeno"
     },
     "form": {
       "title": "Název",
@@ -3319,7 +3318,6 @@
       "calendar_select": "Kalendář",
       "save": "Uložit",
       "cancel": "Zrušit",
-      "delete_confirm": "Opravdu chcete odstranit tuto událost?",
       "color": "Barva"
     },
     "participants": {
@@ -3420,6 +3418,15 @@
       "keep": "Pokračovat v úpravách",
       "confirm": "Zahodit"
     },
+    "delete_dialog": {
+      "event_title": "Odstranit událost?",
+      "event_message": "Událost \"{title}\" bude odstraněna. Tuto akci nelze vrátit.",
+      "event_message_attendees": "Událost \"{title}\" bude odstraněna a účastníci dostanou zrušení.",
+      "task_title": "Odstranit úkol?",
+      "task_message": "Úkol \"{title}\" bude odstraněn. Tuto akci nelze vrátit.",
+      "subscription_title": "Zrušit odběr kalendáře?",
+      "confirm": "Odstranit"
+    },
     "alerts": {
       "title": "Připomenutí",
       "none": "Žádné připomenutí",
@@ -3512,6 +3519,9 @@
       "event_created": "Událost byla vytvořena",
       "event_updated": "Událost byla aktualizována",
       "event_deleted": "Událost byla odstraněna",
+      "event_delete_error": "Událost se nepodařilo odstranit",
+      "task_deleted": "Úkol byl odstraněn",
+      "task_delete_error": "Úkol se nepodařilo odstranit",
       "calendar_created": "Kalendář byl vytvořen",
       "calendar_deleted": "Kalendář byl odstraněn",
       "event_move_error": "Přesun události selhal",

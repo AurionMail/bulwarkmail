@@ -3303,8 +3303,7 @@
       "copy_location": "複製地點",
       "meeting_link": "會議連結",
       "tentative": "暫定",
-      "cancelled": "已取消",
-      "delete_confirm": "刪除這個活動嗎？"
+      "cancelled": "已取消"
     },
     "form": {
       "title": "標題",
@@ -3319,7 +3318,6 @@
       "calendar_select": "行事曆",
       "save": "儲存",
       "cancel": "取消",
-      "delete_confirm": "您確定要刪除此活動嗎？",
       "color": "顏色"
     },
     "participants": {
@@ -3419,6 +3417,15 @@
       "message": "你的變更尚未儲存。",
       "keep": "繼續編輯",
       "confirm": "捨棄"
+    },
+    "delete_dialog": {
+      "event_title": "要刪除活動嗎？",
+      "event_message": "「{title}」將被刪除，且無法復原。",
+      "event_message_attendees": "「{title}」將被刪除，參與者會收到取消通知。",
+      "task_title": "要刪除任務嗎？",
+      "task_message": "「{title}」將被刪除，且無法復原。",
+      "subscription_title": "要取消訂閱行事曆嗎？",
+      "confirm": "刪除"
     },
     "alerts": {
       "title": "提醒",
@@ -3538,6 +3545,9 @@
       "event_created": "活動已建立",
       "event_updated": "活動已更新",
       "event_deleted": "活動已刪除",
+      "event_delete_error": "無法刪除活動",
+      "task_deleted": "任務已刪除",
+      "task_delete_error": "無法刪除任務",
       "calendar_created": "已建立行事曆",
       "calendar_deleted": "行事曆已刪除",
       "event_move_error": "無法移動活動",

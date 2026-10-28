@@ -3303,8 +3303,7 @@
       "copy_location": "Kopiér sted",
       "meeting_link": "Mødelink",
       "tentative": "Foreløbig",
-      "cancelled": "Aflyst",
-      "delete_confirm": "Slet denne begivenhed?"
+      "cancelled": "Aflyst"
     },
     "form": {
       "title": "Titel",
@@ -3319,7 +3318,6 @@
       "calendar_select": "Kalender",
       "save": "Gem",
       "cancel": "Annuller",
-      "delete_confirm": "Er du sikker på, at du vil slette denne begivenhed?",
       "color": "Farve"
     },
     "participants": {
@@ -3419,6 +3417,15 @@
       "message": "Dine ændringer er ikke gemt.",
       "keep": "Fortsæt redigering",
       "confirm": "Kassér"
+    },
+    "delete_dialog": {
+      "event_title": "Slet begivenhed?",
+      "event_message": "\"{title}\" bliver slettet. Det kan ikke fortrydes.",
+      "event_message_attendees": "\"{title}\" bliver slettet, og deltagerne får en aflysning.",
+      "task_title": "Slet opgave?",
+      "task_message": "\"{title}\" bliver slettet. Det kan ikke fortrydes.",
+      "subscription_title": "Afmeld kalender?",
+      "confirm": "Slet"
     },
     "alerts": {
       "title": "Påmindelse",
@@ -3538,6 +3545,9 @@
       "event_created": "Begivenhed oprettet",
       "event_updated": "Begivenhed opdateret",
       "event_deleted": "Begivenhed slettet",
+      "event_delete_error": "Begivenheden kunne ikke slettes",
+      "task_deleted": "Opgave slettet",
+      "task_delete_error": "Opgaven kunne ikke slettes",
       "calendar_created": "Kalender oprettet",
       "calendar_deleted": "Kalender slettet",
       "event_move_error": "Kunne ikke flytte begivenhed",

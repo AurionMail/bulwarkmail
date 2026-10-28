@@ -2617,8 +2617,7 @@
       "copy_location": "คัดลอกสถานที่",
       "meeting_link": "ลิงก์การประชุม",
       "tentative": "อาจจะไป",
-      "cancelled": "ยกเลิกแล้ว",
-      "delete_confirm": "ลบกิจกรรมนี้หรือไม่?"
+      "cancelled": "ยกเลิกแล้ว"
     },
     "form": {
       "title": "ชื่อเรื่อง",
@@ -2633,7 +2632,6 @@
       "calendar_select": "ปฏิทิน",
       "save": "บันทึก",
       "cancel": "ยกเลิก",
-      "delete_confirm": "คุณแน่ใจหรือไม่ว่าต้องการลบกิจกรรมนี้?",
       "color": "สี"
     },
     "participants": {
@@ -2733,6 +2731,15 @@
       "message": "การเปลี่ยนแปลงของคุณยังไม่ได้บันทึก",
       "keep": "แก้ไขต่อ",
       "confirm": "ละทิ้ง"
+    },
+    "delete_dialog": {
+      "event_title": "ลบกิจกรรมหรือไม่?",
+      "event_message": "“{title}” จะถูกลบ และไม่สามารถเรียกคืนได้",
+      "event_message_attendees": "“{title}” จะถูกลบ และผู้เข้าร่วมจะได้รับแจ้งการยกเลิก",
+      "task_title": "ลบงานหรือไม่?",
+      "task_message": "“{title}” จะถูกลบ และไม่สามารถเรียกคืนได้",
+      "subscription_title": "ยกเลิกการสมัครรับปฏิทินหรือไม่?",
+      "confirm": "ลบ"
     },
     "alerts": {
       "title": "การแจ้งเตือน",
@@ -2852,6 +2859,9 @@
       "event_created": "สร้างกิจกรรมแล้ว",
       "event_updated": "อัปเดตกิจกรรมแล้ว",
       "event_deleted": "ลบกิจกรรมแล้ว",
+      "event_delete_error": "ไม่สามารถลบกิจกรรมได้",
+      "task_deleted": "ลบงานแล้ว",
+      "task_delete_error": "ไม่สามารถลบงานได้",
       "calendar_created": "สร้างปฏิทินแล้ว",
       "calendar_deleted": "ลบปฏิทินแล้ว",
       "event_move_error": "ย้ายกิจกรรมไม่สำเร็จ",

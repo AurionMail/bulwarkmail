@@ -3303,8 +3303,7 @@
       "copy_location": "Copiar ubicación",
       "meeting_link": "Enlace de reunión",
       "tentative": "Provisional",
-      "cancelled": "Cancelado",
-      "delete_confirm": "¿Eliminar este evento?"
+      "cancelled": "Cancelado"
     },
     "form": {
       "title": "Título",
@@ -3319,7 +3318,6 @@
       "calendar_select": "Calendario",
       "save": "Guardar",
       "cancel": "Cancelar",
-      "delete_confirm": "¿Está seguro de que desea eliminar este evento?",
       "color": "Color"
     },
     "participants": {
@@ -3420,6 +3418,15 @@
       "keep": "Seguir editando",
       "confirm": "Descartar"
     },
+    "delete_dialog": {
+      "event_title": "¿Eliminar evento?",
+      "event_message": "Se eliminará \"{title}\". No se puede deshacer.",
+      "event_message_attendees": "Se eliminará \"{title}\" y los participantes recibirán una cancelación.",
+      "task_title": "¿Eliminar tarea?",
+      "task_message": "Se eliminará \"{title}\". No se puede deshacer.",
+      "subscription_title": "¿Cancelar la suscripción al calendario?",
+      "confirm": "Eliminar"
+    },
     "alerts": {
       "title": "Recordatorio",
       "none": "Sin recordatorio",
@@ -3512,6 +3519,9 @@
       "event_created": "Evento creado",
       "event_updated": "Evento actualizado",
       "event_deleted": "Evento eliminado",
+      "event_delete_error": "No se pudo eliminar el evento",
+      "task_deleted": "Tarea eliminada",
+      "task_delete_error": "No se pudo eliminar la tarea",
       "calendar_created": "Calendario creado",
       "calendar_deleted": "Calendario eliminado",
       "event_move_error": "Error al mover el evento",

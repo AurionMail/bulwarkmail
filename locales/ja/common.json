@@ -3303,8 +3303,7 @@
       "copy_location": "場所をコピー",
       "meeting_link": "会議リンク",
       "tentative": "仮",
-      "cancelled": "キャンセル済み",
-      "delete_confirm": "このイベントを削除しますか？"
+      "cancelled": "キャンセル済み"
     },
     "form": {
       "title": "タイトル",
@@ -3319,7 +3318,6 @@
       "calendar_select": "カレンダー",
       "save": "保存",
       "cancel": "キャンセル",
-      "delete_confirm": "この予定を削除してもよろしいですか？",
       "color": "色"
     },
     "participants": {
@@ -3420,6 +3418,15 @@
       "keep": "編集を続ける",
       "confirm": "破棄"
     },
+    "delete_dialog": {
+      "event_title": "予定を削除しますか？",
+      "event_message": "「{title}」を削除します。元に戻すことはできません。",
+      "event_message_attendees": "「{title}」を削除し、参加者にキャンセルを通知します。",
+      "task_title": "タスクを削除しますか？",
+      "task_message": "「{title}」を削除します。元に戻すことはできません。",
+      "subscription_title": "カレンダーの購読を解除しますか？",
+      "confirm": "削除"
+    },
     "alerts": {
       "title": "リマインダー",
       "none": "リマインダーなし",
@@ -3512,6 +3519,9 @@
       "event_created": "予定を作成しました",
       "event_updated": "予定を更新しました",
       "event_deleted": "予定を削除しました",
+      "event_delete_error": "予定を削除できませんでした",
+      "task_deleted": "タスクを削除しました",
+      "task_delete_error": "タスクを削除できませんでした",
       "calendar_created": "カレンダーを作成しました",
       "calendar_deleted": "カレンダーを削除しました",
       "event_move_error": "イベントの移動に失敗しました",

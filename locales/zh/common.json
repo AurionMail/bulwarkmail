@@ -3303,8 +3303,7 @@
       "copy_location": "复制地点",
       "meeting_link": "会议链接",
       "tentative": "暂定",
-      "cancelled": "已取消",
-      "delete_confirm": "删除这个活动吗？"
+      "cancelled": "已取消"
     },
     "form": {
       "title": "标题",
@@ -3319,7 +3318,6 @@
       "calendar_select": "日历",
       "save": "保存",
       "cancel": "取消",
-      "delete_confirm": "您确定要删除此活动吗？",
       "color": "颜色"
     },
     "participants": {
@@ -3420,6 +3418,15 @@
       "keep": "继续编辑",
       "confirm": "放弃"
     },
+    "delete_dialog": {
+      "event_title": "删除事件？",
+      "event_message": "“{title}”将被删除，且无法撤销。",
+      "event_message_attendees": "“{title}”将被删除，参与者会收到取消通知。",
+      "task_title": "删除任务？",
+      "task_message": "“{title}”将被删除，且无法撤销。",
+      "subscription_title": "退订日历？",
+      "confirm": "删除"
+    },
     "alerts": {
       "title": "提醒",
       "none": "无提醒",
@@ -3512,6 +3519,9 @@
       "event_created": "活动已创建",
       "event_updated": "活动已更新",
       "event_deleted": "活动已删除",
+      "event_delete_error": "无法删除事件",
+      "task_deleted": "任务已删除",
+      "task_delete_error": "无法删除任务",
       "calendar_created": "已创建日历",
       "calendar_deleted": "日历已删除",
       "event_move_error": "移动事件失败",

@@ -3303,8 +3303,7 @@
       "copy_location": "Kopiuj lokalizację",
       "meeting_link": "Link do spotkania",
       "tentative": "Wstępnie",
-      "cancelled": "Odwołane",
-      "delete_confirm": "Usunąć to wydarzenie?"
+      "cancelled": "Odwołane"
     },
     "form": {
       "title": "Tytuł",
@@ -3319,7 +3318,6 @@
       "calendar_select": "Kalendarz",
       "save": "Zapisz",
       "cancel": "Anuluj",
-      "delete_confirm": "Czy na pewno chcesz usunąć to wydarzenie?",
       "color": "Kolor"
     },
     "participants": {
@@ -3420,6 +3418,15 @@
       "keep": "Kontynuuj edycję",
       "confirm": "Odrzuć"
     },
+    "delete_dialog": {
+      "event_title": "Usunąć wydarzenie?",
+      "event_message": "\"{title}\" zostanie usunięte. Tej operacji nie można cofnąć.",
+      "event_message_attendees": "\"{title}\" zostanie usunięte, a uczestnicy otrzymają odwołanie.",
+      "task_title": "Usunąć zadanie?",
+      "task_message": "\"{title}\" zostanie usunięte. Tej operacji nie można cofnąć.",
+      "subscription_title": "Anulować subskrypcję kalendarza?",
+      "confirm": "Usuń"
+    },
     "alerts": {
       "title": "Przypomnienie",
       "none": "Brak przypomnienia",
@@ -3512,6 +3519,9 @@
       "event_created": "Wydarzenie utworzono",
       "event_updated": "Wydarzenie zaktualizowano",
       "event_deleted": "Wydarzenie usunięto",
+      "event_delete_error": "Nie udało się usunąć wydarzenia",
+      "task_deleted": "Zadanie usunięto",
+      "task_delete_error": "Nie udało się usunąć zadania",
       "calendar_created": "Kalendarz utworzono",
       "calendar_deleted": "Kalendarz usunięto",
       "event_move_error": "Nie udało się przenieść wydarzenia",

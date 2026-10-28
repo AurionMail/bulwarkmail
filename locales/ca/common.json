@@ -3303,8 +3303,7 @@
       "copy_location": "Copia la ubicació",
       "meeting_link": "Enllaç de la reunió",
       "tentative": "Provisional",
-      "cancelled": "Cancel·lat",
-      "delete_confirm": "Voleu suprimir aquest esdeveniment?"
+      "cancelled": "Cancel·lat"
     },
     "form": {
       "title": "Títol",
@@ -3319,7 +3318,6 @@
       "calendar_select": "Calendari",
       "save": "Desa",
       "cancel": "Cancel·la",
-      "delete_confirm": "Segur que voleu suprimir aquest esdeveniment?",
       "color": "Color"
     },
     "participants": {
@@ -3419,6 +3417,15 @@
       "message": "Els canvis no s'han desat.",
       "keep": "Continua editant",
       "confirm": "Descarta"
+    },
+    "delete_dialog": {
+      "event_title": "Voleu suprimir l'esdeveniment?",
+      "event_message": "Se suprimirà «{title}». No es pot desfer.",
+      "event_message_attendees": "Se suprimirà «{title}» i els participants rebran una cancel·lació.",
+      "task_title": "Voleu suprimir la tasca?",
+      "task_message": "Se suprimirà «{title}». No es pot desfer.",
+      "subscription_title": "Voleu cancel·lar la subscripció al calendari?",
+      "confirm": "Suprimeix"
     },
     "alerts": {
       "title": "Recordatoris",
@@ -3538,6 +3545,9 @@
       "event_created": "Esdeveniment creat",
       "event_updated": "Esdeveniment actualitzat",
       "event_deleted": "Esdeveniment suprimit",
+      "event_delete_error": "No s'ha pogut suprimir l'esdeveniment",
+      "task_deleted": "Tasca suprimida",
+      "task_delete_error": "No s'ha pogut suprimir la tasca",
       "calendar_created": "Calendari creat",
       "calendar_deleted": "Calendari suprimit",
       "event_move_error": "No s'ha pogut moure l'esdeveniment",

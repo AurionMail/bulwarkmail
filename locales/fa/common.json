@@ -3303,8 +3303,7 @@
       "copy_location": "کپی مکان",
       "meeting_link": "لینک جلسه",
       "tentative": "احتمالی",
-      "cancelled": "لغو شده",
-      "delete_confirm": "این رویداد حذف شود؟"
+      "cancelled": "لغو شده"
     },
     "form": {
       "title": "عنوان",
@@ -3319,7 +3318,6 @@
       "calendar_select": "تقویم",
       "save": "ذخیره",
       "cancel": "انصراف",
-      "delete_confirm": "آیا از حذف این رویداد اطمینان دارید؟",
       "color": "رنگ"
     },
     "participants": {
@@ -3419,6 +3417,15 @@
       "message": "تغییرات شما ذخیره نشده است.",
       "keep": "ادامه ویرایش",
       "confirm": "دور انداختن"
+    },
+    "delete_dialog": {
+      "event_title": "رویداد حذف شود؟",
+      "event_message": "\"{title}\" حذف خواهد شد. این کار قابل بازگشت نیست.",
+      "event_message_attendees": "\"{title}\" حذف خواهد شد و شرکت‌کنندگان اطلاعیه لغو دریافت می‌کنند.",
+      "task_title": "وظیفه حذف شود؟",
+      "task_message": "\"{title}\" حذف خواهد شد. این کار قابل بازگشت نیست.",
+      "subscription_title": "اشتراک تقویم لغو شود؟",
+      "confirm": "حذف"
     },
     "alerts": {
       "title": "یادآورها",
@@ -3538,6 +3545,9 @@
       "event_created": "رویداد ایجاد شد",
       "event_updated": "رویداد به‌روزرسانی شد",
       "event_deleted": "رویداد حذف شد",
+      "event_delete_error": "حذف رویداد ممکن نشد",
+      "task_deleted": "وظیفه حذف شد",
+      "task_delete_error": "حذف وظیفه ممکن نشد",
       "calendar_created": "تقویم ایجاد شد",
       "calendar_deleted": "تقویم حذف شد",
       "event_move_error": "انتقال رویداد ناموفق بود",

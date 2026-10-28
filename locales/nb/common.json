@@ -3303,8 +3303,7 @@
       "copy_location": "Kopier sted",
       "meeting_link": "Møtelenke",
       "tentative": "Foreløpig",
-      "cancelled": "Avlyst",
-      "delete_confirm": "Vil du slette denne hendelsen?"
+      "cancelled": "Avlyst"
     },
     "form": {
       "title": "Tittel",
@@ -3319,7 +3318,6 @@
       "calendar_select": "Kalender",
       "save": "Lagre",
       "cancel": "Avbryt",
-      "delete_confirm": "Er du sikker på at du vil slette denne hendelsen?",
       "color": "Farge"
     },
     "participants": {
@@ -3419,6 +3417,15 @@
       "message": "Endringene dine er ikke lagret.",
       "keep": "Fortsett å redigere",
       "confirm": "Forkast"
+    },
+    "delete_dialog": {
+      "event_title": "Vil du slette hendelsen?",
+      "event_message": "«{title}» blir slettet. Dette kan ikke angres.",
+      "event_message_attendees": "«{title}» blir slettet, og deltakerne får en avlysning.",
+      "task_title": "Vil du slette oppgaven?",
+      "task_message": "«{title}» blir slettet. Dette kan ikke angres.",
+      "subscription_title": "Vil du fjerne abonnementet på kalenderen?",
+      "confirm": "Slett"
     },
     "alerts": {
       "title": "Påminnelser",
@@ -3538,6 +3545,9 @@
       "event_created": "Hendelsen er opprettet",
       "event_updated": "Hendelsen er oppdatert",
       "event_deleted": "Hendelsen er slettet",
+      "event_delete_error": "Kunne ikke slette hendelsen",
+      "task_deleted": "Oppgaven er slettet",
+      "task_delete_error": "Kunne ikke slette oppgaven",
       "calendar_created": "Kalenderen er opprettet",
       "calendar_deleted": "Kalenderen er slettet",
       "event_move_error": "Kunne ikke flytte hendelsen",

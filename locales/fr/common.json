@@ -3303,8 +3303,7 @@
       "copy_location": "Copier le lieu",
       "meeting_link": "Lien de réunion",
       "tentative": "Provisoire",
-      "cancelled": "Annulé",
-      "delete_confirm": "Supprimer cet événement ?"
+      "cancelled": "Annulé"
     },
     "form": {
       "title": "Titre",
@@ -3319,7 +3318,6 @@
       "calendar_select": "Calendrier",
       "save": "Enregistrer",
       "cancel": "Annuler",
-      "delete_confirm": "Êtes-vous sûr de vouloir supprimer cet événement ?",
       "color": "Couleur"
     },
     "participants": {
@@ -3419,6 +3417,15 @@
       "message": "Vos modifications n'ont pas été enregistrées.",
       "keep": "Continuer l'édition",
       "confirm": "Abandonner"
+    },
+    "delete_dialog": {
+      "event_title": "Supprimer l'événement ?",
+      "event_message": "« {title} » sera supprimé. Cette action est irréversible.",
+      "event_message_attendees": "« {title} » sera supprimé et les participants recevront une annulation.",
+      "task_title": "Supprimer la tâche ?",
+      "task_message": "« {title} » sera supprimée. Cette action est irréversible.",
+      "subscription_title": "Se désabonner du calendrier ?",
+      "confirm": "Supprimer"
     },
     "alerts": {
       "title": "Rappel",
@@ -3538,6 +3545,9 @@
       "event_created": "Événement créé",
       "event_updated": "Événement mis à jour",
       "event_deleted": "Événement supprimé",
+      "event_delete_error": "Impossible de supprimer l'événement",
+      "task_deleted": "Tâche supprimée",
+      "task_delete_error": "Impossible de supprimer la tâche",
       "calendar_created": "Calendrier créé",
       "calendar_deleted": "Calendrier supprimé",
       "event_move_error": "Échec du déplacement de l'événement",

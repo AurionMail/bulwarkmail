@@ -3302,8 +3302,7 @@
       "copy_location": "Kopēt vietu",
       "meeting_link": "Sapulces saite",
       "tentative": "Pagaidām",
-      "cancelled": "Atcelts",
-      "delete_confirm": "Vai dzēst šo pasākumu?"
+      "cancelled": "Atcelts"
     },
     "form": {
       "title": "Nosaukums",
@@ -3318,7 +3317,6 @@
       "calendar_select": "Kalendārs",
       "save": "Saglabāt",
       "cancel": "Atcelt",
-      "delete_confirm": "Vai tiešām vēlaties dzēst šo pasākumu?",
       "color": "Krāsa"
     },
     "participants": {
@@ -3419,6 +3417,15 @@
       "keep": "Turpināt rediģēšanu",
       "confirm": "Atmest"
     },
+    "delete_dialog": {
+      "event_title": "Dzēst notikumu?",
+      "event_message": "«{title}» tiks dzēsts. To nevar atsaukt.",
+      "event_message_attendees": "«{title}» tiks dzēsts, un dalībnieki saņems atcelšanas paziņojumu.",
+      "task_title": "Dzēst uzdevumu?",
+      "task_message": "«{title}» tiks dzēsts. To nevar atsaukt.",
+      "subscription_title": "Atteikties no kalendāra abonementa?",
+      "confirm": "Dzēst"
+    },
     "alerts": {
       "title": "Atgādinājums",
       "none": "Bez atgādinājuma",
@@ -3511,6 +3518,9 @@
       "event_created": "Pasākums izveidots",
       "event_updated": "Pasākums atjaunināts",
       "event_deleted": "Pasākums izdzēsts",
+      "event_delete_error": "Neizdevās dzēst notikumu",
+      "task_deleted": "Uzdevums izdzēsts",
+      "task_delete_error": "Neizdevās dzēst uzdevumu",
       "calendar_created": "Kalendārs izveidots",
       "calendar_deleted": "Kalendārs izdzēsts",
       "event_move_error": "Neizdevās pārvietot pasākumu",

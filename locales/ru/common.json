@@ -3303,8 +3303,7 @@
       "copy_location": "Копировать место",
       "meeting_link": "Ссылка на встречу",
       "tentative": "Предварительно",
-      "cancelled": "Отменено",
-      "delete_confirm": "Удалить это событие?"
+      "cancelled": "Отменено"
     },
     "form": {
       "title": "Название",
@@ -3319,7 +3318,6 @@
       "calendar_select": "Календарь",
       "save": "Сохранить",
       "cancel": "Отмена",
-      "delete_confirm": "Вы уверены, что хотите удалить это событие?",
       "color": "Цвет"
     },
     "participants": {
@@ -3420,6 +3418,15 @@
       "keep": "Продолжить редактирование",
       "confirm": "Отменить изменения"
     },
+    "delete_dialog": {
+      "event_title": "Удалить событие?",
+      "event_message": "«{title}» будет удалено. Это действие нельзя отменить.",
+      "event_message_attendees": "«{title}» будет удалено, а участники получат уведомление об отмене.",
+      "task_title": "Удалить задачу?",
+      "task_message": "«{title}» будет удалена. Это действие нельзя отменить.",
+      "subscription_title": "Отписаться от календаря?",
+      "confirm": "Удалить"
+    },
     "alerts": {
       "title": "Напоминание",
       "none": "Без напоминания",
@@ -3512,6 +3519,9 @@
       "event_created": "Событие создано",
       "event_updated": "Событие обновлено",
       "event_deleted": "Событие удалено",
+      "event_delete_error": "Не удалось удалить событие",
+      "task_deleted": "Задача удалена",
+      "task_delete_error": "Не удалось удалить задачу",
       "calendar_created": "Календарь создан",
       "calendar_deleted": "Календарь удалён",
       "event_move_error": "Не удалось переместить событие",

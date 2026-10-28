@@ -5,6 +5,7 @@ import { useCalendarStore } from '@/stores/calendar-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useToastStore } from '@/stores/toast-store';
+import { useTaskStore } from '@/stores/task-store';
 
 // The whole calendar page, with the shell around it stubbed out and the
 // stores holding a fixed set of calendars and events.
@@ -84,6 +85,8 @@ function setUp(events: CalendarEvent[] = [makeEvent()], viewMode: 'month' | 'wee
   } as never);
   useSettingsStore.setState({ calendarHoverPreview: 'instant', enableCalendarTasks: true, proInterface: false } as never);
   useToastStore.setState({ toasts: [] } as never);
+  useTaskStore.setState({ tasks: [] } as never);
+  client.getCalendarTasks.mockResolvedValue([]);
 }
 
 function renderApp() {
@@ -247,5 +250,58 @@ describe('CalendarApp unsaved editor changes', () => {
     const ask = await screen.findByRole('alertdialog', { name: 'discard.title' });
     fireEvent.click(within(ask).getByRole('button', { name: 'discard.confirm' }));
     await waitFor(() => expect(screen.queryByPlaceholderText('tasks.title_placeholder')).toBeNull());
+  });
+});
+
+function toastTitles(): string[] {
+  return useToastStore.getState().toasts.map((t) => t.title);
+}
+
+describe('CalendarApp deleting', () => {
+  it('asks before the right-click menu deletes an event, then says it did', async () => {
+    renderApp();
+    fireEvent.contextMenu(screen.getAllByRole('button', { name: /Standup/ })[0], { clientX: 50, clientY: 50 });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'events.delete' }));
+    const ask = await screen.findByRole('alertdialog', { name: 'delete_dialog.event_title' });
+    expect(store.deleteEvent).not.toHaveBeenCalled();
+    fireEvent.click(within(ask).getByRole('button', { name: 'delete_dialog.confirm' }));
+    await waitFor(() => expect(store.deleteEvent).toHaveBeenCalledWith(client, 'e1', undefined));
+    await waitFor(() => expect(toastTitles()).toContain('notifications.event_deleted'));
+  });
+
+  it('asks before the card deletes an event, and Cancel keeps it', async () => {
+    renderApp();
+    fireEvent.click(screen.getAllByRole('button', { name: /Standup/ })[0]);
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Standup' })).getByRole('button', { name: 'events.delete' }));
+    const ask = await screen.findByRole('alertdialog', { name: 'delete_dialog.event_title' });
+    fireEvent.click(within(ask).getByRole('button', { name: 'cancel' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(store.deleteEvent).not.toHaveBeenCalled();
+  });
+
+  it('asks a series only once: the scope question replaces the confirm', async () => {
+    setUp([weekly]);
+    renderApp();
+    fireEvent.click(screen.getAllByRole('button', { name: /Standup/ })[0]);
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Standup' })).getByRole('button', { name: 'events.delete' }));
+    expect(await screen.findByRole('dialog', { name: 'delete_title' })).toBeInTheDocument();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
+  it('asks before deleting a task and says it did', async () => {
+    setUp([], 'tasks');
+    const task = { id: 't1', '@type': 'Task', title: 'Buy milk', calendarIds: { cal: true }, progress: 'needs-action', priority: 0, due: null, showWithoutTime: true } as never;
+    useTaskStore.setState({ tasks: [task] } as never);
+    client.getCalendarTasks.mockResolvedValue([task]);
+    const deleteCalendarTask = vi.fn().mockResolvedValue(undefined);
+    Object.assign(client, { deleteCalendarTask });
+    renderApp();
+    fireEvent.click(await screen.findByText('Buy milk'));
+    fireEvent.click(screen.getByRole('button', { name: 'tasks.delete' }));
+    const ask = await screen.findByRole('alertdialog', { name: 'delete_dialog.task_title' });
+    expect(deleteCalendarTask).not.toHaveBeenCalled();
+    fireEvent.click(within(ask).getByRole('button', { name: 'delete_dialog.confirm' }));
+    await waitFor(() => expect(deleteCalendarTask).toHaveBeenCalledWith('t1'));
+    await waitFor(() => expect(toastTitles()).toContain('notifications.task_deleted'));
   });
 });
