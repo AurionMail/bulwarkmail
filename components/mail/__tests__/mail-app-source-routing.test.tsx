@@ -189,10 +189,11 @@ describe('the open message of a group account in a tag view', () => {
   });
 
   it('is deleted into the group\'s Deleted Items, not the own one', async () => {
+    client.moveToTrash = vi.fn().mockResolvedValue(undefined);
     render(<MailApp />);
     fireEvent.click(await screen.findByText('stub delete', {}, { timeout: 5000 }));
-    await waitFor(() => expect(moveToMailbox).toHaveBeenCalled());
-    expect(moveToMailbox).toHaveBeenCalledWith(client, 'eaaaaab', 'ce:b', 'login-a/ce:eaaaaab');
+    await waitFor(() => expect(client.moveToTrash).toHaveBeenCalled());
+    expect(client.moveToTrash).toHaveBeenCalledWith('eaaaaab', 'b', 'ce', false);
   });
 });
 

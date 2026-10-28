@@ -2894,12 +2894,14 @@ function findTrashMailbox(
   });
 }
 
-// Deleting a selection in this folder destroys it rather than moving it to
-// the trash: in Trash, and in Junk when the user chose that. batchDelete
-// decides the same way.
+// Deleting in this folder destroys the mail rather than moving it to the
+// trash: in Trash, in Junk when the user chose that, and everywhere when the
+// "Delete action" setting says "Delete permanently". batchDelete and the
+// single delete decide the same way.
 export function bulkDeleteIsPermanent(mailbox: { role?: string | null } | undefined): boolean {
-  if (mailbox?.role === 'trash') return true;
-  return mailbox?.role === 'junk' && useSettingsStore.getState().permanentlyDeleteJunk;
+  const settings = useSettingsStore.getState();
+  if (mailbox?.role === 'trash' || settings.deleteAction === 'permanent') return true;
+  return mailbox?.role === 'junk' && settings.permanentlyDeleteJunk;
 }
 
 // Whether deleting several selected emails asks first. A permanent delete

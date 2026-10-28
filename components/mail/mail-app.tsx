@@ -431,7 +431,6 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     markAsRead,
     toggleStar,
     patchEmailKeywords,
-    moveToMailbox,
     moveToMailboxCrossAware,
     moveThreadToMailbox,
     searchEmails,
@@ -522,7 +521,6 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     markAsRead: state.markAsRead,
     toggleStar: state.toggleStar,
     patchEmailKeywords: state.patchEmailKeywords,
-    moveToMailbox: state.moveToMailbox,
     moveToMailboxCrossAware: state.moveToMailboxCrossAware,
     moveThreadToMailbox: state.moveThreadToMailbox,
     searchEmails: state.searchEmails,
@@ -2809,11 +2807,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           ?? actionMailboxes.find(m => m.role === unifiedRole))
       : actionMailboxes.find(m => m.id === selectedMailbox);
     const isInTrash = currentMailbox?.role === 'trash';
-    const isInJunk = currentMailbox?.role === 'junk';
-    const permanentlyDeleteJunk = useSettingsStore.getState().permanentlyDeleteJunk;
+    // Trash, Junk with "permanently delete junk", or the "Delete permanently"
+    // setting: the mail is destroyed, so ask first, as the batch delete does.
+    const permanent = bulkDeleteIsPermanent(currentMailbox);
 
-    if (isInTrash || (isInJunk && permanentlyDeleteJunk)) {
-      // In trash or junk with permanent delete enabled: confirm before permanently deleting
+    if (permanent) {
       const confirmed = await confirmDialog({
         title: t('email_list.permanent_delete_confirm_title'),
         message: t('email_list.permanent_delete_confirm_message'),
@@ -2821,38 +2819,17 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         variant: "destructive",
       });
       if (!confirmed) return;
+    }
 
-      try {
-        // false: a plugin stopped it and said why, so no "deleted" here.
-        if (await deleteEmail(client, emailToDelete.id, true, emailKeyFor(emailToDelete))) toast.success(t('notifications.email_deleted'));
-      } catch (error) {
-        console.error("Failed to permanently delete email:", error);
-        toast.error(t('notifications.error_deleting'), error instanceof Error ? error.message : undefined);
-      }
-    } else {
-      // Not in trash: always move to trash (in the email's own account). Scope
-      // the trash lookup to the email's account: for a shared/group source every
-      // mailbox in the list is `isShared`, so we match by accountId instead of
-      // excluding shared (otherwise no trash is found and the delete fails). (#281)
-      const matchesScope = (m: Mailbox) =>
-        action.accountId ? m.accountId === action.accountId : !m.isShared;
-      const trashMailbox =
-        actionMailboxes.find(m => m.role === 'trash' && matchesScope(m)) ??
-        actionMailboxes.find(m => {
-          if (!matchesScope(m)) return false;
-          const lower = m.name.toLowerCase();
-          return lower.includes('trash') || lower.includes('deleted');
-        });
-      if (trashMailbox) {
-        try {
-          if (await moveToMailbox(client, emailToDelete.id, trashMailbox.id, emailKeyFor(emailToDelete))) toast.success(t('notifications.email_deleted'));
-        } catch (error) {
-          console.error("Failed to move email to trash:", error);
-          toast.error(error instanceof Error ? error.message : 'Failed to move email to trash');
-        }
-      } else {
-        toast.error('Trash mailbox not found - cannot move email to trash');
-      }
+    // The store's delete reads the "Delete action" setting: move to the
+    // email's own account's trash (marking it read when asked), or destroy
+    // it. In Trash it always destroys. (#281 for the account routing)
+    try {
+      // false: a plugin stopped it and said why, so no "deleted" here.
+      if (await deleteEmail(client, emailToDelete.id, isInTrash, emailKeyFor(emailToDelete))) toast.success(t('notifications.email_deleted'));
+    } catch (error) {
+      console.error("Failed to delete email:", error);
+      toast.error(t('notifications.error_deleting'), error instanceof Error ? error.message : undefined);
     }
   };
 
