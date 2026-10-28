@@ -46,6 +46,7 @@ import type { CalendarEventView, ConflictWarning } from "@/lib/plugin-types";
 import { eventToView } from "@/lib/plugin-projection";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 
 export interface PendingEventPreview {
   start: Date;
@@ -910,7 +911,29 @@ export function EventModal({
     onDuplicate(buildDuplicateEventData(event));
   }, [event, onDuplicate]);
 
-  const modalRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const primaryRef = useRef<HTMLButtonElement>(null);
+  const initialFocusTarget = useCallback(
+    (): HTMLElement | null => (mode === "edit" ? titleRef.current : primaryRef.current),
+    [mode],
+  );
+  // Full screen on the phone: a modal that holds the focus.
+  const modalRef = useFocusTrap({ isActive: !!isMobile, initialFocus: initialFocusTarget });
+
+  // Beside the grid on wide screens: the focus moves in on open and with
+  // each switch between summary and form, and goes back on close.
+  useEffect(() => {
+    if (isMobile) return;
+    initialFocusTarget()?.focus();
+  }, [isMobile, initialFocusTarget]);
+  useEffect(() => {
+    if (isMobile) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    return () => {
+      const active = document.activeElement;
+      if (opener?.isConnected && (!active || active === document.body)) opener.focus();
+    };
+  }, [isMobile]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -930,30 +953,6 @@ export function EventModal({
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [requestClose, backToView, handleSave, canEditBody, mode, isEdit]);
-
-  useEffect(() => {
-    const modal = modalRef.current;
-    if (!modal) return;
-    const focusableEls = modal.querySelectorAll<HTMLElement>(
-      'input, select, textarea, button, [tabindex]:not([tabindex="-1"])'
-    );
-    const firstEl = focusableEls[0];
-    const lastEl = focusableEls[focusableEls.length - 1];
-
-    const handler = (e: KeyboardEvent) => {
-      if (e.key !== "Tab") return;
-      if (e.shiftKey && document.activeElement === firstEl) {
-        e.preventDefault();
-        lastEl?.focus();
-      } else if (!e.shiftKey && document.activeElement === lastEl) {
-        e.preventDefault();
-        firstEl?.focus();
-      }
-    };
-    modal.addEventListener("keydown", handler);
-    firstEl?.focus();
-    return () => modal.removeEventListener("keydown", handler);
-  }, []);
 
   const hasParticipants = attendees.length > 0 || (event?.participants && Object.keys(event.participants).length > 0);
 
@@ -1275,7 +1274,7 @@ export function EventModal({
             )}
           </div>
           {canEditBody && (
-            <Button onClick={() => setMode("edit")}>
+            <Button ref={primaryRef} onClick={() => setMode("edit")}>
               <Pencil className="w-4 h-4 me-1" />
               {t("events.edit")}
             </Button>
@@ -1301,11 +1300,11 @@ export function EventModal({
           <div>
             <label className="text-sm font-medium mb-1 block">{t("form.title")}</label>
             <Input
+              ref={titleRef}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={t("form.title")}
               maxLength={500}
-              autoFocus
             />
           </div>
 

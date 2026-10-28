@@ -69,6 +69,7 @@ import { cn, generateUUID } from "@/lib/utils";
 import type { Calendar, CalendarEvent, CalendarParticipant, CalendarRights, CalendarTask } from "@/lib/jmap/types";
 import { ShareCollectionDialog } from "@/components/settings/share-collection-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { SchedulingDeniedError } from "@/lib/jmap/scheduling-error";
 import { CreateCalendarModal } from "@/components/calendar/create-calendar-modal";
@@ -1686,19 +1687,14 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
   ) : null;
 
   const renderWebcalActionChoice = () => showWebcalActionChoice && pendingSubscription ? (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px]" onClick={closeWebcalActionChoice} aria-hidden="true" />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={tWebcalAction("title")}
-        className="relative bg-background border border-border rounded-lg shadow-xl w-full max-w-md mx-4 animate-in zoom-in-95 duration-200"
-      >
-        <div className="px-6 py-4 border-b border-border">
-          <h2 className="text-lg font-semibold">{tWebcalAction("title")}</h2>
-          <p className="text-sm text-muted-foreground mt-1">{tWebcalAction("description", { name: pendingSubscription.name })}</p>
-        </div>
-        <div className="px-6 py-4 space-y-3">
+    <Dialog
+      isOpen
+      onClose={closeWebcalActionChoice}
+      title={tWebcalAction("title")}
+      description={tWebcalAction("description", { name: pendingSubscription.name })}
+      footer={<Button variant="outline" onClick={closeWebcalActionChoice}>{tWebcalAction("cancel")}</Button>}
+    >
+        <div className="pt-4 space-y-3">
           <Button variant="outline" className="w-full justify-start h-auto py-3" onClick={handleImportWebcal}>
             <span className="text-start">
               <span className="block font-medium">{tWebcalAction("import_title")}</span>
@@ -1712,11 +1708,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
             </span>
           </Button>
         </div>
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border">
-          <Button variant="ghost" onClick={closeWebcalActionChoice}>{tWebcalAction("cancel")}</Button>
-        </div>
-      </div>
-    </div>
+    </Dialog>
   ) : null;
 
   if (!isAuthenticated) return null;
