@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { finalizeOutgoing, resetSendPipeline, type OutgoingContext } from '@/lib/outgoing/send-pipeline';
+import { finalizeOutgoing, resetSendPipeline, type OutgoingBodies, type OutgoingContext } from '@/lib/outgoing/send-pipeline';
 import { registerOrgOutgoing } from '@/lib/org/outgoing';
 import { policyForSender } from '@/lib/org/signature-state';
 import { DEFAULT_POLICY, type SettingsPolicy } from '@/lib/admin/types';
@@ -9,6 +9,10 @@ import { usePolicyStore } from '@/stores/policy-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useIdentityStore } from '@/stores/identity-store';
 import type { Identity } from '@/lib/jmap/types';
+
+/** Both finaliser stages, as a send without plugins runs them. */
+const finalizeAll = (bodies: OutgoingBodies, context: OutgoingContext) =>
+  finalizeOutgoing(finalizeOutgoing(bodies, context), context, 'last');
 
 const CONTEXT: OutgoingContext = {
   surface: 'composer',
@@ -46,29 +50,29 @@ describe('locked organisation signature on send', () => {
   });
 
   it('puts it back once when the user deleted it from an HTML mail', () => {
-    const out = finalizeOutgoing({ html: '<div><p>Hi</p></div>', text: 'Hi' }, CONTEXT);
+    const out = finalizeAll({ html: '<div><p>Hi</p></div>', text: 'Hi' }, CONTEXT);
     expect(out.html).toBe('<div><p>Hi</p></div><br><br>-- <br><p><b>Alice</b><br>Phone: +49 1</p>');
     expect(out.text).toBe('Hi\n\n-- \nAlice\nPhone: +49 1');
     // A second pass finds it and adds nothing.
-    expect(finalizeOutgoing(out, CONTEXT)).toEqual(out);
+    expect(finalizeAll(out, CONTEXT)).toEqual(out);
   });
 
   it('puts it back in a plain-text mail', () => {
-    const out = finalizeOutgoing({ text: 'Hi' }, { ...CONTEXT, plainText: true });
+    const out = finalizeAll({ text: 'Hi' }, { ...CONTEXT, plainText: true });
     expect(out).toEqual({ html: undefined, text: 'Hi\n\n-- \nAlice\nPhone: +49 1' });
   });
 
   it('leaves a mail that carries it alone', () => {
     const html = '<div><p>Hi</p></div><p data-signature-block="separator">-- </p><div data-signature-block-node=""><p><b>Alice</b><br>Phone: +49 1</p></div>';
     const bodies = { html, text: 'Hi\n\n-- \nAlice\nPhone: +49 1' };
-    expect(finalizeOutgoing(bodies, CONTEXT)).toEqual(bodies);
+    expect(finalizeAll(bodies, CONTEXT)).toEqual(bodies);
     const text = { text: 'Hi\n\n-- \nAlice\nPhone: +49 1\n\nOn Monday Bob wrote:\n> question' };
-    expect(finalizeOutgoing(text, { ...CONTEXT, plainText: true })).toEqual(text);
+    expect(finalizeAll(text, { ...CONTEXT, plainText: true })).toEqual(text);
   });
 
   it('does not count the copy in the quoted message', () => {
     const html = '<div><p>Hi</p><blockquote><p><b>Alice</b><br>Phone: +49 1</p></blockquote></div>';
-    const out = finalizeOutgoing({ html, text: 'Hi\n\n> Alice\n> Phone: +49 1' }, CONTEXT);
+    const out = finalizeAll({ html, text: 'Hi\n\n> Alice\n> Phone: +49 1' }, CONTEXT);
     expect(out.html!.split('Phone: +49 1').length - 1).toBe(2);
     expect(out.text.endsWith('-- \nAlice\nPhone: +49 1')).toBe(true);
   });
@@ -76,7 +80,7 @@ describe('locked organisation signature on send', () => {
   it('does nothing when the signature is not locked', () => {
     setPolicy();
     const bodies = { html: '<div><p>Hi</p></div>', text: 'Hi' };
-    expect(finalizeOutgoing(bodies, CONTEXT)).toEqual(bodies);
+    expect(finalizeAll(bodies, CONTEXT)).toEqual(bodies);
   });
 });
 
@@ -123,26 +127,26 @@ describe('disclaimer on send', () => {
 
   it('goes below everything: a line and the HTML, a blank line and the text', () => {
     setDisclaimer({ html: '<p>Confidential <b>{domain}</b></p>', text: 'Confidential {domain}' });
-    const out = finalizeOutgoing({ html: '<div><p>Hi</p><blockquote>quote</blockquote></div>', text: 'Hi\n\n> quote\n' }, CONTEXT);
+    const out = finalizeAll({ html: '<div><p>Hi</p><blockquote>quote</blockquote></div>', text: 'Hi\n\n> quote\n' }, CONTEXT);
     expect(out.html).toBe('<div><p>Hi</p><blockquote>quote</blockquote></div><hr><div data-org-disclaimer=""><p>Confidential <b>example.org</b></p></div>');
     expect(out.text).toBe('Hi\n\n> quote\n\nConfidential example.org');
   });
 
   it('makes the text from the HTML when there is none, and only text for a plain-text mail', () => {
     setDisclaimer({ html: '<p>Line one</p><p>Line two</p>', text: '' });
-    expect(finalizeOutgoing({ html: '<div>Hi</div>', text: 'Hi' }, CONTEXT).text).toBe('Hi\n\nLine one\nLine two');
-    expect(finalizeOutgoing({ text: 'Hi' }, { ...CONTEXT, plainText: true })).toEqual({ html: undefined, text: 'Hi\n\nLine one\nLine two' });
+    expect(finalizeAll({ html: '<div>Hi</div>', text: 'Hi' }, CONTEXT).text).toBe('Hi\n\nLine one\nLine two');
+    expect(finalizeAll({ text: 'Hi' }, { ...CONTEXT, plainText: true })).toEqual({ html: undefined, text: 'Hi\n\nLine one\nLine two' });
   });
 
   it('is added once: not again to a body that ends with it, but also to a reply quoting it', () => {
     setDisclaimer({ html: '', text: 'Confidential.' });
-    const once = finalizeOutgoing({ html: '<div>Hi</div>', text: 'Hi' }, CONTEXT);
+    const once = finalizeAll({ html: '<div>Hi</div>', text: 'Hi' }, CONTEXT);
     expect(once.html).toBe('<div>Hi</div><hr><div data-org-disclaimer="">Confidential.</div>');
-    expect(finalizeOutgoing(once, CONTEXT)).toEqual(once);
-    const reply = finalizeOutgoing({ text: 'Thanks\n\n> Hi\n>\n> Confidential.' }, { ...CONTEXT, plainText: true });
+    expect(finalizeAll(once, CONTEXT)).toEqual(once);
+    const reply = finalizeAll({ text: 'Thanks\n\n> Hi\n>\n> Confidential.' }, { ...CONTEXT, plainText: true });
     expect(reply.text).toBe('Thanks\n\n> Hi\n>\n> Confidential.\n\nConfidential.');
     // An HTML reply's text part carries the quote without "> ".
-    const htmlReply = finalizeOutgoing({ html: '<div><p>Thanks</p><blockquote><p>Hi</p><p>Confidential.</p></blockquote></div>', text: 'Thanks\n\nHi\n\nConfidential.' }, CONTEXT);
+    const htmlReply = finalizeAll({ html: '<div><p>Thanks</p><blockquote><p>Hi</p><p>Confidential.</p></blockquote></div>', text: 'Thanks\n\nHi\n\nConfidential.' }, CONTEXT);
     expect(htmlReply.html!.split('Confidential.').length - 1).toBe(2);
     expect(htmlReply.text).toBe('Thanks\n\nHi\n\nConfidential.\n\nConfidential.');
   });
@@ -154,7 +158,7 @@ describe('disclaimer on send', () => {
       organisation: { ...DEFAULT_ORGANISATION_POLICY, signature: { html: '', text: 'Sig {name}', fields: [] }, disclaimer: { html: '', text: 'Disclaimer' } },
     };
     usePolicyStore.setState({ policy, rawPolicy: policy, subject: null });
-    const out = finalizeOutgoing({ text: 'Hi' }, { ...CONTEXT, plainText: true });
+    const out = finalizeAll({ text: 'Hi' }, { ...CONTEXT, plainText: true });
     expect(out.text).toBe('Hi\n\n-- \nSig Alice\n\nDisclaimer');
   });
 });

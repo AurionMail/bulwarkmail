@@ -18,6 +18,12 @@ import { DEFAULT_ORGANISATION_POLICY } from '@/lib/admin/organisation-policy';
 const editorState = vi.hoisted(() => ({ html: '' }));
 // A plugin that rewrites signatures (onSignatureRender), off unless a test turns it on.
 const signaturePlugin = vi.hoisted(() => ({ on: false }));
+// Send plugins: a footer added by onTransformOutgoingEmail, and a crypto
+// plugin taking the send over (onComposeSend).
+const sendPlugins = vi.hoisted(() => ({
+  footer: false,
+  takeOver: null as null | ((request: { htmlBody: string; textBody: string }) => void),
+}));
 vi.mock('@/components/email/rich-text-editor', () => ({
   RichTextEditor: ({ content, onChange, onEditorReady }: {
     content: string;
@@ -193,8 +199,18 @@ vi.mock('@/lib/plugin-hooks', () => ({
     onDraftChange: { emit: () => {} },
     onBeforeDraftAutoSave: { transform: async (draft: unknown) => draft },
     onBeforeEmailSend: { intercept: async () => true, interceptOutcome: async () => 'allowed' },
-    onComposeSend: { takeOver: async () => 'default' },
-    onTransformOutgoingEmail: { transform: async (email: unknown) => email },
+    onComposeSend: {
+      takeOver: async (request: { htmlBody: string; textBody: string }) => {
+        if (!sendPlugins.takeOver) return 'default';
+        sendPlugins.takeOver(request);
+        return 'handled';
+      },
+    },
+    onTransformOutgoingEmail: {
+      transform: async (email: { htmlBody: string; textBody: string }) => (sendPlugins.footer
+        ? { ...email, htmlBody: `${email.htmlBody}<p>Plugin footer</p>`, textBody: `${email.textBody}\n\nPlugin footer` }
+        : email),
+    },
   },
   contactHooks: {
     search: { call: async () => [] },
@@ -559,5 +575,33 @@ describe('organisation disclaimer in the composer', () => {
     const sent = await send(onSend);
     expect(countOf(sent.htmlBody!, 'Confidential')).toBe(1);
     expect(countOf(sent.body, 'Confidential')).toBe(1);
+  });
+
+  it('goes below a footer a plugin adds', async () => {
+    sendPlugins.footer = true;
+    try {
+      const onSend = vi.fn();
+      render(<EmailComposer prefill={{ to: ['bob@example.com'] }} onSend={onSend} />);
+      const sent = await send(onSend);
+      expect(sent.htmlBody).toMatch(/<p>Plugin footer<\/p><hr><div data-org-disclaimer=""><p>Confidential, from me@example.com<\/p><\/div>$/);
+      expect(sent.body).toMatch(/Plugin footer\n\nConfidential, from me@example.com$/);
+    } finally {
+      sendPlugins.footer = false;
+    }
+  });
+
+  it('is in the message a signing or encrypting plugin takes over', async () => {
+    const taken = vi.fn();
+    sendPlugins.takeOver = taken;
+    try {
+      render(<EmailComposer prefill={{ to: ['bob@example.com'] }} onSend={vi.fn()} />);
+      fireEvent.click(sendButton());
+      await waitFor(() => expect(taken).toHaveBeenCalledTimes(1));
+      const request = taken.mock.calls[0][0] as { htmlBody: string; textBody: string };
+      expect(countOf(request.htmlBody, 'Confidential')).toBe(1);
+      expect(request.textBody.endsWith('\n\nConfidential, from me@example.com')).toBe(true);
+    } finally {
+      sendPlugins.takeOver = null;
+    }
   });
 });

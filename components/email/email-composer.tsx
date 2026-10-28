@@ -3418,12 +3418,15 @@ export function EmailComposer({
     }
 
     const rewritten = plainTextMode ? null : rewriteInlineImages(body);
-    // What the send-pipeline finalisers add (disclaimer, organisation
-    // signature) goes in here, on the send only: drafts never get it.
+    // What the send-pipeline finalisers add (organisation signature) goes in
+    // here, on the send only: drafts never get it. The `last` stage (the
+    // disclaimer) runs on what goes out once plugins had their say, below.
     const { html: finalHtmlBody, text: finalBody } = finalizeOutgoing({
       html: plainTextMode ? undefined : `<div>${rewritten!.html}</div>${buildSignatureHtml()}`,
       text: builtTextBody,
     }, outgoingContext);
+    const lastStage = (html: string | undefined, text: string) =>
+      finalizeOutgoing({ html: html || undefined, text }, outgoingContext, 'last');
     const inlineAttachments = rewritten?.attachments ?? [];
 
     try {
@@ -3462,14 +3465,16 @@ export function EmailComposer({
       // host then skips its own plaintext submission, cleans up the draft and
       // closes (through the scheduled-send callback for a delayed send). An
       // aborted or failed handler sent nothing: keep the message and its
-      // draft, and never fall back to sending it unsigned (#1207).
+      // draft, and never fall back to sending it unsigned (#1207). It signs
+      // or encrypts the message with the `last` finalisers' additions.
+      const sealed = lastStage(finalHtmlBody, finalBody);
       const composeSendRequest = {
         to: toAddresses.map(r => formatRecipient(r.name, r.email)),
         cc: ccAddresses.map(r => formatRecipient(r.name, r.email)),
         bcc: bccAddresses.map(r => formatRecipient(r.name, r.email)),
         subject,
-        htmlBody: finalHtmlBody || '',
-        textBody: finalBody,
+        htmlBody: sealed.html || '',
+        textBody: sealed.text,
         identityId: currentIdentity?.id || '',
         fromEmail,
         fromName,
@@ -3534,6 +3539,8 @@ export function EmailComposer({
           inReplyTo: threadingHeaders?.inReplyTo?.[0],
         };
         const outgoing = await emailHooks.onTransformOutgoingEmail.transform(transformInput);
+        // Below whatever the plugins added (a footer), the `last` finalisers.
+        const sealedOutgoing = lastStage(outgoing.htmlBody, outgoing.textBody);
 
         // Strip the cross-account namespace from the identity id before
         // handing it to the parent - the JMAP server only knows the raw
@@ -3566,8 +3573,8 @@ export function EmailComposer({
           cc: outgoing.cc,
           bcc: outgoing.bcc,
           subject: outgoing.subject,
-          body: outgoing.textBody,
-          htmlBody: outgoing.htmlBody || undefined,
+          body: sealedOutgoing.text,
+          htmlBody: sealedOutgoing.html || undefined,
           draftId: finalDraftId && !draftElsewhere ? finalDraftId : undefined,
           draftAccountId: finalDraftId && !draftElsewhere ? draftAccountAtSend : undefined,
           fromEmail,

@@ -50,5 +50,6 @@ export async function prepareQuickReply(input: {
     plainText: !html,
   };
   if (!(await runPreSendChecks(context))) return null;
-  return finalizeOutgoing({ html, text }, context);
+  // Quick reply has no plugin step in between: both stages at once.
+  return finalizeOutgoing(finalizeOutgoing({ html, text }, context), context, 'last');
 }

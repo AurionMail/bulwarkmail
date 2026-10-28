@@ -9,8 +9,9 @@
  *   deleted or changed in the editor is appended again once, at the end of
  *   the message (below the quote, where a reply's signature goes by
  *   default). Each part is checked and fixed on its own.
- * - org-disclaimer: the admin's disclaimer below everything, quote
- *   included: `<hr>` and the HTML in the HTML part, a blank line and the
+ * - org-disclaimer (stage `last`): the admin's disclaimer below
+ *   everything, quote and plugin footers included, before a plugin signs or
+ *   encrypts: `<hr>` and the HTML in the HTML part, a blank line and the
  *   text in the text part (text from the HTML when the admin wrote none).
  *   A part that already ends with it keeps the one it has.
  */
@@ -96,7 +97,8 @@ export function orgDisclaimerFinalizer(bodies: OutgoingBodies, context: Outgoing
 /** Registers both finalisers; registering again replaces them. */
 export function registerOrgOutgoing(): void {
   registerOutgoingFinalizer(ORG_SIGNATURE_FINALIZER, SIGNATURE_ORDER, orgSignatureFinalizer);
-  registerOutgoingFinalizer(ORG_DISCLAIMER_FINALIZER, DISCLAIMER_ORDER, orgDisclaimerFinalizer);
+  // After the plugins' own footers, before a plugin signs or encrypts.
+  registerOutgoingFinalizer(ORG_DISCLAIMER_FINALIZER, DISCLAIMER_ORDER, orgDisclaimerFinalizer, 'last');
 }
 
 registerOrgOutgoing();

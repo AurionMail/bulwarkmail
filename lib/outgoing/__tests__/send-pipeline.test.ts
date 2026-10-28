@@ -37,6 +37,16 @@ describe('finalizeOutgoing', () => {
     registerOutgoingFinalizer('ok', 20, (b) => ({ ...b, text: `${b.text}!` }));
     expect(finalizeOutgoing({ text: 'x' }, CONTEXT).text).toBe('x!');
   });
+
+  it('runs a `last` finaliser only in the last stage, and moves one registered again in the other stage', () => {
+    registerOutgoingFinalizer('body', 10, (b) => ({ ...b, text: `${b.text}B` }));
+    registerOutgoingFinalizer('late', 10, (b) => ({ ...b, text: `${b.text}L` }), 'last');
+    expect(finalizeOutgoing({ text: 'x' }, CONTEXT).text).toBe('xB');
+    expect(finalizeOutgoing({ text: 'x' }, CONTEXT, 'last').text).toBe('xL');
+    registerOutgoingFinalizer('late', 10, (b) => ({ ...b, text: `${b.text}M` }));
+    expect(finalizeOutgoing({ text: 'x' }, CONTEXT).text).toBe('xBM');
+    expect(finalizeOutgoing({ text: 'x' }, CONTEXT, 'last').text).toBe('x');
+  });
 });
 
 describe('runPreSendChecks', () => {
