@@ -30,3 +30,21 @@ describe('DemoJMAPClient raw messages', () => {
     expect(await (await client.fetchBlob(draft!.blobId!)).text()).toContain('Subject: Draft for export');
   });
 });
+
+// A server sends a new object on every fetch. The app stamps the scheduled
+// send onto the message it opens; with the demo's own object, a cancelled
+// send kept its Scheduled badge in Drafts.
+describe('DemoJMAPClient getEmail', () => {
+  it('returns a copy that the caller may change', async () => {
+    const client = new DemoJMAPClient();
+    const { emails } = await client.getEmails(undefined, undefined, 1);
+    const opened = (await client.getEmail(emails[0].id))!;
+    opened.isScheduled = true;
+    opened.scheduledSendAt = '2030-01-01T08:00:00Z';
+    const again = (await client.getEmail(emails[0].id))!;
+    expect(again.isScheduled).toBeUndefined();
+    expect(again.scheduledSendAt).toBeUndefined();
+    const { emails: listed } = await client.getEmails(undefined, undefined, 500);
+    expect(listed.find((e) => e.id === emails[0].id)!.isScheduled).toBeUndefined();
+  });
+});

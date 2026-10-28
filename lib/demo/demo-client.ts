@@ -383,7 +383,10 @@ export class DemoJMAPClient implements IJMAPClient {
   }
 
   async getEmail(emailId: string): Promise<Email | null> {
-    return this.data.emails.find(e => e.id === emailId) ?? null;
+    // A copy, as a server sends: the app stamps what it opens (a scheduled
+    // send's fields), which must not stick to the stored message.
+    const email = this.data.emails.find(e => e.id === emailId);
+    return email ? structuredClone(email) : null;
   }
 
   async getTagCounts(tagIds: string[], accountId?: string, excludeMailboxIds?: string[]): Promise<Record<string, { total: number; unread: number }>> {
