@@ -86,7 +86,7 @@ import { useContactStore, getContactDisplayName, getContactPrimaryEmail } from "
 import { useTemplateStore, renderTemplateWithPlugins, notifyTemplateApplied } from "@/stores/template-store";
 import { notifyIdentitySelected } from "@/stores/identity-store";
 import { usePluginSignature } from "@/hooks/use-plugin-signature";
-import { useOrgSignatureIdentity } from "@/hooks/use-org-signature";
+import { useOrgSignature, useOrgSignatureIdentity } from "@/hooks/use-org-signature";
 import { OrgDisclaimerPreview } from "@/components/email/org-disclaimer-preview";
 // Registers the organisation signature check and the disclaimer on the send path.
 import "@/lib/org/outgoing";
@@ -1156,9 +1156,11 @@ export function EmailComposer({
     : primaryIdentity;
   // Then the organisation signature: the default for an identity without
   // one, or in place of every signature when the admin locked it. Plugins
-  // may rewrite the result (onSignatureRender).
-  const orgSignatureIdentity = useOrgSignatureIdentity(ownSignatureIdentity, currentIdentity);
-  const { identity: signatureIdentity, revision: pluginSignatureRevision } = usePluginSignature(orgSignatureIdentity);
+  // may rewrite the result (onSignatureRender), except a locked one.
+  const orgSignature = useOrgSignature(ownSignatureIdentity, currentIdentity);
+  const { identity: signatureIdentity, revision: pluginSignatureRevision } = usePluginSignature(orgSignature.identity, {
+    locked: orgSignature.enforced,
+  });
 
   // Hold the TipTap editor instance so we can swap the embedded signature
   // when the user switches identity in "above quote" mode without rebuilding

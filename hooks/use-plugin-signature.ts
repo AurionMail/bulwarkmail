@@ -22,8 +22,11 @@ const sourceKey = (identity: Identity) => JSON.stringify([identity.htmlSignature
  *
  * `revision` changes each time a plugin result is applied, so the composer
  * can swap the signature already in the body.
+ *
+ * With `locked` (an organisation signature the admin locked or hid) plugins
+ * aren't asked and the identity comes back as it is.
  */
-export function usePluginSignature(identity: Identity | null | undefined): {
+export function usePluginSignature(identity: Identity | null | undefined, options: { locked?: boolean } = {}): {
   identity: Identity | null | undefined;
   revision: number;
 } {
@@ -31,9 +34,10 @@ export function usePluginSignature(identity: Identity | null | undefined): {
   const [revision, setRevision] = useState(0);
   const id = identity?.id;
   const source = identity ? sourceKey(identity) : '';
+  const locked = options.locked === true;
 
   useEffect(() => {
-    if (!identity || !id || identityHooks.onSignatureRender.size === 0) return;
+    if (locked || !identity || !id || identityHooks.onSignatureRender.size === 0) return;
     let cancelled = false;
     const initial = { html: identity.htmlSignature ?? '', text: identity.textSignature ?? '' };
     void identityHooks.onSignatureRender.transform(initial, { identityId: id }).then((result: unknown) => {
@@ -49,14 +53,14 @@ export function usePluginSignature(identity: Identity | null | undefined): {
     // Keyed to the identity and its signature text, not the object, which is
     // rebuilt on unrelated store updates.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, source]);
+  }, [id, source, locked]);
 
   const result = useMemo(() => {
-    if (!identity || !rendered || rendered.identityId !== identity.id || rendered.source !== sourceKey(identity)) {
+    if (locked || !identity || !rendered || rendered.identityId !== identity.id || rendered.source !== sourceKey(identity)) {
       return identity;
     }
     return { ...identity, htmlSignature: rendered.html, textSignature: rendered.text };
-  }, [identity, rendered]);
+  }, [identity, rendered, locked]);
 
   return { identity: result, revision };
 }

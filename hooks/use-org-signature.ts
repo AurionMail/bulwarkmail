@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { Identity } from '@/lib/jmap/types';
-import { effectiveSignatureIdentity, type FilledSignature } from '@/lib/org-signature';
+import { effectiveSignatureIdentity, isSignatureEnforced, type FilledSignature } from '@/lib/org-signature';
 import { companyName, orgSignatureSetup, policyForSender, type OrgSignatureSetup } from '@/lib/org/signature-state';
 import { usePolicyStore } from '@/stores/policy-store';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -33,18 +33,28 @@ export function useOrgSignatureSetup(sending: Sender): OrgSignatureSetup {
 
 /**
  * The composer's signature identity with the organisation signature
- * applied (see effectiveSignatureIdentity). Plugins come after this
- * (usePluginSignature), so they see the organisation signature too.
+ * applied (see effectiveSignatureIdentity), and whether that signature is
+ * the admin's locked or hidden one. Plugins come after this
+ * (usePluginSignature) and may change an unlocked organisation signature,
+ * not a locked one.
  */
+export function useOrgSignature<T extends Identity>(
+  own: T | null | undefined,
+  sending: T | null | undefined,
+): { identity: T | null | undefined; enforced: boolean } {
+  const setup = useOrgSignatureSetup(sending ?? own);
+  return useMemo(() => ({
+    identity: effectiveSignatureIdentity(own, sending, setup.signature, setup.restriction),
+    enforced: !!setup.signature && isSignatureEnforced(setup.restriction),
+  }), [own, sending, setup]);
+}
+
+/** useOrgSignature's identity alone. */
 export function useOrgSignatureIdentity<T extends Identity>(
   own: T | null | undefined,
   sending: T | null | undefined,
 ): T | null | undefined {
-  const setup = useOrgSignatureSetup(sending ?? own);
-  return useMemo(
-    () => effectiveSignatureIdentity(own, sending, setup.signature, setup.restriction),
-    [own, sending, setup],
-  );
+  return useOrgSignature(own, sending).identity;
 }
 
 /** The disclaimer added on send, filled in for mail from `sending`; null when there is none. */

@@ -16,6 +16,8 @@ import { DEFAULT_ORGANISATION_POLICY } from '@/lib/admin/organisation-policy';
 // whose content is whatever the composer last rendered into it, the way the
 // real editor reports itself ready from an effect after mounting.
 const editorState = vi.hoisted(() => ({ html: '' }));
+// A plugin that rewrites signatures (onSignatureRender), off unless a test turns it on.
+const signaturePlugin = vi.hoisted(() => ({ on: false }));
 vi.mock('@/components/email/rich-text-editor', () => ({
   RichTextEditor: ({ content, onChange, onEditorReady }: {
     content: string;
@@ -173,7 +175,10 @@ vi.mock('@/stores/toast-store', () => ({
 
 vi.mock('@/lib/plugin-hooks', () => ({
   identityHooks: {
-    onSignatureRender: { size: 0, transform: async (value: unknown) => value },
+    onSignatureRender: {
+      get size() { return signaturePlugin.on ? 1 : 0; },
+      transform: async (value: { html: string; text: string }) => ({ html: `${value.html}<p>PLUGIN</p>`, text: `${value.text} PLUGIN` }),
+    },
     onIdentitySelect: { size: 0, emit: async () => {} },
   },
   templateHooks: {
@@ -449,6 +454,27 @@ describe('organisation signature in the composer', () => {
       const sent = await send(onSend);
       expect(countOf(sent.htmlBody!, 'ACME Ltd')).toBe(1);
       expect(sent.htmlBody).not.toContain('CEO');
+    });
+
+    it('keeps plugins away from a locked signature, and lets them change an unlocked one', async () => {
+      signaturePlugin.on = true;
+      try {
+        setOrgPolicy({ locked: true });
+        const locked = vi.fn();
+        const { unmount } = render(<EmailComposer {...PROPS} onSend={locked} />);
+        await waitFor(() => expect(editorState.html).toContain('ACME Ltd'));
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        const sent = await send(locked);
+        expect(sent.htmlBody).not.toContain('PLUGIN');
+        expectOrgSignatureOnce(sent, 'Me');
+        unmount();
+
+        setOrgPolicy();
+        render(<EmailComposer {...PROPS} onSend={vi.fn()} />);
+        await waitFor(() => expect(editorState.html).toContain('<b>Alice</b><p>PLUGIN</p>'));
+      } finally {
+        signaturePlugin.on = false;
+      }
     });
 
     it('swaps a plain-text signature whose policy arrives late', async () => {
