@@ -38,7 +38,8 @@ import { getOwnAddresses } from "@/lib/filters/quick-rule-target";
 import { emitThreadExpand } from "@/lib/plugin-thread-expand";
 import { normalizeAddress } from "@/lib/filters/quick-rules";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
-import { PluginActions } from "@/components/plugins/plugin-actions";
+import { PluginListFilters } from "./plugin-list-filters";
+import { PluginActions, useFolderAccountKind } from "@/components/plugins/plugin-actions";
 import { useUnreadFirstSection } from "@/hooks/use-unread-first-section";
 import { unreadSectionRowCount } from "@/lib/unread-first";
 import { MvListSectionHeader } from "./mv-list-section-header";
@@ -532,6 +533,7 @@ export function EmailList({
     [emails, threadEmailsCache, selectedEmailKeys],
   );
   const bulkActionContext = useMemo(() => ({ emailIds: selectedEmailIds }), [selectedEmailIds]);
+  const folderAccountKind = useFolderAccountKind();
   // "Remove from this folder" (#615): offered for a selection only when every
   // selected message is also in another folder.
   const removeFromFolder = useRemoveFromFolder();
@@ -914,6 +916,7 @@ export function EmailList({
               <PluginActions
                 surface="message-bulk-actions"
                 context={bulkActionContext}
+                accountKind={folderAccountKind}
                 mailboxRole={effectiveMailboxRole ?? null}
                 compact
                 overflow={batchNarrow}
@@ -974,6 +977,15 @@ export function EmailList({
             {t('empty_folder.button')}
           </Button>
         </div>
+      )}
+
+      {/* Plugins' keyword filters, in a folder's own list (not search, tags or merged views). */}
+      {!isSearching && !selectedKeyword && !isUnifiedView && !isScheduledView && selectedMailbox && (
+        <PluginListFilters
+          mailboxRole={effectiveMailboxRole ?? null}
+          accountKind={folderAccountKind}
+          onChange={() => { if (client) void useEmailStore.getState().fetchEmails(client); }}
+        />
       )}
 
       <PluginSlot name="message-list-header" className="w-full" extraProps={listSlotProps} />

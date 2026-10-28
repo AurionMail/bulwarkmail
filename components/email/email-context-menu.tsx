@@ -13,7 +13,7 @@ import {
   ContextMenuHeader,
 } from "@/components/ui/context-menu";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
-import { PluginActions, usePluginActions } from "@/components/plugins/plugin-actions";
+import { PluginActions, useMessageActionTarget, usePluginActions } from "@/components/plugins/plugin-actions";
 import {
   Reply,
   ReplyAll,
@@ -292,7 +292,12 @@ export function EmailContextMenu({
 
   // The row's plugin buttons (message-row-actions). On phones the long press
   // opens this menu, so it is where those buttons live there.
-  const hasRowPluginActions = usePluginActions("message-row-actions", { mailboxRole: currentMailboxRole ?? null }).length > 0;
+  const rowPluginTarget = useMessageActionTarget(email);
+  const hasRowPluginActions = usePluginActions("message-row-actions", {
+    mailboxRole: currentMailboxRole ?? null,
+    accountKind: rowPluginTarget.accountKind,
+    keywords: rowPluginTarget.keywords,
+  }).length > 0;
   const rowPluginContext = useMemo(() => ({ emailId: email.id }), [email.id]);
   const rowPluginBlock = !showBatchActions && hasRowPluginActions ? (
     <>
@@ -301,6 +306,7 @@ export function EmailContextMenu({
         surface="message-row-actions"
         variant="menu"
         context={rowPluginContext}
+        target={rowPluginTarget}
         mailboxRole={currentMailboxRole ?? null}
         onRan={onClose}
       />

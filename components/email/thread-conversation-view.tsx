@@ -51,7 +51,7 @@ import { useOwnDomainAddress } from "@/hooks/use-own-domain-address";
 import { emitThreadExpand } from "@/lib/plugin-thread-expand";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { ReaderSelectionMenu, useReaderSelectionMenu, watchBodySelection } from "./reader-selection-menu";
-import { PluginActions } from "@/components/plugins/plugin-actions";
+import { PluginActions, useMessageActionTarget } from "@/components/plugins/plugin-actions";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { useDeviceDetection } from "@/hooks/use-media-query";
 import { usePluginRenderedBody } from "@/hooks/use-plugin-rendered-body";
@@ -339,7 +339,8 @@ function useConversationPluginProps(email: Email) {
   const deviceType = isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop';
   const emailProps = useMemo(() => ({ email: wantsView ? emailToReadView(email) : null, deviceType }), [email, wantsView, deviceType]);
   const idProps = useMemo(() => ({ emailId: email.id }), [email.id]);
-  return { emailProps, idProps };
+  const actionTarget = useMessageActionTarget(email);
+  return { emailProps, idProps, actionTarget };
 }
 
 function EmailCard({
@@ -490,6 +491,7 @@ function EmailCard({
             <PluginActions
               surface="reader-actions"
               context={plugin.idProps}
+              target={plugin.actionTarget}
               mailboxRole={mailboxRole ?? null}
               overflow
               className="flex-shrink-0 rounded-md border border-border"

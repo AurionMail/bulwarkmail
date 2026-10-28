@@ -30,6 +30,8 @@ import { folderListKey, forgetFolderLists, rememberFolderList, rememberedFolderL
 import { keywordPointer } from "@/lib/jmap/patch-pointer";
 import { useAccountStore } from "@/stores/account-store";
 import { useMessageListTabsStore } from "@/stores/message-list-tabs-store";
+import { activeListFilterCondition, activeListFilterKeywords, listFilters, type ListFilterFolder } from "@/lib/plugin-sandbox/list-filters";
+import { mailAccountKind } from "@/lib/plugin-sandbox/account-kind";
 import { SendCancelledCleanupError } from "@/lib/send-failure-message";
 import type { StorageQuota } from "@/lib/quota";
 import { isArchiveActionEnabled } from "@/lib/archive-gate";
@@ -797,22 +799,43 @@ function unreadFirstFor(
 }
 
 /**
- * What a folder's query ANDs in: the open category tab's filter, and read
- * mail only in the "Unread first" inbox, whose unread mail is the section's.
+ * The keyword filters plugins offer for the list (api.ui.setListFilters)
+ * that the user turned on and that apply to this folder.
+ */
+function pluginListFilter(mailbox: Mailbox | undefined): Record<string, unknown> | null {
+  if (!mailbox || listFilters().length === 0) return null;
+  return activeListFilterCondition(pluginFilterFolder(mailbox));
+}
+
+/** A folder as the plugins' list filters see it: its role and its account's kind. */
+function pluginFilterFolder(mailbox: Mailbox): ListFilterFolder {
+  const auth = useAuthStore.getState();
+  const viewing = useEmailStore.getState().viewingAccountId;
+  const client = viewing ? auth.getClientForAccount(viewing) : auth.client;
+  return {
+    role: mailbox.role ?? null,
+    accountKind: client ? mailAccountKind(client, mailbox.isShared ? mailbox.accountId : undefined) : null,
+  };
+}
+
+/**
+ * What a folder's query ANDs in: the open category tab's filter, the
+ * plugins' list filters the user turned on, and read mail only in the
+ * "Unread first" inbox, whose unread mail is the section's.
  */
 function folderListFilter(
   mailbox: Mailbox | undefined,
   s: Pick<EmailStore, 'selectedKeyword' | 'searchQuery' | 'searchFilters' | 'isUnifiedView'>,
 ): Record<string, unknown> | null {
   const categoryFilter = useMessageListTabsStore.getState().getCategoryFilter(mailbox?.role);
-  return andFilters(categoryFilter, unreadFirstFor(mailbox, s) ? READ_FILTER : null);
+  return andFilters(andFilters(categoryFilter, pluginListFilter(mailbox)), unreadFirstFor(mailbox, s) ? READ_FILTER : null);
 }
 
 /** The newest unread mail of the folder, for the "Unread first" inbox. */
 async function loadUnreadSection(client: IJMAPClient, mailbox: Mailbox, get: StoreGet): Promise<{ emails: Email[]; total: number }> {
   const effectiveClient = resolveActionClient(client);
   const accountId = mailbox.isShared ? mailbox.accountId : undefined;
-  const categoryFilter = useMessageListTabsStore.getState().getCategoryFilter(mailbox.role);
+  const categoryFilter = andFilters(useMessageListTabsStore.getState().getCategoryFilter(mailbox.role), pluginListFilter(mailbox));
   const result = await effectiveClient.getEmails(
     mailbox.originalId || mailbox.id,
     accountId,
@@ -847,13 +870,16 @@ function applyUnreadSection(get: StoreGet, set: StoreSet, mailboxId: string, loa
  * the changed keywords (#718). The change moves the row at once, possibly past
  * the end of what is loaded, but nothing moves the rows from beyond it up -
  * reading the top unread mail over and over ran out of unread mail after the
- * first page while more waited on the server.
+ * first page while more waited on the server. The same for a keyword a
+ * plugin's list filter tests: a message marked done leaves an "Open" list.
  */
 function refillAfterKeywordChange(get: StoreGet, client: IJMAPClient, changed: Iterable<string>): void {
   const s = get();
   if (s.isUnifiedView || s.isScheduledView || s.selectedKeyword || s.searchQuery || !isFilterEmpty(s.searchFilters)) return;
   const sortKeywords = orderKeywords(s.listOrder);
-  if (![...changed].some((keyword) => sortKeywords.includes(keyword))) return;
+  const mailbox = listFilters().length > 0 ? resolveActionMailboxes().find((mb) => mb.id === s.selectedMailbox) : undefined;
+  const filtered = mailbox ? activeListFilterKeywords(pluginFilterFolder(mailbox)) : null;
+  if (![...changed].some((keyword) => sortKeywords.includes(keyword) || !!filtered?.has(keyword.toLowerCase()))) return;
   void s.refreshCurrentMailbox(client);
 }
 

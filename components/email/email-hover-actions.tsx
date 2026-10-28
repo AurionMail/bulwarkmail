@@ -12,7 +12,7 @@ import { useTranslations } from "next-intl";
 import { useIsMobile } from "@/hooks/use-media-query";
 import { TagPicker } from "@/components/email/tag-picker";
 import { getEmailTagIds } from "@/lib/thread-utils";
-import { PluginActions, usePluginActions } from "@/components/plugins/plugin-actions";
+import { PluginActions, useMessageActionTarget, usePluginActions } from "@/components/plugins/plugin-actions";
 
 interface EmailHoverActionsProps {
   email: Email;
@@ -123,7 +123,10 @@ export function EmailHoverActions({
   const t = useTranslations("settings.email_behavior.hover_actions");
   const isMobile = useIsMobile();
   // Buttons plugins add to the row (message-row-actions), after the app's own.
-  const pluginActionCount = usePluginActions("message-row-actions", { mailboxRole }).length;
+  const pluginTarget = useMessageActionTarget(email);
+  const pluginActionCount = usePluginActions("message-row-actions", {
+    mailboxRole, accountKind: pluginTarget.accountKind, keywords: pluginTarget.keywords,
+  }).length;
   const pluginContext = useMemo(() => ({ emailId: email.id }), [email.id]);
 
   // The tag quick-action opens the same picker the context menu and the reading
@@ -269,6 +272,7 @@ export function EmailHoverActions({
         key="plugin-actions"
         surface="message-row-actions"
         context={pluginContext}
+        target={pluginTarget}
         mailboxRole={mailboxRole}
         compact
         className="flex-nowrap gap-0.5"

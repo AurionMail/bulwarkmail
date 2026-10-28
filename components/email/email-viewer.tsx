@@ -139,7 +139,7 @@ import { VerificationCodeChip } from "./verification-code-chip";
 import { ConversationEmailBody, type ConversationAttachmentHandler, useConversationExternalContent, useMarkReadWhenShown } from "./thread-conversation-view";
 import type { TnefAttachment } from "@/lib/tnef";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
-import { PluginActions } from "@/components/plugins/plugin-actions";
+import { PluginActions, useMessageActionTarget } from "@/components/plugins/plugin-actions";
 import { AttachmentPluginFrames, AttachmentPluginMenu, PluginPanelEntries, ReaderAboveQuoteSlot } from "./reader-plugin-surfaces";
 import { RulesPanel, useRulesAvailability } from "./rules-menu";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
@@ -1604,6 +1604,7 @@ export function EmailViewer({
   const emailIdRef = useRef(email?.id);
   emailIdRef.current = email?.id;
   const readerActionContext = useMemo(() => ({ emailId: email?.id }), [email?.id]);
+  const readerActionTarget = useMessageActionTarget(email);
   const pluginFooterProps = useMemo(() => ({ emailId: email?.id }), [email?.id]);
   // The user's choice; until they make one, a panel whose plugin asked to
   // start folded (a chat opened on demand) is folded, the rest open.
@@ -3992,6 +3993,7 @@ export function EmailViewer({
           <PluginActions
             surface="reader-actions"
             context={readerActionContext}
+            target={readerActionTarget}
             mailboxRole={currentMailboxRole ?? null}
             compact={!showToolbarLabels}
           />
@@ -4819,6 +4821,7 @@ export function EmailViewer({
                 <PluginPanelEntries
                   surface="reader-actions"
                   context={readerActionContext}
+                  target={readerActionTarget}
                   mailboxRole={currentMailboxRole ?? null}
                   onRan={() => setMoreMenuOpen(false)}
                 />
