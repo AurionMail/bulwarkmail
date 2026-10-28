@@ -128,3 +128,117 @@ describe('JMAPClient.applyShareChanges', () => {
     expect(body.methodCalls[0][1].update).toEqual({ n1: { 'shareWith/ck': { mayRead: true, mayWrite: true, mayShare: false } } });
   });
 });
+
+describe('JMAPClient.getShareTargets', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  type Call = [string, Record<string, unknown>, string];
+  function client(answer: (calls: Call[]) => unknown[]) {
+    const c = new JMAPClient('https://jmap.example.com', 'user', 'pass');
+    const accounts = {
+      ci: {
+        name: 'org-alice@example.org', isPersonal: true,
+        accountCapabilities: {
+          'urn:ietf:params:jmap:mail': {}, 'urn:ietf:params:jmap:mail:share': {}, 'urn:ietf:params:jmap:calendars': {},
+          'urn:ietf:params:jmap:contacts': {}, 'urn:ietf:params:jmap:filenode': { forbiddenNameChars: '/' },
+        },
+      },
+    };
+    Object.assign(c, {
+      apiUrl: 'https://jmap.example.com/api', accountId: 'ci', accounts,
+      capabilities: { 'urn:ietf:params:jmap:core': {}, 'urn:ietf:params:jmap:mail': {} },
+      session: { accounts, primaryAccounts: {} },
+    });
+    const request = vi.spyOn(c as unknown as { request: (calls: Call[]) => Promise<unknown> }, 'request')
+      .mockImplementation(async (calls: Call[]) => ({ methodResponses: answer(calls) }));
+    return { c, request };
+  }
+  const lists = (calls: Call[]) => calls.map(([method, , id]) => [method, {
+    list: method === 'Mailbox/get' ? [{ id: 'a', name: 'Inbox', role: 'inbox', shareWith: { ck: MAILBOX_PRESETS.read } }]
+      : method === 'Calendar/get' ? [{ id: 'b', name: 'Calendar', isDefault: true, shareWith: {} }]
+        : [{ id: 'c', name: 'Contacts', isDefault: true, shareWith: {} }],
+  }, id]);
+
+  it('reads folders, calendars and address books in one request, and only the shared files', async () => {
+    const { c, request } = client(lists);
+    vi.spyOn(c, 'listAllFileNodes').mockResolvedValue([
+      { id: 'n1', name: 'plan.pdf', parentId: null, shareWith: { ck: FILE_PRESETS.read } },
+      { id: 'n2', name: 'notes.txt', parentId: null, shareWith: {} },
+    ] as never);
+    const { targets, failed } = await c.getShareTargets();
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request.mock.calls[0][0].map(([m]) => m)).toEqual(['Mailbox/get', 'Calendar/get', 'AddressBook/get']);
+    expect(targets.map((t) => `${t.kind}:${t.id}`)).toEqual(['mailbox:a', 'calendar:b', 'addressBook:c', 'file:n1']);
+    expect(failed).toEqual([]);
+  });
+
+  it('reads the file tree alongside the rest, not after it', async () => {
+    let releaseCollections: () => void = () => {};
+    const collectionsHeld = new Promise<void>((resolve) => { releaseCollections = resolve; });
+    const { c, request } = client(lists);
+    request.mockImplementation(async (calls: Call[]) => { await collectionsHeld; return { methodResponses: lists(calls) }; });
+    const files = vi.spyOn(c, 'listAllFileNodes').mockResolvedValue([]);
+    const pending = c.getShareTargets();
+    // The collections haven't answered yet, and the file read has already started.
+    await Promise.resolve();
+    expect(files).toHaveBeenCalled();
+    releaseCollections();
+    expect((await pending).failed).toEqual([]);
+  });
+
+  it('skips the types whose feature is off', async () => {
+    const { c, request } = client(lists);
+    const files = vi.spyOn(c, 'listAllFileNodes').mockResolvedValue([]);
+    await c.getShareTargets({ calendars: false, contacts: false, files: false });
+    expect(request.mock.calls[0][0].map(([m]) => m)).toEqual(['Mailbox/get']);
+    expect(files).not.toHaveBeenCalled();
+  });
+
+  it('names the types whose read failed', async () => {
+    const { c } = client((calls) => calls.map((call) => (call[0] === 'Calendar/get' ? ['error', { type: 'serverFail' }, call[2]] : lists([call])[0])));
+    vi.spyOn(c, 'listAllFileNodes').mockRejectedValue(new Error('offline'));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { failed } = await c.getShareTargets();
+    expect(failed.sort()).toEqual(['calendar', 'file']);
+  });
+});
+
+describe('JMAPClient.findPrincipalByEmail', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  function client(responses: unknown[]) {
+    const c = new JMAPClient('https://jmap.example.com', 'user', 'pass');
+    Object.assign(c, {
+      apiUrl: 'https://jmap.example.com/api', accountId: 'ci',
+      capabilities: { 'urn:ietf:params:jmap:core': {}, 'urn:ietf:params:jmap:principals': {} },
+    });
+    const request = vi.spyOn(c as unknown as { request: () => Promise<unknown> }, 'request').mockResolvedValue({ methodResponses: responses });
+    return { c, request };
+  }
+
+  it('finds the principal with that address, whatever its case', async () => {
+    const { c, request } = client([
+      ['Principal/query', { ids: ['ck'] }, '0'],
+      ['Principal/get', { list: [{ id: 'ck', type: 'individual', name: 'Carol', email: 'org-carol@example.org' }] }, '1'],
+    ]);
+    const found = await c.findPrincipalByEmail(' Org-Carol@Example.org ');
+    expect(found).toEqual({ principal: expect.objectContaining({ id: 'ck', accountId: 'ci' }), status: 'ok' });
+    const [calls] = request.mock.calls[0] as unknown as [[string, Record<string, unknown>][]];
+    expect(calls[0][1].filter).toEqual({ email: 'org-carol@example.org' });
+  });
+
+  it('says when directory queries are off (Stalwart 1.0)', async () => {
+    const { c } = client([
+      ['error', { type: 'forbidden', description: 'The administrator has disabled directory queries.' }, '0'],
+      ['error', { type: 'invalidResultReference' }, '1'],
+    ]);
+    expect(await c.findPrincipalByEmail('org-carol@example.org')).toEqual({ principal: null, status: 'forbidden', directoryQueriesOff: true });
+  });
+
+  it('tells a refusal for another reason apart, and an unknown address', async () => {
+    expect(await client([['error', { type: 'forbidden', description: 'You are not authorized to perform this action' }, '0']]).c
+      .findPrincipalByEmail('x@example.org')).toEqual({ principal: null, status: 'forbidden' });
+    expect(await client([['Principal/query', { ids: [] }, '0'], ['Principal/get', { list: [] }, '1']]).c
+      .findPrincipalByEmail('x@example.org')).toEqual({ principal: null, status: 'ok' });
+  });
+});

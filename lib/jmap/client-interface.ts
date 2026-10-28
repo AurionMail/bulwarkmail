@@ -233,7 +233,9 @@ export interface IJMAPClient {
   getMailboxShareWith?(mailboxId: string, accountId?: string): Promise<Record<string, MailboxRights> | null>;
   setMailboxShare?(mailboxId: string, principalId: string, rights: MailboxRights | null, accountId?: string): Promise<void>;
   // Many items at once, for the Delegates page (lib/jmap/share-batch.ts). Optional (demo client).
-  getShareTargets?(): Promise<{ targets: ShareTarget[]; failed: ShareKind[] }>;
+  getShareTargets?(include?: { calendars?: boolean; contacts?: boolean; files?: boolean }): Promise<{ targets: ShareTarget[]; failed: ShareKind[] }>;
+  /** The server keeps "mark as read" and keywords as one folder right (Stalwart 1.0). */
+  sharesSeenWithKeywords?(accountId?: string): boolean;
   applyShareChanges?(changes: ShareChange[]): Promise<ShareChangeResult[]>;
   findPrincipalByEmail?(email: string): Promise<{ principal: Principal | null; status: "ok" | "forbidden" | "error"; directoryQueriesOff?: boolean }>;
 

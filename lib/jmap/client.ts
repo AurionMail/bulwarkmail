@@ -6874,34 +6874,22 @@ export class JMAPClient implements IJMAPClient {
     const all: Principal[] = [];
     try {
       for (let position = 0; position < MAX_PRINCIPALS;) {
-        const response = await this.request([
-          ["Principal/query", { accountId, position, limit: pageSize }, "0"],
-          ["Principal/get", {
-            accountId,
-            "#ids": { resultOf: "0", name: "Principal/query", path: "/ids" },
-            properties: PRINCIPAL_PROPERTIES,
-          }, "1"],
-        ], this.principalsUsing());
-
-        const responses = response.methodResponses ?? [];
-        const queryResp = responses.find((r) => r[0] === "Principal/query");
-        const getResp = responses.find((r) => r[0] === "Principal/get");
-        if (!queryResp || !getResp) {
-          const error = responses.find((r) => r[0] === "error")?.[1] as JmapErrorInfo | undefined;
+        const page = await this.queryPrincipals(accountId, { position, limit: pageSize });
+        if (!page.ok) {
+          const { error } = page;
           if (options?.throwOnError) throw new PrincipalsRequestError(error?.type ?? null, error?.description);
-          if (error?.type === "forbidden") {
+          if (page.forbidden) {
             return {
               principals: await this.getKnownPrincipals(accountId),
               status: "restricted",
-              ...(error.description === DIRECTORY_QUERIES_OFF ? { directoryQueriesOff: true } : {}),
+              ...(page.directoryQueriesOff ? { directoryQueriesOff: true } : {}),
             };
           }
           console.error("Failed to fetch principals:", error);
           return { principals: all, status: "error" };
         }
-        const ids: string[] = queryResp[1]?.ids ?? [];
-        const list = (getResp[1].list || []) as Principal[];
-        all.push(...list.map((p) => ({ ...p, accountId })));
+        const { ids, list } = page;
+        all.push(...list);
         if (ids.length < pageSize) break;
         position += ids.length;
       }
@@ -6915,6 +6903,39 @@ export class JMAPClient implements IJMAPClient {
       console.error("Failed to fetch principals:", error);
       return { principals: all, status: "error" };
     }
+  }
+
+  /**
+   * One Principal/query with the matching Principal/get, as listPrincipals
+   * and findPrincipalByEmail send it. When the query is refused the chained
+   * get fails with `invalidResultReference`, so only the query's own error
+   * says why: `forbidden`, and `directoryQueriesOff` when Stalwart 1.0 says
+   * the administrator turned directory queries off.
+   */
+  private async queryPrincipals(
+    accountId: string,
+    args: { filter?: Record<string, unknown>; position?: number; limit: number },
+  ): Promise<
+    | { ok: true; ids: string[]; list: Principal[] }
+    | { ok: false; forbidden: boolean; directoryQueriesOff: boolean; error: JmapErrorInfo | undefined }
+  > {
+    const response = await this.request([
+      ["Principal/query", { accountId, ...args }, "0"],
+      ["Principal/get", {
+        accountId,
+        "#ids": { resultOf: "0", name: "Principal/query", path: "/ids" },
+        properties: PRINCIPAL_PROPERTIES,
+      }, "1"],
+    ], this.principalsUsing());
+    const responses = response.methodResponses ?? [];
+    const queryResp = responses.find((r) => r[0] === "Principal/query");
+    const getResp = responses.find((r) => r[0] === "Principal/get");
+    if (!queryResp || !getResp) {
+      const error = responses.find((r) => r[0] === "error")?.[1] as JmapErrorInfo | undefined;
+      return { ok: false, forbidden: error?.type === "forbidden", directoryQueriesOff: error?.description === DIRECTORY_QUERIES_OFF, error };
+    }
+    const list = ((getResp[1].list || []) as Principal[]).map((p) => ({ ...p, accountId }));
+    return { ok: true, ids: queryResp[1]?.ids ?? [], list };
   }
 
   /** The principals of {@link listPrincipals}, without the status. */
@@ -7383,12 +7404,24 @@ export class JMAPClient implements IJMAPClient {
   // ── Sharing many items at once (the Delegates page) ──────────────
 
   /**
+   * Whether the server keeps a folder's "mark as read" and keyword rights as
+   * one right, so a read-only share can also flag mail. Stalwart 1.0 does
+   * (a read grant reads back with maySetKeywords); every 1.0 account lists
+   * principals:owner, which 0.16 never does (see keepsServerTextOrder).
+   */
+  sharesSeenWithKeywords(accountId?: string): boolean {
+    return this.hasAccountCapability("urn:ietf:params:jmap:principals:owner", accountId);
+  }
+
+  /**
    * Every folder, calendar and address book of the user's own account with
    * its `shareWith`, and the files that are shared with someone. A type the
    * account can't share is left out; one whose read failed is in `failed`,
    * so the caller doesn't mistake it for "shared with nobody".
    */
-  async getShareTargets(): Promise<{ targets: ShareTarget[]; failed: ShareKind[] }> {
+  async getShareTargets(
+    include: { calendars?: boolean; contacts?: boolean; files?: boolean } = {},
+  ): Promise<{ targets: ShareTarget[]; failed: ShareKind[] }> {
     const calls: JMAPMethodCall[] = [];
     const using = new Set<string>(["urn:ietf:params:jmap:core"]);
     const accounts: { mailbox?: string; calendar?: string; addressBook?: string } = {};
@@ -7398,42 +7431,46 @@ export class JMAPClient implements IJMAPClient {
       for (const u of ["urn:ietf:params:jmap:mail", JMAPClient.MAIL_SHARE_CAPABILITY]) using.add(u);
     }
     const calendarsAccountId = this.getCalendarsAccountId();
-    if (this.supportsCalendars(calendarsAccountId)) {
+    if (include.calendars !== false && this.supportsCalendars(calendarsAccountId)) {
       accounts.calendar = calendarsAccountId;
       calls.push(["Calendar/get", { accountId: calendarsAccountId, ids: null, properties: ["id", "name", "isDefault", "shareWith"] }, "c"]);
       for (const u of this.calendarUsing()) using.add(u);
     }
     const contactsAccountId = this.getContactsAccountId();
-    if (this.supportsContacts(contactsAccountId)) {
+    if (include.contacts !== false && this.supportsContacts(contactsAccountId)) {
       accounts.addressBook = contactsAccountId;
       calls.push(["AddressBook/get", { accountId: contactsAccountId, ids: null, properties: ["id", "name", "isDefault", "shareWith"] }, "a"]);
       for (const u of this.contactUsing()) using.add(u);
     }
 
-    let result: { targets: ShareTarget[]; failed: ShareKind[] } = { targets: [], failed: [] };
-    if (calls.length > 0) {
+    const readCollections = async (): Promise<{ targets: ShareTarget[]; failed: ShareKind[] }> => {
+      if (calls.length === 0) return { targets: [], failed: [] };
       try {
         const response = await this.request(calls, [...using]);
-        result = parseShareTargets(response.methodResponses as [string, Record<string, unknown>, string][], accounts);
+        return parseShareTargets(response.methodResponses as [string, Record<string, unknown>, string][], accounts);
       } catch (error) {
         console.error("Failed to read sharing:", error);
-        result.failed = (Object.keys(accounts) as ShareKind[]);
+        return { targets: [], failed: Object.keys(accounts) as ShareKind[] };
       }
-    }
-
+    };
     const filesAccountId = this.getFilesAccountId();
-    if (this.supportsFiles(filesAccountId)) {
+    const readFiles = async (): Promise<{ targets: ShareTarget[]; failed: ShareKind[] }> => {
+      if (include.files === false || !this.supportsFiles(filesAccountId)) return { targets: [], failed: [] };
       try {
+        const targets: ShareTarget[] = [];
         for (const node of await this.listAllFileNodes()) {
           if (!node.shareWith || Object.keys(node.shareWith).length === 0) continue;
-          result.targets.push({ kind: "file", accountId: filesAccountId, id: node.id, name: node.name, parentId: node.parentId ?? null, shareWith: node.shareWith });
+          targets.push({ kind: "file", accountId: filesAccountId, id: node.id, name: node.name, parentId: node.parentId ?? null, shareWith: node.shareWith });
         }
+        return { targets, failed: [] };
       } catch (error) {
         console.error("Failed to read file sharing:", error);
-        result.failed.push("file");
+        return { targets: [], failed: ["file"] };
       }
-    }
-    return result;
+    };
+    // The file tree can take several requests; it is read alongside the rest.
+    const [collections, fileTargets] = await Promise.all([readCollections(), readFiles()]);
+    return { targets: [...collections.targets, ...fileTargets.targets], failed: [...collections.failed, ...fileTargets.failed] };
   }
 
   /**
@@ -7477,26 +7514,13 @@ export class JMAPClient implements IJMAPClient {
     if (!this.supportsPrincipals()) return { principal: null, status: "error" };
     const wanted = email.trim().toLowerCase();
     try {
-      const response = await this.request([
-        ["Principal/query", { accountId: this.accountId, filter: { email: wanted }, limit: 10 }, "0"],
-        ["Principal/get", {
-          accountId: this.accountId,
-          "#ids": { resultOf: "0", name: "Principal/query", path: "/ids" },
-          properties: PRINCIPAL_PROPERTIES,
-        }, "1"],
-      ], this.principalsUsing());
-      const responses = response.methodResponses ?? [];
-      const getResp = responses.find((r) => r[0] === "Principal/get");
-      if (!getResp) {
-        const error = responses.find((r) => r[0] === "error")?.[1] as JmapErrorInfo | undefined;
-        if (error?.type === "forbidden") {
-          return { principal: null, status: "forbidden", ...(error.description === DIRECTORY_QUERIES_OFF ? { directoryQueriesOff: true } : {}) };
-        }
+      const page = await this.queryPrincipals(this.accountId, { filter: { email: wanted }, limit: 10 });
+      if (!page.ok) {
+        if (page.forbidden) return { principal: null, status: "forbidden", ...(page.directoryQueriesOff ? { directoryQueriesOff: true } : {}) };
         return { principal: null, status: "error" };
       }
-      const list = (getResp[1].list ?? []) as Principal[];
-      const principal = list.find((p) => p.email?.toLowerCase() === wanted || p.name?.toLowerCase() === wanted) ?? null;
-      return { principal: principal ? { ...principal, accountId: this.accountId } : null, status: "ok" };
+      const principal = page.list.find((p) => p.email?.toLowerCase() === wanted || p.name?.toLowerCase() === wanted) ?? null;
+      return { principal, status: "ok" };
     } catch (error) {
       console.error("Failed to look up principal:", error);
       return { principal: null, status: "error" };
