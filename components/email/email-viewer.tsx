@@ -35,7 +35,7 @@ import { getEmailTagIds } from "@/lib/thread-utils";
 import { getSecurityStatus, extractListHeaders, getSenderVerification } from "@/lib/email-headers";
 import { emailToReadView } from "@/lib/plugin-projection";
 import type { EmailReadView, ExternalLinkContext } from "@/lib/plugin-types";
-import { generateEmailSource } from "@/lib/email-source";
+import { ViewSourceDialog } from "./view-source-dialog";
 import { ScheduleSendDialog } from "./schedule-send-dialog";
 import {
   Reply,
@@ -2427,20 +2427,6 @@ export function EmailViewer({
     ro.observe(container);
     return () => ro.disconnect();
   }, [effectiveAttachments, attachmentPosition, imageThumbUrls]);
-
-  // Generate email source for viewing
-  const copySourceToClipboard = async () => {
-    if (!email) return;
-
-    try {
-      const source = generateEmailSource(email);
-      await navigator.clipboard.writeText(source);
-      // Could add a toast notification here
-      console.log(tNotifications('source_copied'));
-    } catch (err) {
-      console.error('Failed to copy source:', err);
-    }
-  };
 
   // Whether external resources must be blocked for the message on screen.
   // Shared by every body path - the message's own HTML, TNEF, unwrapped
@@ -6469,56 +6455,15 @@ export function EmailViewer({
         />
       )}
 
-      {/* Email Source Modal - pane-scoped inside a Pro pane so it never
-          covers the neighbouring split pane. */}
-      {showSourceModal && email && (
-        <div
-          className={cn(
-            "bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4",
-            isPaneScoped ? "absolute inset-0" : "fixed inset-0",
-          )}
-          onClick={() => setShowSourceModal(false)}
-        >
-          <div
-            className="bg-background rounded-lg shadow-2xl border border-border w-full max-w-4xl max-h-[90vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <div className="flex items-center gap-2">
-                <Code className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-semibold text-foreground">{t('email_source')}</h2>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={copySourceToClipboard}
-                  className="flex items-center gap-1.5"
-                >
-                  <Copy className="w-4 h-4" />
-                  {t('copy_source')}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowSourceModal(false)}
-                  className="h-10 w-10 lg:h-8 lg:w-8"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Modal Content */}
-            <div className="flex-1 overflow-auto p-4 bg-muted/30">
-              <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-words bg-background border border-border rounded-lg p-4">
-                {generateEmailSource(email)}
-              </pre>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* View source: the raw message the server holds. */}
+      <ViewSourceDialog
+        isOpen={showSourceModal && !!email}
+        onClose={() => setShowSourceModal(false)}
+        blobId={email?.blobId}
+        client={blobSource ? blobSource.client : client}
+        accountId={blobSource?.accountId}
+        onDownload={() => void handleExportEmail()}
+      />
     </div>
 
     {/* Mobile bottom action bar - pane-scoped inside a Pro pane (the
