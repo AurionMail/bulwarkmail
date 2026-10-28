@@ -210,7 +210,7 @@ export function FilePickerDialog({ client, onClose, onPick }: FilePickerDialogPr
         {here === null && !needle && sharedRoots.length > 0 && folderRow(
           SHARED_WITH_ME,
           t("shared_with_me"),
-          <Users className="w-5 h-5 shrink-0 text-blue-500" />,
+          <Users className="w-5 h-5 shrink-0 text-primary" />,
           () => openFolder(SHARED_WITH_ME, t("shared_with_me")),
         )}
         {entries.map((node) =>
@@ -218,7 +218,7 @@ export function FilePickerDialog({ client, onClose, onPick }: FilePickerDialogPr
             ? folderRow(
                 node.id,
                 node.name,
-                <Folder className="w-5 h-5 shrink-0 text-blue-500" />,
+                <Folder className="w-5 h-5 shrink-0 text-primary" />,
                 () => openFolder(node.id, node.name),
                 sharedBy(node),
               )

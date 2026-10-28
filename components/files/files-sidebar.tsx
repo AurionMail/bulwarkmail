@@ -343,7 +343,7 @@ export function FilesSidebar({
                 style={{ ...ROW_STYLE, paddingInlineStart: "26px" }}
                 title={path}
               >
-                <Star className="w-4 h-4 shrink-0 text-amber-500 fill-current" />
+                <Star className="w-4 h-4 shrink-0 text-amber-400 fill-amber-400" />
                 <span className="truncate">{path === "/" ? t("my_files") : path.split("/").pop()}</span>
               </button>
             ))}

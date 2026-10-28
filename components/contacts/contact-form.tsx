@@ -698,7 +698,7 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
       <div className="flex-1 overflow-y-auto">
         <div className="px-6 py-4 max-w-3xl">
           {error && (
-            <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 px-3 py-2 rounded-lg border border-red-200 dark:border-red-900 mb-4">
+            <div role="alert" className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md mb-4">
               {error}
             </div>
           )}
@@ -716,6 +716,8 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
                 name={previewName || undefined}
                 email={previewEmail || undefined}
                 contactPhoto={previewPhoto}
+                // Nothing typed yet: a neutral circle, not a coloured "?".
+                fallbackColor={previewName || previewEmail ? undefined : "var(--color-muted-foreground)"}
                 size="lg"
                 className="!w-20 !h-20 !text-xl"
               />
@@ -737,7 +739,7 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
             <div className="flex flex-col gap-1 min-w-0 flex-1">
               <p className="text-xs text-muted-foreground">{t("photo_hint")}</p>
               {photoError && (
-                <p className="text-xs text-red-600 dark:text-red-400">{photoError}</p>
+                <p className="text-xs text-destructive">{photoError}</p>
               )}
               {previewPhoto && (
                 <button
@@ -802,7 +804,7 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">
-                    {t("organization")} <span className="text-red-500">*</span>
+                    {t("organization")} <span className="text-destructive">*</span>
                   </label>
                   <Input value={organization} onChange={(e) => setOrganization(e.target.value)} placeholder={t("organization_placeholder")} autoFocus />
                 </div>
@@ -820,13 +822,13 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">
-                      {t("given_name")} <span className="text-red-500">*</span>
+                      {t("given_name")} <span className="text-destructive">*</span>
                     </label>
                     <Input value={givenName} onChange={(e) => setGivenName(e.target.value)} placeholder={t("given_name")} autoFocus />
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">
-                      {t("surname")} <span className="text-red-500">*</span>
+                      {t("surname")} <span className="text-destructive">*</span>
                     </label>
                     <Input value={surname} onChange={(e) => setSurname(e.target.value)} placeholder={t("surname")} />
                   </div>
@@ -869,7 +871,7 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
                       }}
                       onBlur={() => handleEmailBlur(i, entry.address)}
                       placeholder={t("email_placeholder")}
-                      className={cn("flex-1", emailErrors[i] && "border-red-500 focus:ring-red-500")}
+                      className={cn("flex-1", emailErrors[i] && "border-destructive focus-visible:border-destructive")}
                     />
                     <Select
                       value={entry.context}
@@ -890,7 +892,7 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
                     )}
                   </div>
                   {emailErrors[i] && (
-                    <p className="text-xs text-red-600 dark:text-red-400 mt-1 ms-1">{emailErrors[i]}</p>
+                    <p className="text-xs text-destructive mt-1 ms-1">{emailErrors[i]}</p>
                   )}
                 </div>
               ))}

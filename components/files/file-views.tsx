@@ -264,7 +264,7 @@ function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isS
             >
               {resource.name}
             </button>
-            {isStarred && <Star className="w-3.5 h-3.5 shrink-0 text-amber-500 fill-current" aria-label={t("favorites")} />}
+            {isStarred && <Star className="w-3.5 h-3.5 shrink-0 text-amber-400 fill-amber-400" aria-label={t("favorites")} />}
             <ShareBadge resource={resource} t={t} />
           </div>
           {touch && (
@@ -416,7 +416,7 @@ function FolderTile({ resource, isSelected, isFocused, isDropTarget, isCut, isSt
       >
         {resource.name}
       </button>
-      {isStarred && <Star className="w-3.5 h-3.5 shrink-0 text-amber-500 fill-current" aria-label={t("favorites")} />}
+      {isStarred && <Star className="w-3.5 h-3.5 shrink-0 text-amber-400 fill-amber-400" aria-label={t("favorites")} />}
       <ShareBadge resource={resource} t={t} />
       <IconButton
         data-item-action

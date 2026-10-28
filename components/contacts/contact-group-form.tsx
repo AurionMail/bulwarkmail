@@ -94,7 +94,7 @@ export function ContactGroupForm({
 
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
         {error && (
-          <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 px-3 py-2 rounded">
+          <div role="alert" className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">
             {error}
           </div>
         )}
