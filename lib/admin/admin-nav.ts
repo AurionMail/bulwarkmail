@@ -179,7 +179,7 @@ export const ADMIN_PAGES: readonly AdminPageDef[] = [
     sections: [
       { id: 'shared-tags', title: 'Shared tags', keywords: 'tags labels colours group mailbox edit lock' },
       { id: 'delegates', title: 'Delegates', keywords: 'delegate access mail calendar contacts rights read write' },
-      { id: 'recovery', title: 'Deleted items', keywords: 'recover restore deleted archive enterprise' },
+      { id: 'recovery', title: 'Recover deleted items', keywords: 'recover restore deleted archive enterprise' },
     ],
   },
   {
