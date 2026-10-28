@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   ArrowLeft,
   ArrowUpCircle,
@@ -80,6 +81,7 @@ const subscribeNothing = () => () => {};
  */
 export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly, onLogout, children }: AdminShellProps) {
   const pathname = usePathname();
+  const tShell = useTranslations('shell');
   const location = useAdminLocation();
   const isDesktop = useIsDesktop();
   // The server can't know the window width, so its HTML would be the phone
@@ -183,7 +185,8 @@ export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly,
     if (id === 'version' && hasUpdate) {
       // A dot only: role="img" makes screen readers announce its label, which
       // they skip on a plain span; the title shows it on hover.
-      const label = updateImportant ? 'Important update available' : 'Update available';
+      // The same words as the dot on the rail's Settings entry.
+      const label = tShell(updateImportant ? 'update_important' : 'update_available');
       return (
         <span
           role="img"

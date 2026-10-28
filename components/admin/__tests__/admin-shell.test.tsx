@@ -66,7 +66,17 @@ describe('AdminShell', () => {
       startPolling: () => {},
     } as never);
     render(shell({ authenticated: true, isStalwartAutoLogin: false }));
-    const dot = screen.getAllByRole('img', { name: 'Update available' })[0];
-    expect(dot.getAttribute('title')).toBe('Update available');
+    const dot = screen.getAllByRole('img', { name: 'update_available' })[0];
+    expect(dot.getAttribute('title')).toBe('update_available');
+  });
+
+  // Translated like the same dot on the navigation rail (shell namespace).
+  it('names an important update in the language of the user', () => {
+    useUpdateStore.setState({
+      status: { updateAvailable: true, severity: 'security', current: process.env.NEXT_PUBLIC_APP_VERSION ?? '', latest: '9.9.9' },
+      startPolling: () => {},
+    } as never);
+    render(shell({ authenticated: true, isStalwartAutoLogin: false }));
+    expect(screen.getAllByRole('img', { name: 'update_important' })[0].getAttribute('title')).toBe('update_important');
   });
 });
