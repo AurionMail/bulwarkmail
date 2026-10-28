@@ -126,11 +126,35 @@ test.beforeAll(async ({ browser }) => {
   await createMessage(ORG.alice, ORG.alice, OWN);
 });
 
+const METADATA = 'urn:ietf:params:jmap:metadata';
+const NAMES_ENTRY = 'org.bulwarkmail.plugin.team-inbox';
+
+/** The plugin's names in the team Inbox's shared metadata (only v1.0.0 keeps them). */
+async function sharedNames(): Promise<Record<string, unknown> | null> {
+  const client = await JmapClient.connect(ORG.alice, ORG_PASSWORD);
+  const accountId = client.accountIdByName(ORG.team);
+  const inbox = await client.mailboxByRole('inbox', accountId);
+  const r = await client.request([['Mailbox/get', { accountId, ids: [inbox!.id], properties: ['id', 'metadata'] }, '0']],
+    ['urn:ietf:params:jmap:core', 'urn:ietf:params:jmap:mail', METADATA]);
+  return r.methodResponses?.[0]?.[1]?.list?.[0]?.metadata?.[NAMES_ENTRY] ?? null;
+}
+
 test.afterAll(async ({ browser }) => {
   test.setTimeout(180000);
   for (const entry of created) {
     const client = await JmapClient.connect(entry.account, ORG_PASSWORD);
     await client.request([['Email/set', { accountId: entry.accountId, destroy: [entry.id] }, '0']]).catch(() => {});
+  }
+  // The names the plugin kept in the team Inbox go too (other features keep
+  // their own entries there).
+  if (ORG_SERVER === '1.0.0') {
+    const client = await JmapClient.connect(ORG.alice, ORG_PASSWORD);
+    const accountId = client.accountIdByName(ORG.team);
+    const inbox = await client.mailboxByRole('inbox', accountId);
+    if (inbox) {
+      await client.request([['Mailbox/set', { accountId, update: { [inbox.id]: { [`metadata/${NAMES_ENTRY}`]: null } } }, '0']],
+        ['urn:ietf:params:jmap:core', 'urn:ietf:params:jmap:mail', METADATA]).catch(() => {});
+    }
   }
   if (!original) return;
   const admin = await adminContext(browser);
@@ -193,6 +217,14 @@ test('alice assigns a team message to bob', async ({ browser }) => {
   await expect(alice.getByRole('menuitem', { name: 'Assign to me' })).toHaveCount(0);
   await expect(alice.getByRole('menuitem', { name: 'Mark done' })).toHaveCount(0);
   await alice.context().close();
+});
+
+test('on Stalwart v1.0.0 the names are shared in the team Inbox\'s metadata', async () => {
+  test.skip(ORG_SERVER !== '1.0.0', 'only the v1.0.0 release keeps metadata (facts §2)');
+  const names = await sharedNames() as { people?: Record<string, { n: string; e: string }> } | null;
+  const [aliceId, bobId] = [await principalId(ORG.alice), await principalId(ORG.bob)];
+  expect(names?.people?.[aliceId]?.e).toBe(ORG.alice);
+  expect(names?.people?.[bobId]?.e).toBe(ORG.bob);
 });
 
 test('bob finds it under "Assigned to me" and marking it done takes it out of "Open"', async ({ browser }) => {
