@@ -1019,3 +1019,20 @@ describe('file-store actions by id', () => {
     expect(useFileStore.getState().recentFiles.map(r => r.id)).toEqual(['2']);
   });
 });
+
+describe('file-store preview content', () => {
+  it('reads a file through the client, so the demo, which has no download URL, can preview it', async () => {
+    const client = makeMockClient([file('a', 'notes.txt', null)]);
+    Object.assign(client, {
+      getBlobDownloadUrl: () => 'data:application/octet-stream;demo-blob=b-a',
+      getAuthHeader: () => '',
+      fetchBlob: async (blobId: string) => new Blob([`content of ${blobId}`], { type: 'text/plain' }),
+    });
+    useFileStore.getState().initClient(client);
+    await useFileStore.getState().navigate(null);
+
+    const { blob, contentType } = await useFileStore.getState().getFileContent('notes.txt');
+    expect(await blob.text()).toBe('content of b-a');
+    expect(contentType).toBe('text/plain');
+  });
+});

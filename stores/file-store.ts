@@ -1227,12 +1227,8 @@ export const useFileStore = create<FileState>((set, get) => ({
     const resource = resources.find(r => r.name === name);
     if (!resource?.blobId) throw new Error('No blob');
 
-    const url = client.getBlobDownloadUrl(resource.blobId, resource.name, resource.contentType);
-    const response = await fetch(url, {
-      headers: { 'Authorization': client.getAuthHeader() },
-    });
-    if (!response.ok) throw new Error(`Failed to fetch file: ${response.status}`);
-    const blob = await response.blob();
+    // Through the client, like getImageUrl: the demo has no download URL to fetch.
+    const blob = await client.fetchBlob(resource.blobId, resource.name, resource.contentType);
     return { blob, contentType: resource.contentType || 'application/octet-stream' };
   },
 
