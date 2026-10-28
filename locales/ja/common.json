@@ -4567,14 +4567,16 @@
     "placeholder": "コマンドを入力",
     "no_results": "一致するコマンドはありません",
     "go_to": "{name}に移動",
-    "compose": "新規メッセージ",
+    "compose": "作成",
     "search": "メールを検索",
     "theme_dark": "ダークテーマに切り替え",
     "theme_light": "ライトテーマに切り替え",
     "shortcuts": "キーボードショートカットを表示",
     "group_navigation": "移動",
     "group_actions": "操作",
-    "group_plugins": "プラグイン"
+    "group_plugins": "プラグイン",
+    "group_account": "アカウント",
+    "switch_to": "{account} に切り替え"
   },
   "notification_center": {
     "title": "通知",

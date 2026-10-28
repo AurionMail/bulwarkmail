@@ -4567,14 +4567,16 @@
     "placeholder": "اكتب أمرًا",
     "no_results": "لا توجد أوامر مطابقة",
     "go_to": "الانتقال إلى {name}",
-    "compose": "رسالة جديدة",
+    "compose": "إنشاء رسالة",
     "search": "البحث في البريد",
     "theme_dark": "التبديل إلى المظهر الداكن",
     "theme_light": "التبديل إلى المظهر الفاتح",
     "shortcuts": "عرض اختصارات لوحة المفاتيح",
     "group_navigation": "الانتقال إلى",
     "group_actions": "إجراءات",
-    "group_plugins": "الإضافات"
+    "group_plugins": "الإضافات",
+    "group_account": "الحساب",
+    "switch_to": "التبديل إلى {account}"
   },
   "notification_center": {
     "title": "الإشعارات",

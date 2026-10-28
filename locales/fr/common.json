@@ -4567,14 +4567,16 @@
     "placeholder": "Tapez une commande",
     "no_results": "Aucune commande correspondante",
     "go_to": "Aller à {name}",
-    "compose": "Nouveau message",
+    "compose": "Composer",
     "search": "Rechercher dans la messagerie",
     "theme_dark": "Passer au thème sombre",
     "theme_light": "Passer au thème clair",
     "shortcuts": "Afficher les raccourcis clavier",
     "group_navigation": "Aller à",
     "group_actions": "Actions",
-    "group_plugins": "Plugins"
+    "group_plugins": "Plugins",
+    "group_account": "Compte",
+    "switch_to": "Passer à {account}"
   },
   "notification_center": {
     "title": "Notifications",

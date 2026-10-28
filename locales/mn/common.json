@@ -4567,14 +4567,16 @@
     "placeholder": "Команд бичнэ үү",
     "no_results": "Тохирох команд алга",
     "go_to": "{name} руу очих",
-    "compose": "Шинэ захидал",
+    "compose": "Бичилэх",
     "search": "Мэйлээс хайх",
     "theme_dark": "Бараан загвар руу шилжих",
     "theme_light": "Цайвар загвар руу шилжих",
     "shortcuts": "Гарын товчлолыг харуулах",
     "group_navigation": "Очих",
     "group_actions": "Үйлдлүүд",
-    "group_plugins": "Залгаасууд"
+    "group_plugins": "Залгаасууд",
+    "group_account": "Бүртгэл",
+    "switch_to": "{account} руу шилжих"
   },
   "notification_center": {
     "title": "Мэдэгдэл",

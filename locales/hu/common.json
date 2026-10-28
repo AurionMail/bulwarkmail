@@ -4574,7 +4574,9 @@
     "shortcuts": "Billentyűparancsok megjelenítése",
     "group_navigation": "Ugrás ide",
     "group_actions": "Műveletek",
-    "group_plugins": "Bővítmények"
+    "group_plugins": "Bővítmények",
+    "group_account": "Fiók",
+    "switch_to": "Váltás erre: {account}"
   },
   "notification_center": {
     "title": "Értesítések",

@@ -4567,14 +4567,16 @@
     "placeholder": "Введите команду",
     "no_results": "Нет подходящих команд",
     "go_to": "Перейти: {name}",
-    "compose": "Новое письмо",
+    "compose": "Создать",
     "search": "Искать в почте",
     "theme_dark": "Включить тёмную тему",
     "theme_light": "Включить светлую тему",
     "shortcuts": "Показать сочетания клавиш",
     "group_navigation": "Перейти",
     "group_actions": "Действия",
-    "group_plugins": "Плагины"
+    "group_plugins": "Плагины",
+    "group_account": "Аккаунт",
+    "switch_to": "Переключиться на {account}"
   },
   "notification_center": {
     "title": "Уведомления",

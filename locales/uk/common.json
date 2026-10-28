@@ -4567,14 +4567,16 @@
     "placeholder": "Введіть команду",
     "no_results": "Немає відповідних команд",
     "go_to": "Перейти: {name}",
-    "compose": "Новий лист",
+    "compose": "Скласти",
     "search": "Шукати в пошті",
     "theme_dark": "Увімкнути темну тему",
     "theme_light": "Увімкнути світлу тему",
     "shortcuts": "Показати комбінації клавіш",
     "group_navigation": "Перейти",
     "group_actions": "Дії",
-    "group_plugins": "Плагіни"
+    "group_plugins": "Плагіни",
+    "group_account": "Обліковий запис",
+    "switch_to": "Перейти до {account}"
   },
   "notification_center": {
     "title": "Сповіщення",

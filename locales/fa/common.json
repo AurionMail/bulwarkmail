@@ -4567,14 +4567,16 @@
     "placeholder": "یک فرمان بنویسید",
     "no_results": "فرمان منطبقی پیدا نشد",
     "go_to": "رفتن به {name}",
-    "compose": "پیام جدید",
+    "compose": "ایمیل جدید",
     "search": "جستجو در ایمیل",
     "theme_dark": "رفتن به پوسته تیره",
     "theme_light": "رفتن به پوسته روشن",
     "shortcuts": "نمایش میانبرهای صفحه کلید",
     "group_navigation": "رفتن به",
     "group_actions": "کارها",
-    "group_plugins": "افزونه‌ها"
+    "group_plugins": "افزونه‌ها",
+    "group_account": "حساب",
+    "switch_to": "رفتن به {account}"
   },
   "notification_center": {
     "title": "اعلان‌ها",

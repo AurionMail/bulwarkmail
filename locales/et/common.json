@@ -4567,14 +4567,16 @@
     "placeholder": "Trüki käsk",
     "no_results": "Sobivaid käske pole",
     "go_to": "Mine: {name}",
-    "compose": "Uus kiri",
+    "compose": "Koosta",
     "search": "Otsi kirju",
     "theme_dark": "Lülitu tumedale teemale",
     "theme_light": "Lülitu heledale teemale",
     "shortcuts": "Näita kiirklahve",
     "group_navigation": "Mine",
     "group_actions": "Toimingud",
-    "group_plugins": "Pistikprogrammid"
+    "group_plugins": "Pistikprogrammid",
+    "group_account": "Konto",
+    "switch_to": "Lülitu kontole {account}"
   },
   "notification_center": {
     "title": "Märguanded",

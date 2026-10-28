@@ -88,7 +88,8 @@ describe('command palette', () => {
     render(<CommandPaletteHost />);
     pressCtrlK();
 
-    const labels = screen.getAllByRole('option').map((o) => o.textContent);
+    // The label, without the key hint after it.
+    const labels = screen.getAllByRole('option').map((o) => o.querySelector('.flex-1')?.textContent);
     expect(labels).toContain('go_to(mail)');
     expect(labels).toContain('go_to(settings)');
     expect(labels).toContain('compose');

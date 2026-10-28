@@ -4567,14 +4567,16 @@
     "placeholder": "Wpisz polecenie",
     "no_results": "Brak pasujących poleceń",
     "go_to": "Przejdź do: {name}",
-    "compose": "Nowa wiadomość",
+    "compose": "Napisz",
     "search": "Szukaj w poczcie",
     "theme_dark": "Przełącz na ciemny motyw",
     "theme_light": "Przełącz na jasny motyw",
     "shortcuts": "Pokaż skróty klawiszowe",
     "group_navigation": "Przejdź do",
     "group_actions": "Działania",
-    "group_plugins": "Wtyczki"
+    "group_plugins": "Wtyczki",
+    "group_account": "Konto",
+    "switch_to": "Przełącz na {account}"
   },
   "notification_center": {
     "title": "Powiadomienia",

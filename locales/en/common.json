@@ -4567,14 +4567,16 @@
     "placeholder": "Type a command",
     "no_results": "No matching commands",
     "go_to": "Go to {name}",
-    "compose": "New message",
+    "compose": "Compose",
     "search": "Search mail",
     "theme_dark": "Switch to dark theme",
     "theme_light": "Switch to light theme",
     "shortcuts": "Show keyboard shortcuts",
     "group_navigation": "Go to",
     "group_actions": "Actions",
-    "group_plugins": "Plugins"
+    "group_plugins": "Plugins",
+    "group_account": "Account",
+    "switch_to": "Switch to {account}"
   },
   "notification_center": {
     "title": "Notifications",

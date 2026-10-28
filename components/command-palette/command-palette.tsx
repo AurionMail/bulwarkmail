@@ -7,25 +7,33 @@ import {
   Folder,
   Users,
   Keyboard,
+  LogOut,
   Mail,
   Moon,
-  PenLine,
+  PenSquare,
   Puzzle,
   Search,
   Settings,
   Sun,
+  UserCircle,
   iconForName,
 } from "@/components/icons";
 import type { AppIcon } from "@/components/icons";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { useAuthStore } from "@/stores/auth-store";
+import { useAccountStore } from "@/stores/account-store";
+import { useGlobalSearchStore } from "@/stores/global-search-store";
 import { useCalendarStore } from "@/stores/calendar-store";
 import { usePolicyStore } from "@/stores/policy-store";
 import { useThemeStore } from "@/stores/theme-store";
 import { usePluginActions } from "@/components/plugins/plugin-actions";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
+import { GlobalSearchPalette } from "@/components/global-search/global-search-palette";
 import { runAction } from "@/lib/plugin-sandbox/actions";
 import { COMMAND_PALETTE_OPEN_EVENT, parkAppCommand, requestAppCommand, type AppCommand } from "@/lib/app-commands";
+import { commandMatches, useRegisteredCommandGroups } from "@/lib/command-registry";
+import { shortcutAlternatives } from "@/lib/shortcut-keys";
+import { toUnicodeEmail } from "@/lib/idn";
 import { isEditableEventTarget } from "@/lib/keyboard";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { cn } from "@/lib/utils";
@@ -36,7 +44,11 @@ interface PaletteCommand {
   icon: AppIcon;
   /** Shown after the label: the plugin that added the entry. */
   source?: string;
-  group: "navigation" | "actions" | "plugins";
+  /** The heading of the group the command is listed under. */
+  group: string;
+  keywords?: readonly string[];
+  /** Key hint at the end of the row (devices with a keyboard only). */
+  shortcut?: string;
   run: () => void;
 }
 
@@ -56,7 +68,8 @@ export function CommandPaletteHost() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const enabled = isAuthenticated && !isProShell(pathname);
+  const proShell = isProShell(pathname);
+  const enabled = isAuthenticated && !proShell;
 
   useEffect(() => {
     if (!enabled) return;
@@ -84,6 +97,8 @@ export function CommandPaletteHost() {
   return (
     <>
       {open && <CommandPalette onClose={() => setOpen(false)} onShowShortcuts={() => setShowShortcuts(true)} />}
+      {/* "Search everything" in the standard shell; the Pro shell mounts its own. */}
+      {enabled && <GlobalSearchPalette proShell={false} />}
       <KeyboardShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
     </>
   );
@@ -92,6 +107,7 @@ export function CommandPaletteHost() {
 function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onShowShortcuts: () => void }) {
   const t = useTranslations("command_palette");
   const tSidebar = useTranslations("sidebar");
+  const tGlobalSearch = useTranslations("global_search");
   const router = useRouter();
   const pathname = usePathname();
   const listId = useId();
@@ -106,6 +122,9 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
   const colorModeLocked = usePolicyStore((s) => s.getColorModePolicy().locked);
   const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
   const pluginActions = usePluginActions(surface);
+  const registeredGroups = useRegisteredCommandGroups();
+  const accounts = useAccountStore((s) => s.accounts);
+  const activeAccountId = useAuthStore((s) => s.activeAccountId);
 
   const dialogRef = useFocusTrap({ isActive: true, onEscape: onClose, restoreFocus: true });
 
@@ -117,38 +136,73 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
       parkAppCommand(command);
       router.push("/");
     };
-    const list: PaletteCommand[] = [
-      { id: "go-mail", group: "navigation", icon: Mail, label: t("go_to", { name: tSidebar("mail") }), run: go("/") },
-    ];
+    const navigation = t("group_navigation");
+    const actions = t("group_actions");
+    const account = t("group_account");
+    // The current app's own commands come first (useRegisterCommands).
+    const list: PaletteCommand[] = registeredGroups.flatMap((group) =>
+      group.commands.map((command) => ({
+        id: `app:${group.label}:${command.id}`,
+        group: group.label,
+        icon: command.icon ?? Puzzle,
+        label: command.label,
+        keywords: command.keywords,
+        shortcut: command.shortcut,
+        run: command.run,
+      })),
+    );
+    list.push({ id: "go-mail", group: navigation, icon: Mail, label: t("go_to", { name: tSidebar("mail") }), run: go("/") });
     if (supportsCalendar && isFeatureEnabled("calendarEnabled")) {
-      list.push({ id: "go-calendar", group: "navigation", icon: CalendarEvent, label: t("go_to", { name: tSidebar("calendar") }), run: go("/calendar") });
+      list.push({ id: "go-calendar", group: navigation, icon: CalendarEvent, label: t("go_to", { name: tSidebar("calendar") }), run: go("/calendar") });
     }
     if ((client?.supportsContacts?.() ?? false) && isFeatureEnabled("contactsEnabled")) {
-      list.push({ id: "go-contacts", group: "navigation", icon: Users, label: t("go_to", { name: tSidebar("contacts") }), run: go("/contacts") });
+      list.push({ id: "go-contacts", group: navigation, icon: Users, label: t("go_to", { name: tSidebar("contacts") }), run: go("/contacts") });
     }
     if ((client?.supportsFiles?.() ?? false) && isFeatureEnabled("filesEnabled")) {
-      list.push({ id: "go-files", group: "navigation", icon: Folder, label: t("go_to", { name: tSidebar("files") }), run: go("/files") });
+      list.push({ id: "go-files", group: navigation, icon: Folder, label: t("go_to", { name: tSidebar("files") }), run: go("/files") });
     }
     list.push(
-      { id: "go-settings", group: "navigation", icon: Settings, label: t("go_to", { name: tSidebar("settings") }), run: go("/settings") },
-      { id: "compose", group: "actions", icon: PenLine, label: t("compose"), run: onMail("compose") },
-      { id: "search", group: "actions", icon: Search, label: t("search"), run: onMail("search") },
+      { id: "go-settings", group: navigation, icon: Settings, label: t("go_to", { name: tSidebar("settings") }), run: go("/settings") },
+      { id: "compose", group: actions, icon: PenSquare, label: t("compose"), shortcut: "c", run: onMail("compose") },
+      { id: "search", group: actions, icon: Search, label: t("search"), shortcut: "/", run: onMail("search") },
+      {
+        id: "search-everything",
+        group: actions,
+        icon: Search,
+        label: tGlobalSearch("title"),
+        keywords: [tSidebar("contacts"), tSidebar("calendar"), tSidebar("files")],
+        run: () => useGlobalSearchStore.getState().openPalette(),
+      },
     );
     // The theme policy can pin the color mode (#1280).
     if (!colorModeLocked) {
       list.push({
         id: "theme",
-        group: "actions",
+        group: actions,
         icon: resolvedTheme === "dark" ? Sun : Moon,
         label: resolvedTheme === "dark" ? t("theme_light") : t("theme_dark"),
         run: () => useThemeStore.getState().setTheme(resolvedTheme === "dark" ? "light" : "dark"),
       });
     }
-    list.push({ id: "shortcuts", group: "actions", icon: Keyboard, label: t("shortcuts"), run: onShowShortcuts });
+    list.push({ id: "shortcuts", group: actions, icon: Keyboard, label: t("shortcuts"), shortcut: "?", run: onShowShortcuts });
+    // Account: switch to each other signed-in account, sign out.
+    for (const entry of accounts) {
+      if (entry.id === activeAccountId) continue;
+      const name = entry.label || toUnicodeEmail(entry.email || entry.username);
+      list.push({
+        id: `account:${entry.id}`,
+        group: account,
+        icon: UserCircle,
+        label: t("switch_to", { account: name }),
+        keywords: [tSidebar("switch_account"), entry.email],
+        run: () => { void useAuthStore.getState().switchAccount(entry.id); },
+      });
+    }
+    list.push({ id: "sign-out", group: account, icon: LogOut, label: tSidebar("sign_out"), run: () => { void useAuthStore.getState().logout(); } });
     for (const action of pluginActions) {
       list.push({
         id: `plugin:${action.pluginId}:${action.id}`,
-        group: "plugins",
+        group: t("group_plugins"),
         icon: iconForName(action.icon) ?? Puzzle,
         label: action.label,
         source: action.pluginName,
@@ -156,11 +210,11 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
       });
     }
     return list;
-  }, [client, supportsCalendar, isFeatureEnabled, colorModeLocked, resolvedTheme, pluginActions, router, t, tSidebar, onShowShortcuts]);
+  }, [client, supportsCalendar, isFeatureEnabled, colorModeLocked, resolvedTheme, pluginActions, registeredGroups, accounts, activeAccountId, router, t, tSidebar, tGlobalSearch, onShowShortcuts]);
 
-  const needle = query.trim().toLowerCase();
+  const needle = query.trim();
   const visible = needle
-    ? commands.filter((c) => c.label.toLowerCase().includes(needle) || (c.source?.toLowerCase().includes(needle) ?? false))
+    ? commands.filter((c) => commandMatches(needle, c.label, [...(c.keywords ?? []), ...(c.source ? [c.source] : [])]))
     : commands;
   const activeIndex = visible.length === 0 ? -1 : Math.min(active, visible.length - 1);
 
@@ -202,9 +256,6 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
       onClose();
     }
   };
-
-  const groupLabel = (group: PaletteCommand["group"]) =>
-    group === "navigation" ? t("group_navigation") : group === "actions" ? t("group_actions") : t("group_plugins");
 
   return (
     <div
@@ -259,7 +310,7 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
               <li key={command.id} role="presentation">
                 {showGroup && (
                   <div aria-hidden="true" className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    {groupLabel(command.group)}
+                    {command.group}
                   </div>
                 )}
                 <div
@@ -280,6 +331,14 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
                   <span className="flex-1 min-w-0 truncate">{command.label}</span>
                   {command.source && (
                     <span className="flex-shrink-0 truncate max-w-[40%] text-xs text-muted-foreground">{command.source}</span>
+                  )}
+                  {command.shortcut && (
+                    // Key hints only where there is a keyboard (R8).
+                    <span className="flex-shrink-0 flex items-center gap-1 pointer-coarse:hidden" aria-hidden="true">
+                      {shortcutAlternatives(command.shortcut).map((key) => (
+                        <kbd key={key} className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">{key}</kbd>
+                      ))}
+                    </span>
                   )}
                 </div>
               </li>

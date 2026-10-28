@@ -4567,14 +4567,16 @@
     "placeholder": "Escriviu una ordre",
     "no_results": "Cap ordre coincident",
     "go_to": "Ves a {name}",
-    "compose": "Missatge nou",
+    "compose": "Redacta",
     "search": "Cerca al correu",
     "theme_dark": "Canvia al tema fosc",
     "theme_light": "Canvia al tema clar",
     "shortcuts": "Mostra les dreceres de teclat",
     "group_navigation": "Ves a",
     "group_actions": "Accions",
-    "group_plugins": "Connectors"
+    "group_plugins": "Connectors",
+    "group_account": "Compte",
+    "switch_to": "Canvia a {account}"
   },
   "notification_center": {
     "title": "Notificacions",

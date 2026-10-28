@@ -4567,14 +4567,16 @@
     "placeholder": "Zadejte příkaz",
     "no_results": "Žádné odpovídající příkazy",
     "go_to": "Přejít na {name}",
-    "compose": "Nová zpráva",
+    "compose": "Napsat",
     "search": "Hledat v poště",
     "theme_dark": "Přepnout na tmavý motiv",
     "theme_light": "Přepnout na světlý motiv",
     "shortcuts": "Zobrazit klávesové zkratky",
     "group_navigation": "Přejít na",
     "group_actions": "Akce",
-    "group_plugins": "Pluginy"
+    "group_plugins": "Pluginy",
+    "group_account": "Účet",
+    "switch_to": "Přepnout na {account}"
   },
   "notification_center": {
     "title": "Oznámení",

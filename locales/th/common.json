@@ -62,14 +62,16 @@
     "placeholder": "พิมพ์คำสั่งหรือค้นหา...",
     "no_results": "ไม่พบคำสั่งที่ตรงกัน",
     "go_to": "ไปยัง {name}",
-    "compose": "เขียนจดหมายใหม่",
+    "compose": "เขียนจดหมาย",
     "search": "ค้นหาจดหมาย",
     "theme_dark": "เปลี่ยนเป็นธีมมืด",
     "theme_light": "เปลี่ยนเป็นธีมสว่าง",
     "shortcuts": "แสดงแป้นพิมพ์ลัด",
     "group_navigation": "ไปยัง",
     "group_actions": "การดำเนินการ",
-    "group_plugins": "ปลั๊กอิน"
+    "group_plugins": "ปลั๊กอิน",
+    "group_account": "บัญชี",
+    "switch_to": "สลับไปที่ {account}"
   },
   "notification_center": {
     "title": "การแจ้งเตือน",

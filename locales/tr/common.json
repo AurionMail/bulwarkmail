@@ -4567,14 +4567,16 @@
     "placeholder": "Bir komut yazın",
     "no_results": "Eşleşen komut yok",
     "go_to": "{name} bölümüne git",
-    "compose": "Yeni ileti",
+    "compose": "Yeni E-posta",
     "search": "Postada ara",
     "theme_dark": "Koyu temaya geç",
     "theme_light": "Açık temaya geç",
     "shortcuts": "Klavye kısayollarını göster",
     "group_navigation": "Git",
     "group_actions": "Eylemler",
-    "group_plugins": "Eklentiler"
+    "group_plugins": "Eklentiler",
+    "group_account": "Hesap",
+    "switch_to": "{account} hesabına geç"
   },
   "notification_center": {
     "title": "Bildirimler",

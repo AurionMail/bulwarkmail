@@ -4574,7 +4574,9 @@
     "shortcuts": "Vis tastaturgenveje",
     "group_navigation": "Gå til",
     "group_actions": "Handlinger",
-    "group_plugins": "Plugins"
+    "group_plugins": "Plugins",
+    "group_account": "Konto",
+    "switch_to": "Skift til {account}"
   },
   "notification_center": {
     "title": "Notifikationer",

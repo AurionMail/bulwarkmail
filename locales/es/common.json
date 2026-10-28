@@ -4567,14 +4567,16 @@
     "placeholder": "Escribe un comando",
     "no_results": "No hay comandos que coincidan",
     "go_to": "Ir a {name}",
-    "compose": "Mensaje nuevo",
+    "compose": "Redactar",
     "search": "Buscar en el correo",
     "theme_dark": "Cambiar al tema oscuro",
     "theme_light": "Cambiar al tema claro",
     "shortcuts": "Mostrar atajos de teclado",
     "group_navigation": "Ir a",
     "group_actions": "Acciones",
-    "group_plugins": "Complementos"
+    "group_plugins": "Complementos",
+    "group_account": "Cuenta",
+    "switch_to": "Cambiar a {account}"
   },
   "notification_center": {
     "title": "Notificaciones",

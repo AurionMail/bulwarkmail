@@ -4574,7 +4574,9 @@
     "shortcuts": "Sneltoetsen tonen",
     "group_navigation": "Naar",
     "group_actions": "Acties",
-    "group_plugins": "Plug-ins"
+    "group_plugins": "Plug-ins",
+    "group_account": "Account",
+    "switch_to": "Overschakelen naar {account}"
   },
   "notification_center": {
     "title": "Meldingen",

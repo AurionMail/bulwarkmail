@@ -4567,14 +4567,16 @@
     "placeholder": "Befehl eingeben",
     "no_results": "Keine passenden Befehle",
     "go_to": "Zu {name} wechseln",
-    "compose": "Neue Nachricht",
+    "compose": "Verfassen",
     "search": "E-Mails durchsuchen",
     "theme_dark": "Dunkles Design verwenden",
     "theme_light": "Helles Design verwenden",
     "shortcuts": "Tastaturkürzel anzeigen",
     "group_navigation": "Wechseln zu",
     "group_actions": "Aktionen",
-    "group_plugins": "Plugins"
+    "group_plugins": "Plugins",
+    "group_account": "Konto",
+    "switch_to": "Zu {account} wechseln"
   },
   "notification_center": {
     "title": "Benachrichtigungen",
