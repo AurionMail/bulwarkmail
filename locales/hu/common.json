@@ -831,6 +831,7 @@
     "schedule_send_cleanup_warning": "Az ütemezett küldés létrejött, de a piszkozat tisztítása sikertelen volt.",
     "send_delay_unsupported": "A késleltetett küldés nem támogatott ehhez a fiókhoz.",
     "send_delay_unsupported_confirm": "Ez a fiók nem támogatja a késleltetett küldést. Elküldjük azonnal?",
+    "send_delay_unsupported_title": "Küldés késleltetés nélkül?",
     "recipient_edit_email": "E-mail-cím szerkesztése",
     "recipient_edit_name": "Megjelenített név szerkesztése",
     "recipient_email_placeholder": "E-mail-cím",

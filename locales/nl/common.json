@@ -831,6 +831,7 @@
     "schedule_send_cleanup_warning": "Gepland verzenden is aangemaakt, maar het opschonen van de conceptversie is mislukt.",
     "send_delay_unsupported": "Verzendvertraging wordt niet ondersteund voor dit account.",
     "send_delay_unsupported_confirm": "Dit account ondersteunt geen verzendvertraging. Meteen verzenden?",
+    "send_delay_unsupported_title": "Verzenden zonder vertraging?",
     "recipient_edit_email": "E-mailadres bewerken",
     "recipient_edit_name": "Weergavenaam bewerken",
     "recipient_email_placeholder": "E-mailadres",

@@ -3914,7 +3914,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     let delayedUntil: string | undefined;
     if (sendDelaySeconds > 0) {
       if (!client.hasDelayedSend()) {
-        const confirmed = window.confirm(t('email_composer.send_delay_unsupported_confirm'));
+        const confirmed = await confirmDialog({
+          title: t('email_composer.send_delay_unsupported_title'),
+          message: t('email_composer.send_delay_unsupported_confirm'),
+          confirmText: t('email_composer.send'),
+        });
         if (!confirmed) return;
       } else {
         delayedUntil = new Date(Date.now() + sendDelaySeconds * 1000).toISOString();

@@ -831,6 +831,7 @@
     "schedule_send_cleanup_warning": "Запланированная отправка создана, но очистка черновика не удалась.",
     "send_delay_unsupported": "Задержка отправки не поддерживается для этой учетной записи.",
     "send_delay_unsupported_confirm": "Эта учетная запись не поддерживает задержку отправки. Отправить сразу?",
+    "send_delay_unsupported_title": "Отправить без задержки?",
     "recipient_edit_email": "Изменить адрес эл. почты",
     "recipient_edit_name": "Изменить отображаемое имя",
     "recipient_email_placeholder": "Адрес эл. почты",

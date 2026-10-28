@@ -831,6 +831,7 @@
     "schedule_send_cleanup_warning": "ارسال زمان‌بندی ایجاد شد اما پاکسازی پیش‌نویس ناموفق بود.",
     "send_delay_unsupported": "تأخیر ارسال پشتیبانی نمی‌شود.",
     "send_delay_unsupported_confirm": "این حساب تأخیر ارسال ندارد. بلافاصله ارسال شود؟",
+    "send_delay_unsupported_title": "بدون تأخیر ارسال شود؟",
     "recipient_edit_email": "ویرایش آدرس ایمیل",
     "recipient_edit_name": "ویرایش نام نمایشی",
     "recipient_email_placeholder": "آدرس ایمیل",

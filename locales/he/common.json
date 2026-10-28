@@ -796,6 +796,7 @@
     "schedule_send_cleanup_warning": "תזמון שליחה נוצר, אך ניקוי טיוטה נכשל.",
     "send_delay_unsupported": "השהיית שליחה אינה נתמכת עבור חשבון זה.",
     "send_delay_unsupported_confirm": "חשבון זה אינו תומך בהשהיית שליחה. שלח מיד במקום זאת?",
+    "send_delay_unsupported_title": "לשלוח ללא השהיה?",
     "recipient_edit_email": "ערוך כתובת דוא״ל",
     "recipient_edit_name": "ערוך שם תצוגה",
     "recipient_email_placeholder": "כתובת דוא״ל",

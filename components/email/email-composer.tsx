@@ -5,6 +5,8 @@ import { useMvComposeWindow } from "@/components/email/mv-compose-context";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { Input } from "@/components/ui/input";
 import {
   X,
@@ -962,6 +964,8 @@ export function EmailComposer({
   const [placeholderWarningDelayedUntil, setPlaceholderWarningDelayedUntil] = useState<string | undefined>();
   const [placeholderDontAskAgain, setPlaceholderDontAskAgain] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  // Asks before sending at once when the account can't hold a message back.
+  const { dialogProps: noDelayDialogProps, confirm: confirmNoDelay } = useConfirmDialog();
   const [showSendMenu, setShowSendMenu] = useState(false);
   const sendMenuRef = useRef<HTMLDivElement>(null);
   const mobileSendMenuRef = useRef<HTMLDivElement>(null);
@@ -2997,7 +3001,11 @@ export function EmailComposer({
     if (composerClient?.hasDelayedSend()) {
       return new Date(Date.now() + sendDelaySeconds * 1000).toISOString();
     }
-    const confirmed = window.confirm(t('send_delay_unsupported_confirm'));
+    const confirmed = await confirmNoDelay({
+      title: t('send_delay_unsupported_title'),
+      message: t('send_delay_unsupported_confirm'),
+      confirmText: t('send'),
+    });
     if (!confirmed) {
       throw new Error(t('send_delay_unsupported'));
     }
@@ -4818,6 +4826,8 @@ export function EmailComposer({
           </div>
         </div>
       )}
+
+      <ConfirmDialog {...noDelayDialogProps} />
 
       {showPlaceholderWarning && (
         <div

@@ -831,6 +831,7 @@
     "schedule_send_cleanup_warning": "S'ha creat l'enviament programat, però no s'ha pogut netejar l'esborrany.",
     "send_delay_unsupported": "Aquest compte no admet el retard d'enviament.",
     "send_delay_unsupported_confirm": "Aquest compte no admet el retard d'enviament. Voleu enviar-lo immediatament?",
+    "send_delay_unsupported_title": "Vols enviar-lo sense retard?",
     "recipient_edit_email": "Edita l'adreça electrònica",
     "recipient_edit_name": "Edita el nom mostrat",
     "recipient_email_placeholder": "Adreça electrònica",

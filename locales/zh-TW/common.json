@@ -831,6 +831,7 @@
     "schedule_send_cleanup_warning": "已建立排程寄送，但清理草稿失敗。",
     "send_delay_unsupported": "此帳號不支援傳送延遲。",
     "send_delay_unsupported_confirm": "此帳號不支援傳送延遲。是否立即傳送？",
+    "send_delay_unsupported_title": "不延遲直接傳送？",
     "recipient_edit_email": "編輯電子郵件地址",
     "recipient_edit_name": "編輯顯示名稱",
     "recipient_email_placeholder": "電子郵件地址",

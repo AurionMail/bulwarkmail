@@ -831,6 +831,7 @@
     "schedule_send_cleanup_warning": "L’envoi planifié a été créé, mais le nettoyage du brouillon a échoué.",
     "send_delay_unsupported": "Le délai d’envoi n’est pas pris en charge pour ce compte.",
     "send_delay_unsupported_confirm": "Ce compte ne prend pas en charge le délai d’envoi. Envoyer immédiatement ?",
+    "send_delay_unsupported_title": "Envoyer sans délai ?",
     "recipient_edit_email": "Modifier l'adresse e-mail",
     "recipient_edit_name": "Modifier le nom d'affichage",
     "recipient_email_placeholder": "Adresse e-mail",

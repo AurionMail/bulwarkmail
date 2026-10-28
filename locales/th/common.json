@@ -978,6 +978,7 @@
     "schedule_send_cleanup_warning": "สร้างการกำหนดเวลาส่งแล้ว แต่การล้างร่างเดิมไม่สำเร็จ",
     "send_delay_unsupported": "บัญชีนี้ไม่รองรับการหน่วงเวลาส่ง",
     "send_delay_unsupported_confirm": "บัญชีนี้ไม่รองรับการหน่วงเวลาส่ง ต้องการส่งทันทีหรือไม่?",
+    "send_delay_unsupported_title": "ส่งโดยไม่หน่วงเวลาไหม",
     "recipient_edit_email": "แก้ไขที่อยู่อีเมล",
     "recipient_edit_name": "แก้ไขชื่อที่แสดง",
     "recipient_email_placeholder": "ที่อยู่อีเมล",

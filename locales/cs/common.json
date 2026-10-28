@@ -831,6 +831,7 @@
     "schedule_send_cleanup_warning": "Naplánované odeslání bylo vytvořeno, ale vyčištění konceptu selhalo.",
     "send_delay_unsupported": "Prodleva odeslání není pro tento účet podporována.",
     "send_delay_unsupported_confirm": "Tento účet nepodporuje prodlevu odeslání. Odeslat ihned?",
+    "send_delay_unsupported_title": "Odeslat bez zpoždění?",
     "recipient_edit_email": "Upravit e-mailovou adresu",
     "recipient_edit_name": "Upravit zobrazované jméno",
     "recipient_email_placeholder": "E-mailová adresa",

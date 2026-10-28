@@ -831,6 +831,7 @@
     "schedule_send_cleanup_warning": "已创建计划发送，但清理草稿失败。",
     "send_delay_unsupported": "此账户不支持发送延迟。",
     "send_delay_unsupported_confirm": "此账户不支持发送延迟。是否立即发送？",
+    "send_delay_unsupported_title": "不延迟直接发送？",
     "recipient_edit_email": "编辑电子邮件地址",
     "recipient_edit_name": "编辑显示名称",
     "recipient_email_placeholder": "电子邮件地址",

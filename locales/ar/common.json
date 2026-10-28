@@ -831,6 +831,7 @@
     "schedule_send_cleanup_warning": "تم إنشاء الإرسال المجدول، لكن فشل تنظيف المسودة.",
     "send_delay_unsupported": "تأخير الإرسال غير مدعوم لهذا الحساب.",
     "send_delay_unsupported_confirm": "هذا الحساب لا يدعم تأخير الإرسال. هل تريد الإرسال فورًا بدلاً من ذلك؟",
+    "send_delay_unsupported_title": "الإرسال دون تأخير؟",
     "recipient_edit_email": "تعديل عنوان البريد الإلكتروني",
     "recipient_edit_name": "تعديل الاسم المعروض",
     "recipient_email_placeholder": "عنوان البريد الإلكتروني",

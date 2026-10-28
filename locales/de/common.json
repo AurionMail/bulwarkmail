@@ -831,6 +831,7 @@
     "schedule_send_cleanup_warning": "Geplantes Senden wurde erstellt, aber das Bereinigen des Entwurfs ist fehlgeschlagen.",
     "send_delay_unsupported": "Sendeverzögerung wird für dieses Konto nicht unterstützt.",
     "send_delay_unsupported_confirm": "Dieses Konto unterstützt keine Sendeverzögerung. Stattdessen sofort senden?",
+    "send_delay_unsupported_title": "Ohne Verzögerung senden?",
     "recipient_edit_email": "E-Mail-Adresse bearbeiten",
     "recipient_edit_name": "Anzeigenamen bearbeiten",
     "recipient_email_placeholder": "E-Mail-Adresse",

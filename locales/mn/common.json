@@ -831,6 +831,7 @@
     "schedule_send_cleanup_warning": "Хуваарьт илгээлт үүсгэсэн боловч ноорог цэвэрлэж чадсангүй.",
     "send_delay_unsupported": "Илгээлтийн саатал энэ бүртгэлд дэмжигдээгүй.",
     "send_delay_unsupported_confirm": "Энэ бүртгэл нь илгээх саатлыг дэмждэггүй. Оронд нь шууд явуулах уу?",
+    "send_delay_unsupported_title": "Хүлээлтгүйгээр илгээх үү?",
     "recipient_edit_email": "Имэйл хаягийг засах",
     "recipient_edit_name": "Дэлгэцийн нэрийг засах",
     "recipient_email_placeholder": "Имэйл хаяг",

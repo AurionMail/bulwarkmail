@@ -831,6 +831,7 @@
     "schedule_send_cleanup_warning": "Se creó el envío programado, pero falló la limpieza del borrador.",
     "send_delay_unsupported": "La demora de envío no es compatible con esta cuenta.",
     "send_delay_unsupported_confirm": "Esta cuenta no admite demora de envío. ¿Enviar inmediatamente?",
+    "send_delay_unsupported_title": "¿Enviar sin retraso?",
     "recipient_edit_email": "Editar dirección de correo",
     "recipient_edit_name": "Editar nombre para mostrar",
     "recipient_email_placeholder": "Dirección de correo",
