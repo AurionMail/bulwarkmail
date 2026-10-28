@@ -56,7 +56,8 @@ let blockedSyncAccountId: string | null = null;
 // device settings and the first sign-in adopts them.
 const SETTINGS_OWNER_KEY = 'settings-sync-owner';
 
-function readSettingsOwner(): string | null {
+/** The account whose server copy the local settings (and template list) mirror; null if none. */
+export function readSettingsOwner(): string | null {
   try {
     return typeof window === 'undefined' ? null : window.localStorage.getItem(SETTINGS_OWNER_KEY);
   } catch {
@@ -89,14 +90,21 @@ interface SettingsSyncJob {
 // bindings uninitialized depending on which module loads first. Instead,
 // template-store registers itself here during its own module init.
 interface TemplateSyncBridge {
-  getSyncedState: () => {
+  /**
+   * The templates of the account `accountId` (the one being synced, or the
+   * active one). `storedInAccount`: they live in the account's own server
+   * storage (JMAP metadata, Stalwart 1.0), so a sync push leaves them out
+   * and the stored blob drops them (`templatesInMetadata`).
+   */
+  getSyncedState: (opts?: { accountId?: string }) => {
     templates: EmailTemplate[];
     deletedTemplateIds: Record<string, string>;
+    storedInAccount?: boolean;
   };
   applySyncedState: (
     templates: unknown,
     deletedTemplateIds: unknown,
-    opts: { merge: boolean }
+    opts: { merge: boolean; accountId?: string }
   ) => void;
 }
 
@@ -129,9 +137,11 @@ function templateStateKey(templates: unknown, deletedTemplateIds: unknown): stri
  * Whether the local template state differs from what a server blob carries,
  * so the blob needs a push. False when there is nothing local to push.
  */
-function localTemplatesAhead(serverSettings: Record<string, unknown> | null): boolean {
-  const local = templateSyncBridge?.getSyncedState();
+function localTemplatesAhead(serverSettings: Record<string, unknown> | null, accountId?: string): boolean {
+  const local = templateSyncBridge?.getSyncedState({ accountId });
   if (!local) return false;
+  // Templates kept in the account leave the blob: push once to drop them.
+  if (local.storedInAccount) return !!serverSettings && Array.isArray(serverSettings.templates);
   if (local.templates.length === 0 && Object.keys(local.deletedTemplateIds).length === 0) return false;
   if (!serverSettings) return true;
   return templateStateKey(local.templates, local.deletedTemplateIds) !==
@@ -1204,9 +1214,11 @@ export const useSettingsStore = create<SettingsState>()(
         }
       };
 
-      const buildExport = (opts?: { subscriptionOwner?: string }): string => {
+      const buildExport = (opts?: { forSync?: boolean; subscriptionOwner?: string }): string => {
         const state = get();
-        const templateSync = templateSyncBridge?.getSyncedState();
+        const templateSync = templateSyncBridge?.getSyncedState({
+          accountId: opts?.forSync && syncUsername && syncServerUrl ? generateAccountId(syncUsername, syncServerUrl) : undefined,
+        });
         const subscriptionSync = calendarSubscriptionSyncBridge?.getSyncedState();
         const settings = {
           fontSize: state.fontSize,
@@ -1338,12 +1350,16 @@ export const useSettingsStore = create<SettingsState>()(
           locale: useLocaleStore.getState().locale,
           // Omitted entirely (rather than emitted empty) if the bridge has
           // not registered, so an importing device leaves its templates alone.
-          ...(templateSync
-            ? {
-                templates: templateSync.templates,
-                deletedTemplateIds: templateSync.deletedTemplateIds,
-              }
-            : {}),
+          // Templates the account keeps itself are left out of a sync push;
+          // the flag has the stored blob drop its old copy (mergeStoredTemplates).
+          ...(templateSync && opts?.forSync && templateSync.storedInAccount
+            ? { templatesInMetadata: true }
+            : templateSync
+              ? {
+                  templates: templateSync.templates,
+                  deletedTemplateIds: templateSync.deletedTemplateIds,
+                }
+              : {}),
           // Omitted entirely if the bridge has not registered, so an importing
           // device leaves its calendar subscriptions alone.
           ...(subscriptionSync
@@ -1545,7 +1561,7 @@ export const useSettingsStore = create<SettingsState>()(
           templateSyncBridge?.applySyncedState(
             settings.templates,
             settings.deletedTemplateIds,
-            { merge: Boolean(opts?.serverAccountId) }
+            { merge: Boolean(opts?.serverAccountId), accountId: opts?.serverAccountId }
           );
           calendarSubscriptionSyncBridge?.applySyncedState(
             settings.icalSubscriptions,
@@ -1760,7 +1776,7 @@ export const useSettingsStore = create<SettingsState>()(
             // previous account left in this browser (#1185).
             if (heldByOther) resetSyncedState({ keepCrossAccountViews });
             writeSettingsOwner(accountId);
-            pushTemplatesAfterLoad = localTemplatesAhead(null);
+            pushTemplatesAfterLoad = localTemplatesAhead(null, accountId);
             return false;
           }
           if (settings && typeof settings === 'object') {
@@ -1778,7 +1794,7 @@ export const useSettingsStore = create<SettingsState>()(
             });
             isLoadingFromServer = false;
             writeSettingsOwner(accountId);
-            pushTemplatesAfterLoad = localTemplatesAhead(settings);
+            pushTemplatesAfterLoad = localTemplatesAhead(settings, accountId);
             syncLog('Settings loaded from server successfully');
             void settingsHooks.onSettingsSync.emit({ direction: 'pulled' });
             // The per-account preferred sender identity (#507) is re-applied by

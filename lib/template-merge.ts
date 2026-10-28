@@ -98,6 +98,16 @@ export function mergeStoredTemplates(
   stored: Record<string, unknown> | null,
   incoming: Record<string, unknown>
 ): Record<string, unknown> {
+  // The account keeps its templates in its own server storage (JMAP
+  // metadata, Stalwart 1.0): the blob drops its copy. A push from a build
+  // that doesn't know this brings them back, and the next push from one
+  // that does drops them again.
+  if (incoming.templatesInMetadata === true) {
+    const rest = { ...incoming };
+    delete rest.templates;
+    delete rest.deletedTemplateIds;
+    return rest;
+  }
   const storedTemplates = stored ? rawTemplates(stored.templates) : null;
   if (!storedTemplates) return incoming;
 

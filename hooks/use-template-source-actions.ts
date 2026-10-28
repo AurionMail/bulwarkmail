@@ -1,13 +1,14 @@
 import { useMemo } from 'react';
 import type { EmailTemplate } from '@/lib/template-types';
 import type { TemplateSource } from '@/lib/templates/template-sources';
-import { useTemplateStore } from '@/stores/template-store';
+import { personalTemplatesFor, resolveAccountId } from '@/lib/templates/personal-templates';
+import { useAuthStore } from '@/stores/auth-store';
+import { useAccountTemplatesStore, type LocalOnlyReason } from '@/stores/account-templates-store';
 
 /** What a change to a template came to; anything but 'ok' keeps the form open. */
 export type TemplateSaveResult = 'ok' | 'too-large' | 'no-room' | 'forbidden' | 'failed';
 
-/** Why a personal template could not go to the server and stays in this browser. */
-export type LocalOnlyReason = 'too-large' | 'no-room';
+export type { LocalOnlyReason };
 
 type TemplateData = Omit<EmailTemplate, 'id' | 'createdAt' | 'updatedAt'>;
 
@@ -25,36 +26,41 @@ export interface TemplateSourceActions {
   storedInAccount: boolean;
 }
 
-const readOnly = async (): Promise<TemplateSaveResult> => 'forbidden';
+const NO_LOCAL_ONLY: Record<string, LocalOnlyReason> = {};
 
 /**
  * Changes to the templates of each source the manager shows, for the
- * signed-in account `accountId`. Read-only sources refuse every change.
+ * signed-in account `accountId` (the active one when left out). Personal
+ * templates change in this browser at once and go to the account in the
+ * background; read-only sources refuse every change.
  */
 export function useTemplateSourceActions(accountId?: string | null): TemplateSourceActions {
-  void accountId;
+  const resolvedId = useAuthStore((s) => accountId || s.activeAccountId);
+  const partition = useAccountTemplatesStore((s) => (resolvedId ? s.personal[resolvedId] : undefined));
+  const storedInAccount = !!partition;
+  const localOnly = partition?.localOnly ?? NO_LOCAL_ONLY;
   return useMemo(() => {
-    const store = () => useTemplateStore.getState();
+    const ops = () => personalTemplatesFor(resolveAccountId(resolvedId));
     const personalOnly = <A extends unknown[]>(fn: (...args: A) => void) =>
       async (source: TemplateSource, ...args: A): Promise<TemplateSaveResult> => {
-        if (source.kind !== 'personal' || !source.editable) return readOnly();
+        if (source.kind !== 'personal' || !source.editable) return 'forbidden';
         fn(...args);
         return 'ok';
       };
     return {
-      add: personalOnly((data: TemplateData) => { store().addTemplate(data); }),
-      update: personalOnly((id: string, data: TemplateData) => store().updateTemplate(id, data)),
-      remove: personalOnly((id: string) => store().deleteTemplate(id)),
-      duplicate: personalOnly((id: string, suffix: string) => { store().duplicateTemplate(id, suffix); }),
-      toggleFavorite: personalOnly((id: string) => store().toggleFavorite(id)),
+      add: personalOnly((data: TemplateData) => { ops().add(data); }),
+      update: personalOnly((id: string, data: TemplateData) => ops().update(id, data)),
+      remove: personalOnly((id: string) => ops().remove(id)),
+      duplicate: personalOnly((id: string, suffix: string) => { ops().duplicate(id, suffix); }),
+      toggleFavorite: personalOnly((id: string) => ops().toggleFavorite(id)),
       copyToPersonal: async (template) => {
-        store().addTemplate(copyOf(template));
+        ops().add(copyOf(template));
         return 'ok';
       },
-      localOnly: {},
-      storedInAccount: false,
+      localOnly,
+      storedInAccount,
     };
-  }, []);
+  }, [resolvedId, localOnly, storedInAccount]);
 }
 
 /** The fields a copy of a shared template takes into the user's own list. */

@@ -11,6 +11,8 @@ import {
 } from '@/lib/template-utils';
 import { generateUUID } from '@/lib/utils';
 import { registerTemplateSyncBridge } from './settings-store';
+import { notifyPersonalChange, useAccountTemplatesStore } from './account-templates-store';
+import { withStorableId } from '@/lib/templates/metadata-templates';
 import { templateHooks } from '@/lib/plugin-hooks';
 import { templateToView } from '@/lib/plugin-projection';
 
@@ -260,14 +262,57 @@ if (typeof window !== 'undefined') {
 // and file imports, and template changes schedule a sync push. Registration
 // (rather than settings-store importing this module) avoids an import cycle -
 // see registerTemplateSyncBridge.
+//
+// An account that keeps its templates itself (account-templates-store, JMAP
+// metadata on Stalwart 1.0) is left out of the blob: its pushes carry no
+// templates, and a blob loaded for it doesn't touch this browser's list,
+// which belongs to the accounts without. The account's copy is what a
+// settings file export of it holds.
+const accountCopy = (accountId: string | undefined) => {
+  const accounts = useAccountTemplatesStore.getState();
+  const id = accountId ?? accounts.active ?? undefined;
+  return id ? accounts.personal[id] : undefined;
+};
+
 registerTemplateSyncBridge(
   {
-    getSyncedState: () => {
+    getSyncedState: (opts) => {
+      const copy = accountCopy(opts?.accountId);
+      if (copy) return { templates: copy.templates, deletedTemplateIds: copy.deletedTemplateIds, storedInAccount: true };
       const { templates, deletedTemplateIds } = useTemplateStore.getState();
       return { templates, deletedTemplateIds };
     },
-    applySyncedState: (templates, deletedTemplateIds, opts) =>
-      useTemplateStore.getState().applySyncedState(templates, deletedTemplateIds, opts),
+    applySyncedState: (templates, deletedTemplateIds, opts) => {
+      if (opts.accountId) {
+        if (!accountCopy(opts.accountId)) useTemplateStore.getState().applySyncedState(templates, deletedTemplateIds, opts);
+        return;
+      }
+      // A settings file the user imports: into the active account's copy
+      // when it keeps one, added by id like a sync (never a wholesale
+      // replace, which would delete server templates).
+      const active = useAccountTemplatesStore.getState().active;
+      const incoming = parseSyncedTemplates(templates);
+      if (active && accountCopy(active)) {
+        if (!incoming || incoming.length === 0) return;
+        useAccountTemplatesStore.getState().updatePersonal(active, (copy) => ({
+          ...copy,
+          ...mergeSyncedTemplates(
+            { templates: copy.templates, deletedTemplateIds: copy.deletedTemplateIds },
+            { templates: incoming.map(withStorableId), deletedTemplateIds: {} },
+          ),
+        }));
+        notifyPersonalChange(active);
+        return;
+      }
+      useTemplateStore.getState().applySyncedState(templates, deletedTemplateIds, opts);
+    },
   },
-  (listener) => useTemplateStore.subscribe(listener)
+  (listener) => {
+    useTemplateStore.subscribe(listener);
+    // An account that starts keeping its templates pushes once, so the
+    // blob drops its copy.
+    useAccountTemplatesStore.subscribe((state, prev) => {
+      if (Object.keys(state.personal).length > Object.keys(prev.personal).length) listener();
+    });
+  }
 );

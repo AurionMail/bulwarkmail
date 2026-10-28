@@ -83,8 +83,9 @@ import type { DirectoryEntry } from "@/stores/contact-store";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import type { FileNode } from "@/lib/jmap/types";
 import { useContactStore, getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
-import { useTemplateStore, renderTemplateWithPlugins, notifyTemplateApplied } from "@/stores/template-store";
+import { renderTemplateWithPlugins, notifyTemplateApplied } from "@/stores/template-store";
 import { useTemplateSources } from "@/hooks/use-template-sources";
+import { personalTemplatesFor } from "@/lib/templates/personal-templates";
 import { notifyIdentitySelected } from "@/stores/identity-store";
 import { usePluginSignature } from "@/hooks/use-plugin-signature";
 import { useOrgSignature, useOrgSignatureIdentity } from "@/hooks/use-org-signature";
@@ -1554,7 +1555,11 @@ export function EmailComposer({
   const addToTrustedSendersBook = useContactStore((s) => s.addToTrustedSendersBook);
   const addTrustedSender = useSettingsStore((s) => s.addTrustedSender);
   const trustedSendersAddressBook = useSettingsStore((s) => s.trustedSendersAddressBook);
-  const addTemplate = useTemplateStore((s) => s.addTemplate);
+  // "Save as template" keeps it with the account the message is written from.
+  const addTemplate = useCallback(
+    (data: Parameters<ReturnType<typeof personalTemplatesFor>['add']>[0]) => personalTemplatesFor(composingAccountId).add(data),
+    [composingAccountId],
+  );
   // The admin may leave users only organisation and team templates.
   const personalTemplatesHidden = useTemplateSources(composingAccountId).personalHidden;
   // Sign/encrypt is provided by crypto plugins (S/MIME, PGP) via the

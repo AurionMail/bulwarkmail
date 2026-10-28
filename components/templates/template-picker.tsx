@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { X, Search, Star, FileText } from '@/components/icons';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,7 @@ import {
   getAutoFilledPlaceholders,
 } from '@/lib/template-utils';
 import type { TemplateSource } from '@/lib/templates/template-sources';
+import { refreshAccountTemplates } from '@/lib/templates/personal-templates';
 import { PlaceholderFillModal } from './placeholder-fill-modal';
 import type { EmailTemplate } from '@/lib/template-types';
 
@@ -43,6 +44,11 @@ export function TemplatePicker({ isOpen, onClose, onSelect, accountId }: Templat
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
   const [showFillModal, setShowFillModal] = useState(false);
+
+  // What another device or a team member changed shows up when the picker opens.
+  useEffect(() => {
+    if (isOpen) refreshAccountTemplates(accountId);
+  }, [isOpen, accountId]);
 
   const modalRef = useFocusTrap({
     isActive: isOpen && !showFillModal,

@@ -9,6 +9,7 @@ import { usePolicyStore } from '@/stores/policy-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTemplateStore } from '@/stores/template-store';
 import type { EmailTemplate } from '@/lib/template-types';
+import { emptyPartition, useAccountTemplatesStore } from '@/stores/account-templates-store';
 
 // The picker shows the user's own templates, then the admin library under
 // "Organisation", from the policy of the account the message is written
@@ -49,6 +50,7 @@ beforeEach(() => {
   } as never);
   setPolicy(RAW);
   useTemplateStore.setState({ templates: [own('mine', 'Mine')], recentTemplateIds: [], deletedTemplateIds: {} });
+  useAccountTemplatesStore.setState({ personal: {}, teams: {}, active: null });
 });
 afterEach(() => {
   resetAccountSubjects();
@@ -108,5 +110,17 @@ describe('template picker sources', () => {
     fireEvent.change(screen.getByPlaceholderText('search_placeholder'), { target: { value: 'welc' } });
     expect(within(screen.getByTestId('template-source-personal')).getByText('Welcome back')).toBeInTheDocument();
     expect(within(screen.getByTestId('template-source-organisation')).getByText('Welcome')).toBeInTheDocument();
+  });
+
+  it('shows the own templates of the account the message is sent from once it keeps them', () => {
+    useAccountTemplatesStore.setState({ personal: { a2: { ...emptyPartition(), templates: [own('dave-1', "Dave's own")] } } });
+    const { unmount } = render(<TemplatePicker isOpen onClose={() => {}} onSelect={() => {}} accountId="a2" />);
+    expect(screen.getByText("Dave's own")).toBeInTheDocument();
+    expect(screen.queryByText('Mine')).toBeNull();
+    unmount();
+    // The active account has no copy of its own yet: the browser's list.
+    render(<TemplatePicker isOpen onClose={() => {}} onSelect={() => {}} />);
+    expect(screen.getByText('Mine')).toBeInTheDocument();
+    expect(screen.queryByText("Dave's own")).toBeNull();
   });
 });

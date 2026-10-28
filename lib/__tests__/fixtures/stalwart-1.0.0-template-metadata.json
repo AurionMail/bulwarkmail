@@ -1,0 +1,158 @@
+{
+  "_comment": "Recorded from Stalwart v1.0.0 (stw-rel, http://10.10.10.62:8120) on 2026-10-28, org-carol@example.org own Inbox: Bulwark template metadata. Removed again after recording.",
+  "getEmpty": {
+    "methodResponses": [
+      [
+        "Mailbox/query",
+        {
+          "accountId": "bl",
+          "queryState": "saq",
+          "canCalculateChanges": true,
+          "position": 0,
+          "ids": [
+            "a"
+          ]
+        },
+        "q"
+      ],
+      [
+        "Mailbox/get",
+        {
+          "accountId": "bl",
+          "state": "saq",
+          "list": [
+            {
+              "id": "a",
+              "metadata": {}
+            }
+          ],
+          "notFound": []
+        },
+        "g"
+      ]
+    ],
+    "sessionState": "c499329"
+  },
+  "setOne": {
+    "methodResponses": [
+      [
+        "Mailbox/set",
+        {
+          "accountId": "bl",
+          "oldState": "saq",
+          "newState": "sau",
+          "updated": {
+            "a": null
+          }
+        },
+        "0"
+      ]
+    ],
+    "sessionState": "c499329"
+  },
+  "setMarker": {
+    "methodResponses": [
+      [
+        "Mailbox/set",
+        {
+          "accountId": "bl",
+          "oldState": "sau",
+          "newState": "say",
+          "updated": {
+            "a": null
+          }
+        },
+        "0"
+      ]
+    ],
+    "sessionState": "c499329"
+  },
+  "getOne": {
+    "methodResponses": [
+      [
+        "Mailbox/query",
+        {
+          "accountId": "bl",
+          "queryState": "say",
+          "canCalculateChanges": true,
+          "position": 0,
+          "ids": [
+            "a"
+          ]
+        },
+        "q"
+      ],
+      [
+        "Mailbox/get",
+        {
+          "accountId": "bl",
+          "state": "say",
+          "list": [
+            {
+              "id": "a",
+              "metadata": {
+                "org.bulwarkmail.template.rec-1": {
+                  "id": "rec-1",
+                  "name": "Recorded",
+                  "subject": "Hi",
+                  "body": "Body",
+                  "isHTML": false,
+                  "category": "",
+                  "isFavorite": false,
+                  "createdAt": "2026-10-28T10:00:00.000Z",
+                  "updatedAt": "2026-10-28T10:00:00.000Z"
+                },
+                "org.bulwarkmail.templates": {
+                  "v": 1
+                }
+              }
+            }
+          ],
+          "notFound": []
+        },
+        "g"
+      ]
+    ],
+    "sessionState": "c499329"
+  },
+  "setNoRoom": {
+    "methodResponses": [
+      [
+        "Mailbox/set",
+        {
+          "accountId": "bl",
+          "oldState": "sb2",
+          "newState": "sb2",
+          "notUpdated": {
+            "a": {
+              "type": "invalidProperties",
+              "description": "Metadata size 72076 exceeds the maximum of 65536 bytes.",
+              "properties": [
+                "metadata"
+              ]
+            }
+          }
+        },
+        "0"
+      ]
+    ],
+    "sessionState": "c499329"
+  },
+  "deleteOne": {
+    "methodResponses": [
+      [
+        "Mailbox/set",
+        {
+          "accountId": "bl",
+          "oldState": "sb2",
+          "newState": "sca",
+          "updated": {
+            "a": null
+          }
+        },
+        "0"
+      ]
+    ],
+    "sessionState": "c499329"
+  }
+}

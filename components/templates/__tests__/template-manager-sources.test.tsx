@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { TemplateManagerModal } from '../template-manager-modal';
 import { DEFAULT_POLICY, type SettingsPolicy } from '@/lib/admin/types';
 import { DEFAULT_ORGANISATION_POLICY } from '@/lib/admin/organisation-policy';
@@ -8,6 +8,8 @@ import { resetAccountSubjects } from '@/lib/org/account-subjects';
 import { usePolicyStore } from '@/stores/policy-store';
 import { useTemplateStore } from '@/stores/template-store';
 import type { EmailTemplate } from '@/lib/template-types';
+import { emptyPartition, useAccountTemplatesStore } from '@/stores/account-templates-store';
+import { useAuthStore } from '@/stores/auth-store';
 
 // The template manager lists the organisation library read-only next to
 // the user's own templates; a template from it can be copied into the
@@ -35,8 +37,12 @@ beforeEach(() => {
   resetAccountSubjects();
   setPolicy(RAW);
   useTemplateStore.setState({ templates: [own('mine', 'Mine')], recentTemplateIds: [], deletedTemplateIds: {} });
+  useAccountTemplatesStore.setState({ personal: {}, teams: {}, active: null });
 });
-afterEach(() => resetAccountSubjects());
+afterEach(() => {
+  resetAccountSubjects();
+  useAuthStore.setState({ activeAccountId: null } as never);
+});
 
 describe('template manager sources', () => {
   it('shows the organisation library read-only, with a preview and a copy into the user\'s own', () => {
@@ -68,5 +74,25 @@ describe('template manager sources', () => {
     const row = screen.getByTestId('template-row');
     expect(within(row).getByText('Welcome')).toBeInTheDocument();
     expect(within(row).queryByRole('button', { name: 'copy_to_personal' })).toBeNull();
+  });
+
+  it("keeps the account's templates in the account, says so, and names the ones that stay in this browser", () => {
+    useAuthStore.setState({ activeAccountId: 'a1' } as never);
+    useAccountTemplatesStore.setState({
+      personal: { a1: { ...emptyPartition(), templates: [own('big', 'Big one')], localOnly: { big: 'too-large' } } },
+    });
+    render(<TemplateManagerModal isOpen onClose={() => {}} />);
+    expect(screen.getByText('Big one')).toBeInTheDocument();
+    expect(screen.queryByText('Mine')).toBeNull();
+    expect(screen.getByTestId('template-local-only')).toHaveTextContent('local_only_too_large');
+    expect(screen.getByTestId('template-storage-note')).toHaveTextContent('personal_in_account');
+
+    fireEvent.click(screen.getByRole('button', { name: 'add' }));
+    fireEvent.change(screen.getByPlaceholderText('name_placeholder'), { target: { value: 'New in the account' } });
+    fireEvent.click(screen.getByRole('button', { name: 'create' }));
+    return waitFor(() => {
+      expect(useAccountTemplatesStore.getState().personal.a1.templates.map((t) => t.name)).toEqual(['Big one', 'New in the account']);
+      expect(useTemplateStore.getState().templates.map((t) => t.name)).toEqual(['Mine']);
+    });
   });
 });

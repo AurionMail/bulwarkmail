@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { X, FileText, Pencil, Trash2, Star, Copy, Search, Eye } from '@/components/icons';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,7 @@ import { useTemplateSourceActions, type TemplateSaveResult } from '@/hooks/use-t
 import { OrgLockedNote } from '@/components/settings/org-locked-note';
 import { filterTemplates } from '@/lib/template-utils';
 import { PERSONAL_SOURCE, type TemplateSource } from '@/lib/templates/template-sources';
+import { refreshAccountTemplates } from '@/lib/templates/personal-templates';
 import type { EmailTemplate } from '@/lib/template-types';
 
 interface TemplateManagerModalProps {
@@ -50,6 +51,10 @@ export function TemplateManagerModal({ isOpen, onClose, accountId }: TemplateMan
     setEditingId(null);
     setError(null);
   };
+
+  useEffect(() => {
+    if (isOpen) refreshAccountTemplates(accountId);
+  }, [isOpen, accountId]);
 
   const modalRef = useFocusTrap({
     isActive: isOpen,
