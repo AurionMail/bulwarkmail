@@ -3414,6 +3414,12 @@
       "rsvp_description": "See on korduv sündmus. Millistele sündmustele sinu vastus kehtib?",
       "respond": "Vasta"
     },
+    "discard": {
+      "title": "Kas loobuda muudatustest?",
+      "message": "Teie muudatusi pole salvestatud.",
+      "keep": "Jätka muutmist",
+      "confirm": "Loobu"
+    },
     "alerts": {
       "title": "Meeldetuletused",
       "none": "Meeldetuletusi pole",

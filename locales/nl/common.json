@@ -3414,6 +3414,12 @@
       "rsvp_description": "Dit is een terugkerend evenement. Voor welke evenementen geldt uw reactie?",
       "respond": "Reageren"
     },
+    "discard": {
+      "title": "Wijzigingen verwerpen?",
+      "message": "Je wijzigingen zijn niet opgeslagen.",
+      "keep": "Doorgaan met bewerken",
+      "confirm": "Verwerpen"
+    },
     "alerts": {
       "title": "Herinnering",
       "none": "Geen herinnering",

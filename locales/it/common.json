@@ -3414,6 +3414,12 @@
       "rsvp_description": "Questo è un evento ricorrente. A quali eventi si applica la tua risposta?",
       "respond": "Rispondi"
     },
+    "discard": {
+      "title": "Annullare le modifiche?",
+      "message": "Le modifiche non sono state salvate.",
+      "keep": "Continua a modificare",
+      "confirm": "Annulla modifiche"
+    },
     "alerts": {
       "title": "Promemoria",
       "none": "Nessun promemoria",

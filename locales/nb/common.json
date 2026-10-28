@@ -3414,6 +3414,12 @@
       "rsvp_description": "Dette er en gjentakende hendelse. Hvilke hendelser gjelder svaret ditt for?",
       "respond": "Svar"
     },
+    "discard": {
+      "title": "Vil du forkaste endringene?",
+      "message": "Endringene dine er ikke lagret.",
+      "keep": "Fortsett å redigere",
+      "confirm": "Forkast"
+    },
     "alerts": {
       "title": "Påminnelser",
       "none": "Ingen påminnelser",

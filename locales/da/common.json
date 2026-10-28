@@ -3414,6 +3414,12 @@
       "rsvp_description": "Dette er en tilbagevendende begivenhed. Hvilke begivenheder gælder dit svar for?",
       "respond": "Svar"
     },
+    "discard": {
+      "title": "Kassér ændringer?",
+      "message": "Dine ændringer er ikke gemt.",
+      "keep": "Fortsæt redigering",
+      "confirm": "Kassér"
+    },
     "alerts": {
       "title": "Påmindelse",
       "none": "Ingen påmindelse",

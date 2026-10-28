@@ -43,6 +43,8 @@ import {
 } from "@/lib/plugin-hooks";
 import type { CalendarEventView, ConflictWarning } from "@/lib/plugin-types";
 import { eventToView } from "@/lib/plugin-projection";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 export interface PendingEventPreview {
   start: Date;
@@ -73,6 +75,8 @@ interface EventModalProps {
   onRsvp?: (eventId: string, participantId: string, status: CalendarParticipant['participationStatus']) => void;
   onClose: () => void;
   onPreviewChange?: (preview: PendingEventPreview | null) => void;
+  /** Told whether the form holds changes that aren't saved, so the page can ask before it drops them. */
+  onDirtyChange?: (dirty: boolean) => void;
   currentUserEmails?: string[];
   isSubscriptionCalendar?: (calendarId: string) => boolean;
   /** The server's maxParticipantsPerEvent, for a warning; null when not advertised. */
@@ -248,6 +252,7 @@ export function EventModal({
   onRsvp,
   onClose,
   onPreviewChange,
+  onDirtyChange,
   currentUserEmails = [],
   isSubscriptionCalendar,
   maxParticipants = null,
@@ -500,6 +505,49 @@ export function EventModal({
   const [attendees, setAttendees] = useState<EditorAttendee[]>(initialAttendees);
   const [sendInvitations, setSendInvitations] = useState(true);
   const participantInputRef = useRef<ParticipantInputHandle>(null);
+
+  // What the form holds against what it opened with: a form with changes
+  // asks before X, Cancel or Escape drop them (R5).
+  const formState = useMemo(() => ({
+    title, description, location, virtualLocation, startDate, startTime, endDate, endTime, allDay,
+    calendarId, recurrence, customRule, useDefaultAlerts, alertRows, preservedAlerts, attendees, sendInvitations,
+  }), [title, description, location, virtualLocation, startDate, startTime, endDate, endTime, allDay,
+    calendarId, recurrence, customRule, useDefaultAlerts, alertRows, preservedAlerts, attendees, sendInvitations]);
+  const [initialForm] = useState(formState);
+  const isDirty = mode === "edit" && JSON.stringify(formState) !== JSON.stringify(initialForm);
+  useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
+
+  const resetForm = useCallback(() => {
+    const f = initialForm;
+    setTitle(f.title); setDescription(f.description); setLocation(f.location); setVirtualLocation(f.virtualLocation);
+    setStartDate(f.startDate); setStartTime(f.startTime); setEndDate(f.endDate); setEndTime(f.endTime); setAllDay(f.allDay);
+    setCalendarId(f.calendarId); setRecurrence(f.recurrence); setCustomRule(f.customRule); setShowRecurrenceEditor(false);
+    setUseDefaultAlerts(f.useDefaultAlerts); setAlertRows(f.alertRows); setPreservedAlerts(f.preservedAlerts); setRefreshDefaults(false);
+    setAttendees(f.attendees); setSendInvitations(f.sendInvitations);
+  }, [initialForm]);
+
+  const { dialogProps: discardDialogProps, confirm: confirmDiscard } = useConfirmDialog();
+  const askingRef = useRef(false);
+  // Runs `then` at once when nothing would be lost, else after "Discard".
+  const whenDiscarded = useCallback((then: () => void) => {
+    if (!isDirty) { then(); return; }
+    if (askingRef.current) return;
+    askingRef.current = true;
+    void confirmDiscard({
+      title: t("discard.title"),
+      message: t("discard.message"),
+      confirmText: t("discard.confirm"),
+      cancelText: t("discard.keep"),
+      variant: "destructive",
+    }).then((ok) => {
+      askingRef.current = false;
+      if (ok) then();
+    });
+  }, [isDirty, confirmDiscard, t]);
+  const requestClose = useCallback(() => whenDiscarded(onClose), [whenDiscarded, onClose]);
+  // Leaving the form of an existing event goes back to its summary.
+  const backToView = useCallback(() => whenDiscarded(() => { resetForm(); setMode("view"); }), [whenDiscarded, resetForm]);
 
   // The event window the attendees' free/busy is checked against. Parsed in
   // local time like the save path; an all-day event spans its whole days.
@@ -864,10 +912,11 @@ export function EventModal({
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        if (askingRef.current) return;
         if (mode === "edit" && isEdit) {
-          setMode("view");
+          backToView();
         } else {
-          onClose();
+          requestClose();
         }
       }
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
@@ -877,7 +926,7 @@ export function EventModal({
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose, handleSave, canEditBody, mode, isEdit]);
+  }, [requestClose, backToView, handleSave, canEditBody, mode, isEdit]);
 
   useEffect(() => {
     const modal = modalRef.current;
@@ -1241,7 +1290,7 @@ export function EventModal({
         <h2 className="text-lg font-semibold">
           {isEdit ? t("events.edit") : t("events.create")}
         </h2>
-        <button onClick={onClose} className="p-1.5 rounded-md hover:bg-muted transition-colors duration-150 text-muted-foreground hover:text-foreground" aria-label={t("form.cancel")}>
+        <button onClick={requestClose} className="p-1.5 rounded-md hover:bg-muted transition-colors duration-150 text-muted-foreground hover:text-foreground" aria-label={t("form.cancel")}>
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -1611,7 +1660,7 @@ export function EventModal({
         <div className="flex gap-2 w-full">
           <Button
             variant="outline"
-            onClick={isEdit ? () => setMode("view") : onClose}
+            onClick={isEdit ? backToView : requestClose}
             className="w-full"
           >
             {t("form.cancel")}
@@ -1628,6 +1677,7 @@ export function EventModal({
         </div>
         )}
       </div>
+      <ConfirmDialog {...discardDialogProps} />
     </div>
   );
 }

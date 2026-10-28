@@ -3414,6 +3414,12 @@
       "rsvp_description": "To jest wydarzenie cykliczne. Których wydarzeń dotyczy Twoja odpowiedź?",
       "respond": "Odpowiedz"
     },
+    "discard": {
+      "title": "Odrzucić zmiany?",
+      "message": "Twoje zmiany nie zostały zapisane.",
+      "keep": "Kontynuuj edycję",
+      "confirm": "Odrzuć"
+    },
     "alerts": {
       "title": "Przypomnienie",
       "none": "Brak przypomnienia",

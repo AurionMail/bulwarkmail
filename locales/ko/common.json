@@ -3414,6 +3414,12 @@
       "rsvp_description": "반복되는 일정이에요. 어떤 일정에 응답할까요?",
       "respond": "응답"
     },
+    "discard": {
+      "title": "변경 사항을 버릴까요?",
+      "message": "변경 사항이 아직 저장되지 않았습니다.",
+      "keep": "계속 수정하기",
+      "confirm": "버리기"
+    },
     "alerts": {
       "title": "알림",
       "none": "알림 없음",

@@ -3414,6 +3414,12 @@
       "rsvp_description": "Ez egy ismétlődő esemény. Mely eseményekre vonatkozzon a válaszod?",
       "respond": "Válasz"
     },
+    "discard": {
+      "title": "Elveti a változtatásokat?",
+      "message": "A változtatásai nincsenek mentve.",
+      "keep": "Szerkesztés folytatása",
+      "confirm": "Elvetés"
+    },
     "alerts": {
       "title": "Emlékeztetők",
       "none": "Nincs emlékeztető",

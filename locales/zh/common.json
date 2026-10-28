@@ -3414,6 +3414,12 @@
       "rsvp_description": "这是一个重复事件。您的回复适用于哪些事件？",
       "respond": "回复"
     },
+    "discard": {
+      "title": "放弃更改？",
+      "message": "你的更改尚未保存。",
+      "keep": "继续编辑",
+      "confirm": "放弃"
+    },
     "alerts": {
       "title": "提醒",
       "none": "无提醒",

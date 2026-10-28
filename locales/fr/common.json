@@ -3414,6 +3414,12 @@
       "rsvp_description": "Ceci est un événement récurrent. À quels événements votre réponse s'applique-t-elle ?",
       "respond": "Répondre"
     },
+    "discard": {
+      "title": "Abandonner les modifications ?",
+      "message": "Vos modifications n'ont pas été enregistrées.",
+      "keep": "Continuer l'édition",
+      "confirm": "Abandonner"
+    },
     "alerts": {
       "title": "Rappel",
       "none": "Aucun rappel",

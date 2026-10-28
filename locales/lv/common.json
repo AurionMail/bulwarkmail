@@ -3413,6 +3413,12 @@
       "rsvp_description": "Šis ir atkārtots pasākums. Uz kurām instancēm attiecas jūsu atbilde?",
       "respond": "Atbildēt"
     },
+    "discard": {
+      "title": "Atmest izmaiņas?",
+      "message": "Jūsu izmaiņas nav saglabātas.",
+      "keep": "Turpināt rediģēšanu",
+      "confirm": "Atmest"
+    },
     "alerts": {
       "title": "Atgādinājums",
       "none": "Bez atgādinājuma",

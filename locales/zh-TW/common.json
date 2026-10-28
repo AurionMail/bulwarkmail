@@ -3414,6 +3414,12 @@
       "rsvp_description": "這是重複活動。您的回覆適用於哪些活動？",
       "respond": "回覆"
     },
+    "discard": {
+      "title": "要捨棄變更嗎？",
+      "message": "你的變更尚未儲存。",
+      "keep": "繼續編輯",
+      "confirm": "捨棄"
+    },
     "alerts": {
       "title": "提醒",
       "none": "無提醒",

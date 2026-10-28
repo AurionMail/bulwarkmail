@@ -3414,6 +3414,12 @@
       "rsvp_description": "Acesta este un eveniment recurent. Pentru ce evenimente se aplică răspunsul dvs.?",
       "respond": "Răspundeți"
     },
+    "discard": {
+      "title": "Renunțați la modificări?",
+      "message": "Modificările dvs. nu au fost salvate.",
+      "keep": "Continuați editarea",
+      "confirm": "Renunțați"
+    },
     "alerts": {
       "title": "Memento-uri",
       "none": "Fără mementouri",

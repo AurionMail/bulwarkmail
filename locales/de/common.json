@@ -3414,6 +3414,12 @@
       "rsvp_description": "Dies ist ein wiederkehrendes Ereignis. Für welche Ereignisse gilt Ihre Antwort?",
       "respond": "Antworten"
     },
+    "discard": {
+      "title": "Änderungen verwerfen?",
+      "message": "Ihre Änderungen wurden noch nicht gespeichert.",
+      "keep": "Weiter bearbeiten",
+      "confirm": "Verwerfen"
+    },
     "alerts": {
       "title": "Erinnerung",
       "none": "Keine Erinnerung",

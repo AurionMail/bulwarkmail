@@ -3414,6 +3414,12 @@
       "rsvp_description": "Este é um evento recorrente. A quais eventos sua resposta se aplica?",
       "respond": "Responder"
     },
+    "discard": {
+      "title": "Descartar alterações?",
+      "message": "Suas alterações não foram salvas.",
+      "keep": "Continuar editando",
+      "confirm": "Descartar"
+    },
     "alerts": {
       "title": "Lembrete",
       "none": "Sem lembrete",

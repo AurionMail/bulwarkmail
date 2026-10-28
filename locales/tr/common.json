@@ -3414,6 +3414,12 @@
       "rsvp_description": "Bu yinelenen bir etkinlik. Yanıtınız hangi etkinlikler için geçerli?",
       "respond": "Yanıtla"
     },
+    "discard": {
+      "title": "Değişiklikler atılsın mı?",
+      "message": "Değişiklikleriniz kaydedilmedi.",
+      "keep": "Düzenlemeye devam et",
+      "confirm": "Değişiklikleri at"
+    },
     "alerts": {
       "title": "Hatırlatıcı",
       "none": "Hatırlatıcı yok",

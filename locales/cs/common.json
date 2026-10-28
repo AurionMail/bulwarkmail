@@ -3414,6 +3414,12 @@
       "rsvp_description": "Toto je opakující se událost. Na které události se vaše odpověď vztahuje?",
       "respond": "Odpovědět"
     },
+    "discard": {
+      "title": "Zahodit změny?",
+      "message": "Vaše změny nebyly uloženy.",
+      "keep": "Pokračovat v úpravách",
+      "confirm": "Zahodit"
+    },
     "alerts": {
       "title": "Připomenutí",
       "none": "Žádné připomenutí",

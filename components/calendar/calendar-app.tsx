@@ -224,6 +224,11 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [editTask, setEditTask] = useState<import("@/lib/jmap/types").CalendarTask | null>(null);
   const [mobileReturnToMonth, setMobileReturnToMonth] = useState(false);
+  // Whether the open event or task editor holds unsaved changes (R5).
+  const eventEditorDirtyRef = useRef(false);
+  const taskEditorDirtyRef = useRef(false);
+  const setEventEditorDirty = useCallback((dirty: boolean) => { eventEditorDirtyRef.current = dirty; }, []);
+  const setTaskEditorDirty = useCallback((dirty: boolean) => { taskEditorDirtyRef.current = dirty; }, []);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [swipeKey, setSwipeKey] = useState(0);
   const hasFetched = useRef(false);
@@ -645,7 +650,31 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     jumpTo(date);
   }, [jumpTo]);
 
-  const openCreateModal = useCallback((date?: Date, endDate?: Date, allDay?: boolean) => {
+  // Runs `then` at once, or, while an editor holds unsaved changes, after
+  // the user agreed to drop them: a click elsewhere in the calendar must
+  // not throw away what was typed (R5).
+  const discardingRef = useRef(false);
+  const whenEditorsDiscarded = useCallback((then: () => void) => {
+    const dirty = eventEditorDirtyRef.current || taskEditorDirtyRef.current;
+    if (!dirty) { then(); return; }
+    if (discardingRef.current) return;
+    discardingRef.current = true;
+    void confirmAction({
+      title: t("discard.title"),
+      message: t("discard.message"),
+      confirmText: t("discard.confirm"),
+      cancelText: t("discard.keep"),
+      variant: "destructive",
+    }).then((ok) => {
+      discardingRef.current = false;
+      if (!ok) return;
+      eventEditorDirtyRef.current = false;
+      taskEditorDirtyRef.current = false;
+      then();
+    });
+  }, [confirmAction, t]);
+
+  const openCreateModal = useCallback((date?: Date, endDate?: Date, allDay?: boolean) => whenEditorsDiscarded(() => {
     setQuickDraft(null);
     setDefaultModalTitle(undefined);
     setEditEvent(null);
@@ -657,16 +686,16 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     setShowTaskModal(false);
     setEditTask(null);
     setShowEventModal(true);
-  }, [selectedDate, setSelectedDate]);
+  }), [selectedDate, setSelectedDate, whenEditorsDiscarded]);
 
-  const openEditModal = useCallback((event: CalendarEvent, startInForm = false) => {
+  const openEditModal = useCallback((event: CalendarEvent, startInForm = false) => whenEditorsDiscarded(() => {
     setModalStartsInEdit(startInForm);
     setEditEvent(event);
     setDefaultModalDate(undefined);
     setShowTaskModal(false);
     setEditTask(null);
     setShowEventModal(true);
-  }, []);
+  }), [whenEditorsDiscarded]);
 
   // The event and task panels share the space beside the grid; now that
   // tasks open from the month, week and day views (#1107), opening one
@@ -679,17 +708,17 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     setDefaultModalAllDay(false);
   }, []);
 
-  const openCreateTaskModal = useCallback(() => {
+  const openCreateTaskModal = useCallback(() => whenEditorsDiscarded(() => {
     closeEventPanelForTask();
     setEditTask(null);
     setShowTaskModal(true);
-  }, [closeEventPanelForTask]);
+  }), [closeEventPanelForTask, whenEditorsDiscarded]);
 
-  const openEditTaskModal = useCallback((task: CalendarTask) => {
+  const openEditTaskModal = useCallback((task: CalendarTask) => whenEditorsDiscarded(() => {
     closeEventPanelForTask();
     setEditTask(task);
     setShowTaskModal(true);
-  }, [closeEventPanelForTask]);
+  }), [closeEventPanelForTask, whenEditorsDiscarded]);
 
   const handleToggleTaskComplete = useCallback((task: CalendarTask) => {
     if (client) toggleTaskCompleteFn(client, task);
@@ -1048,7 +1077,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
 
   // A click or drag on empty grid space. On wide screens it opens the quick
   // editor at that spot; on phones the full editor, as before.
-  const handleGridCreate = useCallback((start: Date, end?: Date) => {
+  const handleGridCreate = useCallback((start: Date, end?: Date) => whenEditorsDiscarded(() => {
     if (isMobile) {
       openCreateModal(start, end);
       return;
@@ -1068,7 +1097,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
         ? prev.calendarId
         : preferred?.id ?? "",
     }));
-  }, [isMobile, openCreateModal, writableCalendars, closeDetail]);
+  }), [isMobile, openCreateModal, writableCalendars, closeDetail, whenEditorsDiscarded]);
 
   const closeQuickCreate = useCallback(() => setQuickDraft(null), []);
 
@@ -1929,6 +1958,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
                 onDelete={handleDeleteEvent}
                 onDuplicate={handleDuplicateEvent}
                 onRsvp={handleRsvp}
+                onDirtyChange={setEventEditorDirty}
                 onClose={() => { setShowEventModal(false); setEditEvent(null); setPendingPreview(null); setDefaultCalendarIdForCreate(undefined); setDefaultModalAllDay(false); }}
                 onPreviewChange={setPendingPreview}
                 currentUserEmails={currentUserEmails}
@@ -1948,6 +1978,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
                 calendars={displayCalendars}
                 onSave={handleSaveTask}
                 onDelete={handleDeleteTask}
+                onDirtyChange={setTaskEditorDirty}
                 onClose={() => { setShowTaskModal(false); setEditTask(null); }}
                 isMobile={false}
               />
@@ -2081,6 +2112,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
           onDelete={handleDeleteEvent}
           onDuplicate={handleDuplicateEvent}
           onRsvp={handleRsvp}
+          onDirtyChange={setEventEditorDirty}
           onClose={() => { setShowEventModal(false); setEditEvent(null); setDefaultCalendarIdForCreate(undefined); setDefaultModalAllDay(false); }}
           currentUserEmails={currentUserEmails}
           isSubscriptionCalendar={isSubscriptionCalendar}
@@ -2103,6 +2135,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
             calendars={displayCalendars}
             onSave={handleSaveTask}
             onDelete={handleDeleteTask}
+            onDirtyChange={setTaskEditorDirty}
             onClose={() => { setShowTaskModal(false); setEditTask(null); }}
             isMobile={true}
           />

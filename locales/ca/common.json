@@ -3414,6 +3414,12 @@
       "rsvp_description": "Aquest és un esdeveniment periòdic. A quins esdeveniments s'aplica la vostra resposta?",
       "respond": "Respon"
     },
+    "discard": {
+      "title": "Voleu descartar els canvis?",
+      "message": "Els canvis no s'han desat.",
+      "keep": "Continua editant",
+      "confirm": "Descarta"
+    },
     "alerts": {
       "title": "Recordatoris",
       "none": "Cap recordatori",

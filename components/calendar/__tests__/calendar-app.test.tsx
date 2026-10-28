@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Calendar, CalendarEvent } from '@/lib/jmap/types';
 import { useCalendarStore } from '@/stores/calendar-store';
@@ -198,5 +198,54 @@ describe('CalendarApp recurring event editor', () => {
     expect(screen.queryByRole('dialog', { name: 'edit_title' })).toBeNull();
     expect(screen.getByPlaceholderText('form.title')).toHaveValue('Standup moved');
     expect(store.updateEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe('CalendarApp unsaved editor changes', () => {
+  it('asks before Escape drops a typed title, and keeps it on Keep editing', async () => {
+    renderApp();
+    fireEvent.keyDown(document.body, { key: 'n', code: 'KeyN' });
+    fireEvent.change(screen.getByPlaceholderText('form.title'), { target: { value: 'Lunch' } });
+    fireEvent.keyDown(screen.getByPlaceholderText('form.title'), { key: 'Escape' });
+    const ask = await screen.findByRole('alertdialog', { name: 'discard.title' });
+    fireEvent.click(within(ask).getByRole('button', { name: 'discard.keep' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(screen.getByPlaceholderText('form.title')).toHaveValue('Lunch');
+
+    fireEvent.click(screen.getByText('form.cancel'));
+    const again = await screen.findByRole('alertdialog', { name: 'discard.title' });
+    fireEvent.click(within(again).getByRole('button', { name: 'discard.confirm' }));
+    await waitFor(() => expect(screen.queryByPlaceholderText('form.title')).toBeNull());
+  });
+
+  it('closes an untouched editor without asking', () => {
+    renderApp();
+    fireEvent.keyDown(document.body, { key: 'n', code: 'KeyN' });
+    fireEvent.click(screen.getByText('form.cancel'));
+    expect(screen.queryByPlaceholderText('form.title')).toBeNull();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
+  it('asks before a click on an empty slot replaces an editor with changes', async () => {
+    renderApp();
+    fireEvent.keyDown(document.body, { key: 'n', code: 'KeyN' });
+    fireEvent.change(screen.getByPlaceholderText('form.title'), { target: { value: 'Lunch' } });
+    // A single click on a slot opens the quick editor after the double-click window.
+    fireEvent.click(screen.getAllByRole('gridcell')[3]);
+    const ask = await screen.findByRole('alertdialog', { name: 'discard.title' }, { timeout: 2000 });
+    fireEvent.click(within(ask).getByRole('button', { name: 'discard.keep' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(screen.getByPlaceholderText('form.title')).toHaveValue('Lunch');
+  });
+
+  it('asks before Cancel drops a changed task', async () => {
+    setUp([], 'tasks');
+    renderApp();
+    fireEvent.keyDown(document.body, { key: 'n', code: 'KeyN' });
+    fireEvent.change(screen.getByPlaceholderText('tasks.title_placeholder'), { target: { value: 'Buy milk' } });
+    fireEvent.click(screen.getByRole('button', { name: 'tasks.cancel' }));
+    const ask = await screen.findByRole('alertdialog', { name: 'discard.title' });
+    fireEvent.click(within(ask).getByRole('button', { name: 'discard.confirm' }));
+    await waitFor(() => expect(screen.queryByPlaceholderText('tasks.title_placeholder')).toBeNull());
   });
 });

@@ -3414,6 +3414,12 @@
       "rsvp_description": "This is a recurring event. Which events does your response apply to?",
       "respond": "Respond"
     },
+    "discard": {
+      "title": "Discard changes?",
+      "message": "Your changes haven't been saved.",
+      "keep": "Keep editing",
+      "confirm": "Discard"
+    },
     "alerts": {
       "title": "Reminders",
       "none": "No reminders",
