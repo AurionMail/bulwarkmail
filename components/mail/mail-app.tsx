@@ -37,7 +37,7 @@ import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
 import { messagePriorityFromHeaders, type MessagePriority } from "@/lib/message-priority";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
-import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, resolveEmailActionContext, emailWriteSource, emailLinkSource, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, isAggregateListView, removalFolder, canRemoveFromFolder, restoreBatchesFor, restoreBatchesForSelection, TrashMailboxNotFoundError, type EmailRestoreBatch , type CrossAccountMoveReceipt } from "@/stores/email-store";
+import { useEmailStore, annotateScheduledEmails, annotateScheduledEmail, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, resolveEmailActionContext, emailWriteSource, emailLinkSource, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, isAggregateListView, removalFolder, canRemoveFromFolder, restoreBatchesFor, restoreBatchesForSelection, TrashMailboxNotFoundError, type EmailRestoreBatch , type CrossAccountMoveReceipt } from "@/stores/email-store";
 import { findDraftIdentityIdForLogin, listRowSource, resolveDraftSource, type DraftSource } from "@/lib/draft-source";
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
@@ -2182,27 +2182,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         }
       }
 
-      if (result.scheduled) {
-        await refreshScheduledMetadata(client);
-        if (isScheduledView) await fetchScheduledEmails(client);
-        return;
-      }
-
-      // Delayed sends get the undo toast instead; a filing error or a refused
-      // recipient already warned.
-      if (!result.filingError && !result.rejectedRecipients?.length) toast.success(t('notifications.email_sent'));
-
-      // Refresh the current mailbox to update the UI
-      if (!isScheduledView) {
-        await refreshCurrentMailbox(client);
-        // Re-fetch the replied thread's cross-folder data so the expanded
-        // view shows the newly sent reply without collapsing.
-        if (originalEmailId) {
-          const emailState = useEmailStore.getState();
-          const repliedEmail = emailState.emails.find(e => e.id === originalEmailId);
-          if (repliedEmail?.threadId && emailState.expandedThreadIds.has(threadKeyFor(repliedEmail))) {
-            // Route to the email's own account so shared/group threads refresh
-            // from the right server, not the active one. (#281, #814)
+      const refreshRepliedThreadAfterSend = async (emailId: string | undefined) => {
+        if (!emailId || !client) return;
+        const emailState = useEmailStore.getState();
+        const repliedEmail = emailState.emails.find(e => e.id === emailId);
+        if (repliedEmail?.threadId && emailState.expandedThreadIds.has(threadKeyFor(repliedEmail))) {
+          try {
             const route = resolveThreadRoute({
               isUnifiedView: emailState.isUnifiedView,
               ref: repliedEmail,
@@ -2223,8 +2208,31 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 return { threadEmailsCache: c };
               });
             }
+          } catch (e) {
+            debug.error('Failed to refresh replied thread after send:', e);
           }
         }
+      };
+
+      if (result.scheduled) {
+        await refreshScheduledMetadata(client);
+        if (isScheduledView) {
+          await fetchScheduledEmails(client);
+        } else {
+          await refreshCurrentMailbox(client);
+        }
+        await refreshRepliedThreadAfterSend(originalEmailId);
+        return;
+      }
+
+      // Delayed sends get the undo toast instead; a filing error or a refused
+      // recipient already warned.
+      if (!result.filingError && !result.rejectedRecipients?.length) toast.success(t('notifications.email_sent'));
+
+      // Refresh the current mailbox to update the UI
+      if (!isScheduledView) {
+        await refreshCurrentMailbox(client);
+        await refreshRepliedThreadAfterSend(originalEmailId);
       }
     } catch (error) {
       console.error("Failed to send email:", error);
@@ -4017,8 +4025,46 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       }
     }
 
+    const refreshInlineRepliedThread = async () => {
+      const emailState = useEmailStore.getState();
+      const repliedEmail = emailState.emails.find(e => e.id === originalEmailId);
+      if (repliedEmail?.threadId && emailState.expandedThreadIds.has(threadKeyFor(repliedEmail))) {
+        const route = resolveThreadRoute({
+          isUnifiedView: emailState.isUnifiedView,
+          ref: repliedEmail,
+          mailboxes: viewMailboxes,
+          selectedMailbox: emailState.selectedMailbox,
+        });
+        const threadClient = route.clientAccountId
+          ? (useAuthStore.getState().getClientForAccount(route.clientAccountId) ?? client)
+          : client;
+        try {
+          const fullEmails = await threadClient.getThreadEmails(
+            repliedEmail.threadId,
+            route.accountId ?? client.getAccountId(),
+          );
+          if (fullEmails.length > 0) {
+            useEmailStore.setState((state) => {
+              const c = new Map(state.threadEmailsCache);
+              c.set(threadKeyFor(repliedEmail), fullEmails);
+              return { threadEmailsCache: c };
+            });
+          }
+        } catch (e) {
+          debug.error('Failed to refresh replied thread after send:', e);
+        }
+      }
+    };
+
     if (result.scheduled) {
       await refreshScheduledMetadata(client);
+      // As below: a failed refresh must not reach the quick-reply box.
+      try {
+        await refreshCurrentMailbox(client);
+        await refreshInlineRepliedThread();
+      } catch (error) {
+        console.error('Quick reply scheduled, but refreshing the view failed:', error);
+      }
       return true;
     }
 
@@ -4030,34 +4076,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     try {
       // Refresh emails to show the sent reply
       await refreshCurrentMailbox(client);
-      // Re-fetch the replied thread's cross-folder data so the expanded
-      // view shows the newly sent reply without collapsing.
-      const emailState = useEmailStore.getState();
-      const repliedEmail = emailState.emails.find(e => e.id === originalEmailId);
-      if (repliedEmail?.threadId && emailState.expandedThreadIds.has(threadKeyFor(repliedEmail))) {
-        // Route to the email's own account so shared/group threads refresh from
-        // the right server, not the active one. (#281, #814)
-        const route = resolveThreadRoute({
-          isUnifiedView: emailState.isUnifiedView,
-          ref: repliedEmail,
-          mailboxes: viewMailboxes,
-          selectedMailbox: emailState.selectedMailbox,
-        });
-        const threadClient = route.clientAccountId
-          ? (useAuthStore.getState().getClientForAccount(route.clientAccountId) ?? client)
-          : client;
-        const fullEmails = await threadClient.getThreadEmails(
-          repliedEmail.threadId,
-          route.accountId ?? client.getAccountId(),
-        );
-        if (fullEmails.length > 0) {
-          useEmailStore.setState((state) => {
-            const c = new Map(state.threadEmailsCache);
-            c.set(threadKeyFor(repliedEmail), fullEmails);
-            return { threadEmailsCache: c };
-          });
-        }
-      }
+      await refreshInlineRepliedThread();
     } catch (error) {
       console.error('Quick reply sent, but refreshing the view failed:', error);
     }
@@ -4102,7 +4121,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         e.sourceClientAccountId = ref.sourceClientAccountId;
         e.sourceAccountId = ref.sourceAccountId;
       }
-      return emails
+      const scheduledSubmissionByEmailId = useEmailStore.getState().scheduledSubmissionByEmailId;
+      const annotated = annotateScheduledEmails(emails, scheduledSubmissionByEmailId);
+      return annotated
         .filter((e) => e.id === ref.id || !e.keywords?.$draft)
         .sort((a, b) => a.receivedAt.localeCompare(b.receivedAt));
     })().catch(() => null);
@@ -4403,7 +4424,16 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       const fullEmail = await requestEmailContent(fetchClient, email.id, accountId);
       if (openSeq !== emailOpenSeqRef.current) return;
       if (fullEmail) {
-        if (listEmail?.isScheduled) {
+        const scheduledSubmissionByEmailId = useEmailStore.getState().scheduledSubmissionByEmailId;
+        const annotated = annotateScheduledEmail(fullEmail, scheduledSubmissionByEmailId);
+        if (annotated.isScheduled) {
+          fullEmail.scheduledSendAt = annotated.scheduledSendAt;
+          fullEmail.emailSubmissionId = annotated.emailSubmissionId;
+          fullEmail.scheduledIdentityId = annotated.scheduledIdentityId;
+          fullEmail.scheduledUndoStatus = annotated.scheduledUndoStatus;
+          fullEmail.scheduledAccountId = annotated.scheduledAccountId;
+          fullEmail.isScheduled = true;
+        } else if (listEmail?.isScheduled) {
           fullEmail.scheduledSendAt = listEmail.scheduledSendAt;
           fullEmail.emailSubmissionId = listEmail.emailSubmissionId;
           fullEmail.scheduledIdentityId = listEmail.scheduledIdentityId;

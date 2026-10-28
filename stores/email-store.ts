@@ -714,7 +714,7 @@ function getNextSelectedEmailAfterRemovingRow(
   return null;
 }
 
-function annotateScheduledEmails(
+export function annotateScheduledEmails(
   emails: Email[],
   scheduledSubmissionByEmailId: Map<string, ScheduledSubmissionMetadata>
 ): Email[] {
@@ -745,14 +745,26 @@ function scheduledSubmissionMap(client: IJMAPClient, emails: ScheduledEmail[]): 
   }]));
 }
 
-function annotateScheduledEmail(
+export function annotateScheduledEmail(
   email: Email,
   scheduledSubmissionByEmailId: Map<string, ScheduledSubmissionMetadata>
 ): Email {
   // The row's login and account: its stamps, else the folder on screen.
   const { client, clientAccountId, accountId } = resolveEmailBlobContext(email, useAuthStore.getState().client);
   const scheduled = scheduledSubmissionByEmailId.get(scheduledEmailKey(clientAccountId, accountId ?? client?.getAccountId(), email.id));
-  if (!scheduled) return email;
+  if (!scheduled) {
+    if (email.isScheduled) {
+      const copy = { ...email };
+      delete copy.isScheduled;
+      delete copy.scheduledSendAt;
+      delete copy.emailSubmissionId;
+      delete copy.scheduledIdentityId;
+      delete copy.scheduledUndoStatus;
+      delete copy.scheduledAccountId;
+      return copy;
+    }
+    return email;
+  }
   return {
     ...email,
     scheduledSendAt: scheduled.sendAt,
@@ -824,6 +836,64 @@ async function submissionMailboxes(
     draftsMailbox: mailboxes.find(mb => mb.role === 'drafts'),
     sentMailbox: mailboxes.find(mb => mb.role === 'sent'),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Tag counts in hidden tabs
+//
+// Every open tab receives every push, and each recounted every tag on each
+// one: two queries per tag, per account, per tab. A hidden tab shows no
+// badge, so it only notes the Email states it was told about and recounts
+// once when it is looked at again.
+//
+// On that return the client also re-checks the server's states and, when they
+// moved since its last check, replays them as a push. The replay is skipped
+// for tag counts when it carries exactly the states the return recount
+// already covered.
+// ---------------------------------------------------------------------------
+type TagCountStates = { client: IJMAPClient; emailStates: Record<string, string> };
+let tagCountsOnReturn: (TagCountStates & { get: () => EmailStore }) | null = null;
+let tagCountsCoveredOnReturn: TagCountStates | null = null;
+let tagCountsVisibilityListener = false;
+
+function changedEmailStates(change: StateChange): Record<string, string> {
+  const states: Record<string, string> = {};
+  for (const [accountId, types] of Object.entries(change.changed)) {
+    if (types?.Email) states[accountId] = types.Email;
+  }
+  return states;
+}
+
+function recountTagCountsOnReturn(): void {
+  if (document.hidden || !tagCountsOnReturn) return;
+  const { client, emailStates, get } = tagCountsOnReturn;
+  tagCountsOnReturn = null;
+  tagCountsCoveredOnReturn = { client, emailStates };
+  void get().fetchTagCounts(client);
+}
+
+/** fetchTagCounts for a push, unless the tab is hidden or the push is the return's replay. */
+function fetchTagCountsForPush(client: IJMAPClient, change: StateChange, get: () => EmailStore): void {
+  const emailStates = changedEmailStates(change);
+  if (typeof document !== 'undefined' && document.hidden) {
+    const pending = tagCountsOnReturn?.client === client ? tagCountsOnReturn.emailStates : {};
+    tagCountsOnReturn = { client, emailStates: { ...pending, ...emailStates }, get };
+    if (!tagCountsVisibilityListener) {
+      tagCountsVisibilityListener = true;
+      document.addEventListener('visibilitychange', recountTagCountsOnReturn);
+    }
+    return;
+  }
+  const covered = tagCountsCoveredOnReturn;
+  tagCountsCoveredOnReturn = null;
+  tagCountsOnReturn = null;
+  if (
+    covered?.client === client &&
+    Object.entries(emailStates).every(([accountId, state]) => covered.emailStates[accountId] === state)
+  ) {
+    return;
+  }
+  void get().fetchTagCounts(client);
 }
 
 function coalesceRefresh(client: IJMAPClient, key: string, run: () => Promise<void>): Promise<void> {
@@ -6587,7 +6657,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
           await get().refreshCurrentMailbox(client);
         }
         if (anyEmailChanged) {
-          get().fetchTagCounts(client);
+          fetchTagCountsForPush(client, change, get);
         }
       }
 
@@ -7894,6 +7964,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         scheduledEmails: result.emails,
         scheduledEmailIds,
         scheduledSubmissionByEmailId,
+        emails: annotateScheduledEmails(get().emails, scheduledSubmissionByEmailId),
         scheduledTotal: result.total,
         scheduledTotalByAccount: result.totalByAccount ?? {},
         scheduledHasMore: result.hasMore,

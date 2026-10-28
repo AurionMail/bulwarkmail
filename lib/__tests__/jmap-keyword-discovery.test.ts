@@ -287,3 +287,91 @@ describe('JMAPClient.discoverKeywords', () => {
     expect(result.labels.map((label) => label.id)).toEqual(['$label:work', '$seen']);
   });
 });
+
+// Two Email/query per tag is 240 method calls for 120 tags, re-run on every
+// push. A server that already counts keywords answers all of it in one call.
+describe('JMAPClient.getTagCounts with Keyword/get', () => {
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
+  const tags = ['work', 'receipts', 'travel'];
+
+  beforeEach(() => {
+    fetchSpy = vi.spyOn(globalThis, 'fetch');
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    fetchSpy.mockRestore();
+    vi.restoreAllMocks();
+  });
+
+  async function connect(session: unknown): Promise<JMAPClient> {
+    fetchSpy.mockResolvedValueOnce(jsonResponse(session));
+    const client = JMAPClient.withBearer('https://mail.example.com', 'token123', 'user@test.com');
+    await client.connect();
+    fetchSpy.mockReset();
+    return client;
+  }
+
+  function recordRequests(reply: (methodCalls: Array<[string, Record<string, unknown>, string]>, index: number) => unknown) {
+    const sent: Array<Array<[string, Record<string, unknown>, string]>> = [];
+    fetchSpy.mockImplementation((async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(init.body as string);
+      const index = sent.length;
+      sent.push(body.methodCalls);
+      return jsonResponse(reply(body.methodCalls, index));
+    }) as never);
+    return sent;
+  }
+
+  const answerQueries = (methodCalls: Array<[string, Record<string, unknown>, string]>) => ({
+    methodResponses: methodCalls.map(([, , callId]) => ['Email/query', { total: 2 }, callId]),
+  });
+
+  it('reads every count from one Keyword/get when the server counts keywords', async () => {
+    const client = await connect(makeSession({}, true));
+    const sent = recordRequests(() => ({
+      methodResponses: [['Keyword/get', {
+        accountId: 'acct-1',
+        list: [
+          { id: '$label:Work', name: 'Work', color: null, total: 12, unread: 5, isProviderLabel: true, source: 'provider' },
+          { id: '$label:receipts', name: 'receipts', color: null, total: 3, unread: 0, isProviderLabel: true, source: 'provider' },
+        ],
+        notFound: ['$label:travel'],
+      }, '0']],
+    }));
+
+    const counts = await client.getTagCounts(tags, undefined, ['trash', 'junk']);
+
+    expect(sent).toEqual([[['Keyword/get', { accountId: 'acct-1', ids: ['$label:work', '$label:receipts', '$label:travel'] }, '0']]]);
+    expect(counts).toEqual({
+      work: { total: 12, unread: 5 },
+      receipts: { total: 3, unread: 0 },
+      travel: { total: 0, unread: 0 },
+    });
+  });
+
+  it('falls back to querying when Keyword/get is refused', async () => {
+    const client = await connect(makeSession({}, true));
+    const sent = recordRequests((methodCalls, index) =>
+      index === 0
+        ? { methodResponses: [['error', { type: 'unknownMethod' }, '0']] }
+        : answerQueries(methodCalls),
+    );
+
+    const counts = await client.getTagCounts(tags);
+
+    expect(sent[0].map(([name]) => name)).toEqual(['Keyword/get']);
+    expect(sent.slice(1).flat().every(([name]) => name === 'Email/query')).toBe(true);
+    expect(counts.travel).toEqual({ total: 2, unread: 2 });
+  });
+
+  it('keeps querying on a server that offers Keyword/get without counts', async () => {
+    const session = makeSession({}, true);
+    const client = await connect({ ...session, capabilities: { ...session.capabilities, [KEYWORDS_CAPABILITY]: {} } });
+    const sent = recordRequests(answerQueries);
+
+    await client.getTagCounts(tags);
+
+    expect(sent.flat().every(([name]) => name === 'Email/query')).toBe(true);
+  });
+});

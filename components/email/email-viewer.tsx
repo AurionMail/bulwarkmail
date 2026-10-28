@@ -755,6 +755,7 @@ function mvSenderDate(date: Date | string, timeFormat: '12h' | '24h'): string {
  * snippet. Clicking it unfolds the message in place.
  */
 function MvConversationCard({ email, onOpen, timeFormat, compact }: { email: Email; onOpen?: (email: Email) => void; timeFormat: '12h' | '24h'; compact?: boolean }) {
+  const tSidebar = useTranslations('sidebar');
   const sender = email.from?.[0];
   const unread = !email.keywords?.$seen;
   return (
@@ -771,6 +772,12 @@ function MvConversationCard({ email, onOpen, timeFormat, compact }: { email: Ema
           <span dir="auto" className={cn("text-sm truncate", unread ? "font-bold" : "font-semibold")}>
             {sender?.name || sender?.email || ''}
           </span>
+          {email.isScheduled && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-primary/10 text-primary shrink-0">
+              <CalendarClock className="w-3 h-3" />
+              {email.scheduledSendAt ? formatScheduledSendAt(email.scheduledSendAt, timeFormat) : tSidebar('scheduled')}
+            </span>
+          )}
           <span className="ms-auto ps-2 text-xs text-muted-foreground whitespace-nowrap">
             {compact ? formatDate(emailDisplayDate(email)) : mvSenderDate(emailDisplayDate(email), timeFormat)}
           </span>
@@ -847,6 +854,7 @@ export function MvExpandedConversationCard({
   blobSource?: EmailBlobContext;
 }) {
   const t = useTranslations('email_viewer');
+  const tSidebar = useTranslations('sidebar');
   const externalContent = useConversationExternalContent();
   const sender = email.from?.[0];
   const hasBody = !!email.bodyValues;
@@ -885,6 +893,12 @@ export function MvExpandedConversationCard({
         <span className="flex-1 min-w-0">
           <span className="flex items-baseline gap-2">
             <span dir="auto" className="text-sm font-semibold truncate">{sender?.name || sender?.email || ''}</span>
+            {email.isScheduled && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-primary/10 text-primary shrink-0">
+                <CalendarClock className="w-3 h-3" />
+                {email.scheduledSendAt ? formatScheduledSendAt(email.scheduledSendAt, timeFormat) : tSidebar('scheduled')}
+              </span>
+            )}
             {!compact && sender?.name && sender.email && (
               <span className="text-xs text-muted-foreground truncate">&lt;{sender.email}&gt;</span>
             )}
@@ -920,6 +934,14 @@ export function MvExpandedConversationCard({
           </button>
         )}
       </div>
+      {email.isScheduled && (
+        <div className={cn("border-b border-border bg-primary/10 py-2 flex items-center gap-2 text-primary text-xs font-medium", compact ? "px-4" : "ps-[80px] pe-6")}>
+          <CalendarClock className="w-3.5 h-3.5 shrink-0" />
+          <span>
+            {t('scheduled_banner', { date: email.scheduledSendAt ? formatScheduledSendAt(email.scheduledSendAt, timeFormat) : '' })}
+          </span>
+        </div>
+      )}
       {showDetails && <MvConversationDetails email={email} timeFormat={timeFormat} className={compact ? "px-4" : "ps-[80px] pe-6"} />}
       {hasBody ? (
         <ConversationEmailBody

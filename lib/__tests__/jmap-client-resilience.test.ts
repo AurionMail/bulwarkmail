@@ -620,6 +620,63 @@ describe('JMAPClient resilience', () => {
     });
   });
 
+  // Each client sent a Core/echo every 30s for as long as the page was open,
+  // tabs in the background included, even while its push stream was proving
+  // every 30s that the server was there.
+  describe('keep-alive while the push stream is live', () => {
+    const encoder = new TextEncoder();
+    const isSSE = (init?: RequestInit) =>
+      (init?.headers as Record<string, string> | undefined)?.['Accept'] === 'text/event-stream';
+    const echoCount = () =>
+      fetchSpy.mock.calls.filter((call: unknown[]) => {
+        const body = (call[1] as RequestInit | undefined)?.body;
+        return typeof body === 'string' && body.includes('Core/echo');
+      }).length;
+
+    /** A stream the test feeds; any other request is answered by `api`. */
+    async function withPushStream(api: () => Promise<Response>) {
+      vi.useFakeTimers({ shouldAdvanceTime: false });
+      const client = await createConnectedClient();
+      let stream!: ReadableStreamDefaultController<Uint8Array>;
+      const body = new ReadableStream<Uint8Array>({ start(c) { stream = c; } });
+      fetchSpy.mockImplementation(((_url: RequestInfo | URL, init?: RequestInit) =>
+        isSSE(init) ? Promise.resolve(new Response(body, { status: 200 })) : api()) as never);
+      client.setupPushNotifications();
+      await vi.advanceTimersByTimeAsync(0);
+      const ping = () => stream.enqueue(encoder.encode('event: ping\ndata: {"interval":30}\n\n'));
+      return { client, ping };
+    }
+
+    const echo = () => Promise.resolve(mockFetchResponse(200, { methodResponses: [['Core/echo', { ping: 'pong' }, '0']] }));
+
+    it('sends no Core/echo while the stream keeps pinging', async () => {
+      const { ping } = await withPushStream(echo);
+
+      for (let i = 0; i < 4; i++) {
+        await vi.advanceTimersByTimeAsync(29_000);
+        ping();
+        await vi.advanceTimersByTimeAsync(1_000);
+      }
+
+      expect(echoCount()).toBe(0);
+    });
+
+    it('pings again, and reports the connection lost, once the stream goes quiet', async () => {
+      const { client, ping } = await withPushStream(() => Promise.reject(new TypeError('Failed to fetch')));
+      const callback = vi.fn();
+      client.onConnectionChange(callback);
+      ping();
+
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(echoCount()).toBe(0);
+
+      await vi.advanceTimersByTimeAsync(30_000);
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(echoCount()).toBeGreaterThan(0);
+      expect(callback).toHaveBeenCalledWith(false);
+    });
+  });
+
   describe('disconnect', () => {
     it('stops keep-alive and cleans up', async () => {
       const client = await createConnectedClient();

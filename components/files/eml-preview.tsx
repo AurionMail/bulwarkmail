@@ -5,6 +5,7 @@ import { Paperclip, Download } from "@/components/icons";
 import { emailIframeCsp, sanitizeEmailBodyForIframe } from "@/lib/email-sanitization";
 import { getEffectiveTimeZone } from "@/lib/timezone";
 import { stripBidiControls } from "@/lib/bidi";
+import { isFilePreviewable } from "@/lib/file-preview";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useNoThirdPartyTraffic } from "@/hooks/use-third-party-mode";
 
@@ -17,8 +18,10 @@ export type ParsedEml = {
   date?: string;
   html?: string;
   text?: string;
-  attachments?: Array<{ filename?: string; mimeType?: string; content?: ArrayBuffer | Uint8Array }>;
+  attachments?: Array<EmlAttachment>;
 };
+
+export type EmlAttachment = { filename?: string; mimeType?: string; content?: ArrayBuffer | Uint8Array };
 
 function formatAddress(a?: { name?: string; address?: string }): string {
   if (!a) return "";
@@ -41,12 +44,19 @@ function escapeHtml(s: string): string {
 // scripts, no same-origin), so a script-bearing .eml can never execute in our
 // origin. Remote content is blocked unless the user allows it everywhere:
 // there is no per-message "load" here. Parsing happens in the caller
-// (FilePreviewModal); this is pure presentation.
-export function EmlPreview({ message }: { message: ParsedEml }) {
+// (FilePreviewModal); this is pure presentation. An attachment the preview
+// can show - often another message: a certified-mail (PEC) envelope wraps the
+// original, and a forwarded PEC wraps that envelope - opens through
+// onOpenAttachment, with download beside it.
+export function EmlPreview({ message, onOpenAttachment }: {
+  message: ParsedEml;
+  onOpenAttachment?: (attachment: EmlAttachment) => void;
+}) {
   const t = useTranslations("email_viewer");
   // Always blocked with no third-party traffic (#903).
   const remoteBlockedByOrg = useNoThirdPartyTraffic();
   const blockRemote = useSettingsStore((state) => state.externalContentPolicy) !== "allow" || remoteBlockedByOrg;
+  const tFiles = useTranslations("files");
 
   // dir="auto" on a wrapper we control lets the first strong character pick
   // the direction, matching the main viewer.
@@ -60,7 +70,7 @@ export function EmlPreview({ message }: { message: ParsedEml }) {
     ? `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${emailIframeCsp(blockRemote)}"><meta name="referrer" content="no-referrer"></head><body>${body}</body></html>`
     : "";
 
-  const downloadAttachment = (att: NonNullable<ParsedEml["attachments"]>[number]) => {
+  const downloadAttachment = (att: EmlAttachment) => {
     if (!att.content) return;
     // content is a real ArrayBuffer/Uint8Array at runtime; cast for the strict
     // BlobPart lib type (Uint8Array<ArrayBufferLike> vs ArrayBuffer).
@@ -103,19 +113,47 @@ export function EmlPreview({ message }: { message: ParsedEml }) {
         <div className="mt-4 border-t border-border pt-3">
           <div className="text-xs font-medium text-muted-foreground mb-2">{t("attachments")}</div>
           <div className="flex flex-wrap gap-2">
-            {message.attachments.map((att, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => downloadAttachment(att)}
-                title={t("download")}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm bg-muted text-foreground hover:bg-muted/70"
-              >
-                <Paperclip className="w-3 h-3 flex-shrink-0" />
-                <span className="max-w-[200px] truncate">{att.filename ? stripBidiControls(att.filename) : "attachment"}</span>
-                <Download className="w-3 h-3 flex-shrink-0 text-muted-foreground" />
-              </button>
-            ))}
+            {message.attachments.map((att, i) => {
+              const name = att.filename ? stripBidiControls(att.filename) : "attachment";
+              const opens = !!onOpenAttachment && !!att.content && isFilePreviewable(att.filename, att.mimeType);
+              if (!opens) {
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => downloadAttachment(att)}
+                    title={t("download")}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm bg-muted text-foreground hover:bg-muted/70"
+                  >
+                    <Paperclip className="w-3 h-3 flex-shrink-0" />
+                    <span className="max-w-[200px] truncate">{name}</span>
+                    <Download className="w-3 h-3 flex-shrink-0 text-muted-foreground" />
+                  </button>
+                );
+              }
+              return (
+                <div key={i} className="flex items-center rounded-md text-sm bg-muted text-foreground">
+                  <button
+                    type="button"
+                    onClick={() => onOpenAttachment(att)}
+                    title={tFiles("preview")}
+                    className="flex items-center gap-2 ps-3 pe-2 py-1.5 rounded-s-md hover:bg-muted/70"
+                  >
+                    <Paperclip className="w-3 h-3 flex-shrink-0" />
+                    <span className="max-w-[200px] truncate">{name}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => downloadAttachment(att)}
+                    title={t("download")}
+                    aria-label={`${t("download")} ${name}`}
+                    className="ps-1 pe-3 py-1.5 rounded-e-md hover:bg-muted/70"
+                  >
+                    <Download className="w-3 h-3 text-muted-foreground" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

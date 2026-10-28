@@ -40,7 +40,9 @@ import {
   FileArchive,
   File,
   Eye,
+  CalendarClock,
 } from "@/components/icons";
+import { formatScheduledSendAt } from "@/lib/scheduled-send-label";
 import { useTranslations } from "next-intl";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useContactStore } from "@/stores/contact-store";
@@ -360,6 +362,7 @@ function EmailCard({
 }: EmailCardProps) {
   const t = useTranslations();
   const density = useSettingsStore((state) => state.density);
+  const timeFormat = useSettingsStore((state) => state.timeFormat);
   const plugin = useConversationPluginProps(email);
   const sender = email.from?.[0];
   const formatAddress = useOwnDomainAddress();
@@ -402,6 +405,12 @@ function EmailCard({
               {sender?.name || (sender?.email && formatAddress(sender.email)) || t('email_viewer.unknown_sender')}
             </span>
             <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} interactive={false} />
+            {email.isScheduled && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary shrink-0">
+                <CalendarClock className="w-3.5 h-3.5" />
+                {t('sidebar.scheduled')}
+              </span>
+            )}
             {isStarred && (
               <Star className="w-4 h-4 fill-amber-400 text-amber-400 flex-shrink-0" />
             )}
@@ -410,7 +419,14 @@ function EmailCard({
             )}
           </div>
           <div className="text-sm text-muted-foreground">
-            {formatDate(emailDisplayDate(email))}
+            {email.isScheduled && email.scheduledSendAt ? (
+              <span className="text-primary font-medium inline-flex items-center gap-1">
+                <CalendarClock className="w-3.5 h-3.5" />
+                {formatScheduledSendAt(email.scheduledSendAt, timeFormat)}
+              </span>
+            ) : (
+              formatDate(emailDisplayDate(email))
+            )}
           </div>
           {!isExpanded && density !== 'extra-compact' && (
             <p dir="auto" className="text-sm text-muted-foreground mt-1 line-clamp-2">
@@ -430,6 +446,14 @@ function EmailCard({
       {/* Expanded Content */}
       {isExpanded && (
         <div className="border-t border-border animate-in slide-in-from-top-2 duration-200">
+          {email.isScheduled && (
+            <div className="px-4 py-2 bg-primary/10 border-b border-border flex items-center gap-2 text-primary text-xs font-medium">
+              <CalendarClock className="w-3.5 h-3.5 shrink-0" />
+              <span>
+                {t('email_viewer.scheduled_banner', { date: email.scheduledSendAt ? formatScheduledSendAt(email.scheduledSendAt, timeFormat) : '' })}
+              </span>
+            </div>
+          )}
           <PluginSlot name="reader-below-subject" className="w-full" extraProps={plugin.emailProps} />
           <PluginSlot name="email-banner" className="w-full" extraProps={plugin.emailProps} />
           <ConversationEmailBody
