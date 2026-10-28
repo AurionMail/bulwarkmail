@@ -8,7 +8,7 @@
 // the boundary must be structured-cloneable: no functions, no DOM nodes, no
 // class instances.
 
-import type { SlotName, PluginTier } from '../plugin-types';
+import type { SlotName, PluginTier, HostFeaturesView } from '../plugin-types';
 import type { ThemeSnapshot } from './host-theme';
 
 /** Resolved presentation/regional settings mirrored into plugin runtimes. */
@@ -50,6 +50,8 @@ export interface BackgroundInit {
   locale: string;
   /** Resolved presentation/regional preferences (time format, date locale, time zone). */
   regional?: RegionalSnapshot;
+  /** Bulwark features that replace plugins (api.host.features); host pushes updates via 'host-change'. */
+  hostFeatures?: HostFeaturesView;
 }
 
 /** Initialisation payload for a slot-instance iframe (one per slot mount). */
@@ -97,6 +99,8 @@ export interface SlotInit {
    * injected CSS + a `.dark` class. Host pushes updates via 'theme-change'.
    */
   theme: ThemeSnapshot;
+  /** Mirrors `BackgroundInit.hostFeatures`. */
+  hostFeatures?: HostFeaturesView;
 }
 
 export type InitPayload = BackgroundInit | SlotInit;
@@ -265,6 +269,9 @@ export interface ThemeChangeMsg { type: 'theme-change'; theme: ThemeSnapshot; }
 /** Host → sandbox: the user changed this plugin's settings. */
 export interface SettingsChangeMsg { type: 'settings-change'; settings: Record<string, unknown>; }
 
+/** Host → sandbox: a Bulwark feature that replaces plugins was turned on or off. */
+export interface HostChangeMsg { type: 'host-change'; features: HostFeaturesView; }
+
 export interface PropsUpdateMsg { type: 'props-update'; props: Record<string, unknown>; }
 
 export interface SlotShouldShowMsg {
@@ -309,6 +316,7 @@ export type HostToSandbox =
   | LocaleChangeMsg
   | ThemeChangeMsg
   | SettingsChangeMsg
+  | HostChangeMsg
   | PropsUpdateMsg
   | SlotShouldShowMsg
   | FloatingDropdownSelectMsg

@@ -20,6 +20,8 @@ export async function sendOnce(opts?: { reason?: string }): Promise<{
   status?: number;
   error?: string;
 }> {
+  // effectiveConsent() is off in the no-third-party mode, so this also stops
+  // a manual "send now" before any request (#903).
   const { consent, source, state } = await effectiveConsent();
   if (consent !== 'on') return { ok: false, error: `consent ${consent} (source ${source})` };
   const endpoint = state.endpoint || DEFAULT_ENDPOINT;

@@ -3858,8 +3858,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     await saveQuickReplyDraft({ client, email: selectedEmail, identities, body, replyPrefix: t('email_composer.prefix.reply') });
   };
 
-  const handleQuickReply = async (body: string) => {
-    if (!client || !selectedEmail) return;
+  // Resolves true once the reply went out (or was scheduled), false when it
+  // stopped before sending, so the quick-reply box keeps the text.
+  const handleQuickReply = async (body: string): Promise<boolean> => {
+    if (!client || !selectedEmail) return false;
 
     // Quick reply follows the composer's addressing rules and sends from the
     // address the message was delivered to (lib/outgoing/quick-reply-envelope.ts).
@@ -3882,12 +3884,13 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const prepared = await prepareQuickReply({
       body,
       signatureIdentity,
+      sendingIdentity,
       separator: useSettingsStore.getState().signatureSeparatorEnabled,
       to: recipients,
       fromEmail: headerFromEmail,
       identityId: sendingIdentity?.id,
     });
-    if (!prepared) return;
+    if (!prepared) return false;
     const { html: finalHtmlBody, text: finalBody } = prepared;
 
     const originalEmailId = selectedEmail.id;
@@ -3897,7 +3900,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (sendDelaySeconds > 0) {
       if (!client.hasDelayedSend()) {
         const confirmed = window.confirm(t('email_composer.send_delay_unsupported_confirm'));
-        if (!confirmed) return;
+        if (!confirmed) return false;
       } else {
         delayedUntil = new Date(Date.now() + sendDelaySeconds * 1000).toISOString();
       }
@@ -3947,7 +3950,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
     if (result.scheduled) {
       await refreshScheduledMetadata(client);
-      return;
+      return true;
     }
 
     if (!refused) toast.success(t('notifications.email_sent'));
@@ -3989,6 +3992,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     } catch (error) {
       console.error('Quick reply sent, but refreshing the view failed:', error);
     }
+    return true;
   };
 
   // Mountain View reads a message inside its conversation, as Gmail does: load

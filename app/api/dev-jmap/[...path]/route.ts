@@ -4,6 +4,7 @@ import { createDemoFileNodes } from '@/lib/demo/fixtures/files';
 import { generateDemoId } from '@/lib/demo/demo-utils';
 import type { FileNode } from '@/lib/jmap/types';
 import JSZip from 'jszip';
+import { isNoThirdPartyTrafficOn } from '@/lib/admin/third-party-mode';
 
 /**
  * Mock JMAP server for local development.
@@ -2035,9 +2036,14 @@ function handleVacationResponseGet(_args: MethodArgs, callId: string): MethodRes
   return ['VacationResponse/get', { accountId: ACCOUNT_ID, state: nextState(), list: [{ id: 'vacation-1', isEnabled: false, fromDate: null, toDate: null, subject: null, textBody: null, htmlBody: null }], notFound: [] }, callId];
 }
 
+// The sample photos come from randomuser.me: none while third-party traffic
+// is off (#903). Set per request in POST, which can await the config.
+let samplePhotos = true;
+
 function handleContactCardGet(args: MethodArgs, callId: string): MethodResult {
   const ids = args.ids as string[] | undefined;
-  const list = ids ? contacts.filter((c) => ids.includes(c.id)) : contacts;
+  const found = ids ? contacts.filter((c) => ids.includes(c.id)) : contacts;
+  const list = samplePhotos ? found : found.map(({ media: _media, ...rest }) => rest);
   return ['ContactCard/get', { accountId: ACCOUNT_ID, state: nextState(), list, notFound: [] }, callId];
 }
 
@@ -2826,6 +2832,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   // JMAP API endpoint
   if (joined === 'api') {
+    samplePhotos = !(await isNoThirdPartyTrafficOn());
     try {
       const body = await request.json();
       const methodCalls = body.methodCalls as Array<[string, MethodArgs, string]>;

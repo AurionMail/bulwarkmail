@@ -10,6 +10,7 @@ import { ChevronRight } from '@/components/icons';
 import { usePolicyStore } from '@/stores/policy-store';
 import { useContactStore } from '@/stores/contact-store';
 import { useAuthStore } from '@/stores/auth-store';
+import { useNoThirdPartyTraffic } from '@/hooks/use-third-party-mode';
 
 /**
  * The Reading page: the open message. Opening it, how its body is drawn,
@@ -18,6 +19,9 @@ import { useAuthStore } from '@/stores/auth-store';
  * tab. List, delete and swipe rows live on the Message list page.
  */
 export function ReadingSettings() {
+  // No third-party traffic (#903) blocks remote content outright: the
+  // setting shows as the organisation's, set to block.
+  const remoteBlockedByOrg = useNoThirdPartyTraffic();
   const t = useTranslations('settings.email_behavior');
   const tPage = useTranslations('settings.reading_page');
   const [showTrustedModal, setShowTrustedModal] = useState(false);
@@ -119,9 +123,9 @@ export function ReadingSettings() {
 
       <SettingsSection id="images" title={tPage('sections.images')} description={tPage('sections.images_description')}>
         {isFeatureEnabled('externalContentEnabled') && !isSettingHidden('externalContentPolicy') && (
-        <SettingItem label={t('external_content.label')} description={t('external_content.description')} locked={isSettingLocked('externalContentPolicy')}>
+        <SettingItem label={t('external_content.label')} description={t('external_content.description')} locked={isSettingLocked('externalContentPolicy') || remoteBlockedByOrg}>
           <Select
-            value={externalContentPolicy}
+            value={remoteBlockedByOrg ? 'block' : externalContentPolicy}
             onChange={(value) =>
               updateSetting('externalContentPolicy', value as 'ask' | 'block' | 'allow')
             }

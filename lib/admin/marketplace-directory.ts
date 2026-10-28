@@ -14,6 +14,8 @@
 import { configManager } from './config-manager';
 import { getPluginRegistry, getThemeRegistry, type ExtensionSource } from './plugin-registry';
 import { listHistory, type HistoryEntry } from './extension-history';
+import { isNoThirdPartyTrafficOn } from './third-party-mode';
+import { isBuiltInHost } from '@/lib/outgoing-hosts';
 
 export const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '';
 
@@ -21,7 +23,24 @@ export type Channel = 'stable' | 'beta';
 
 export async function getDirectoryUrl(): Promise<string> {
   await configManager.ensureLoaded();
-  return configManager.get<string>('extensionDirectoryUrl') || 'https://extensions.bulwarkmail.org';
+  const url = configManager.get<string>('extensionDirectoryUrl') || 'https://extensions.bulwarkmail.org';
+  // Defense in depth: the routes ask directoryOff() first and answer 403.
+  if (isBuiltInHost(url) && await isNoThirdPartyTrafficOn()) throw new DirectoryError(DIRECTORY_OFF_MESSAGE, 403);
+  return url;
+}
+
+export const DIRECTORY_OFF_MESSAGE =
+  'The official extension directory is off: this server does not contact outside services (NO_THIRD_PARTY_TRAFFIC). Point EXTENSION_DIRECTORY_URL at a self-hosted directory to use the marketplace.';
+
+/**
+ * Whether the marketplace must not ask its directory: the no-third-party
+ * mode is on and the directory is the official one (#903). A self-hosted
+ * directory is the deployment's own and stays reachable.
+ */
+export async function directoryOff(): Promise<boolean> {
+  await configManager.ensureLoaded();
+  const url = configManager.get<string>('extensionDirectoryUrl') || 'https://extensions.bulwarkmail.org';
+  return isBuiltInHost(url) && await isNoThirdPartyTrafficOn();
 }
 
 export function getDirectoryChannel(): Channel {

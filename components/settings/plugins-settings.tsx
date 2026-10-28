@@ -14,6 +14,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PluginPermissionList } from '@/components/plugins/plugin-permission-list';
 import type { InstalledPlugin, PluginStatus, SettingFieldSchema } from '@/lib/plugin-types';
 import { effectiveSettings } from '@/lib/plugin-settings';
+import { PLUGIN_REFUSED_ERROR } from '@/lib/outgoing-hosts';
 import { lookup } from '@/lib/plugin-sandbox/plugin-i18n';
 import { forgetCredentials, listConnectedAccounts, type ConnectedAccount } from '@/lib/plugin-sandbox/connect-dialog';
 
@@ -213,12 +214,14 @@ interface PluginCardProps {
 
 function PluginCard({ plugin, isExpanded, isForceEnabled, controlsDisabled, onToggleExpand, onToggle, onRemove, onUpdateSettings }: PluginCardProps) {
   const t = useTranslations('plugins.settings');
+  const tThirdParty = useTranslations('third_party');
   const locale = useLocale();
   const isManaged = Boolean(plugin.managed);
   const awaiting = !isManaged && plugin.approvalStatus === 'pending';
   const denied = !isManaged && plugin.approvalStatus === 'denied';
   const errorText = plugin.error
-    ? ERROR_CODES.has(plugin.error) ? t(`error_${plugin.error.replace(/-/g, '_')}`) : plugin.error
+    ? plugin.error === PLUGIN_REFUSED_ERROR ? tThirdParty('plugin_refused')
+      : ERROR_CODES.has(plugin.error) ? t(`error_${plugin.error.replace(/-/g, '_')}`) : plugin.error
     : null;
 
   return (

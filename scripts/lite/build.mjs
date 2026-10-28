@@ -10,6 +10,7 @@
 //
 // Inputs (env): LITE_TARGET (static | stalwart), LITE_JMAP_SERVER_URL,
 // LITE_APP_NAME, LITE_ALLOW_CUSTOM_ENDPOINT, LITE_REMEMBER_ME, LITE_DEMO_MODE,
+// LITE_NO_THIRD_PARTY_TRAFFIC,
 // LITE_LOCALES, NEXT_PUBLIC_BASE_PATH (static target only),
 // NEXT_PUBLIC_DEFAULT_LOCALE, GIT_COMMIT. Flags: --target=stalwart,
 // --skip-prepare (tree already pruned), --dry-run (print the plan only).

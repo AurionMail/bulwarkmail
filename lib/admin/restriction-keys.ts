@@ -42,6 +42,15 @@ export const RESTRICTION_KEYS: readonly RestrictionKeyDef[] = [
   { key: 'calendarNotificationsEnabled', label: 'Calendar Notifications', category: 'Notifications', type: 'boolean', page: 'policy' },
   { key: 'pushNotifyInboxOnly', label: 'Inbox-only Push Notifications', category: 'Notifications', type: 'boolean', page: 'policy' },
   { key: 'debugMode', label: 'Debug Mode', category: 'Advanced', type: 'boolean', page: 'policy' },
+  {
+    key: 'signature',
+    label: 'Signatures',
+    description: "Lock: users can't change signatures, and the organisation signature replaces their own. Hide: users get no signature editor at all.",
+    category: 'Composer',
+    type: 'boolean',
+    page: 'org-signatures',
+    modes: ['locked', 'hidden'],
+  },
   { key: 'delegation', label: 'Delegates', description: 'Hide removes Settings > Sharing > Delegates, so users can no longer give someone access to mail, calendars and contacts in one step.', category: 'Sharing', type: 'boolean', page: 'org-sharing', modes: ['hidden'] },
   { key: 'sharingRights', label: 'Rights users can give', description: 'Untick "write" and every share dialog in Bulwark (folders, calendars, address books, files, Delegates) offers read access only.', category: 'Sharing', type: 'enum', allowedValues: ['read', 'write'], page: 'org-sharing', modes: ['allowedValues'] },
 ];

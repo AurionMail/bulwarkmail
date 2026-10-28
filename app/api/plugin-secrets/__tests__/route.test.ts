@@ -13,7 +13,7 @@ vi.mock('@/lib/stalwart/credentials', () => ({
   getStalwartCredentials: async () => (signedIn ? { ...claimed, serverUrl: 'https://mail.example.org', authHeader: 'x' } : null),
 }));
 vi.mock('@/lib/admin/config-manager', () => ({
-  configManager: { ensureLoaded: async () => {}, getPolicy: () => ({ features: { pluginsEnabled } }) },
+  configManager: { ensureLoaded: async () => {}, get: () => undefined, getPolicy: () => ({ features: { pluginsEnabled } }) },
 }));
 vi.mock('@/lib/security/same-origin', async () => {
   const { NextResponse } = await import('next/server');

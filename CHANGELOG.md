@@ -4,7 +4,11 @@
 
 ### Features
 
+- **Organisation**: Admins can set an organisation signature with placeholders for each user's name, address, company, job title, department and phone numbers, per domain or group, and lock it so it replaces everyone's own signature. Users fill in their details once under Settings > Account. Lines whose details are empty are left out (#908)
+- **Organisation**: Admins can add a legal disclaimer that goes below every message when it is sent, never into drafts, and is shown read-only in the composer
+- **Organisation**: Admins can label mail from outside the organisation with an "External" chip and have users confirm before sending to or inviting external recipients (composer, quick reply and meeting invitations), per domain or group. Partner domains and contacts count as internal. This replaces the External Mail Warning plugin, whose safe domains can be imported. Plugins can read `api.host.features.externalSenderLabel` and `externalRecipientWarning`
 - **Organisation**: Admins can sign users out after a time without activity or a fixed time after sign-in, per domain or group. A countdown with "Stay signed in" comes first, open and minimised messages and quick replies are saved as drafts, and the login page says why
+- **Privacy**: One switch, `NO_THIRD_PARTY_TRAFFIC` or Organisation > Security, stops every connection to services outside your own servers: telemetry, the version check, the built-in push relay, the official extension directory, sender icons, MyMemory translation, map links, OpenPGP key lookups and remote pictures in mail. Plugins that need network access don't run, and the page's CSP allows only the hosts you configured. Push registrations move to your own relay. The admin page lists what stays reachable (#903)
 
 ## 1.18.0 (2026-10-26)
 
