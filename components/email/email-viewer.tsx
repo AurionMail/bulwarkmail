@@ -175,7 +175,8 @@ interface EmailViewerProps {
   onMarkAsRead?: (emailId: string, read: boolean, opts?: { automatic?: boolean }) => void;
   onSetTag?: (emailId: string, tagId: string | null) => void;
   onDownloadAttachment?: (blobId: string, name: string, type?: string, forceDownload?: boolean, source?: EmailBlobContext) => void;
-  onQuickReply?: (body: string) => Promise<void>;
+  /** Resolves false when nothing was sent (the user went back), so the text stays. */
+  onQuickReply?: (body: string) => Promise<boolean | void>;
   onMarkAsSpam?: () => void;
   onUndoSpam?: () => void;
   onMoveToMailbox?: (mailboxId: string) => void;
@@ -1375,9 +1376,12 @@ export function EmailViewer({
     if (!quickReplyText.trim() || !onQuickReply || isSendingQuickReply) return;
     setIsSendingQuickReply(true);
     try {
-      await onQuickReply(quickReplyText);
-      setQuickReplyText("");
-      setIsQuickReplyFocused(false);
+      const sent = await onQuickReply(quickReplyText);
+      // Back on a pre-send question keeps what the user typed.
+      if (sent !== false) {
+        setQuickReplyText("");
+        setIsQuickReplyFocused(false);
+      }
     } catch (error) {
       console.error("Failed to send quick reply:", error);
       // The text stays in the box, so say why it did not go out.
