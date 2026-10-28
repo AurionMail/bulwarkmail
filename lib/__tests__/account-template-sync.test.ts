@@ -152,6 +152,20 @@ describe('the browser\'s own list', () => {
     expect(sets).toEqual([]);
   });
 
+  it('doesn\'t bring back a template deleted in the account once its tombstone has expired', async () => {
+    browser = list([tpl('aaaa-1', 'Hello'), tpl('aaaa-2', 'Thanks')]);
+    await sync();
+    personalTemplatesFor('carol@mail').remove('aaaa-1');
+    await sync();
+    expect(server[ns('aaaa-1')]).toBeUndefined();
+    // 90 days later the tombstone is gone; the browser's list still has the old copy.
+    useAccountTemplatesStore.getState().updatePersonal('carol@mail', (p) => ({ ...p, deletedTemplateIds: {}, serverDeleted: {} }));
+    server[MARKER] = { version: 1, deleted: {} };
+    await sync();
+    expect(names()).toEqual(['Thanks']);
+    expect(server[ns('aaaa-1')]).toBeUndefined();
+  });
+
   it('is merged into an account that holds templates already, so a second browser keeps both lists', async () => {
     server = { [ns('bbbb-1')]: tpl('bbbb-1', 'From the other browser'), [MARKER]: { version: 1, deleted: {} } };
     browser = list([tpl('aaaa-1', 'Only here')]);
@@ -368,6 +382,16 @@ describe('signing out', () => {
     purgeSignedOutData();
     const kept = useAccountTemplatesStore.getState().personal['carol@mail'];
     expect(kept.templates.map((t) => t.name)).toEqual(['Unsent']);
+    expect(Object.keys(kept.deletedTemplateIds)).toEqual(['aaaa-1']);
+  });
+
+  it('keeps a deletion the server hasn\'t heard of, also with nothing else left to send', async () => {
+    drop = true;
+    personalTemplatesFor('carol@mail').remove('aaaa-1');
+    await flushAccountTemplates('carol@mail');
+    purgeSignedOutData();
+    const kept = useAccountTemplatesStore.getState().personal['carol@mail'];
+    expect(kept.templates).toEqual([]);
     expect(Object.keys(kept.deletedTemplateIds)).toEqual(['aaaa-1']);
   });
 
