@@ -144,7 +144,7 @@ export function FilePickerDialog({ client, onClose, onPick }: FilePickerDialogPr
         <span className="block truncate">{name}</span>
         {detail && <span className="block truncate text-xs text-muted-foreground">{detail}</span>}
       </span>
-      <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground rtl:rotate-180" />
+      <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
     </button>
   );
 
@@ -276,7 +276,7 @@ export function FilePickerDialog({ client, onClose, onPick }: FilePickerDialogPr
               </button>
               {trail.map((crumb, i) => (
                 <span key={crumb.id} className="flex items-center gap-1 min-w-0">
-                  <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground rtl:rotate-180" />
+                  <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
                   <button
                     type="button"
                     onClick={() => setTrail(trail.slice(0, i + 1))}

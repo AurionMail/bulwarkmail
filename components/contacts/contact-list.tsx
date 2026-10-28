@@ -403,7 +403,7 @@ export function ContactList({
               {hasSelection ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
             </button>
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 ref={searchRef}
                 type="text"
@@ -416,7 +416,7 @@ export function ContactList({
                 <button
                   type="button"
                   onClick={() => onSearchChange("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute end-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                   aria-label={t("clear_search")}
                 >
                   <X className="w-4 h-4" />
@@ -437,7 +437,7 @@ export function ContactList({
             >
               <Filter className="w-4 h-4" />
               {!filtersOpen && activeFilters > 0 && (
-                <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
+                <span className="absolute -top-1 -end-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
                   {activeFilters}
                 </span>
               )}

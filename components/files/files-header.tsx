@@ -193,7 +193,7 @@ export function FilesHeader({
     const isLast = crumb === crumbs[crumbs.length - 1];
     return (
       <li key={`${crumb.id ?? "root"}:${crumb.path}`} className="flex items-center min-w-0 shrink-0 last:shrink">
-        {index > 0 && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0 rtl:rotate-180" aria-hidden />}
+        {index > 0 && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" aria-hidden />}
         <button
           type="button"
           onClick={() => onNavigateCrumb(crumb)}
@@ -273,7 +273,7 @@ export function FilesHeader({
           {visible.slice(0, 1).map((c) => renderCrumb(c, 0))}
           {accountLabel && (
             <li className="flex items-center min-w-0 shrink-0">
-              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0 rtl:rotate-180" aria-hidden />
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" aria-hidden />
               <button
                 type="button"
                 onClick={onNavigateAccountRoot}
@@ -285,7 +285,7 @@ export function FilesHeader({
           )}
           {hidden.length > 0 && (
             <li className="flex items-center shrink-0">
-              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0 rtl:rotate-180" aria-hidden />
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" aria-hidden />
               <button
                 type="button"
                 className="px-1.5 py-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"

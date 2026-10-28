@@ -116,7 +116,7 @@ export function ContactGroupForm({
             {t("groups.members_label")} ({selectedIds.size})
           </label>
           <div className="relative mb-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder={t("groups.search_members")}
               value={memberSearch}

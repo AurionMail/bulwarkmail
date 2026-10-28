@@ -214,7 +214,7 @@ export function FilesSidebar({
               className="p-0.5 -ms-1 rounded hover:bg-foreground/10 text-muted-foreground shrink-0"
               aria-label={isOpen ? t("collapse_folder", { name: folder.name }) : t("expand_folder", { name: folder.name })}
             >
-              {isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5 rtl:rotate-180" />}
+              {isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             </button>
           ) : (
             <span className="w-3.5 -ms-1 shrink-0" />
@@ -244,7 +244,7 @@ export function FilesSidebar({
       aria-expanded={!collapsed[key]}
     >
       {collapsed[key]
-        ? <ChevronRight className="w-3 h-3 text-muted-foreground rtl:rotate-180" />
+        ? <ChevronRight className="w-3 h-3 text-muted-foreground" />
         : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
       {icon}
       <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">{label}</span>
@@ -315,7 +315,7 @@ export function FilesSidebar({
                 className="p-0.5 -ms-1 rounded hover:bg-foreground/10 text-muted-foreground shrink-0"
                 aria-label={collapsed.tree ? t("expand_folder", { name: t("my_files") }) : t("collapse_folder", { name: t("my_files") })}
               >
-                {collapsed.tree ? <ChevronRight className="w-3.5 h-3.5 rtl:rotate-180" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                {collapsed.tree ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               </button>
             ) : (
               <span className="w-3.5 -ms-1 shrink-0" />
