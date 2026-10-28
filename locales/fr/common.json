@@ -1118,7 +1118,7 @@
     "import_success": "Paramètres importés avec succès",
     "import_error": "Échec de l'importation des paramètres",
     "reset_confirm": "Êtes-vous sûr de vouloir réinitialiser tous les paramètres ?",
-    "unsaved_changes": "Vous avez des modifications non enregistrées",
+    "unsaved_changes": "Vos modifications n'ont pas été enregistrées.",
     "discard_changes": "Abandonner les modifications ?",
     "discard": "Abandonner",
     "keep_editing": "Continuer l'édition",

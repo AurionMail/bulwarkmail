@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import en from '@/locales/en/common.json';
 import { getByPath } from '../settings-search';
 
@@ -57,6 +59,31 @@ describe('settings wording', () => {
       expect(text(key), key).not.toMatch(/successful|!/i);
     }
     expect(text('notifications.filters_saved')).toBe('Filters saved');
+  });
+
+  // R5: every editor asks the same question with the same buttons, in every
+  // language: Settings and Contacts say what Calendar says.
+  it('asks "Discard changes?" with Keep editing / Discard everywhere', () => {
+    expect(text('calendar.discard.title')).toBe('Discard changes?');
+    const mismatches: string[] = [];
+    for (const locale of readdirSync(join(process.cwd(), 'locales'))) {
+      const messages = JSON.parse(readFileSync(join(process.cwd(), 'locales', locale, 'common.json'), 'utf8'));
+      const ref = getByPath(messages, 'calendar.discard') as Record<string, string>;
+      const expected: Record<string, string> = {
+        'settings.discard_changes': ref.title,
+        'settings.unsaved_changes': ref.message,
+        'settings.keep_editing': ref.keep,
+        'settings.discard': ref.confirm,
+        'contacts.form.discard_title': ref.title,
+        'contacts.form.discard_message': ref.message,
+        'contacts.form.keep_editing': ref.keep,
+        'contacts.form.discard': ref.confirm,
+      };
+      for (const [key, value] of Object.entries(expected)) {
+        if (getByPath(messages, key) !== value) mismatches.push(`${locale} ${key}`);
+      }
+    }
+    expect(mismatches).toEqual([]);
   });
 
   it('does not repeat the debug section title as its only row', () => {

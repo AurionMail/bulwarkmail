@@ -1118,7 +1118,7 @@
     "import_success": "Configurações importadas com sucesso",
     "import_error": "Falha ao importar configurações",
     "reset_confirm": "Tem certeza de que deseja redefinir todas as configurações para os padrões?",
-    "unsaved_changes": "Você tem alterações não salvas",
+    "unsaved_changes": "Suas alterações não foram salvas.",
     "discard_changes": "Descartar alterações?",
     "discard": "Descartar",
     "keep_editing": "Continuar editando",

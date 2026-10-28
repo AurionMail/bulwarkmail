@@ -1118,8 +1118,8 @@
     "import_success": "Iestatījumi veiksmīgi importēti",
     "import_error": "Neizdevās importēt iestatījumus",
     "reset_confirm": "Vai tiešām vēlaties atiestatīt visus iestatījumus uz noklusējuma vērtībām?",
-    "unsaved_changes": "Jums ir nesaglabātas izmaiņas",
-    "discard_changes": "Atmest nesaglabātās izmaiņas?",
+    "unsaved_changes": "Jūsu izmaiņas nav saglabātas.",
+    "discard_changes": "Atmest izmaiņas?",
     "discard": "Atmest",
     "keep_editing": "Turpināt rediģēšanu",
     "tabs": {

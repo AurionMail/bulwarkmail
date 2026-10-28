@@ -49,8 +49,8 @@ export function UnsavedChangesGuard() {
   // Back and the back gesture are a same-document popstate (the pages switch
   // through pushState), which can't be cancelled. So while something is
   // unsaved a copy of the page's entry sits on top: Back only takes that
-  // one off, the page stays, and the prompt asks. Stay puts the copy back;
-  // Leave goes back past the page for real.
+  // one off, the page stays, and the prompt asks. Keep editing puts the
+  // copy back; Discard goes back past the page for real.
   // The mark on the page entry the copy was put on top of.
   const guard = useRef<string | null>(null);
   useEffect(() => {
@@ -124,10 +124,10 @@ export function UnsavedChangesGuard() {
       isOpen={isOpen}
       onClose={cancelLeave}
       onConfirm={confirmLeave}
-      title="Unsaved changes"
-      message="You have changes that haven't been saved. If you leave now, they will be lost."
-      cancelText="Stay"
-      confirmText="Leave"
+      title="Discard changes?"
+      message="Your changes haven't been saved."
+      cancelText="Keep editing"
+      confirmText="Discard"
       variant="destructive"
     />
   );

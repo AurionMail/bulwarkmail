@@ -1118,8 +1118,8 @@
     "import_success": "Ustawienia zostały zaimportowane",
     "import_error": "Nie udało się zaimportować ustawień",
     "reset_confirm": "Czy na pewno chcesz przywrócić domyślne ustawienia?",
-    "unsaved_changes": "Masz niezapisane zmiany",
-    "discard_changes": "Odrzucić niezapisane zmiany?",
+    "unsaved_changes": "Twoje zmiany nie zostały zapisane.",
+    "discard_changes": "Odrzucić zmiany?",
     "discard": "Odrzuć",
     "keep_editing": "Kontynuuj edycję",
     "tabs": {

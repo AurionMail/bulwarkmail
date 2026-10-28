@@ -1118,8 +1118,8 @@
     "import_success": "Nastavení bylo importováno",
     "import_error": "Import nastavení selhal",
     "reset_confirm": "Opravdu chcete obnovit výchozí nastavení?",
-    "unsaved_changes": "Máte neuložené změny",
-    "discard_changes": "Zahodit neuložené změny?",
+    "unsaved_changes": "Vaše změny nebyly uloženy.",
+    "discard_changes": "Zahodit změny?",
     "discard": "Zahodit",
     "keep_editing": "Pokračovat v úpravách",
     "tabs": {
