@@ -342,6 +342,8 @@ export function IdentityManagerModal({ isOpen, onClose }: IdentityManagerModalPr
                           size="sm"
                           onClick={() => setEditingId(identity.id)}
                           disabled={!!editingId || isCreating}
+                          aria-label={t('edit_identity')}
+                          title={t('edit_identity')}
                         >
                           <Pencil className="w-4 h-4" />
                         </Button>
