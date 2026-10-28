@@ -153,6 +153,11 @@ export function NotificationPanel({ onClose, className, sheet = false }: { onClo
   );
 }
 
+/** The panel's enabled controls, in tab order. */
+function panelControls(panel: HTMLElement): HTMLElement[] {
+  return Array.from(panel.querySelectorAll<HTMLElement>("button:not(:disabled), a[href]"));
+}
+
 /** The phone version: the panel over the whole screen. */
 export function NotificationSheet({ onClose }: { onClose: () => void }) {
   const t = useTranslations("notification_center");
@@ -204,6 +209,32 @@ export function NotificationBell({ placement, className }: { placement: "side" |
   useLayoutEffect(() => {
     if (open) position();
   }, [open, position]);
+
+  // The panel is portalled to the end of <body>, so Tab from the bell would
+  // never reach it: focus moves in on open, to its first control (or the
+  // panel itself while every control is disabled).
+  useEffect(() => {
+    if (!open) return;
+    const panel = panelRef.current;
+    if (!panel) return;
+    (panelControls(panel)[0] ?? panel).focus();
+  }, [open]);
+
+  // Tab past either end of the panel closes it and goes back to the bell, so
+  // the next Tab carries on from where the panel was opened.
+  const onPanelKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "Tab" || !panelRef.current) return;
+    const controls = panelControls(panelRef.current);
+    const first = controls[0];
+    const last = controls[controls.length - 1];
+    const active = document.activeElement;
+    const leaving = controls.length === 0
+      || (e.shiftKey ? active === first || active === panelRef.current : active === last);
+    if (!leaving) return;
+    e.preventDefault();
+    setOpen(false);
+    buttonRef.current?.focus();
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -264,6 +295,8 @@ export function NotificationBell({ placement, className }: { placement: "side" |
           ref={panelRef}
           role="dialog"
           aria-label={t("title")}
+          tabIndex={-1}
+          onKeyDown={onPanelKeyDown}
           style={style}
           className="z-50 w-[22rem] max-w-[calc(100vw-1rem)] max-h-[min(32rem,80vh)] flex flex-col overflow-hidden rounded-lg border border-border bg-background shadow-lg"
         >
