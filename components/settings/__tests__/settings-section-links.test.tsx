@@ -93,6 +93,24 @@ describe('settings section links', () => {
     expect(scrolled).toContain('tags');
   });
 
+  it('flashes the section a jump-row button scrolls to', async () => {
+    const { container } = render(<SettingsApp linkSegments={['organize']} />);
+    const nav = screen.getByTestId('settings-section-nav');
+    await waitFor(() => expect(nav).not.toHaveAttribute('hidden'));
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(screen.getByRole('button', { name: 'Tags' }));
+      const tags = container.querySelector('[data-settings-section="tags"]')!;
+      const folders = container.querySelector('[data-settings-section="folders"]')!;
+      expect(tags).toHaveClass('settings-search-highlight');
+      expect(folders).not.toHaveClass('settings-search-highlight');
+      act(() => { vi.advanceTimersByTime(1800); });
+      expect(tags).not.toHaveClass('settings-search-highlight');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('follows a tab-change event that names a retired tab to its new section', async () => {
     render(<SettingsApp linkSegments={[]} />);
     act(() => { window.dispatchEvent(new CustomEvent('settings-tab-change', { detail: 'identities' })); });

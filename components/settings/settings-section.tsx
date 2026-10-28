@@ -96,11 +96,25 @@ export function AdvancedOnly({ children }: { children: ReactNode }) {
   return visible ? <>{children}</> : null;
 }
 
-/** Scrolls the section with this id into view, if the open page has it. */
+const highlightTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
+
+/**
+ * Scrolls the section with this id into view, if the open page has it, and
+ * flashes the same halo a settings search result gets.
+ */
 export function scrollToSettingsSection(id: string, root: ParentNode = document): boolean {
   const el = root.querySelector<HTMLElement>(`[data-settings-section="${id.replace(/"/g, '\\"')}"]`);
   if (!el) return false;
   el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Remove + reflow + add restarts the animation on a second click.
+  clearTimeout(highlightTimers.get(el));
+  el.classList.remove('settings-search-highlight');
+  void el.offsetWidth;
+  el.classList.add('settings-search-highlight');
+  highlightTimers.set(el, setTimeout(() => {
+    el.classList.remove('settings-search-highlight');
+    highlightTimers.delete(el);
+  }, 1800));
   return true;
 }
 
