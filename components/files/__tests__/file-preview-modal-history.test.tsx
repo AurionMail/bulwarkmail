@@ -204,3 +204,79 @@ describe('FilePreviewModal history lifecycle (modeled queued traversal)', () => 
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
+
+// A forwarded certified-mail (PEC) message: postacert.eml wraps the original
+// as msg.eml, which used to be download-only inside the .eml preview.
+const INNER_EML = [
+  'From: Sender <sender@example.com>',
+  'To: me@example.com',
+  'Subject: Inner original',
+  'Date: Tue, 27 Oct 2026 20:36:28 +0100',
+  'Content-Type: text/plain; charset=UTF-8',
+  '',
+  'the original message',
+].join('\r\n');
+const OUTER_EML = [
+  'From: Forwarder <fwd@example.com>',
+  'To: me@example.com',
+  'Subject: FWD: wrapper',
+  'Date: Wed, 28 Oct 2026 05:50:39 +0100',
+  'MIME-Version: 1.0',
+  'Content-Type: multipart/mixed; boundary="b1"',
+  '',
+  '--b1',
+  'Content-Type: text/plain; charset=UTF-8',
+  '',
+  'see attached',
+  '--b1',
+  'Content-Type: message/rfc822; name="msg.eml"',
+  'Content-Disposition: attachment; filename="msg.eml"',
+  '',
+  INNER_EML,
+  '--b1--',
+  '',
+].join('\r\n');
+
+describe('FilePreviewModal attachment of a previewed .eml', () => {
+  async function openOuter() {
+    const getContent = vi.fn().mockResolvedValue({
+      blob: new Blob([OUTER_EML], { type: 'message/rfc822' }), contentType: 'message/rfc822',
+    });
+    const view = openPreview(false, getContent, 'postacert.eml');
+    await advance(0);
+    await vi.waitFor(() => expect(screen.getByText('FWD: wrapper')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('msg.eml'));
+    await advance(0);
+    await vi.waitFor(() => expect(screen.getByText('Inner original')).toBeInTheDocument());
+    return view;
+  }
+
+  it('opens in a preview of its own on top, without a history entry', async () => {
+    await openOuter();
+    expect(screen.getAllByRole('dialog')).toHaveLength(2);
+    expect(screen.getAllByRole('dialog')[1]).toHaveAccessibleName('msg.eml');
+    expect(push).toHaveBeenCalledTimes(1);
+  });
+
+  it('Escape closes the inner preview only', async () => {
+    const { onClose } = await openOuter();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('Browser Back closes the inner preview, the next Back the outer one', async () => {
+    const { onClose } = await openOuter();
+    window.history.back();
+    await advance(10);
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(window.history.state.__filePreview).toBeTruthy();
+    window.history.back();
+    await advance(10);
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(window.history.state).toEqual(originalState);
+  });
+});

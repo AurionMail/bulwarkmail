@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { generateUUID } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { X, Download, Loader2, ExternalLink } from "@/components/icons";
@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { ZoomableImage } from "@/components/files/zoomable-image";
 import { getFilePreviewKind, imageBlobUrl, isMimeTypeSafeForInlinePreview, previewBlobType } from "@/lib/file-preview";
 import dynamic from "next/dynamic";
-import { EmlPreview, type ParsedEml } from "@/components/files/eml-preview";
+import { EmlPreview, type EmlAttachment, type ParsedEml } from "@/components/files/eml-preview";
 import { FilePreviewPluginSection } from "@/components/files/file-preview-plugin-section";
 import { canOpenUrlInNewWindow } from "@/lib/standalone-display";
+import { stripBidiControls } from "@/lib/bidi";
 import { emailIframeCsp, sanitizeEmailBodyForIframe } from "@/lib/email-sanitization";
 import { useSettingsStore } from "@/stores/settings-store";
 import type { FileResourceView } from "@/lib/plugin-types";
@@ -45,6 +46,11 @@ interface FilePreviewModalProps {
   getFileContent: () => Promise<{ blob: Blob; contentType: string }>;
   /** The previewed file as plugins see it (file-preview-section). */
   file?: FileResourceView | null;
+  /**
+   * Opened from inside another preview (an attachment of a previewed .eml).
+   * The outer preview owns the history entry and the Back button.
+   */
+  nested?: boolean;
 }
 
 function SimpleMarkdown({ content }: { content: string }) {
@@ -142,7 +148,7 @@ function processInline(text: string): React.ReactNode {
 // A replacement must not install its popstate listener until that completes.
 let pendingPreviewHistoryBack: Promise<void> | null = null;
 
-export function FilePreviewModal({ name, onClose, onDownload, getFileContent, file }: FilePreviewModalProps) {
+export function FilePreviewModal({ name, onClose, onDownload, getFileContent, file, nested = false }: FilePreviewModalProps) {
   const t = useTranslations("files");
   const [content, setContent] = useState<string | null>(null);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
@@ -161,6 +167,11 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
   // open-in-new-tab fallback use.
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [htmlDoc, setHtmlDoc] = useState<string | null>(null);
+  // An attachment of the previewed .eml, shown in a preview of its own on
+  // top of this one. Escape and Back close it first.
+  const [nestedPreview, setNestedPreview] = useState<{ name: string; blob: Blob } | null>(null);
+  const nestedOpenRef = useRef(false);
+  nestedOpenRef.current = nestedPreview !== null;
   const blockRemote = useSettingsStore((state) => state.externalContentPolicy) !== "allow";
 
   // Decide whether to render the PDF in a plain <iframe> (desktop) or with the
@@ -189,11 +200,18 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
   // Defer history setup so Strict Mode's setup/cleanup/setup replay can
   // cancel the first setup without scheduling a browser Back traversal.
   useEffect(() => {
+    if (nested) return;
     const entryId = generateUUID();
     let cancelled = false;
     let started = false;
     let poppedByBack = false;
     const onPop = () => {
+      // Back closes a nested preview first; this one keeps its entry.
+      if (nestedOpenRef.current) {
+        setNestedPreview(null);
+        window.history.pushState({ ...window.history.state, __filePreview: entryId }, "");
+        return;
+      }
       poppedByBack = true;
       onCloseRef.current();
     };
@@ -218,7 +236,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
         window.history.back();
       }
     };
-  }, []);
+  }, [nested]);
 
   const fileType = resolvedFileType;
 
@@ -300,6 +318,8 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // The nested preview's own listener closes it.
+      if (nestedOpenRef.current) return;
       if (e.key === "Escape") {
         e.stopPropagation();
         onClose();
@@ -309,7 +329,36 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
     return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
   }, [onClose]);
 
+  const openEmlAttachment = (att: EmlAttachment) => {
+    if (!att.content) return;
+    setNestedPreview({
+      name: att.filename ? stripBidiControls(att.filename) : "attachment",
+      // content is a real ArrayBuffer/Uint8Array at runtime; cast for the
+      // strict BlobPart lib type, as EmlPreview's download does.
+      blob: new Blob([att.content as BlobPart], { type: att.mimeType || "application/octet-stream" }),
+    });
+  };
+  // Stable per attachment: the loader effect re-runs when it changes.
+  const nestedContent = useMemo(
+    () => nestedPreview
+      ? async () => ({ blob: nestedPreview.blob, contentType: nestedPreview.blob.type })
+      : null,
+    [nestedPreview],
+  );
+  const downloadNested = () => {
+    if (!nestedPreview) return;
+    const url = URL.createObjectURL(nestedPreview.blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nestedPreview.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
+    <>
     <div role="dialog" aria-label={name} className="fixed inset-0 z-50 flex flex-col bg-black/80" onClick={onClose}>
       {/* The dialog is `fixed inset-0` under `viewport-fit=cover`, so in an
           installed iOS PWA (no browser chrome above it) the header would sit
@@ -373,7 +422,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
         )}
 
         {!loading && !error && fileType === "eml" && emlContent && (
-          <EmlPreview message={emlContent} />
+          <EmlPreview message={emlContent} onOpenAttachment={openEmlAttachment} />
         )}
 
         {!loading && !error && fileType === "image" && objectUrl && (
@@ -435,5 +484,15 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
       </div>
       <FilePreviewPluginSection file={file} />
     </div>
+    {nestedPreview && nestedContent && (
+      <FilePreviewModal
+        nested
+        name={nestedPreview.name}
+        onClose={() => setNestedPreview(null)}
+        onDownload={downloadNested}
+        getFileContent={nestedContent}
+      />
+    )}
+    </>
   );
 }
