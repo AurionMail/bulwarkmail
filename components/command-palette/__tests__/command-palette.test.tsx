@@ -97,6 +97,25 @@ describe('command palette', () => {
     expect(screen.queryByText('group_plugins')).toBeNull();
   });
 
+  it("shows Mail's c and / hints only in Mail, where those keys compose and search", () => {
+    const hint = (label: string) => {
+      const row = screen.getAllByRole('option').find((o) => o.querySelector('.flex-1')?.textContent === label)!;
+      return [...row.querySelectorAll('kbd')].map((k) => k.textContent).join(' ');
+    };
+    const { unmount } = render(<CommandPaletteHost />);
+    pressCtrlK();
+    expect(hint('compose')).toBe('c');
+    expect(hint('search')).toBe('/');
+    unmount();
+
+    // Calendar has its own c (new event) and / (search events).
+    nav.pathname = '/calendar/week/2026-10-28';
+    render(<CommandPaletteHost />);
+    pressCtrlK();
+    expect(hint('compose')).toBe('');
+    expect(hint('search')).toBe('');
+  });
+
   it('shows plugin entries with the plugin name and runs them with Enter', async () => {
     act(() => setPluginActions('jira', 'Jira', 'command-palette', [{ id: 'new-issue', label: 'Create issue' }]));
     render(<CommandPaletteHost />);
