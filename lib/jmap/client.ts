@@ -1,3 +1,4 @@
+import { advertisesMailboxMetadata, bulwarkEntries, MAX_METADATA_ENTRY_BYTES, METADATA_CAPABILITY, MetadataTooLargeError, MetadataUnsupportedError, metadataValueBytes, namespaceFor } from "./bulwark-metadata";
 import { IncompleteDeleteError } from "./delete-error";
 import { ArchiveEmailsError } from "./archive-error";
 import { generateUUID } from '@/lib/utils';
@@ -7073,6 +7074,84 @@ export class JMAPClient implements IJMAPClient {
       return types;
     } catch {
       return null;
+    }
+  }
+
+  /**
+   * Accounts whose metadata request failed, with when: not asked again for
+   * ten minutes. A dropped connection (the pre-release 1.0 build) looks the
+   * same as a network blip, so the pause is not for the whole session.
+   */
+  private metadataUnsupported = new Map<string, number>();
+
+  /** Whether Bulwark may keep data in this account's Inbox metadata (lib/jmap/bulwark-metadata.ts). */
+  supportsBulwarkMetadata(accountId?: string): boolean {
+    const id = accountId || this.accountId;
+    const failedAt = this.metadataUnsupported.get(id);
+    if (failedAt !== undefined && Date.now() - failedAt < 10 * 60_000) return false;
+    return advertisesMailboxMetadata(this.accounts[id]?.accountCapabilities as Record<string, unknown> | undefined);
+  }
+
+  /**
+   * Bulwark's metadata entries of the account's Inbox, by key, shared or the
+   * user's private ones. Null when the server has no usable metadata.
+   */
+  async getBulwarkMetadata(accountId?: string, options?: { private?: boolean }): Promise<Record<string, unknown> | null> {
+    const id = accountId || this.accountId;
+    if (!this.supportsBulwarkMetadata(id)) return null;
+    const property = options?.private ? "privateMetadata" : "metadata";
+    try {
+      // A request of its own: a server that can't answer it must not take
+      // other calls down with it.
+      const response = await this.request([
+        ["Mailbox/query", { accountId: id, filter: { role: "inbox" } }, "q"],
+        ["Mailbox/get", { accountId: id, "#ids": { resultOf: "q", name: "Mailbox/query", path: "/ids" }, properties: ["id", property] }, "g"],
+      ], ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:mail", METADATA_CAPABILITY]);
+      const get = response.methodResponses?.find((r) => r[0] === "Mailbox/get");
+      const inbox = (get?.[1] as { list?: Array<Record<string, unknown>> } | undefined)?.list?.[0];
+      if (!inbox) throw new MetadataUnsupportedError("No Inbox metadata in the answer");
+      this.metadataInboxIds.set(id, inbox.id as string);
+      this.metadataUnsupported.delete(id);
+      return bulwarkEntries(inbox[property]);
+    } catch (error) {
+      debug.warn('jmap', `Metadata unavailable for account ${id}:`, error);
+      this.metadataUnsupported.set(id, Date.now());
+      return null;
+    }
+  }
+
+  private metadataInboxIds = new Map<string, string>();
+
+  /**
+   * Writes one Bulwark metadata entry of the account's Inbox (null removes
+   * it), leaving every other entry as it is. Throws MetadataTooLargeError
+   * when the server refuses the size, MetadataUnsupportedError when the
+   * account has no metadata.
+   */
+  async setBulwarkMetadata(accountId: string | undefined, key: string, value: unknown, options?: { private?: boolean }): Promise<void> {
+    const id = accountId || this.accountId;
+    if (!this.supportsBulwarkMetadata(id)) throw new MetadataUnsupportedError();
+    const property = options?.private ? "privateMetadata" : "metadata";
+    if (value !== null && metadataValueBytes(value) > MAX_METADATA_ENTRY_BYTES) {
+      throw new MetadataTooLargeError(`The entry is larger than ${MAX_METADATA_ENTRY_BYTES} bytes`);
+    }
+    let inboxId = this.metadataInboxIds.get(id);
+    if (!inboxId) {
+      await this.getBulwarkMetadata(id, options);
+      inboxId = this.metadataInboxIds.get(id);
+      if (!inboxId) throw new MetadataUnsupportedError();
+    }
+    const response = await this.request([
+      ["Mailbox/set", { accountId: id, update: { [inboxId]: { [`${property}/${namespaceFor(key)}`]: value } } }, "0"],
+    ], ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:mail", METADATA_CAPABILITY]);
+    const [method, result] = response.methodResponses?.[0] ?? [];
+    if (method !== "Mailbox/set") {
+      throw jmapError((result as JmapErrorInfo | undefined)?.description || "Failed to save metadata", result as JmapErrorInfo | undefined);
+    }
+    const notUpdated = (result as { notUpdated?: Record<string, { type?: string; description?: string }> }).notUpdated?.[inboxId];
+    if (notUpdated) {
+      if (/exceeds the maximum/i.test(notUpdated.description ?? "")) throw new MetadataTooLargeError(notUpdated.description!);
+      throw new Error(notUpdated.description || `Failed to save metadata (${notUpdated.type ?? "unknown"})`);
     }
   }
 

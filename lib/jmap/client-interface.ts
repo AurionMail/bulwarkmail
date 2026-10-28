@@ -610,6 +610,10 @@ export interface IJMAPClient {
   listPrincipals?(targetAccountId?: string, options?: { throwOnError?: boolean }): Promise<PrincipalListing>;
   /** Principal type by id ("individual", "group"); null when unknown. Optional (demo client). */
   getPrincipalTypes?(ids: string[]): Promise<Record<string, string> | null>;
+  // Bulwark data in Inbox metadata (lib/jmap/bulwark-metadata.ts). Optional (demo client).
+  supportsBulwarkMetadata?(accountId?: string): boolean;
+  getBulwarkMetadata?(accountId?: string, options?: { private?: boolean }): Promise<Record<string, unknown> | null>;
+  setBulwarkMetadata?(accountId: string | undefined, key: string, value: unknown, options?: { private?: boolean }): Promise<void>;
   setCalendarShare(calendarId: string, principalId: string, rights: CalendarRights | null, targetAccountId?: string): Promise<void>;
   setAddressBookShare(addressBookId: string, principalId: string, rights: AddressBookRights | null, targetAccountId?: string): Promise<void>;
   setFileNodeShare(fileNodeId: string, principalId: string, rights: FileNodeRights | null, targetAccountId?: string): Promise<void>;
