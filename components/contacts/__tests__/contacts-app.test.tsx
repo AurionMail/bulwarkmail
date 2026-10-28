@@ -243,4 +243,13 @@ describe('ContactsApp', () => {
     fireEvent.click(screen.getByText('context_menu.send_email'));
     expect(consumePendingMailto()).toMatchObject({ to: [expect.stringContaining('alice@example.com')], inApp: true });
   });
+
+  it('says so when a duplicate fails', async () => {
+    renderContacts();
+    const addLocalContact = vi.fn(async () => { throw new Error('quota'); });
+    act(() => { useContactStore.setState({ addLocalContact }); });
+    fireEvent.contextMenu(screen.getByText('Alice Smith'));
+    fireEvent.click(screen.getByText('context_menu.duplicate'));
+    await waitFor(() => expect(useToastStore.getState().toasts.at(-1)?.title).toBe('toast.error_create'));
+  });
 });

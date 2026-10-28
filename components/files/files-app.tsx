@@ -637,9 +637,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       });
     } catch (err) {
       console.error("Failed to rename:", err);
-      toast.error(t("rename_error"));
+      toast.error(t("rename_error"), failureReason(err));
     }
-  }, [renameNode, t, handleUndo]);
+  }, [renameNode, t, handleUndo, failureReason]);
 
   const handleDeleteNode = useCallback(async (id: string, name: string) => {
     // A folder of the own drive goes to the trash; one of a shared drive is gone for good.

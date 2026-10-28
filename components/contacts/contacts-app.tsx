@@ -616,13 +616,20 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
         localAccountId: source.localAccountId,
       }, "keep");
     }
-    const created = supportsSync && client
-      ? await createContact(client, data)
-      : await addLocalContact({
-        id: `local-${generateUUID()}`,
-        addressBookIds: data.addressBookIds || {},
-        ...data,
-      });
+    let created: boolean;
+    try {
+      created = supportsSync && client
+        ? await createContact(client, data)
+        : await addLocalContact({
+          id: `local-${generateUUID()}`,
+          addressBookIds: data.addressBookIds || {},
+          ...data,
+        });
+    } catch (error) {
+      console.error("Failed to duplicate contact:", error);
+      toast.error(t("toast.error_create"));
+      return;
+    }
     if (!created) return;
     toast.success(t("toast.created"));
     showNewestContact();
