@@ -698,7 +698,18 @@
     "plugin_panel_show": "إظهار لوحة الإضافة",
     "plugin_panel_hide": "إخفاء لوحة الإضافة",
     "copy": "نسخ",
-    "contact_added": "أُضيفت جهة الاتصال"
+    "contact_added": "أُضيفت جهة الاتصال",
+    "save_to_files": {
+      "title": "حفظ في الملفات",
+      "location": "المجلد",
+      "root": "ملفاتي",
+      "save_here": "حفظ هنا",
+      "saved": "حُفظ في الملفات",
+      "saved_to": "في {folder}",
+      "failed": "تعذّر الحفظ في الملفات",
+      "load_failed": "تعذّر تحميل مجلداتك. حاول مرة أخرى.",
+      "no_folders": "لا توجد مجلدات هنا. احفظ هنا أو ارجع للخلف."
+    }
   },
   "email_composer": {
     "select_from_directory": "الاختيار من الدليل",

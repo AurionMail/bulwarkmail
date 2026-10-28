@@ -698,7 +698,18 @@
     "plugin_panel_show": "Mostrar el panel del complemento",
     "plugin_panel_hide": "Ocultar el panel del complemento",
     "copy": "Copiar",
-    "contact_added": "Contacto añadido"
+    "contact_added": "Contacto añadido",
+    "save_to_files": {
+      "title": "Guardar en Archivos",
+      "location": "Carpeta",
+      "root": "Mis archivos",
+      "save_here": "Guardar aquí",
+      "saved": "Guardado en Archivos",
+      "saved_to": "En {folder}",
+      "failed": "No se pudo guardar en Archivos",
+      "load_failed": "No se pudieron cargar tus carpetas. Vuelve a intentarlo.",
+      "no_folders": "Aquí no hay carpetas. Guarda aquí o vuelve atrás."
+    }
   },
   "email_composer": {
     "select_from_directory": "Seleccionar del directorio",

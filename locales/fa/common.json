@@ -698,7 +698,18 @@
     "plugin_panel_show": "نمایش پنل افزونه",
     "plugin_panel_hide": "پنهان کردن پنل افزونه",
     "copy": "کپی",
-    "contact_added": "مخاطب افزوده شد"
+    "contact_added": "مخاطب افزوده شد",
+    "save_to_files": {
+      "title": "ذخیره در فایل‌ها",
+      "location": "پوشه",
+      "root": "فایل‌های من",
+      "save_here": "ذخیره در اینجا",
+      "saved": "در فایل‌ها ذخیره شد",
+      "saved_to": "در {folder}",
+      "failed": "ذخیره در فایل‌ها ممکن نشد",
+      "load_failed": "پوشه‌ها بارگذاری نشدند. دوباره امتحان کنید.",
+      "no_folders": "اینجا پوشه‌ای نیست. همین‌جا ذخیره کنید یا برگردید."
+    }
   },
   "email_composer": {
     "select_from_directory": "انتخاب از فهرست",

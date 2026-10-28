@@ -698,7 +698,18 @@
     "plugin_panel_show": "Plugin-Bereich einblenden",
     "plugin_panel_hide": "Plugin-Bereich ausblenden",
     "copy": "Kopieren",
-    "contact_added": "Kontakt hinzugefügt"
+    "contact_added": "Kontakt hinzugefügt",
+    "save_to_files": {
+      "title": "In Dateien speichern",
+      "location": "Ordner",
+      "root": "Meine Dateien",
+      "save_here": "Hier speichern",
+      "saved": "In Dateien gespeichert",
+      "saved_to": "In {folder}",
+      "failed": "Konnte nicht in Dateien gespeichert werden",
+      "load_failed": "Ihre Ordner konnten nicht geladen werden. Versuchen Sie es erneut.",
+      "no_folders": "Hier gibt es keine Ordner. Speichern Sie hier oder gehen Sie zurück."
+    }
   },
   "email_composer": {
     "select_from_directory": "Aus Verzeichnis auswählen",

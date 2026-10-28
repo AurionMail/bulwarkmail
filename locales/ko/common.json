@@ -698,7 +698,18 @@
     "plugin_panel_show": "플러그인 패널 표시",
     "plugin_panel_hide": "플러그인 패널 숨기기",
     "copy": "복사",
-    "contact_added": "연락처를 추가했어요"
+    "contact_added": "연락처를 추가했어요",
+    "save_to_files": {
+      "title": "파일에 저장",
+      "location": "폴더",
+      "root": "내 파일",
+      "save_here": "여기에 저장",
+      "saved": "파일에 저장했어요",
+      "saved_to": "{folder}에 저장",
+      "failed": "파일에 저장하지 못했어요",
+      "load_failed": "폴더를 불러오지 못했어요. 다시 시도하세요.",
+      "no_folders": "여기에는 폴더가 없어요. 여기에 저장하거나 뒤로 가세요."
+    }
   },
   "email_composer": {
     "select_from_directory": "디렉터리에서 선택",

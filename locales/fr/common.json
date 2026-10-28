@@ -698,7 +698,18 @@
     "plugin_panel_show": "Afficher le panneau du plugin",
     "plugin_panel_hide": "Masquer le panneau du plugin",
     "copy": "Copier",
-    "contact_added": "Contact ajouté"
+    "contact_added": "Contact ajouté",
+    "save_to_files": {
+      "title": "Enregistrer dans Fichiers",
+      "location": "Dossier",
+      "root": "Mes fichiers",
+      "save_here": "Enregistrer ici",
+      "saved": "Enregistré dans Fichiers",
+      "saved_to": "Dans {folder}",
+      "failed": "Impossible d'enregistrer dans Fichiers",
+      "load_failed": "Impossible de charger vos dossiers. Réessayez.",
+      "no_folders": "Aucun dossier ici. Enregistrez ici ou revenez en arrière."
+    }
   },
   "email_composer": {
     "select_from_directory": "Choisir dans l'annuaire",

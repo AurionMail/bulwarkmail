@@ -697,6 +697,17 @@
     "mv_position": "{index} of {total}",
     "copy": "Copy",
     "contact_added": "Contact added",
+    "save_to_files": {
+      "title": "Save to Files",
+      "location": "Folder",
+      "root": "My files",
+      "save_here": "Save here",
+      "saved": "Saved to Files",
+      "saved_to": "In {folder}",
+      "failed": "Couldn't save to Files",
+      "load_failed": "Couldn't load your folders. Try again.",
+      "no_folders": "No folders here. Save here or go back."
+    },
     "plugin_panel_show": "Show plugin panel",
     "plugin_panel_hide": "Hide plugin panel"
   },

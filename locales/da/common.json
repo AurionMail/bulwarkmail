@@ -698,7 +698,18 @@
     "plugin_panel_show": "Vis pluginpanel",
     "plugin_panel_hide": "Skjul pluginpanel",
     "copy": "Kopiér",
-    "contact_added": "Kontakt tilføjet"
+    "contact_added": "Kontakt tilføjet",
+    "save_to_files": {
+      "title": "Gem i Filer",
+      "location": "Mappe",
+      "root": "Mine filer",
+      "save_here": "Gem her",
+      "saved": "Gemt i Filer",
+      "saved_to": "I {folder}",
+      "failed": "Kunne ikke gemme i Filer",
+      "load_failed": "Mapperne kunne ikke indlæses. Prøv igen.",
+      "no_folders": "Der er ingen mapper her. Gem her, eller gå tilbage."
+    }
   },
   "email_composer": {
     "select_from_directory": "Vælg fra adressefortegnelse",

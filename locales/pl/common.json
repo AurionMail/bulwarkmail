@@ -698,7 +698,18 @@
     "plugin_panel_show": "Pokaż panel wtyczki",
     "plugin_panel_hide": "Ukryj panel wtyczki",
     "copy": "Kopiuj",
-    "contact_added": "Dodano kontakt"
+    "contact_added": "Dodano kontakt",
+    "save_to_files": {
+      "title": "Zapisz w Plikach",
+      "location": "Folder",
+      "root": "Moje pliki",
+      "save_here": "Zapisz tutaj",
+      "saved": "Zapisano w Plikach",
+      "saved_to": "W folderze {folder}",
+      "failed": "Nie udało się zapisać w Plikach",
+      "load_failed": "Nie udało się wczytać folderów. Spróbuj ponownie.",
+      "no_folders": "Brak folderów. Zapisz tutaj lub wróć."
+    }
   },
   "email_composer": {
     "select_from_directory": "Wybierz z katalogu",

@@ -38,6 +38,8 @@ import { emailToReadView } from "@/lib/plugin-projection";
 import type { EmailReadView, ExternalLinkContext } from "@/lib/plugin-types";
 import { ViewSourceDialog } from "./view-source-dialog";
 import { MoveTargetList } from "./move-target-list";
+import { SaveToFilesDialog, type SaveableAttachment } from "./save-to-files-dialog";
+import { usePolicyStore } from "@/stores/policy-store";
 import { ScheduleSendDialog } from "./schedule-send-dialog";
 import {
   Reply,
@@ -1268,6 +1270,9 @@ export function EmailViewer({
   const legacyBlobAccountId = isUnifiedView ? email?.sourceAccountId : undefined;
   const blobClient = blobSource ? blobSource.client : legacyBlobClient;
   const blobAccountId = blobSource ? blobSource.accountId : legacyBlobAccountId;
+  const filesFeatureEnabled = usePolicyStore((s) => s.isFeatureEnabled('filesEnabled'));
+  const canSaveToFiles = filesFeatureEnabled && !!client && blobClient === client
+    && !!client.supportsFiles?.() && (!blobAccountId || blobAccountId === client.getAccountId());
 
   // List-Unsubscribe mailto: send the message ourselves - this is a webmail
   // client, handing a mailto: URL to the OS mail handler goes nowhere for
@@ -1371,6 +1376,9 @@ export function EmailViewer({
   };
   const [showSourceModal, setShowSourceModal] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  // "Save to Files" for an attachment: where the Files app is on and the
+  // message is in the login's own account, whose files hold the blob too.
+  const [saveToFilesTarget, setSaveToFilesTarget] = useState<SaveableAttachment | null>(null);
   // Reschedule picks the new time in the composer's Schedule send dialog.
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   // The mobile More panel sits off-canvas with a slide transition. Until
@@ -5103,6 +5111,11 @@ export function EmailViewer({
                               <Eye className="w-3.5 h-3.5 text-foreground" />
                             </button>
                           )}
+                          {canSaveToFiles && attachment.blobId && (
+                            <IconButton label={t("save_to_files.title")} onClick={(e) => { e.stopPropagation(); setSaveToFilesTarget(attachment); }}>
+                              <FolderInput className="w-4 h-4" />
+                            </IconButton>
+                          )}
                           <AttachmentPluginMenu emailId={email?.id} attachment={attachment} iconClassName="w-3.5 h-3.5" />
                         </div>
                       </div>
@@ -5164,6 +5177,11 @@ export function EmailViewer({
                                   >
                                     <Eye className="w-3.5 h-3.5 text-foreground" />
                                   </button>
+                                )}
+                                {canSaveToFiles && attachment.blobId && (
+                                  <IconButton label={t("save_to_files.title")} onClick={(e) => { e.stopPropagation(); setSaveToFilesTarget(attachment); }}>
+                                    <FolderInput className="w-4 h-4" />
+                                  </IconButton>
                                 )}
                                 <AttachmentPluginMenu emailId={email?.id} attachment={attachment} iconClassName="w-3.5 h-3.5" />
                               </div>
@@ -5927,6 +5945,11 @@ export function EmailViewer({
                         <Eye className="w-4 h-4 text-foreground" />
                       </button>
                     )}
+                    {canSaveToFiles && attachment.blobId && (
+                      <IconButton label={t("save_to_files.title")} onClick={(e) => { e.stopPropagation(); setSaveToFilesTarget(attachment); }}>
+                        <FolderInput className="w-4 h-4" />
+                      </IconButton>
+                    )}
                     <AttachmentPluginMenu emailId={email?.id} attachment={attachment} />
                   </div>
                 </div>
@@ -5988,6 +6011,11 @@ export function EmailViewer({
                             >
                               <Eye className="w-4 h-4 text-foreground" />
                             </button>
+                          )}
+                          {canSaveToFiles && attachment.blobId && (
+                            <IconButton label={t("save_to_files.title")} onClick={(e) => { e.stopPropagation(); setSaveToFilesTarget(attachment); }}>
+                              <FolderInput className="w-4 h-4" />
+                            </IconButton>
                           )}
                           <AttachmentPluginMenu emailId={email?.id} attachment={attachment} />
                         </div>
@@ -6052,6 +6080,11 @@ export function EmailViewer({
                         <bdi>{formatFileSize(attachment.size)}</bdi>
                       </span>
                       {/* Phones have no hover: the plugin menu stays visible. */}
+                      {canSaveToFiles && attachment.blobId && (
+                        <IconButton label={t("save_to_files.title")} onClick={(e) => { e.stopPropagation(); setSaveToFilesTarget(attachment); }}>
+                          <FolderInput className="w-4 h-4" />
+                        </IconButton>
+                      )}
                       <AttachmentPluginMenu emailId={email?.id} attachment={attachment} className="-me-1 flex-shrink-0" iconClassName="w-3.5 h-3.5" />
                     </div>
                     <div className={cn(
@@ -6117,6 +6150,11 @@ export function EmailViewer({
                           <span className="text-[10px] text-muted-foreground ms-auto flex-shrink-0">
                             <bdi>{formatFileSize(attachment.size)}</bdi>
                           </span>
+                          {canSaveToFiles && attachment.blobId && (
+                            <IconButton label={t("save_to_files.title")} onClick={(e) => { e.stopPropagation(); setSaveToFilesTarget(attachment); }}>
+                              <FolderInput className="w-4 h-4" />
+                            </IconButton>
+                          )}
                           <AttachmentPluginMenu emailId={email?.id} attachment={attachment} className="flex-shrink-0" iconClassName="w-3.5 h-3.5" />
                           <div className="absolute inset-y-0 end-0 rounded-e-md bg-background/95 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-opacity flex items-center justify-center gap-1 px-1.5">
                             <button
@@ -6356,6 +6394,10 @@ export function EmailViewer({
             void rescheduleScheduled(delayedUntil);
           }}
         />
+      )}
+
+      {canSaveToFiles && client && (
+        <SaveToFilesDialog attachment={saveToFilesTarget} client={client} onClose={() => setSaveToFilesTarget(null)} />
       )}
 
       {/* View source: the raw message the server holds. */}

@@ -698,7 +698,18 @@
     "plugin_panel_show": "Bővítménypanel megjelenítése",
     "plugin_panel_hide": "Bővítménypanel elrejtése",
     "copy": "Másolás",
-    "contact_added": "Névjegy hozzáadva"
+    "contact_added": "Névjegy hozzáadva",
+    "save_to_files": {
+      "title": "Mentés a Fájlokba",
+      "location": "Mappa",
+      "root": "Saját fájlok",
+      "save_here": "Mentés ide",
+      "saved": "Mentve a Fájlokba",
+      "saved_to": "Ide: {folder}",
+      "failed": "Nem sikerült menteni a Fájlokba",
+      "load_failed": "Nem sikerült betölteni a mappákat. Próbálja újra.",
+      "no_folders": "Itt nincsenek mappák. Mentsen ide, vagy lépjen vissza."
+    }
   },
   "email_composer": {
     "select_from_directory": "Kiválasztás a címtárból",

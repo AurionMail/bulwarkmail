@@ -698,7 +698,18 @@
     "plugin_panel_show": "Zobraziť panel doplnku",
     "plugin_panel_hide": "Skryť panel doplnku",
     "copy": "Kopírovať",
-    "contact_added": "Kontakt pridaný"
+    "contact_added": "Kontakt pridaný",
+    "save_to_files": {
+      "title": "Uložiť do Súborov",
+      "location": "Priečinok",
+      "root": "Moje súbory",
+      "save_here": "Uložiť sem",
+      "saved": "Uložené do Súborov",
+      "saved_to": "Do priečinka {folder}",
+      "failed": "Nepodarilo sa uložiť do Súborov",
+      "load_failed": "Priečinky sa nepodarilo načítať. Skúste to znova.",
+      "no_folders": "Nie sú tu žiadne priečinky. Uložte sem alebo sa vráťte."
+    }
   },
   "email_composer": {
     "select_from_directory": "Vybrať z adresára",

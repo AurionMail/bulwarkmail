@@ -698,7 +698,18 @@
     "plugin_panel_show": "プラグインパネルを表示",
     "plugin_panel_hide": "プラグインパネルを隠す",
     "copy": "コピー",
-    "contact_added": "連絡先を追加しました"
+    "contact_added": "連絡先を追加しました",
+    "save_to_files": {
+      "title": "ファイルに保存",
+      "location": "フォルダ",
+      "root": "マイファイル",
+      "save_here": "ここに保存",
+      "saved": "ファイルに保存しました",
+      "saved_to": "{folder} に保存",
+      "failed": "ファイルに保存できませんでした",
+      "load_failed": "フォルダを読み込めませんでした。もう一度お試しください。",
+      "no_folders": "ここにはフォルダがありません。ここに保存するか、戻ってください。"
+    }
   },
   "email_composer": {
     "select_from_directory": "ディレクトリから選択",

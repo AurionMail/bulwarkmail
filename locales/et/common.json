@@ -698,7 +698,18 @@
     "plugin_panel_show": "Näita pistikprogrammi paneeli",
     "plugin_panel_hide": "Peida pistikprogrammi paneel",
     "copy": "Kopeeri",
-    "contact_added": "Kontakt lisatud"
+    "contact_added": "Kontakt lisatud",
+    "save_to_files": {
+      "title": "Salvesta failidesse",
+      "location": "Kaust",
+      "root": "Minu failid",
+      "save_here": "Salvesta siia",
+      "saved": "Salvestatud failidesse",
+      "saved_to": "Kausta {folder}",
+      "failed": "Failidesse salvestamine ei õnnestunud",
+      "load_failed": "Kaustu ei õnnestunud laadida. Proovige uuesti.",
+      "no_folders": "Siin pole kaustu. Salvestage siia või minge tagasi."
+    }
   },
   "email_composer": {
     "select_from_directory": "Vali kataloogist",

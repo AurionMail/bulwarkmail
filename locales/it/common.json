@@ -698,7 +698,18 @@
     "plugin_panel_show": "Mostra il pannello del plugin",
     "plugin_panel_hide": "Nascondi il pannello del plugin",
     "copy": "Copia",
-    "contact_added": "Contatto aggiunto"
+    "contact_added": "Contatto aggiunto",
+    "save_to_files": {
+      "title": "Salva in File",
+      "location": "Cartella",
+      "root": "I miei file",
+      "save_here": "Salva qui",
+      "saved": "Salvato in File",
+      "saved_to": "In {folder}",
+      "failed": "Impossibile salvare in File",
+      "load_failed": "Impossibile caricare le cartelle. Riprova.",
+      "no_folders": "Nessuna cartella qui. Salva qui o torna indietro."
+    }
   },
   "email_composer": {
     "select_from_directory": "Seleziona dalla rubrica aziendale",

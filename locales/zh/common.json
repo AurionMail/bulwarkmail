@@ -698,7 +698,18 @@
     "plugin_panel_show": "显示插件面板",
     "plugin_panel_hide": "隐藏插件面板",
     "copy": "复制",
-    "contact_added": "已添加联系人"
+    "contact_added": "已添加联系人",
+    "save_to_files": {
+      "title": "保存到文件",
+      "location": "文件夹",
+      "root": "我的文件",
+      "save_here": "保存到此处",
+      "saved": "已保存到文件",
+      "saved_to": "在 {folder} 中",
+      "failed": "无法保存到文件",
+      "load_failed": "无法加载文件夹。请重试。",
+      "no_folders": "此处没有文件夹。保存到此处或返回。"
+    }
   },
   "email_composer": {
     "select_from_directory": "从目录中选择",
