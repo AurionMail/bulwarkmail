@@ -1015,6 +1015,53 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
     );
     const threadLongPressHandlers = { onTouchStart: threadOnTouchStart, onTouchEnd: threadOnTouchEnd, onTouchMove: threadOnTouchMove, onTouchCancel: threadOnTouchCancel };
 
+    // The same swipe as a single message's row (MAIL-27), on what the row's
+    // actions act on: the newest message.
+    const threadSwipeRightAction = useSettingsStore((state) => state.swipeRightAction);
+    const threadSwipeLeftAction = useSettingsStore((state) => state.swipeLeftAction);
+    const runThreadSwipe = (action: SwipeAction) => {
+      switch (action) {
+        case 'archive': onArchive?.(latestEmail); break;
+        case 'delete': onDelete?.(latestEmail); break;
+        case 'markRead': onMarkAsRead?.(latestEmail, hasUnread); break;
+        case 'star': onToggleStar?.(latestEmail); break;
+        case 'spam': onMarkAsSpam?.(latestEmail); break;
+        default: break;
+      }
+    };
+    const threadActionable = (action: SwipeAction): boolean => {
+      switch (action) {
+        case 'archive': return !!onArchive;
+        case 'delete': return !!onDelete;
+        case 'markRead': return !!onMarkAsRead;
+        case 'star': return !!onToggleStar;
+        case 'spam': return !!onMarkAsSpam;
+        default: return false;
+      }
+    };
+    const threadHasRight = threadActionable(threadSwipeRightAction);
+    const threadHasLeft = threadActionable(threadSwipeLeftAction);
+    const threadSwipeEnabled = isMobile && (threadHasLeft || threadHasRight);
+    const {
+      swipeHandlers: threadSwipeHandlers, offsetX: threadOffsetX, side: threadSwipeSide,
+      willCommit: threadWillCommit, consumeTap: threadConsumeTap,
+    } = useSwipeActions({
+      enabled: threadSwipeEnabled,
+      hasLeft: threadHasLeft,
+      hasRight: threadHasRight,
+      onCommit: (s) => runThreadSwipe(s === 'right' ? threadSwipeRightAction : threadSwipeLeftAction),
+    });
+    const threadSwipeAction = threadSwipeSide === 'right' ? threadSwipeRightAction : threadSwipeSide === 'left' ? threadSwipeLeftAction : 'none';
+    const threadSwipeMeta = threadSwipeAction !== 'none' ? SWIPE_ACTION_META[threadSwipeAction] : null;
+    const threadTouchHandlers = threadSwipeEnabled
+      ? {
+          onTouchStart: (e: React.TouchEvent) => { threadLongPressHandlers.onTouchStart(e); threadSwipeHandlers.onTouchStart(e); },
+          onTouchMove: (e: React.TouchEvent) => { threadLongPressHandlers.onTouchMove(e); threadSwipeHandlers.onTouchMove(e); },
+          onTouchEnd: (e: React.TouchEvent) => { threadLongPressHandlers.onTouchEnd(e); threadSwipeHandlers.onTouchEnd(); },
+          onTouchCancel: () => { threadLongPressHandlers.onTouchCancel(); threadSwipeHandlers.onTouchCancel(); },
+        }
+      : threadLongPressHandlers;
+
     const { sortTagIds, tagColor } = useKeywordFormat();
     const { variant: tagVariant, placement: tagPlacement } = useTagDisplay();
     const tintListRowsByTag = useSettingsStore((state) => state.tintListRowsByTag);
@@ -1091,6 +1138,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
     const threadTogglesOnClick = selectedEmailKeys.size > 0 && !mvRow;
 
     const handleHeaderClick = (e: React.MouseEvent) => {
+      if (threadSwipeEnabled && threadConsumeTap()) { return; }
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
         // Ctrl+Click: toggle selection for all thread emails
@@ -1148,7 +1196,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
       )}>
         <div
           {...dragHandlers}
-          {...threadLongPressHandlers}
+          {...threadTouchHandlers}
           onPointerOver={armHoverActions}
           onPointerDown={(e) => { if (onPrefetch && isMousePressOnRow(e)) onPrefetch(latestEmail); }}
           aria-current={isSelected ? 'true' : undefined}
@@ -1184,11 +1232,21 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
             onEmailDoubleClick(latestEmail);
           }}
           onContextMenu={handleContextMenu}
-          style={{ minHeight: oneLineRow ? undefined : 'var(--list-item-height)' }}
+          style={{ minHeight: oneLineRow ? undefined : 'var(--list-item-height)', touchAction: threadSwipeEnabled ? 'pan-y' : undefined }}
         >
+          {threadSwipeEnabled && threadSwipeMeta && (
+            // As on a single message's row: the physically exposed edge.
+            <div
+              aria-hidden
+              dir="ltr"
+              className={cn('absolute inset-0 z-0 flex items-center px-5 text-white', threadSwipeMeta.bg, threadSwipeSide === 'right' ? 'justify-start' : 'justify-end')}
+            >
+              <threadSwipeMeta.icon className={cn('h-5 w-5 transition-transform', threadWillCommit ? 'scale-110' : 'scale-90 opacity-80')} />
+            </div>
+          )}
           <div
-            className={cn('px-3', oneLineRow ? 'flex items-center' : 'flex items-start', mvRow && 'min-h-10')}
-            style={{ gap: 'var(--density-item-gap)', paddingBlock: mvRow ? undefined : 'var(--density-item-py)' }}
+            className={cn('px-3', oneLineRow ? 'flex items-center' : 'flex items-start', mvRow && 'min-h-10', threadSwipeEnabled && 'relative z-10 bg-inherit')}
+            style={{ gap: 'var(--density-item-gap)', paddingBlock: mvRow ? undefined : 'var(--density-item-py)', transform: threadSwipeEnabled && threadOffsetX ? `translateX(${threadOffsetX}px)` : undefined, transition: threadSwipeEnabled && threadOffsetX === 0 ? 'transform 200ms ease-out' : undefined }}
           >
             {/* Checkbox for thread selection - only for extra-compact density (no avatar) while in selection mode */}
             {!mvRow && density === 'extra-compact' && selectedEmailKeys.size > 0 && (
