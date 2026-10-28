@@ -69,9 +69,7 @@ describe('task-detail-section', () => {
 describe('task-list-actions', () => {
   const toolbar = {
     filter: 'all' as const,
-    showCompleted: false,
     onFilterChange: vi.fn(),
-    onShowCompletedChange: vi.fn(),
     onCreateTask: vi.fn(),
   };
 
@@ -104,7 +102,8 @@ describe('task-list-actions', () => {
       makeTask('other-cal', { calendarIds: { 'cal-2': true } }),
       makeTask('soon', { due: '2030-01-01' }),
     ];
-    expect(filterTasksForList(tasks, ['cal-1'], 'all', false).map((t) => t.id)).toEqual(['soon', 'later']);
-    expect(filterTasksForList(tasks, ['cal-1'], 'all', true).map((t) => t.id)).toEqual(['soon', 'later', 'done']);
+    // All is all of them: completed ones too, at the end.
+    expect(filterTasksForList(tasks, ['cal-1'], 'all').map((t) => t.id)).toEqual(['soon', 'later', 'done']);
+    expect(filterTasksForList(tasks, ['cal-1'], 'pending').map((t) => t.id)).toEqual(['soon', 'later']);
   });
 });

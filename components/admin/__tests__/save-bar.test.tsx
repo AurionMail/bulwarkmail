@@ -50,4 +50,18 @@ describe('AdminSaveBar', () => {
     expect(screen.getByTestId('page').querySelector('[data-testid="admin-save-bar"]')).toBeNull();
     host.remove();
   });
+  it('lifts toasts above itself while it is shown', () => {
+    // A toast over Discard / Save changes caught the clicks meant for them.
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      return this.dataset.testid === 'admin-save-bar'
+        ? ({ top: window.innerHeight - 57, bottom: window.innerHeight, left: 0, right: 800, width: 800, height: 57 } as DOMRect)
+        : ({ top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 } as DOMRect);
+    });
+    const root = document.documentElement.style;
+    const { rerender } = render(<AdminSaveBar dirty onSave={() => {}} />);
+    expect(root.getPropertyValue('--bottom-controls-height')).toBe('57px');
+    rerender(<AdminSaveBar dirty={false} onSave={() => {}} />);
+    expect(root.getPropertyValue('--bottom-controls-height')).toBe('');
+    rect.mockRestore();
+  });
 });

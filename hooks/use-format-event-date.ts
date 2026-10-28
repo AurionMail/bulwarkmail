@@ -4,13 +4,10 @@ import { format } from "date-fns";
 import { toJalali, shouldUseJalaliCalendar, JALALI_MONTHS } from "@/lib/jalali-utils";
 
 /**
- * Returns a memoized function that formats a calendar event date
- * using the current locale for day and month names.
- *
- * The string will be in the format: "EEE, MMM d, yyyy"
- *
- * For example: "Wed, Apr 29, 2026" (en)
- *              "Qua, Abr 29, 2026" (pt)
+ * Returns a memoized function that formats a calendar event date in the
+ * current locale's own order and names (Intl), e.g.
+ *              "Wed, Apr 29, 2026" (en)
+ *              "Mi., 29. Apr. 2026" (de)
  *
  * When the Jalali calendar is active (fa locale), the format uses
  * Persian day/month names with the Jalali year, e.g.:
@@ -31,12 +28,14 @@ export function useFormatEventDate(): (date: Date) => string {
         return `${t(`days.${dayOfWeek}`)}, ${jd} ${monthName} ${jy}`;
       }
 
-      const dayOfWeek = format(date, "EEE").toLowerCase();
-      const month = format(date, "MMM").toLowerCase();
-      const day = format(date, "d");
-      const year = format(date, "yyyy");
-      return `${t(`days.${dayOfWeek}`)}, ${t(`months.${month}`)} ${day}, ${year}`;
+      // A display date: its local fields are the wall-clock to show.
+      return date.toLocaleDateString(locale === "en" ? "en-US" : locale, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
     },
-    [t, isJalali]
+    [t, isJalali, locale]
   );
 }

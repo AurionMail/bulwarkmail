@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { ComposerToolbarMenu, ComposerToolbarMenuItem, ComposerToolbarMenuCheckItem } from '../composer-toolbar-menu';
 import { Paperclip } from '@/components/icons';
 
@@ -29,7 +29,7 @@ describe('ComposerToolbarMenu', () => {
     expect(label.className).not.toMatch(/(^|\s)sm:inline/);
   });
 
-  it('keeps the menu open while toggling options and closes on Escape or outside click', () => {
+  it('keeps the menu open while toggling options and closes on Escape or outside click', async () => {
     const onToggle = vi.fn();
     render(
       <div>
@@ -47,6 +47,8 @@ describe('ComposerToolbarMenu', () => {
     fireEvent.click(screen.getByTestId('menu'));
     expect(screen.getByTestId('menu')).toHaveAttribute('aria-expanded', 'true');
 
+    // The app's one menu (R6): the ContextMenu, in a portal.
+    expect(screen.getByRole('menu').parentElement).toBe(document.body);
     fireEvent.click(screen.getByTestId('opt'));
     expect(onToggle).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('menu')).toBeInTheDocument();
@@ -56,6 +58,8 @@ describe('ComposerToolbarMenu', () => {
     expect(screen.queryByRole('menu')).toBeNull();
 
     fireEvent.click(screen.getByTestId('menu'));
+    // The menu listens for a press outside from the next tick on.
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
     fireEvent.mouseDown(screen.getByTestId('outside'));
     expect(screen.queryByRole('menu')).toBeNull();
   });

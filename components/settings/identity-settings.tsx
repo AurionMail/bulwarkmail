@@ -53,14 +53,13 @@ export function EmailAddressesSection() {
           </div>
         </SettingItem>
 
-        {/* Sub-Addressing Info */}
+        {/* Sub-Addressing Info: the description says it all. Its "Learn
+            more" opened the identity manager, which says nothing about it. */}
         <SettingItem
           label={t('sub_addressing.label')}
           description={t('sub_addressing.description')}
         >
-          <Button variant="outline" size="sm" onClick={() => setShowModal(true)}>
-            {t('sub_addressing.learn_more')}
-          </Button>
+          {null}
         </SettingItem>
 
         <SettingItem

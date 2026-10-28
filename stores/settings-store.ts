@@ -13,6 +13,7 @@ import { settingsHooks } from '@/lib/plugin-hooks';
 import { generateAccountId } from '@/lib/account-utils';
 import { subscriptionOwnerFor } from '@/lib/calendar-subscription-sync';
 import type { FolderCountMode } from '@/lib/folder-counts';
+import { DEFAULT_FILES_SETTINGS, normalizeFilesSettings, type FilesSettings } from '@/lib/files-settings';
 import { orderForMailbox, sanitizeSortLevels, type MessageListOrderScope, type SortLevel } from '@/lib/message-list-order';
 import { EMPTY_SIGNATURE_DETAILS, sanitizeSignatureDetails, type SignatureDetails } from '@/lib/org-signature';
 import {
@@ -616,6 +617,9 @@ interface SettingsState {
   // family members sit together (#963).
   sortContactsByLastName: boolean;
 
+  // Files: view, sort and icons (Settings > Files)
+  filesSettings: FilesSettings;
+
   // Email Notifications
   emailNotificationsEnabled: boolean;
   emailNotificationSound: boolean;
@@ -916,6 +920,9 @@ const DEFAULT_SETTINGS = {
   // Contacts Display
   groupContactsByLetter: true,
   sortContactsByLastName: false,
+
+  // Files
+  filesSettings: DEFAULT_FILES_SETTINGS,
 
   // Email Notifications
   emailNotificationsEnabled: true,
@@ -1306,6 +1313,7 @@ export const useSettingsStore = create<SettingsState>()(
           sharedCalendarColors: state.sharedCalendarColors,
           groupContactsByLetter: state.groupContactsByLetter,
           sortContactsByLastName: state.sortContactsByLastName,
+          filesSettings: state.filesSettings,
           expandedFilterView: state.expandedFilterView,
           showTimeInMonthView: state.showTimeInMonthView,
           showWeekNumbers: state.showWeekNumbers,
@@ -1496,6 +1504,10 @@ export const useSettingsStore = create<SettingsState>()(
               }
               if (key === 'notificationMutes') {
                 put(key, { notificationMutes: normalizeNotificationMutes(settings[key]) });
+                return;
+              }
+              if (key === 'filesSettings') {
+                put(key, { filesSettings: normalizeFilesSettings(settings[key]) });
                 return;
               }
               // The list order is sent to the server as a sort array, so an

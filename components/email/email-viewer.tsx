@@ -2,7 +2,7 @@
 
 import { Fragment, useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback, useId } from "react";
 import { Email, ContactCard, Mailbox } from "@/lib/jmap/types";
-import { emailExportFilename, attachmentDownloadFilename, attachmentsBundleFilename, DEFAULT_EMAIL_TEMPLATE, DEFAULT_ATTACHMENT_TEMPLATE } from "@/lib/download-filename";
+import { attachmentDownloadFilename, attachmentsBundleFilename, DEFAULT_ATTACHMENT_TEMPLATE } from "@/lib/download-filename";
 import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
 import { TRANSPARENT_BLOCKED_PIXEL, applyNewTabToAnchor, emailIframeCsp, escapeHtml, isExternalResourceUrl, isOpenableLinkHref, plainTextToSafeHtml, sanitizeEmailBodyForIframe, sanitizeEmailHtml, sanitizePlainTextRenderedHtml } from "@/lib/email-sanitization";
 import { getRenderableHtmlBody } from "@/lib/email-body-selection";
@@ -13,14 +13,19 @@ import { fitEmailBodyWidth } from "@/lib/email-fit-width";
 import { hasFullBleedCanvas } from "@/lib/email-full-bleed";
 import { stripBidiControls } from "@/lib/bidi";
 import { withBasePath } from "@/lib/browser-navigation";
-import { buildContactsPath, buildMailPath } from "@/lib/deep-links";
-import { useCopyLink } from "@/hooks/use-copy-link";
+import { buildContactsPath } from "@/lib/deep-links";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { Avatar } from "@/components/ui/avatar";
-import { SubMenuPanel } from "@/components/ui/context-menu";
+import { ContextMenu } from "@/components/ui/context-menu";
+import { useContextMenu, type UseContextMenuReturn } from "@/hooks/use-context-menu";
+import { EmailContextMenu } from "./email-context-menu";
+import { useMessageActionList, type MessageActionEntry, type MessageActionKey, type MessageActionOptions, type MessageSubmenuKey } from "./message-actions";
+import { useCopyToAccount, useEmailExport, usePrintRequestStore } from "@/hooks/use-message-file-actions";
+import { useBottomControls } from "@/hooks/use-bottom-controls";
 import { ReaderSelectionMenu, useReaderSelectionMenu, watchBodySelection, watchElementSelection } from "./reader-selection-menu";
 import { onPanelRequest } from "@/lib/plugin-sandbox/panel-requests";
-import { formatFileSize, cn, MailboxNode, formatDate, formatDateTime, formatRelativeAgo, generateUUID, cleanPreview } from "@/lib/utils";
+import { formatFileSize, cn, formatDate, formatDateTime, formatRelativeAgo, generateUUID, cleanPreview, type MailboxNode } from "@/lib/utils";
 import { getEffectiveTimeZone, getWallClock } from "@/lib/timezone";
 import { itemsToHide } from "@/lib/toolbar-overflow";
 import { formatScheduledSendAt } from "@/lib/scheduled-send-label";
@@ -30,17 +35,20 @@ import { TagBadge } from "./tag-badge";
 import { TagPicker } from "./tag-picker";
 import { useMeasuredTagDisplay } from "@/hooks/use-tag-display";
 import { useKeywordFormat } from "@/hooks/use-keyword-format";
-import { useAccountTags, useEmailTagScope } from "@/hooks/use-account-tags";
-import { getEmailTagIds } from "@/lib/thread-utils";
+import { useAccountTags, useEmailTagScope, type TagScope } from "@/hooks/use-account-tags";
+import { getEmailTagIds, emailKeyFor } from "@/lib/thread-utils";
 import { getSecurityStatus, extractListHeaders, getSenderVerification } from "@/lib/email-headers";
 import { emailToReadView } from "@/lib/plugin-projection";
 import type { EmailReadView, ExternalLinkContext } from "@/lib/plugin-types";
-import { generateEmailSource } from "@/lib/email-source";
+import { ViewSourceDialog } from "./view-source-dialog";
+import { MoveTargetList } from "./move-target-list";
+import { SaveToFilesDialog, type SaveableAttachment } from "./save-to-files-dialog";
+import { usePolicyStore } from "@/stores/policy-store";
+import { ScheduleSendDialog } from "./schedule-send-dialog";
 import {
   Reply,
   ReplyAll,
   Forward,
-  Paperclip,
   Trash2,
   Archive,
   Star,
@@ -82,20 +90,17 @@ import {
   PanelRightOpen,
   Send,
   FolderInput,
-  FolderX,
-  Inbox,
-  Folder,
   Sun,
   Upload,
   Moon,
-  EditIcon,
   PlayCircle,
   PenSquare,
   CalendarClock,
-  Link as LinkIcon,
+  CalendarX,
   Maximize2,
   Minimize2,
-  Filter,
+  ArrowLeft,
+  Pencil,
 } from "@/components/icons";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
@@ -114,7 +119,7 @@ import { useDeviceDetection } from "@/hooks/use-media-query";
 import { useIsPaneScoped } from "@/hooks/use-pane-context";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAccountStore } from "@/stores/account-store";
-import { useEmailStore, resolveEmailBlobContext, emailWriteSource, emailLinkSource, type EmailBlobContext } from "@/stores/email-store";
+import { useEmailStore, resolveEmailBlobContext, emailWriteSource, type EmailBlobContext } from "@/stores/email-store";
 import { useThemeStore } from "@/stores/theme-store";
 import { EmailIdentityBadge } from "./email-identity-badge";
 import { ExternalSenderChip } from "./external-sender-chip";
@@ -140,9 +145,10 @@ import { VerificationCodeChip } from "./verification-code-chip";
 import { ConversationEmailBody, type ConversationAttachmentHandler, useConversationExternalContent, useMarkReadWhenShown } from "./thread-conversation-view";
 import type { TnefAttachment } from "@/lib/tnef";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
-import { PluginActions, useMessageActionTarget } from "@/components/plugins/plugin-actions";
+import { PluginActions, useMessageActionTarget, type MessageActionTarget } from "@/components/plugins/plugin-actions";
 import { AttachmentPluginFrames, AttachmentPluginMenu, PluginPanelEntries, ReaderAboveQuoteSlot } from "./reader-plugin-surfaces";
 import { RulesPanel, useRulesAvailability } from "./rules-menu";
+import type { QuickRuleTarget } from "@/lib/filters/quick-rule-target";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { ResizeHandle } from "@/components/layout/resize-handle";
 import { emailHooks, renderHooks } from "@/lib/plugin-hooks";
@@ -155,7 +161,23 @@ import { useArchiveActionEnabled } from "@/lib/archive-gate";
 import { useNoThirdPartyTraffic } from "@/hooks/use-third-party-mode";
 
 /** The More menu's two drill-downs: a folder list and a tag list. */
-type MoreMenuSub = 'move' | 'tag' | 'rules';
+type MoreMenuSub = MessageSubmenuKey;
+
+/** The reader toolbar's overflow items, by priority, as entries of the message's action list. */
+const TOOLBAR_PRIORITY_ACTIONS: Record<string, MessageActionKey> = {
+  '1': 'reply',
+  '2': 'reply_all',
+  '3': 'forward',
+  '4': 'archive',
+  '5': 'move',
+  '6': 'tag',
+  '7': 'spam',
+  '8': 'read',
+  '9': 'print',
+  '10': 'view_source',
+  '11': 'extra:view_mode',
+};
+const NO_ACTION_KEYS: ReadonlySet<MessageActionKey> = new Set();
 
 /** Whatever a sub-view offers to act on, in the order it is read out. */
 const SUB_MENU_ITEM_SELECTOR = '[role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"]';
@@ -191,6 +213,8 @@ interface EmailViewerProps {
    * the message is also in another folder.
    */
   onRemoveFromFolder?: () => void;
+  /** Pin or unpin the message; pinned mail floats to the top of the list. */
+  onTogglePinned?: () => void;
   onBack?: () => void;
   onNavigateNext?: () => void;
   onNavigatePrev?: () => void;
@@ -220,6 +244,8 @@ interface EmailViewerProps {
   onShowShortcuts?: () => void;
   onEditDraft?: () => void;
   onCancelScheduledForEdit?: () => void;
+  /** Stop a scheduled message from going out; it goes back to Drafts. */
+  onCancelScheduledSend?: () => void;
   onRescheduleScheduled?: (delayedUntil: string) => void | Promise<void>;
   onCompose?: () => void;
   /**
@@ -424,7 +450,6 @@ function renderClickableRecipients(
 
     return (
       <span key={r.email + index} className="inline-flex items-center">
-        {index > 0 && <span className="text-muted-foreground me-1">,</span>}
         <RecipientPopover
           name={r.name}
           email={r.email}
@@ -432,6 +457,7 @@ function renderClickableRecipients(
           onViewContact={onViewContact}
           className="text-sm"
         />
+        {index < visible.length - 1 && <span className="text-muted-foreground">,</span>}
       </span>
     );
   });
@@ -548,7 +574,7 @@ export function ContactSidebarPanel({
                 className="flex-1 min-w-0 gap-2"
                 title={t('contact_sidebar.action_edit_title')}
               >
-                <EditIcon className="w-4 h-4 shrink-0" />
+                <Pencil className="w-4 h-4 shrink-0" />
                 <span className="truncate">{tCommon('edit')}</span>
               </Button>
             )}
@@ -566,13 +592,13 @@ export function ContactSidebarPanel({
                     <MailtoLink to={e.address} className="text-sm text-primary hover:underline truncate">
                       {e.address}
                     </MailtoLink>
-                    <button
+                    <IconButton
+                      label={t('copy')}
                       onClick={() => handleCopy(e.address)}
-                      className="p-1 rounded hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 shrink-0"
-                      title="Copy"
+                      className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 shrink-0 text-muted-foreground"
                     >
-                      <Copy className="w-3 h-3 text-muted-foreground" />
-                    </button>
+                      <Copy className="w-3.5 h-3.5" />
+                    </IconButton>
                   </div>
                 ))}
               </SidebarSection>
@@ -586,13 +612,13 @@ export function ContactSidebarPanel({
                     <a href={`tel:${p.number}`} className="text-sm text-primary hover:underline">
                       {p.number}
                     </a>
-                    <button
+                    <IconButton
+                      label={t('copy')}
                       onClick={() => handleCopy(p.number)}
-                      className="p-1 rounded hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 shrink-0"
-                      title="Copy"
+                      className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 shrink-0 text-muted-foreground"
                     >
-                      <Copy className="w-3 h-3 text-muted-foreground" />
-                    </button>
+                      <Copy className="w-3.5 h-3.5" />
+                    </IconButton>
                   </div>
                 ))}
               </SidebarSection>
@@ -742,7 +768,7 @@ function MvConversationCard({ email, onOpen, timeFormat, compact }: { email: Ema
       <Avatar name={sender?.name} email={sender?.email} size="md" className="w-10 h-10 flex-shrink-0" />
       <span className="flex-1 min-w-0">
         <span className="flex items-baseline gap-2">
-          <span className={cn("text-sm truncate", unread ? "font-bold" : "font-semibold")}>
+          <span dir="auto" className={cn("text-sm truncate", unread ? "font-bold" : "font-semibold")}>
             {sender?.name || sender?.email || ''}
           </span>
           <span className="ms-auto ps-2 text-xs text-muted-foreground whitespace-nowrap">
@@ -858,7 +884,7 @@ export function MvExpandedConversationCard({
         <Avatar name={sender?.name} email={sender?.email} size="md" className="w-10 h-10 flex-shrink-0" />
         <span className="flex-1 min-w-0">
           <span className="flex items-baseline gap-2">
-            <span className="text-sm font-semibold truncate">{sender?.name || sender?.email || ''}</span>
+            <span dir="auto" className="text-sm font-semibold truncate">{sender?.name || sender?.email || ''}</span>
             {!compact && sender?.name && sender.email && (
               <span className="text-xs text-muted-foreground truncate">&lt;{sender.email}&gt;</span>
             )}
@@ -888,7 +914,7 @@ export function MvExpandedConversationCard({
             onClick={() => onReply(email)}
             className="grid place-items-center w-10 h-10 -my-2 -me-2 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors flex-shrink-0"
             title={t('tooltips.reply')}
-            aria-label={t('tooltips.reply')}
+            aria-label={t('reply')}
           >
             <Reply className="w-5 h-5" />
           </button>
@@ -1038,6 +1064,202 @@ const NO_POSTAL_ATTACHMENTS: PostalMimeAttachment[] = [];
 const MAX_INLINE_PARSE_BYTES = 5 * 1024 * 1024;
 const NO_TNEF_ATTACHMENTS: TnefAttachment[] = [];
 
+interface ReaderMoreMenuProps {
+  menu: UseContextMenuReturn<null>;
+  options: MessageActionOptions;
+  label: string;
+  mailboxes: Mailbox[];
+  selectedMailbox: string;
+  onMoveToMailbox?: (mailboxId: string) => void;
+  onSetTag?: (tagId: string | null) => void;
+}
+
+/** The reader's ⋮ on a desktop: the row's context menu, anchored to the button (R6). */
+function ReaderMoreMenu({ menu, options, label, mailboxes, selectedMailbox, onMoveToMailbox, onSetTag }: ReaderMoreMenuProps) {
+  const { email } = options;
+  const { copyTargets, copyToAccount } = useCopyToAccount(email, true);
+  return (
+    <EmailContextMenu
+      email={email}
+      position={menu.contextMenu.position}
+      isOpen
+      onClose={menu.closeContextMenu}
+      menuRef={menu.menuRef}
+      label={label}
+      mailboxes={mailboxes}
+      selectedMailbox={selectedMailbox}
+      currentMailboxRole={options.currentMailboxRole}
+      onReply={options.onReply}
+      onReplyAll={options.onReplyAll}
+      onForward={options.onForward}
+      onForwardAsAttachment={options.onForwardAsAttachment}
+      onEditDraft={options.onEditDraft}
+      onArchive={options.onArchive}
+      onDelete={options.onDelete}
+      onMarkAsRead={options.onMarkAsRead}
+      onToggleStar={options.onToggleStar}
+      onTogglePinned={options.onTogglePinned}
+      onRemoveFromFolder={options.onRemoveFromFolder}
+      onMarkAsSpam={options.onMarkAsSpam}
+      onUndoSpam={options.onUndoSpam}
+      onMoveToMailbox={options.canMove ? onMoveToMailbox : undefined}
+      onSetTag={onSetTag}
+      copyTargets={copyTargets}
+      onCopyToAccount={(accountId, mailboxId) => void copyToAccount([email], accountId, mailboxId)}
+      onExport={options.onExport}
+      onPrint={options.onPrint}
+      onViewSource={options.onViewSource}
+      omit={options.omit}
+      extras={options.extras}
+      rowPlugins={false}
+    />
+  );
+}
+
+const PANEL_ROW_CLASS = "w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3 disabled:opacity-50";
+
+interface ReaderMorePanelBodyProps {
+  options: MessageActionOptions;
+  sub: MoreMenuSub | null;
+  openSub: (sub: MoreMenuSub) => void;
+  close: () => void;
+  entryRefs: React.MutableRefObject<Record<MoreMenuSub, HTMLButtonElement | null>>;
+  moveTree: MailboxNode[];
+  moveTargetIds: Set<string>;
+  onMoveToMailbox?: (mailboxId: string) => void;
+  currentTagIds: string[];
+  sortedTagIds: string[];
+  /** The message's account when it has shared tags (useEmailTagScope). */
+  tagScope: TagScope | null;
+  onToggleTag: (tagId: string) => void;
+  /** Where filter rules go; null hides Rules (shared account, no Sieve). */
+  rulesTarget: QuickRuleTarget | null;
+  pluginContext: Record<string, unknown>;
+  /** The message the plugin entries are about (useMessageActionTarget). */
+  pluginTarget: MessageActionTarget;
+}
+
+/**
+ * The phone's More panel: the message's action list (R6) as 44px rows, its
+ * submenus as sub-views of the panel (#779).
+ */
+function ReaderMorePanelBody({
+  options,
+  sub,
+  openSub,
+  close,
+  entryRefs,
+  moveTree,
+  moveTargetIds,
+  onMoveToMailbox,
+  currentTagIds,
+  sortedTagIds,
+  tagScope,
+  onToggleTag,
+  rulesTarget,
+  pluginContext,
+  pluginTarget,
+}: ReaderMorePanelBodyProps) {
+  const { email } = options;
+  const { tagColor } = useKeywordFormat(tagScope);
+  const { copyTargets, copyToAccount } = useCopyToAccount(email, true);
+  const entries = useMessageActionList({
+    ...options,
+    canCopyToAccount: copyTargets.length > 0,
+    rules: !!rulesTarget,
+  });
+
+  if (sub === 'move') {
+    return moveTree.length > 0 && onMoveToMailbox ? (
+      <MoveTargetList
+        variant="panel"
+        tree={moveTree}
+        targetIds={moveTargetIds}
+        onPick={(mailboxId) => { onMoveToMailbox(mailboxId); close(); }}
+      />
+    ) : null;
+  }
+  if (sub === 'copy_to_account') {
+    return (
+      <>
+        {copyTargets.map((target) => {
+          const { tree, targetIds } = buildMoveTargets(target.mailboxes.filter((m) => !m.isShared && m.role !== 'drafts'), {});
+          return (
+            <div key={target.accountId}>
+              <div className="px-4 pt-3 pb-1 text-xs font-medium text-muted-foreground truncate" title={target.label}>{target.label}</div>
+              <MoveTargetList
+                variant="panel"
+                tree={tree}
+                targetIds={targetIds}
+                onPick={(mailboxId) => { void copyToAccount([email], target.accountId, mailboxId); close(); }}
+              />
+            </div>
+          );
+        })}
+      </>
+    );
+  }
+  if (sub === 'tag') {
+    return <TagPicker touch selectedIds={currentTagIds} onToggle={onToggleTag} scope={tagScope} />;
+  }
+  if (sub === 'rules') {
+    return rulesTarget ? <RulesPanel email={email} target={rulesTarget} variant="mobile" onDone={close} /> : null;
+  }
+
+  return (
+    <>
+      {entries.map((entry, index) => {
+        if (entry.kind === 'separator') return <div key={`sep-${index}`} className="h-px bg-border my-1" role="separator" />;
+        const Icon = entry.icon;
+        if (entry.kind === 'submenu') {
+          return (
+            <button
+              key={entry.key}
+              ref={(el) => { entryRefs.current[entry.key] = el; }}
+              role="menuitem"
+              aria-haspopup="menu"
+              data-testid={entry.key === 'rules' ? 'viewer-rules' : `panel-${entry.key}`}
+              onClick={() => openSub(entry.key)}
+              className={PANEL_ROW_CLASS}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="flex-1">{entry.label}</span>
+              {entry.key === 'tag' && currentTagIds.length > 0 && (
+                <span className="flex -space-x-1 me-1" aria-hidden>
+                  {sortedTagIds.slice(0, 3).map((tagId) => (
+                    <span key={tagId} className={cn("w-3 h-3 rounded-full border border-background", tagColor(tagId).dot)} />
+                  ))}
+                </span>
+              )}
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </button>
+          );
+        }
+        return (
+          <button
+            key={entry.key}
+            role="menuitem"
+            disabled={entry.disabled}
+            data-testid={`panel-${entry.key}`}
+            onClick={() => { entry.run(); close(); }}
+            className={cn(PANEL_ROW_CLASS, entry.destructive && "text-destructive")}
+          >
+            <Icon className="w-5 h-5" />
+            {entry.label}
+          </button>
+        );
+      })}
+      <PluginPanelEntries
+        surface="reader-actions"
+        context={pluginContext}
+        target={pluginTarget}
+        mailboxRole={options.currentMailboxRole ?? null}
+        onRan={close}
+      />
+    </>
+  );
+}
+
 export function EmailViewer({
   email,
   blobSource,
@@ -1058,6 +1280,7 @@ export function EmailViewer({
   onUndoSpam,
   onMoveToMailbox,
   onRemoveFromFolder,
+  onTogglePinned,
   onBack,
   onNavigateNext,
   onNavigatePrev,
@@ -1072,6 +1295,7 @@ export function EmailViewer({
   onShowShortcuts,
   onEditDraft,
   onCancelScheduledForEdit,
+  onCancelScheduledSend,
   onRescheduleScheduled,
   onCompose,
   onToggleFullscreen,
@@ -1090,9 +1314,7 @@ export function EmailViewer({
   const tCommon = useTranslations('common');
   const tFiles = useTranslations('files');
   const tDemoWelcome = useTranslations('demo_welcome');
-  const tDeepLink = useTranslations('deep_link');
   const tContextMenu = useTranslations('context_menu');
-  const copyLink = useCopyLink();
   const tWelcome = useTranslations('welcome');
   const quickReplyEnabled = useSettingsStore((state) => state.quickReplyEnabled);
   const externalContentPolicy = useSettingsStore((state) => state.externalContentPolicy);
@@ -1124,7 +1346,7 @@ export function EmailViewer({
   // A message in a group account is tagged with that account's shared tags.
   const tagScope = useEmailTagScope(email);
   const emailKeywords = useAccountTags(tagScope).definitions;
-  const { sortTagIds, tagColor } = useKeywordFormat(tagScope);
+  const { sortTagIds } = useKeywordFormat(tagScope);
   const toolbarPosition = useSettingsStore((state) => state.toolbarPosition);
   const showToolbarLabelsSetting = useSettingsStore((state) => state.showToolbarLabels);
   const interfaceLayout = useSettingsStore((state) => state.interfaceLayout);
@@ -1143,19 +1365,11 @@ export function EmailViewer({
     [showVerificationCodes, email?.id, email?.subject, email?.bodyValues],
   );
   const dragOutActive = useMemo(() => isDragOutSupported(), []);
-  const emailDownloadTemplate = useSettingsStore((state) => state.emailDownloadTemplate) || DEFAULT_EMAIL_TEMPLATE;
   const attachmentDownloadTemplate = useSettingsStore((state) => state.attachmentDownloadTemplate) || DEFAULT_ATTACHMENT_TEMPLATE;
   const filenameSpaceReplacement = useSettingsStore((state) => state.filenameSpaceReplacement);
   const filenameLowercase = useSettingsStore((state) => state.filenameLowercase);
   const filenameStripDiacritics = useSettingsStore((state) => state.filenameStripDiacritics);
   const filenameCollapseSeparators = useSettingsStore((state) => state.filenameCollapseSeparators);
-  const emailFilenameOptions = useMemo(() => ({
-    template: emailDownloadTemplate,
-    spaceReplacement: filenameSpaceReplacement,
-    lowercase: filenameLowercase,
-    stripDiacritics: filenameStripDiacritics,
-    collapseSeparators: filenameCollapseSeparators,
-  }), [emailDownloadTemplate, filenameSpaceReplacement, filenameLowercase, filenameStripDiacritics, filenameCollapseSeparators]);
   const attachmentFilenameOptions = useMemo(() => ({
     template: attachmentDownloadTemplate,
     spaceReplacement: filenameSpaceReplacement,
@@ -1190,6 +1404,8 @@ export function EmailViewer({
   // and has no bar fixed at the bottom; previous / next move to the top bar.
   const mvMobileViewer = interfaceLayout === 'mountain-view' && isMobile;
   const mvReplyRow = mvViewer || mvMobileViewer;
+  // The phone's bottom action bar: toasts sit above it.
+  const bottomBarRef = useBottomControls(isMobile && !mvMobileViewer);
   // The open conversation around the open message, split at it.
   const mvOpenIndex = (mvViewer || mvMobileViewer) && mvConversation && email ? mvConversation.findIndex((e) => e.id === email.id) : -1;
   const mvBefore = mvOpenIndex > 0 ? mvConversation!.slice(0, mvOpenIndex) : [];
@@ -1276,6 +1492,11 @@ export function EmailViewer({
   const legacyBlobAccountId = isUnifiedView ? email?.sourceAccountId : undefined;
   const blobClient = blobSource ? blobSource.client : legacyBlobClient;
   const blobAccountId = blobSource ? blobSource.accountId : legacyBlobAccountId;
+  const filesFeatureEnabled = usePolicyStore((s) => s.isFeatureEnabled('filesEnabled'));
+  // The blob must be reachable from the Files account's session: the
+  // login's own mail, or a shared or group account of the same login, whose
+  // blob is copied over (Blob/copy). Another login's mail can't be.
+  const canSaveToFiles = filesFeatureEnabled && !!client && blobClient === client && !!client.supportsFiles?.();
 
   // List-Unsubscribe mailto: send the message ourselves - this is a webmail
   // client, handing a mailto: URL to the OS mail handler goes nowhere for
@@ -1287,7 +1508,7 @@ export function EmailViewer({
     const sendClient = (email?.sourceClientAccountId
       ? useAuthStore.getState().getClientForAccount(email.sourceClientAccountId)
       : undefined) ?? client;
-    if (!sendClient) throw new Error('Not connected');
+    if (!sendClient) throw new Error(tNotifications('not_connected'));
 
     const recipientAddresses = [...(email?.to ?? []), ...(email?.cc ?? [])].map(r => r.email?.toLowerCase());
     // In unified views the owning account's identities are not loaded here -
@@ -1306,29 +1527,6 @@ export function EmailViewer({
       throw error;
     }
   };
-  const promptForRescheduleDelayedUntil = useCallback((): string | null => {
-    const value = window.prompt(t('reschedule_prompt'));
-    if (!value) return null;
-    const time = new Date(value).getTime();
-    if (!Number.isFinite(time)) {
-      toast.error(tComposer('schedule_send_invalid'));
-      return null;
-    }
-    if (time <= Date.now()) {
-      toast.error(tComposer('schedule_send_future'));
-      return null;
-    }
-    if (!client?.hasDelayedSend()) {
-      toast.error(tComposer('schedule_send_unsupported'));
-      return null;
-    }
-    const maxDelayedSend = client.getMaxDelayedSend();
-    if (maxDelayedSend > 0 && time > Date.now() + maxDelayedSend * 1000) {
-      toast.error(tComposer('schedule_send_too_late'));
-      return null;
-    }
-    return new Date(time).toISOString();
-  }, [client, t, tComposer]);
   // "Send now" and "Reschedule" submit a replacement and cancel the original;
   // either can fail (a full submission quota, the mail already gone), and the
   // failure used to end up as an unhandled rejection nobody saw.
@@ -1425,6 +1623,11 @@ export function EmailViewer({
   };
   const [showSourceModal, setShowSourceModal] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  // "Save to Files" for an attachment: where the Files app is on and the
+  // message is in the login's own account, whose files hold the blob too.
+  const [saveToFilesTarget, setSaveToFilesTarget] = useState<SaveableAttachment | null>(null);
+  // Reschedule picks the new time in the composer's Schedule send dialog.
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
   // The mobile More panel sits off-canvas with a slide transition. Until
   // the user opens it once, that transition must stay off: on the first
   // paint after the viewer mounts WebKit transitions `translate` from its
@@ -1432,17 +1635,21 @@ export function EmailViewer({
   // and slid out every time a message was opened on a phone.
   const [moreMenuSlideEnabled, setMoreMenuSlideEnabled] = useState(false);
   const [moreMenuSub, setMoreMenuSub] = useState<MoreMenuSub | null>(null);
-  const [tagMenuOpen, setTagMenuOpen] = useState(false);
-  const [moveMenuOpen, setMoveMenuOpen] = useState(false);
+  // The toolbar's Move and Tag menus and, on a desktop, the ⋮ menu: the
+  // ContextMenu, as every menu (R6). The phone keeps its More panel.
+  const moveMenu = useContextMenu<null>();
+  const tagMenu = useContextMenu<null>();
+  const readerMenu = useContextMenu<null>();
+  const moveMenuOpen = moveMenu.contextMenu.isOpen;
+  const tagMenuOpen = tagMenu.contextMenu.isOpen;
+  // What the toolbar shows when the ⋮ opens; the menu leaves those out.
+  const [readerMenuOmit, setReaderMenuOmit] = useState<ReadonlySet<MessageActionKey>>(NO_ACTION_KEYS);
   const moreMenuRef = useRef<HTMLDivElement>(null);
-  const tagMenuRef = useRef<HTMLDivElement>(null);
-  const moveMenuRef = useRef<HTMLDivElement>(null);
   const moreButtonRef = useRef<HTMLButtonElement>(null);
-  const moveButtonRef = useRef<HTMLButtonElement>(null);
   // The rows that open a sub-view, and the pieces of the mobile panel a
   // sub-view replaces. Desktop and mobile never render their More menu at the
   // same time, so one map serves both.
-  const moreEntryRefs = useRef<Record<MoreMenuSub, HTMLButtonElement | null>>({ move: null, tag: null, rules: null });
+  const moreEntryRefs = useRef<Record<MoreMenuSub, HTMLButtonElement | null>>({ move: null, copy_to_account: null, tag: null, rules: null });
   // Filter rules made from the open message; none for a shared account or
   // one without Sieve.
   const rulesEmails = useMemo(() => (email ? [email] : []), [email]);
@@ -1454,23 +1661,12 @@ export function EmailViewer({
   const moreMenuId = useId();
   const toolbarRef = useRef<HTMLDivElement>(null);
   const closeMoreMenu = useCallback(() => { setMoreMenuOpen(false); setMoreMenuSub(null); }, []);
-  const closeMoveMenu = useCallback(() => setMoveMenuOpen(false), []);
-  // Both menus render away from their trigger (a dropdown on desktop, an
-  // off-canvas panel on mobile), so focus has to be driven explicitly (#720).
-  const { menuRef: moreMenuListRef, onKeyDown: onMoreMenuKeyDown } = useMenuNavigation<HTMLDivElement>({
-    open: moreMenuOpen && !isMobile,
-    onClose: closeMoreMenu,
-    triggerRef: moreButtonRef,
-  });
+  // The phone panel renders away from its trigger (an off-canvas panel), so
+  // focus has to be driven explicitly (#720).
   const { menuRef: mobileMoreRef, onKeyDown: onMobileMoreKeyDown } = useMenuNavigation<HTMLDivElement>({
     open: moreMenuOpen && isMobile,
     onClose: closeMoreMenu,
     triggerRef: moreButtonRef,
-  });
-  const { menuRef: moveMenuListRef, onKeyDown: onMoveMenuKeyDown } = useMenuNavigation<HTMLDivElement>({
-    open: moveMenuOpen,
-    onClose: closeMoveMenu,
-    triggerRef: moveButtonRef,
   });
   // Leaving a sub-view unmounts the row that opened it, so focus has to be put
   // back by hand or it falls to <body> and a screen reader is left with nothing
@@ -1496,10 +1692,6 @@ export function EmailViewer({
       next(e);
     },
     [moreMenuSub, leaveMoreMenuSub],
-  );
-  const handleMoreMenuKeyDown = useMemo(
-    () => withSubMenuEscape(onMoreMenuKeyDown),
-    [withSubMenuEscape, onMoreMenuKeyDown],
   );
   const handleMobileMoreKeyDown = useMemo(
     () => withSubMenuEscape(onMobileMoreKeyDown),
@@ -1698,21 +1890,9 @@ export function EmailViewer({
     [mailboxes, selectedMailbox, moveOwnerAccountId],
   );
 
-  // Get mailbox icon based on role
-  const getMoveMailboxIcon = (role?: string) => {
-    switch (role) {
-      case "inbox": return Inbox;
-      case "sent": return Send;
-      case "drafts": return File;
-      case "trash": return Trash2;
-      case "archive": return Archive;
-      default: return Folder;
-    }
-  };
-
   // Close dropdown menus on click outside
   useEffect(() => {
-    if (!moreMenuOpen && !tagMenuOpen && !moveMenuOpen) return;
+    if (!moreMenuOpen) return;
     function handleClickOutside(e: MouseEvent) {
       // On mobile the More menu is an off-canvas panel rendered as a sibling of
       // the toolbar, so it is not inside `moreMenuRef`. Without counting it as
@@ -1724,20 +1904,12 @@ export function EmailViewer({
         setMoreMenuOpen(false);
         setMoreMenuSub(null);
       }
-      if (tagMenuOpen && tagMenuRef.current && !tagMenuRef.current.contains(e.target as Node)) {
-        setTagMenuOpen(false);
-      }
-      if (moveMenuOpen && moveMenuRef.current && !moveMenuRef.current.contains(e.target as Node)) {
-        setMoveMenuOpen(false);
-      }
     }
     // A click into a frame (the message body, a plugin's side panel) never
     // reaches this document; the window losing focus to it is the click away.
     function handleWindowBlur() {
       setMoreMenuOpen(false);
       setMoreMenuSub(null);
-      setTagMenuOpen(false);
-      setMoveMenuOpen(false);
     }
     document.addEventListener('mousedown', handleClickOutside);
     window.addEventListener('blur', handleWindowBlur);
@@ -1745,14 +1917,18 @@ export function EmailViewer({
       document.removeEventListener('mousedown', handleClickOutside);
       window.removeEventListener('blur', handleWindowBlur);
     };
-  }, [moreMenuOpen, tagMenuOpen, moveMenuOpen, mobileMoreRef]);
+  }, [moreMenuOpen, mobileMoreRef]);
 
   // Close dropdowns when email changes
+  const closeMoveMenu = moveMenu.closeContextMenu;
+  const closeTagMenu = tagMenu.closeContextMenu;
+  const closeReaderMenu = readerMenu.closeContextMenu;
   useEffect(() => {
     setMoreMenuOpen(false);
-    setTagMenuOpen(false);
-    setMoveMenuOpen(false);
-  }, [email?.id]);
+    closeTagMenu();
+    closeMoveMenu();
+    closeReaderMenu();
+  }, [email?.id, closeTagMenu, closeMoveMenu, closeReaderMenu]);
 
   // Dynamically detect which toolbar items overflow and should move to the More menu
   useEffect(() => {
@@ -2484,20 +2660,6 @@ export function EmailViewer({
     ro.observe(container);
     return () => ro.disconnect();
   }, [effectiveAttachments, attachmentPosition, imageThumbUrls]);
-
-  // Generate email source for viewing
-  const copySourceToClipboard = async () => {
-    if (!email) return;
-
-    try {
-      const source = generateEmailSource(email);
-      await navigator.clipboard.writeText(source);
-      // Could add a toast notification here
-      console.log(tNotifications('source_copied'));
-    } catch (err) {
-      console.error('Failed to copy source:', err);
-    }
-  };
 
   // Whether external resources must be blocked for the message on screen.
   // Shared by every body path - the message's own HTML, TNEF, unwrapped
@@ -3372,21 +3534,12 @@ export function EmailViewer({
     return () => { window.clearInterval(readyPoll); window.clearTimeout(stop); };
   }, [emailIframeSrcDoc, handleIframeLoad]);
 
-  // Export email as .eml file
+  // Export email as .eml file; the row's menu exports the same way.
+  const exportEmail = useEmailExport();
   const handleExportEmail = async () => {
-    const exportClient = blobSource ? blobSource.client : client;
-    const exportAccountId = blobSource?.accountId;
-    if (!email?.blobId || !exportClient) return;
-    try {
-      await exportClient.downloadBlob(email.blobId, emailExportFilename(email, emailFilenameOptions), 'message/rfc822', exportAccountId);
-    } catch {
-      toast.error(tNotifications('export_email_error'));
-      return;
-    }
-    const action = useSettingsStore.getState().postExportAction;
+    if (!email) return;
     // With the Archive action off a stored 'archive' keeps the message.
-    if (action === 'archive' && archiveActionEnabled) onArchive?.();
-    else if (action === 'trash') onDelete?.();
+    await exportEmail(email, { onArchive, onDelete, archiveEnabled: archiveActionEnabled }, blobSource ?? { client, accountId: undefined });
   };
 
   // Import email from .eml file or .zip archive containing .eml files
@@ -3437,8 +3590,9 @@ export function EmailViewer({
     input.click();
   };
 
-  // Print only the email content in a new window
-  const handlePrint = () => {
+  // Print only the email content in a new window. A print asked for from
+  // the list's row menu brings its own window, opened in that click.
+  const handlePrint = (openedWindow?: Window) => {
     if (!email) return;
     const printSender = email.from?.[0];
     const date = formatDateTime(emailDisplayDate(email), timeFormat, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
@@ -3457,7 +3611,7 @@ export function EmailViewer({
       ? sanitizeEmailHtml(effectiveEmailContent.html)
       : effectiveEmailContent.html;
 
-    const printWindow = window.open('', '_blank');
+    const printWindow = openedWindow ?? window.open('', '_blank');
     if (!printWindow) return;
     // A link in the message that navigates the popup itself (no target, a
     // non-web scheme) would hand the sender's page an opener to redirect
@@ -3496,7 +3650,7 @@ export function EmailViewer({
   <div class="meta">
     <div><strong>${escapeHtml(t('from'))}:</strong> ${escapeHtml(senderText)}</div>
     ${toList ? `<div><strong>${escapeHtml(t('to'))}:</strong> ${toList}</div>` : ''}
-    ${ccList ? `<div><strong>CC:</strong> ${ccList}</div>` : ''}
+    ${ccList ? `<div><strong>${escapeHtml(t('cc'))}:</strong> ${ccList}</div>` : ''}
     ${date ? `<div><strong>${escapeHtml(t('date'))}:</strong> ${escapeHtml(date)}</div>` : ''}
   </div>
 </div>
@@ -3506,6 +3660,17 @@ export function EmailViewer({
     printWindow.focus();
     printWindow.print();
   };
+
+  // Print from the list's row menu: the window waits for this message's body.
+  const printRequest = usePrintRequestStore((state) => state.request);
+  const printReady = !!email && !isLoading && !!email.bodyValues && printRequest?.key === emailKeyFor(email);
+  const handlePrintRef = useRef(handlePrint);
+  handlePrintRef.current = handlePrint;
+  useEffect(() => {
+    if (!printReady || !printRequest) return;
+    usePrintRequestStore.getState().setRequest(null);
+    if (!printRequest.win.closed) handlePrintRef.current(printRequest.win);
+  }, [printReady, printRequest]);
 
   // Detect List-Unsubscribe header for newsletter banners
   const listHeaders = useMemo(() => {
@@ -3866,6 +4031,59 @@ export function EmailViewer({
   const isUnread = !email.keywords?.$seen;
   const isImportant = email.keywords?.["$important"];
 
+  // What the toolbar shows right now: the ⋮ menu and the phone panel leave
+  // those out. Delete and Edit draft are always on the toolbar; on a phone
+  // the bottom bar has the replies.
+  const toolbarShownActions = (): ReadonlySet<MessageActionKey> => {
+    const shown = new Set<MessageActionKey>(['delete', 'edit_draft']);
+    toolbarRef.current?.querySelectorAll<HTMLElement>('[data-overflow-item]').forEach((item) => {
+      const key = TOOLBAR_PRIORITY_ACTIONS[item.dataset.overflowPriority ?? ''];
+      if (key && item.getClientRects().length > 0) shown.add(key);
+    });
+    if (isMobile && !mvMobileViewer) {
+      shown.add('reply');
+      shown.add('reply_all');
+      shown.add('forward');
+    }
+    return shown;
+  };
+  const toggleViewMode = () => setEmailViewDarkOverride(prev => prev === null ? !(resolvedTheme === 'dark') : !prev);
+  // The reader's own entries after the message's: the view toggle, Import
+  // (into the open folder) and, with a keyboard, the shortcuts.
+  const readerExtras: MessageActionEntry[] = [
+    ...(effectiveEmailContent.isHtml
+      ? [{ kind: 'item' as const, key: 'extra:view_mode' as const, icon: isDark ? Sun : Moon, label: isDark ? t('view_in_light_mode') : t('view_in_dark_mode'), run: toggleViewMode }]
+      : []),
+    { kind: 'item', key: 'extra:import', icon: Upload, label: t('import_email'), run: handleImportEmail },
+    ...(onShowShortcuts && !isMobile
+      ? [{ kind: 'item' as const, key: 'extra:shortcuts' as const, icon: Keyboard, label: t('keyboard_shortcuts'), run: onShowShortcuts }]
+      : []),
+  ];
+  const readerActionOptions: MessageActionOptions = {
+    email,
+    currentMailboxRole,
+    canMove: moveTree.length > 0 && !!onMoveToMailbox,
+    canRemoveFromFolder: !!onRemoveFromFolder,
+    onReply: onReply ? () => onReply() : undefined,
+    onReplyAll,
+    onForward,
+    onForwardAsAttachment,
+    onEditDraft,
+    onArchive,
+    onDelete,
+    onMarkAsRead: (read) => onMarkAsRead?.(email.id, read),
+    onToggleStar,
+    onTogglePinned,
+    onRemoveFromFolder,
+    onMarkAsSpam,
+    onUndoSpam,
+    onExport: () => void handleExportEmail(),
+    onPrint: () => handlePrint(),
+    onViewSource: () => setShowSourceModal(true),
+    omit: readerMenuOmit,
+    extras: readerExtras.filter((entry) => entry.kind !== 'item' || !readerMenuOmit.has(entry.key)),
+  };
+
   // Shared toolbar items used by both 'top' and 'below-subject' positions
   const renderToolbarItems = (showBackButton: boolean) => (
     <>
@@ -3879,7 +4097,7 @@ export function EmailViewer({
             className="h-9 w-9 flex-shrink-0 -ms-1"
             aria-label={t('back_to_list')}
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5" />
           </Button>
         )}
         {showBackButton && mvMobileViewer && (
@@ -3918,25 +4136,30 @@ export function EmailViewer({
               title={t('send_now')}
             >
               <Send className="w-4 h-4" />
-              {showToolbarLabels && <span className="hidden sm:inline text-sm">{t('send_now')}</span>}
+              {showToolbarLabels && <span className="hidden sm:inline text-sm whitespace-nowrap">{t('send_now')}</span>}
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
-                const delayedUntil = promptForRescheduleDelayedUntil();
-                if (delayedUntil) void rescheduleScheduled(delayedUntil);
+                setRescheduleOpen(true);
               }}
               className="hidden sm:flex sm:h-8 sm:gap-1.5 sm:py-0"
               title={t('reschedule_send')}
             >
               <CalendarClock className="w-4 h-4" />
-              {showToolbarLabels && <span className="hidden sm:inline text-sm">{t('reschedule_send')}</span>}
+              {showToolbarLabels && <span className="hidden sm:inline text-sm whitespace-nowrap">{t('reschedule_send')}</span>}
             </Button>
             <Button variant="ghost" size="sm" onClick={onCancelScheduledForEdit} className="hidden sm:flex sm:h-8 sm:gap-1.5 sm:py-0" title={email.isSmimeScheduled ? t('cancel_and_compose_again') : t('cancel_and_edit')}>
-              <EditIcon className="w-4 h-4" />
-              {showToolbarLabels && <span className="hidden sm:inline text-sm">{email.isSmimeScheduled ? t('cancel_and_compose_again') : t('cancel_and_edit')}</span>}
+              <Pencil className="w-4 h-4" />
+              {showToolbarLabels && <span className="hidden sm:inline text-sm whitespace-nowrap">{email.isSmimeScheduled ? t('cancel_and_compose_again') : t('cancel_and_edit')}</span>}
             </Button>
+            {onCancelScheduledSend && !email.isSmimeScheduled && (
+              <Button variant="ghost" size="sm" onClick={onCancelScheduledSend} className="hidden sm:flex sm:h-8 sm:gap-1.5 sm:py-0" title={t('cancel_scheduled_send')} data-testid="cancel-scheduled-send">
+                <CalendarX className="w-4 h-4" />
+                {showToolbarLabels && <span className="hidden sm:inline text-sm whitespace-nowrap">{t('cancel_scheduled_send')}</span>}
+              </Button>
+            )}
           </>
         )}
         {!isScheduled && isDraft && onEditDraft && (
@@ -3948,7 +4171,7 @@ export function EmailViewer({
             className="sm:flex sm:flex-row sm:h-8 sm:gap-1.5 sm:py-0"
             title={t('tooltips.edit_draft')}
           >
-            <EditIcon className="w-4 h-4" />
+            <Pencil className="w-4 h-4" />
             <span className="text-sm">{t('edit_draft')}</span>
           </Button>
         )}
@@ -3963,7 +4186,7 @@ export function EmailViewer({
           title={t('tooltips.reply')}
         >
           <Reply className="w-4 h-4" />
-          {showToolbarLabels && <span className="hidden sm:inline text-sm">{t('reply')}</span>}
+          {showToolbarLabels && <span className="hidden sm:inline text-sm whitespace-nowrap">{t('reply')}</span>}
         </Button>
         <Button
           variant="ghost"
@@ -3975,7 +4198,7 @@ export function EmailViewer({
           title={t('tooltips.reply_all')}
         >
           <ReplyAll className="w-4 h-4" />
-          {showToolbarLabels && <span className="hidden sm:inline text-sm">{t('reply_all')}</span>}
+          {showToolbarLabels && <span className="hidden sm:inline text-sm whitespace-nowrap">{t('reply_all')}</span>}
         </Button>
         <Button
           variant="ghost"
@@ -3987,7 +4210,7 @@ export function EmailViewer({
           title={t('tooltips.forward')}
         >
           <Forward className="w-4 h-4" />
-          {showToolbarLabels && <span className="hidden sm:inline text-sm">{t('forward')}</span>}
+          {showToolbarLabels && <span className="hidden sm:inline text-sm whitespace-nowrap">{t('forward')}</span>}
         </Button>
         </>)}
         <PluginSlot name="toolbar-actions" />
@@ -4034,12 +4257,15 @@ export function EmailViewer({
         </Button>
         {/* Move to folder */}
         {moveTree.length > 0 && onMoveToMailbox && (
-          <div ref={moveMenuRef} data-overflow-item data-overflow-priority="5" className={cn("relative", mvViewer && "order-6")}>
+          <div data-overflow-item data-overflow-priority="5" className={cn("relative", mvViewer && "order-6")}>
             <Button
-              ref={moveButtonRef}
               variant="ghost"
               size="sm"
-              onClick={() => { setMoveMenuOpen(!moveMenuOpen); setMoreMenuOpen(false); setTagMenuOpen(false); }}
+              onMouseDown={(e) => { if (moveMenuOpen) e.stopPropagation(); }}
+              onClick={(e) => {
+                if (moveMenuOpen) closeMoveMenu();
+                else { setMoreMenuOpen(false); moveMenu.openContextMenuFrom(e.currentTarget, null, 'end'); }
+              }}
               className="flex-col items-center gap-0.5 h-auto py-1.5 px-2 sm:flex-row sm:h-8 sm:gap-1.5 sm:py-0"
               title={t('move_to')}
               aria-label={t('move_to')}
@@ -4049,75 +4275,47 @@ export function EmailViewer({
               <FolderInput className="w-4 h-4" />
               {showToolbarLabels && <span className="text-[10px] leading-tight sm:text-sm">{t('move')}</span>}
             </Button>
-            {moveMenuOpen && (
-              <div
-                ref={moveMenuListRef}
-                onKeyDown={onMoveMenuKeyDown}
-                role="menu"
-                aria-label={t('move_to')}
-                className="absolute end-0 top-full mt-1 py-1 w-48 max-h-72 overflow-y-auto bg-background rounded-lg shadow-lg border border-border z-10"
-              >
-                {(() => {
-                  const renderNodes = (nodes: MailboxNode[], depth = 0) => {
-                    return nodes.map((node) => {
-                      const Icon = getMoveMailboxIcon(node.role);
-                      const isTarget = moveTargetIds.has(node.id);
-                      return (
-                        <div key={node.id}>
-                          {isTarget ? (
-                            <button
-                              role="menuitem"
-                              onClick={() => { onMoveToMailbox(node.id); setMoveMenuOpen(false); }}
-                              className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted flex items-center gap-2"
-                              style={{ paddingLeft: `${0.75 + depth * 1}rem` }}
-                            >
-                              <Icon className="w-4 h-4 flex-shrink-0" />
-                              <span className="truncate">{node.name}</span>
-                            </button>
-                          ) : (
-                            <div
-                              className="px-3 py-1.5 text-sm flex items-center gap-2 text-muted-foreground"
-                              style={{ paddingLeft: `${0.75 + depth * 1}rem` }}
-                            >
-                              <Icon className="w-4 h-4 flex-shrink-0" />
-                              <span>{node.name}</span>
-                            </div>
-                          )}
-                          {node.children.length > 0 && renderNodes(node.children, depth + 1)}
-                        </div>
-                      );
-                    });
-                  };
-                  return renderNodes(moveTree);
-                })()}
+            <ContextMenu ref={moveMenu.menuRef} isOpen={moveMenuOpen} position={moveMenu.contextMenu.position} onClose={closeMoveMenu} label={t('move_to')}>
+              <div className="w-56 max-h-72 overflow-y-auto">
+                <MoveTargetList
+                  tree={moveTree}
+                  targetIds={moveTargetIds}
+                  onPick={(mailboxId) => { onMoveToMailbox(mailboxId); closeMoveMenu(); }}
+                />
               </div>
-            )}
+            </ContextMenu>
           </div>
         )}
         {/* Tag Picker - hidden on mobile, overflows to More menu */}
         <div data-overflow-item data-overflow-priority="6" className={cn("hidden sm:flex items-center", mvViewer && "order-7")}>
         {!mvViewer && <div className="w-px h-5 bg-border mx-0.5" />}
-        <div ref={tagMenuRef} className="relative">
-          <button
-            onClick={() => { setTagMenuOpen(!tagMenuOpen); setMoreMenuOpen(false); setMoveMenuOpen(false); }}
-            className="h-8 rounded hover:bg-muted flex items-center gap-1.5 px-2"
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            onMouseDown={(e) => { if (tagMenuOpen) e.stopPropagation(); }}
+            onClick={(e) => {
+              if (tagMenuOpen) closeTagMenu();
+              else { setMoreMenuOpen(false); tagMenu.openContextMenuFrom(e.currentTarget, null, 'end'); }
+            }}
+            className="h-8 gap-1.5 px-2"
             title={t('set_tag')}
             aria-label={t('set_tag')}
-            aria-haspopup="true"
+            aria-haspopup="menu"
             aria-expanded={tagMenuOpen}
           >
             <Tag className="w-4 h-4" />
             {showToolbarLabels && <span className="text-[10px] leading-tight sm:text-sm">{t('tag')}</span>}
-          </button>
-          {tagMenuOpen && (
-            <div className="absolute end-0 top-full mt-1 py-1 w-56 bg-background rounded-md shadow-lg border border-border z-10">
+          </Button>
+          <ContextMenu ref={tagMenu.menuRef} isOpen={tagMenuOpen} position={tagMenu.contextMenu.position} onClose={closeTagMenu} label={t('tag')}>
+            <div className="w-56">
               <TagPicker
                 selectedIds={currentTagIds}
                 scope={tagScope}
                 onToggle={(tagId) => { if (email) onSetTag?.(email.id, tagId); }}
               />
             </div>
-          )}
+          </ContextMenu>
         </div>
         </div>
 
@@ -4133,16 +4331,16 @@ export function EmailViewer({
               "flex-col items-center gap-0.5 h-auto py-1.5 px-2 sm:flex-row sm:h-8 sm:gap-1.5 sm:py-0",
               mvViewer
                 ? "order-2"
-                : isInJunkFolder ? "hover:bg-green-50 dark:hover:bg-green-950/30" : "hover:bg-red-50 dark:hover:bg-red-950/30"
+                : isInJunkFolder ? "hover:bg-emerald-50 dark:hover:bg-emerald-950/30" : "hover:bg-red-50 dark:hover:bg-red-950/30"
             )}
             title={isInJunkFolder ? t('spam.not_spam_title') : t('spam.button_title')}
           >
             {isInJunkFolder ? (
-              <ShieldCheck className={cn("h-4 w-4", !mvViewer && "text-green-600 dark:text-green-400")} />
+              <ShieldCheck className={cn("h-4 w-4", !mvViewer && "text-emerald-600 dark:text-emerald-400")} />
             ) : (
               <ShieldAlert className={cn("h-4 w-4", !mvViewer && "text-red-600 dark:text-red-400")} />
             )}
-            {showToolbarLabels && <span className="text-[10px] leading-tight sm:text-sm">{isInJunkFolder ? t('not_spam_short') : t('spam_short')}</span>}
+            {showToolbarLabels && <span className="text-[10px] leading-tight sm:text-sm">{isInJunkFolder ? t('spam.not_spam_title') : t('spam.button_title')}</span>}
           </Button>
         )}
 
@@ -4177,14 +4375,14 @@ export function EmailViewer({
         <Button
           variant="ghost"
           size="sm"
-          onClick={handlePrint}
+          onClick={() => handlePrint()}
           data-overflow-item
           data-overflow-priority="9"
           className="hidden sm:inline-flex h-8 gap-1.5"
           title={t('print')}
         >
           <Printer className="w-4 h-4" />
-          {showToolbarLabels && <span className="hidden sm:inline text-sm">{t('print')}</span>}
+          {showToolbarLabels && <span className="hidden sm:inline text-sm whitespace-nowrap">{t('print')}</span>}
         </Button>
         )}
 
@@ -4235,7 +4433,8 @@ export function EmailViewer({
         </Button>
         )}
 
-        {/* More menu - click-based */}
+        {/* More: the message's action list (R6). On a desktop the ContextMenu,
+            on a phone the More panel. */}
         <div ref={moreMenuRef} className={cn("relative", mvViewer && "order-9")}>
           <Button
             ref={moreButtonRef}
@@ -4245,316 +4444,40 @@ export function EmailViewer({
             title={t('more_actions')}
             aria-label={t('more_actions')}
             aria-haspopup="menu"
-            aria-expanded={moreMenuOpen}
-            aria-controls={moreMenuOpen ? moreMenuId : undefined}
-            onClick={() => { setMoreMenuOpen(!moreMenuOpen); setMoreMenuSlideEnabled(true); setMoreMenuSub(null); setTagMenuOpen(false); setMoveMenuOpen(false); }}
+            aria-expanded={isMobile ? moreMenuOpen : readerMenu.contextMenu.isOpen}
+            aria-controls={isMobile && moreMenuOpen ? moreMenuId : undefined}
+            onMouseDown={(e) => { if (!isMobile && readerMenu.contextMenu.isOpen) e.stopPropagation(); }}
+            onClick={(e) => {
+              closeTagMenu();
+              closeMoveMenu();
+              if (isMobile) {
+                if (!moreMenuOpen) setReaderMenuOmit(toolbarShownActions());
+                setMoreMenuOpen(!moreMenuOpen);
+                setMoreMenuSlideEnabled(true);
+                setMoreMenuSub(null);
+                return;
+              }
+              if (readerMenu.contextMenu.isOpen) {
+                closeReaderMenu();
+                return;
+              }
+              setReaderMenuOmit(toolbarShownActions());
+              readerMenu.openContextMenuFrom(e.currentTarget, null, 'end');
+            }}
           >
             <MoreVertical className="w-4 h-4 text-muted-foreground" />
             {interfaceLayout !== 'mountain-view' && <span className="text-[10px] leading-tight sm:hidden">{t('more_actions')}</span>}
           </Button>
-          {moreMenuOpen && !isMobile && (
-            <div
-              ref={moreMenuListRef}
-              onKeyDown={handleMoreMenuKeyDown}
-              id={moreMenuId}
-              role="menu"
-              aria-label={t('more_actions')}
-              className="absolute end-0 top-full mt-1 w-48 bg-background rounded-md shadow-lg border border-border z-10 py-1"
-            >
-              {/* Star toggle */}
-              <button
-                role="menuitem"
-                onClick={() => { onToggleStar?.(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-              >
-                <Star className={cn("w-4 h-4", isStarred && "fill-yellow-400 text-yellow-400")} />
-                {isStarred ? t('tooltips.unstar') : t('tooltips.star')}
-              </button>
-              {/* Overflow: reply */}
-              <button
-                role="menuitem"
-                onClick={() => { onReply?.(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                className={cn("w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2", hiddenPriorities.has(1) ? "" : "sm:hidden")}
-              >
-                <Reply className="w-4 h-4" />
-                {t('reply')}
-              </button>
-              {/* Overflow: reply all */}
-              <button
-                role="menuitem"
-                onClick={() => { onReplyAll?.(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                className={cn("w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2", hiddenPriorities.has(2) ? "" : "sm:hidden")}
-              >
-                <ReplyAll className="w-4 h-4" />
-                {t('reply_all')}
-              </button>
-              {/* Overflow: forward */}
-              <button
-                role="menuitem"
-                onClick={() => { onForward?.(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                className={cn("w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2", hiddenPriorities.has(3) ? "" : "sm:hidden")}
-              >
-                <Forward className="w-4 h-4" />
-                {t('forward')}
-              </button>
-              {/* Overflow: archive */}
-              {archiveActionEnabled && (
-                <button
-                  role="menuitem"
-                  onClick={() => { onArchive?.(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                  className={cn("w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2", hiddenPriorities.has(4) ? "" : "sm:hidden")}
-                >
-                  <Archive className="w-4 h-4" />
-                  {t('archive')}
-                </button>
-              )}
-              {/* Overflow: move to folder - submenu */}
-              {moveTree.length > 0 && onMoveToMailbox && (
-                <div className={cn("relative", hiddenPriorities.has(5) ? "" : "sm:hidden")}
-                  onMouseEnter={() => setMoreMenuSub('move')}
-                  onMouseLeave={() => setMoreMenuSub(null)}
-                >
-                  <button
-                    ref={(el) => { moreEntryRefs.current.move = el; }}
-                    role="menuitem"
-                    aria-haspopup="menu"
-                    aria-expanded={moreMenuSub === 'move'}
-                    onClick={() => { if (moreMenuSub === 'move') leaveMoreMenuSub(); else setMoreMenuSub('move'); }}
-                    className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-                  >
-                    <FolderInput className="w-4 h-4" />
-                    <span className="flex-1">{t('move_to')}</span>
-                    <ChevronRight className="w-3 h-3 text-muted-foreground" />
-                  </button>
-                  {moreMenuSub === 'move' && (
-                    <SubMenuPanel
-                      side="start"
-                      role="menu"
-                      aria-label={t('move_to')}
-                      className="py-1 w-48 max-h-72 overflow-y-auto bg-background rounded-md shadow-lg border border-border"
-                    >
-                      {(() => {
-                        const renderMobileNodes = (nodes: MailboxNode[], depth = 0) => {
-                          return nodes.map((node) => {
-                            const Icon = getMoveMailboxIcon(node.role);
-                            const isTarget = moveTargetIds.has(node.id);
-                            return (
-                              <div key={node.id}>
-                                {isTarget ? (
-                                  <button
-                                    role="menuitem"
-                                    onClick={() => { onMoveToMailbox(node.id); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                                    className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted flex items-center gap-2"
-                                    style={{ paddingLeft: `${0.75 + depth * 1}rem` }}
-                                  >
-                                    <Icon className="w-4 h-4 flex-shrink-0" />
-                                    <span className="truncate">{node.name}</span>
-                                  </button>
-                                ) : (
-                                  <div
-                                    className="px-3 py-1.5 text-sm flex items-center gap-2 text-muted-foreground"
-                                    style={{ paddingLeft: `${0.75 + depth * 1}rem` }}
-                                  >
-                                    <Icon className="w-4 h-4 flex-shrink-0" />
-                                    <span>{node.name}</span>
-                                  </div>
-                                )}
-                                {node.children.length > 0 && renderMobileNodes(node.children, depth + 1)}
-                              </div>
-                            );
-                          });
-                        };
-                        return renderMobileNodes(moveTree);
-                      })()}
-                    </SubMenuPanel>
-                  )}
-                </div>
-              )}
-              {onRemoveFromFolder && (
-                <button
-                  role="menuitem"
-                  data-testid="viewer-remove-from-folder"
-                  onClick={() => { onRemoveFromFolder(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                  className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-                >
-                  <FolderX className="w-4 h-4" />
-                  {tContextMenu('remove_from_folder')}
-                </button>
-              )}
-              {/* Overflow: tag - submenu */}
-              {(emailKeywords.length > 0 || currentTagIds.length > 0) && (
-                <div className={cn("relative", hiddenPriorities.has(6) ? "" : "sm:hidden")}
-                  onMouseEnter={() => setMoreMenuSub('tag')}
-                  onMouseLeave={() => setMoreMenuSub(null)}
-                >
-                  <button
-                    ref={(el) => { moreEntryRefs.current.tag = el; }}
-                    role="menuitem"
-                    aria-haspopup="menu"
-                    aria-expanded={moreMenuSub === 'tag'}
-                    onClick={() => { if (moreMenuSub === 'tag') leaveMoreMenuSub(); else setMoreMenuSub('tag'); }}
-                    className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-                  >
-                    <Tag className="w-4 h-4" />
-                    <span className="flex-1">{t('tag')}</span>
-                    <ChevronRight className="w-3 h-3 text-muted-foreground" />
-                  </button>
-                  {moreMenuSub === 'tag' && (
-                    <SubMenuPanel
-                      side="start"
-                      role="menu"
-                      aria-label={t('tag')}
-                      className="py-1 w-56 bg-background rounded-md shadow-lg border border-border"
-                    >
-                      <TagPicker
-                        selectedIds={currentTagIds}
-                        scope={tagScope}
-                        onToggle={(tagId) => { if (email) onSetTag?.(email.id, tagId); }}
-                      />
-                    </SubMenuPanel>
-                  )}
-                </div>
-              )}
-              {/* Rules - sub-view of one-click filter rules */}
-              {rulesAvailability === 'available' && rulesTarget && email && (
-                <div className="relative"
-                  onMouseEnter={() => setMoreMenuSub('rules')}
-                  onMouseLeave={() => setMoreMenuSub(null)}
-                >
-                  <button
-                    ref={(el) => { moreEntryRefs.current.rules = el; }}
-                    role="menuitem"
-                    aria-haspopup="menu"
-                    aria-expanded={moreMenuSub === 'rules'}
-                    data-testid="viewer-rules"
-                    onClick={() => { if (moreMenuSub === 'rules') leaveMoreMenuSub(); else setMoreMenuSub('rules'); }}
-                    className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-                  >
-                    <Filter className="w-4 h-4" />
-                    <span className="flex-1">{tContextMenu('rules.title')}</span>
-                    <ChevronRight className="w-3 h-3 text-muted-foreground" />
-                  </button>
-                  {moreMenuSub === 'rules' && (
-                    <SubMenuPanel
-                      side="start"
-                      role="menu"
-                      aria-label={tContextMenu('rules.title')}
-                      className="py-1 w-72 max-h-80 overflow-y-auto bg-background rounded-md shadow-lg border border-border"
-                    >
-                      <RulesPanel email={email} target={rulesTarget} variant="desktop" onDone={closeMoreMenu} />
-                    </SubMenuPanel>
-                  )}
-                </div>
-              )}
-              {/* Overflow: spam */}
-              {spamApplicable && (onMarkAsSpam || onUndoSpam) && (
-                <button
-                  role="menuitem"
-                  onClick={() => { (isInJunkFolder ? onUndoSpam : onMarkAsSpam)?.(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                  className={cn("w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2", hiddenPriorities.has(7) ? "" : "sm:hidden")}
-                >
-                  {isInJunkFolder ? (
-                    <ShieldCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  ) : (
-                    <ShieldAlert className="h-4 w-4 text-red-600 dark:text-red-400" />
-                  )}
-                  {isInJunkFolder ? t('spam.not_spam_title') : t('spam.button_title')}
-                </button>
-              )}
-              {/* Overflow: toggle read */}
-              <button
-                role="menuitem"
-                onClick={() => { onMarkAsRead?.(email.id, isUnread); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                className={cn("w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2", hiddenPriorities.has(8) ? "" : "sm:hidden")}
-              >
-                {isUnread ? <MailOpen className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
-                {isUnread ? t('mark_read') : t('mark_unread')}
-              </button>
-              {/* Overflow: print */}
-              <button
-                role="menuitem"
-                onClick={() => { handlePrint(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                className={cn("w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2", hiddenPriorities.has(9) ? "" : "sm:hidden")}
-              >
-                <Printer className="w-4 h-4" />
-                {t('print')}
-              </button>
-              {/* Overflow: view source */}
-              <button
-                role="menuitem"
-                onClick={() => { setShowSourceModal(true); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                className={cn("w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2", hiddenPriorities.has(10) ? "" : "sm:hidden")}
-              >
-                <Code className="w-4 h-4" />
-                {t('view_source')}
-              </button>
-              {/* Overflow: dark/light mode toggle */}
-              {effectiveEmailContent.isHtml && (
-                <button
-                  role="menuitem"
-                  onClick={() => { setEmailViewDarkOverride(prev => prev === null ? !(resolvedTheme === 'dark') : !prev); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                  className={cn("w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2", hiddenPriorities.has(11) ? "" : "sm:hidden")}
-                >
-                  {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                  {isDark ? t('view_in_light_mode') : t('view_in_dark_mode')}
-                </button>
-              )}
-              <div className="h-px bg-border my-1" />
-              {/* Permalink to this message (#733) */}
-              {email && (
-                <button
-                  role="menuitem"
-                  onClick={() => {
-                    void copyLink(buildMailPath({ mailboxId: null, emailId: email.id, threadId: null, ...emailLinkSource(email) }));
-                    setMoreMenuOpen(false);
-                    setMoreMenuSub(null);
-                  }}
-                  className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-                >
-                  <LinkIcon className="w-4 h-4" />
-                  {tDeepLink('copy_message')}
-                </button>
-              )}
-              {/* Forward as attachment */}
-              {onForwardAsAttachment && email?.blobId && (
-                <button
-                  role="menuitem"
-                  onClick={() => { onForwardAsAttachment(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                  className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-                >
-                  <Paperclip className="w-4 h-4" />
-                  {t('forward_as_attachment')}
-                </button>
-              )}
-              {/* Export email */}
-              <button
-                role="menuitem"
-                onClick={() => { handleExportEmail(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                {t('export_email')}
-              </button>
-              {/* Import email */}
-              <button
-                role="menuitem"
-                onClick={() => { handleImportEmail(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-              >
-                <Upload className="w-4 h-4" />
-                {t('import_email')}
-              </button>
-              {onShowShortcuts && (
-                <button
-                  role="menuitem"
-                  onClick={() => { onShowShortcuts(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                  className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
-                >
-                  <Keyboard className="w-4 h-4" />
-                  {t('keyboard_shortcuts')}
-                </button>
-              )}
-            </div>
+          {readerMenu.contextMenu.isOpen && !isMobile && (
+            <ReaderMoreMenu
+              menu={readerMenu}
+              options={readerActionOptions}
+              label={t('more_actions')}
+              mailboxes={mailboxes}
+              selectedMailbox={selectedMailbox}
+              onMoveToMailbox={onMoveToMailbox}
+              onSetTag={onSetTag ? (tagId) => onSetTag(email.id, tagId) : undefined}
+            />
           )}
         </div>
         {/* The plugin side panel: shown or hidden for every message alike. */}
@@ -4644,11 +4567,11 @@ export function EmailViewer({
         inert={!moreMenuOpen}
         className={cn(
         "bg-background border-s border-border z-[70]",
-        isPaneScoped ? "absolute inset-y-0 right-0 w-72" : "fixed inset-y-0 right-0 w-72 sm:hidden",
+        isPaneScoped ? "absolute inset-y-0 end-0 w-72" : "fixed inset-y-0 end-0 w-72 sm:hidden",
         "transform",
         moreMenuSlideEnabled && "transition-transform duration-300 ease-in-out",
         "flex flex-col",
-        moreMenuOpen ? "translate-x-0" : "translate-x-full"
+        moreMenuOpen ? "translate-x-0" : "translate-x-full rtl:-translate-x-full"
       )}>
         {/* The fixed panel spans the full viewport height, so in the iOS PWA
             its header would sit under the status bar without the safe-area
@@ -4664,218 +4587,44 @@ export function EmailViewer({
               onClick={leaveMoreMenuSub}
               className="flex items-center gap-1 -ms-2 px-2 py-1 rounded hover:bg-muted text-sm font-semibold text-foreground"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ArrowLeft className="w-5 h-5" />
               {moreMenuSub === 'move' ? t('move_to') : moreMenuSub === 'rules' ? tContextMenu('rules.title') : t('tag')}
             </button>
           ) : (
             <span className="text-sm font-semibold text-foreground">{t('more_actions')}</span>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
+          <IconButton
+            size="icon-lg"
             role="menuitem"
-            aria-label={tCommon('close')}
+            label={tCommon('close')}
+            data-testid="more-panel-close"
             onClick={() => { setMoreMenuOpen(false); setMoreMenuSub(null); }}
-            className="h-9 w-9"
+            className="-me-2"
           >
             <X className="w-5 h-5" />
-          </Button>
+          </IconButton>
         </div>
         <div ref={mobileSubListRef} className="flex-1 overflow-y-auto py-2">
-          {moreMenuSub === null && (
-            <>
-              {/* Star toggle */}
-              <button
-                role="menuitem"
-                onClick={() => { onToggleStar?.(); setMoreMenuOpen(false); }}
-                className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-              >
-                <Star className={cn("w-5 h-5", isStarred && "fill-yellow-400 text-yellow-400")} />
-                {isStarred ? t('tooltips.unstar') : t('tooltips.star')}
-              </button>
-              {/* Move to folder (opens sub-view). The toolbar's own Move button
-                  is the first thing dropped when the toolbar runs out of room,
-                  and on mobile the overflow has nowhere else to go - without
-                  this row a narrow screen loses the action entirely (#779). */}
-              {moveTree.length > 0 && onMoveToMailbox && (
-                <button
-                  ref={(el) => { moreEntryRefs.current.move = el; }}
-                  role="menuitem"
-                  aria-haspopup="menu"
-                  onClick={() => setMoreMenuSub('move')}
-                  className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-                >
-                  <FolderInput className="w-5 h-5" />
-                  <span className="flex-1">{t('move_to')}</span>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </button>
-              )}
-              {onRemoveFromFolder && (
-                <button
-                  role="menuitem"
-                  onClick={() => { onRemoveFromFolder(); setMoreMenuOpen(false); }}
-                  className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-                >
-                  <FolderX className="w-5 h-5" />
-                  {tContextMenu('remove_from_folder')}
-                </button>
-              )}
-              {/* Tag (opens sub-view) */}
-              {(emailKeywords.length > 0 || currentTagIds.length > 0) && (
-                <button
-                  ref={(el) => { moreEntryRefs.current.tag = el; }}
-                  role="menuitem"
-                  aria-haspopup="menu"
-                  onClick={() => setMoreMenuSub('tag')}
-                  className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-                >
-                  <Tag className="w-5 h-5" />
-                  <span className="flex-1">{t('tag')}</span>
-                  {currentTagIds.length > 0 && (
-                    <div className="flex -space-x-1 me-1">
-                      {sortedTagIds.slice(0, 3).map((tagId) => (
-                        <span
-                          key={tagId}
-                          className={cn("w-3 h-3 rounded-full border border-background", tagColor(tagId).dot)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </button>
-              )}
-              {/* Rules (opens sub-view) */}
-              {rulesAvailability === 'available' && rulesTarget && email && (
-                <button
-                  ref={(el) => { moreEntryRefs.current.rules = el; }}
-                  role="menuitem"
-                  aria-haspopup="menu"
-                  data-testid="viewer-rules"
-                  onClick={() => setMoreMenuSub('rules')}
-                  className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-                >
-                  <Filter className="w-5 h-5" />
-                  <span className="flex-1">{tContextMenu('rules.title')}</span>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </button>
-              )}
-              <button
-                role="menuitem"
-                onClick={() => { handlePrint(); setMoreMenuOpen(false); }}
-                className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-              >
-                <Printer className="w-5 h-5" />
-                {t('print')}
-              </button>
-              <button
-                role="menuitem"
-                onClick={() => { setShowSourceModal(true); setMoreMenuOpen(false); }}
-                className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-              >
-                <Code className="w-5 h-5" />
-                {t('view_source')}
-              </button>
-              {effectiveEmailContent.isHtml && (
-                <button
-                  role="menuitem"
-                  onClick={() => { setEmailViewDarkOverride(prev => prev === null ? !(resolvedTheme === 'dark') : !prev); setMoreMenuOpen(false); }}
-                  className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-                >
-                  {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                  {isDark ? t('view_in_light_mode') : t('view_in_dark_mode')}
-                </button>
-              )}
-              <div className="h-px bg-border my-1" />
-              {onForwardAsAttachment && email?.blobId && (
-                <button
-                  role="menuitem"
-                  onClick={() => { onForwardAsAttachment(); setMoreMenuOpen(false); }}
-                  className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-                >
-                  <Paperclip className="w-5 h-5" />
-                  {t('forward_as_attachment')}
-                </button>
-              )}
-              <button
-                role="menuitem"
-                onClick={() => { handleExportEmail(); setMoreMenuOpen(false); }}
-                className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-              >
-                <Download className="w-5 h-5" />
-                {t('export_email')}
-              </button>
-              <button
-                role="menuitem"
-                onClick={() => { handleImportEmail(); setMoreMenuOpen(false); }}
-                className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-              >
-                <Upload className="w-5 h-5" />
-                {t('import_email')}
-              </button>
-              {onShowShortcuts && (
-                <button
-                  role="menuitem"
-                  onClick={() => { onShowShortcuts(); setMoreMenuOpen(false); }}
-                  className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
-                >
-                  <Keyboard className="w-5 h-5" />
-                  {t('keyboard_shortcuts')}
-                </button>
-              )}
-              {email && (
-                <PluginPanelEntries
-                  surface="reader-actions"
-                  context={readerActionContext}
-                  target={readerActionTarget}
-                  mailboxRole={currentMailboxRole ?? null}
-                  onRan={() => setMoreMenuOpen(false)}
-                />
-              )}
-            </>
-          )}
-          {moreMenuSub === 'move' && moveTree.length > 0 && onMoveToMailbox && (() => {
-            const renderMobileNodes = (nodes: MailboxNode[], depth = 0) => {
-              return nodes.map((node) => {
-                const Icon = getMoveMailboxIcon(node.role);
-                const isTarget = moveTargetIds.has(node.id);
-                return (
-                  <div key={node.id}>
-                    {isTarget ? (
-                      <button
-                        role="menuitem"
-                        onClick={() => { onMoveToMailbox(node.id); setMoreMenuOpen(false); setMoreMenuSub(null); }}
-                        className="w-full px-4 py-2.5 min-h-[44px] text-sm text-start hover:bg-muted flex items-center gap-3"
-                        style={{ paddingLeft: `${1 + depth * 1}rem` }}
-                      >
-                        <Icon className="w-5 h-5 flex-shrink-0" />
-                        <span className="truncate">{node.name}</span>
-                      </button>
-                    ) : (
-                      <div
-                        className="px-4 py-2.5 min-h-[44px] text-sm flex items-center gap-3 text-muted-foreground"
-                        style={{ paddingLeft: `${1 + depth * 1}rem` }}
-                      >
-                        <Icon className="w-5 h-5 flex-shrink-0" />
-                        <span>{node.name}</span>
-                      </div>
-                    )}
-                    {node.children.length > 0 && renderMobileNodes(node.children, depth + 1)}
-                  </div>
-                );
-              });
-            };
-            return renderMobileNodes(moveTree);
-          })()}
-          {moreMenuSub === 'tag' && (
-            <TagPicker
-              touch
-              selectedIds={currentTagIds}
-              scope={tagScope}
-              onToggle={(tagId) => { if (email) onSetTag?.(email.id, tagId); }}
+          {/* Mounted from the first open on, so it doesn't cost a message
+              open and the panel isn't empty while it slides out. */}
+          {moreMenuSlideEnabled && (
+            <ReaderMorePanelBody
+              options={readerActionOptions}
+              sub={moreMenuSub}
+              openSub={setMoreMenuSub}
+              close={closeMoreMenu}
+              entryRefs={moreEntryRefs}
+              moveTree={moveTree}
+              moveTargetIds={moveTargetIds}
+              onMoveToMailbox={onMoveToMailbox}
+              currentTagIds={currentTagIds}
+              sortedTagIds={sortedTagIds}
+              tagScope={tagScope}
+              onToggleTag={(tagId) => onSetTag?.(email.id, tagId)}
+              rulesTarget={rulesAvailability === 'available' ? rulesTarget ?? null : null}
+              pluginContext={readerActionContext}
+              pluginTarget={readerActionTarget}
             />
-          )}
-          {moreMenuSub === 'rules' && rulesAvailability === 'available' && rulesTarget && email && (
-            <RulesPanel email={email} target={rulesTarget} variant="mobile" onDone={closeMoreMenu} />
           )}
         </div>
       </div>
@@ -4905,12 +4654,12 @@ export function EmailViewer({
                 className="h-11 w-11 lg:h-10 lg:w-10 flex-shrink-0 -ms-2"
                 aria-label={t('back_to_list')}
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ArrowLeft className="w-5 h-5" />
               </Button>
             )}
             <div className="flex-1 min-w-0">
               <div className="flex items-start gap-2">
-                <h1 className={cn(
+                <h1 dir="auto" className={cn(
                   "text-foreground break-words min-w-0",
                   mvViewer ? "text-[22px] leading-7 font-normal" : "text-lg lg:text-xl font-bold tracking-tight"
                 )}>
@@ -4925,16 +4674,19 @@ export function EmailViewer({
                 {/* Star inline with subject (top toolbar mode). Mountain View
                     has it on the sender's line instead. */}
                 {toolbarPosition === 'top' && !mvViewer && (
-                  <button
+                  <IconButton
                     onClick={onToggleStar}
-                    className="flex-shrink-0 p-1 rounded hover:bg-muted transition-colors"
+                    label={isStarred ? t('unstar') : t('star')}
                     title={isStarred ? t('tooltips.unstar') : t('tooltips.star')}
+                    aria-pressed={!!isStarred}
+                    data-testid="subject-star"
+                    className="flex-shrink-0 -my-1"
                   >
                     <Star className={cn(
                       "w-4 h-4 lg:w-5 lg:h-5 transition-colors",
-                      isStarred ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/40"
+                      isStarred ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"
                     )} />
-                  </button>
+                  </IconButton>
                 )}
                 {isImportant && (
                   <span className="px-1.5 lg:px-2 py-0.5 bg-warning/15 text-warning rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 self-center">
@@ -4966,7 +4718,7 @@ export function EmailViewer({
               <div className="hidden lg:flex items-center flex-shrink-0 -me-2" data-mv-subject-actions="">
                 <button
                   type="button"
-                  onClick={handlePrint}
+                  onClick={() => handlePrint()}
                   className="grid place-items-center w-10 h-10 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                   title={t('print')}
                   aria-label={t('print')}
@@ -4994,7 +4746,7 @@ export function EmailViewer({
               </span>
               {email.size > 0 && (
                 <div className="text-xs text-muted-foreground/60">
-                  {formatFileSize(email.size)}
+                  <bdi>{formatFileSize(email.size)}</bdi>
                 </div>
               )}
             </div>
@@ -5117,7 +4869,7 @@ export function EmailViewer({
                           onClick={onToggleStar}
                           className="grid place-items-center w-10 h-10 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                           title={isStarred ? t('tooltips.unstar') : t('tooltips.star')}
-                          aria-label={isStarred ? t('tooltips.unstar') : t('tooltips.star')}
+                          aria-label={isStarred ? t('unstar') : t('star')}
                           aria-pressed={!!isStarred}
                         >
                           <Star className={cn("w-5 h-5", isStarred && "fill-amber-400 text-amber-400")} />
@@ -5128,7 +4880,7 @@ export function EmailViewer({
                             onClick={() => onReply?.()}
                             className="grid place-items-center w-10 h-10 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                             title={t('tooltips.reply')}
-                            aria-label={t('tooltips.reply')}
+                            aria-label={t('reply')}
                           >
                             <Reply className="w-5 h-5" />
                           </button>
@@ -5152,7 +4904,7 @@ export function EmailViewer({
                     {email.to.length > 2 && (
                       <button
                         onClick={() => setShowFullHeaders(!showFullHeaders)}
-                        className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                        className="text-primary hover:underline text-sm"
                       >
                         {t('more_count', { count: email.to.length - 2 })}
                       </button>
@@ -5162,10 +4914,15 @@ export function EmailViewer({
                 {email.cc && email.cc.length > 0 && (
                   <>
                     <span className="text-muted-foreground/50">|</span>
-                    <span>CC:</span>
+                    <span>{t('cc')}:</span>
                     {renderClickableRecipients(email.cc, currentUserEmail, t, handleViewContactSidebar)}
                     {email.cc.length > 2 && (
-                      <span className="text-muted-foreground">+{email.cc.length - 2}</span>
+                      <button
+                        onClick={() => setShowFullHeaders(!showFullHeaders)}
+                        className="text-primary hover:underline text-sm"
+                      >
+                        {t('more_count', { count: email.cc.length - 2 })}
+                      </button>
                     )}
                   </>
                 )}
@@ -5243,30 +5000,33 @@ export function EmailViewer({
                             {getAttachmentDisplayName(attachment.name, attachment.type)}
                           </span>
                           <span className="text-[10px] text-muted-foreground flex-shrink-0">
-                            {formatFileSize(attachment.size)}
+                            <bdi>{formatFileSize(attachment.size)}</bdi>
                           </span>
                         </div>
                         <div className={cn(
                           "absolute bg-background/95 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-opacity flex items-center justify-center gap-1 px-1.5 rounded-md",
                           thumbUrl ? "top-1 end-1" : "inset-y-0 end-0 rounded-s-none rounded-e-md",
                         )}>
-                          <button
-                            className="p-1 hover:bg-accent rounded transition-colors"
-                            title={t('download')}
+                          <IconButton
+                            label={t('download')}
                             onClick={(e) => { e.stopPropagation(); handleEffectiveAttachmentDownload(attachment); }}
                           >
-                            <Download className="w-3.5 h-3.5 text-foreground" />
-                          </button>
+                            <Download />
+                          </IconButton>
                           {opensPreview && (
-                            <button
-                              className="p-1 hover:bg-accent rounded transition-colors"
-                              title={tFiles('preview')}
+                            <IconButton
+                              label={tFiles('preview')}
                               onClick={(e) => { e.stopPropagation(); handleEffectiveAttachmentOpen(attachment); }}
                             >
-                              <Eye className="w-3.5 h-3.5 text-foreground" />
-                            </button>
+                              <Eye />
+                            </IconButton>
                           )}
-                          <AttachmentPluginMenu emailId={email?.id} attachment={attachment} iconClassName="w-3.5 h-3.5" />
+                          {canSaveToFiles && attachment.blobId && (
+                            <IconButton label={t("save_to_files.title")} onClick={(e) => { e.stopPropagation(); setSaveToFilesTarget(attachment); }}>
+                              <FolderInput className="w-4 h-4" />
+                            </IconButton>
+                          )}
+                          <AttachmentPluginMenu emailId={email?.id} attachment={attachment} />
                         </div>
                       </div>
                         <AttachmentPluginFrames emailId={email?.id} attachment={attachment} />
@@ -5309,26 +5069,29 @@ export function EmailViewer({
                                 {getAttachmentDisplayName(attachment.name, attachment.type)}
                               </span>
                               <span className="text-[10px] text-muted-foreground ms-auto flex-shrink-0">
-                                {formatFileSize(attachment.size)}
+                                <bdi>{formatFileSize(attachment.size)}</bdi>
                               </span>
                               <div className="absolute inset-y-0 end-0 rounded-e-md bg-background/95 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-opacity flex items-center justify-center gap-1 px-1.5">
-                                <button
-                                  className="p-1 hover:bg-accent rounded transition-colors"
-                                  title={t('download')}
+                                <IconButton
+                                  label={t('download')}
                                   onClick={(e) => { e.stopPropagation(); handleEffectiveAttachmentDownload(attachment); setShowAllBesideAttachments(false); }}
                                 >
-                                  <Download className="w-3.5 h-3.5 text-foreground" />
-                                </button>
+                                  <Download />
+                                </IconButton>
                                 {opensPreview && (
-                                  <button
-                                    className="p-1 hover:bg-accent rounded transition-colors"
-                                    title={tFiles('preview')}
+                                  <IconButton
+                                    label={tFiles('preview')}
                                     onClick={(e) => { e.stopPropagation(); handleEffectiveAttachmentOpen(attachment); setShowAllBesideAttachments(false); }}
                                   >
-                                    <Eye className="w-3.5 h-3.5 text-foreground" />
-                                  </button>
+                                    <Eye />
+                                  </IconButton>
                                 )}
-                                <AttachmentPluginMenu emailId={email?.id} attachment={attachment} iconClassName="w-3.5 h-3.5" />
+                                {canSaveToFiles && attachment.blobId && (
+                                  <IconButton label={t("save_to_files.title")} onClick={(e) => { e.stopPropagation(); setSaveToFilesTarget(attachment); }}>
+                                    <FolderInput className="w-4 h-4" />
+                                  </IconButton>
+                                )}
+                                <AttachmentPluginMenu emailId={email?.id} attachment={attachment} />
                               </div>
                             </div>
                               <AttachmentPluginFrames emailId={email?.id} attachment={attachment} />
@@ -5413,10 +5176,15 @@ export function EmailViewer({
                 {email.cc && email.cc.length > 0 && (
                   <>
                     <span className="text-muted-foreground/50">|</span>
-                    <span>CC:</span>
+                    <span>{t('cc')}:</span>
                     {renderClickableRecipients(email.cc, currentUserEmail, t, handleViewContactSidebar)}
                     {email.cc.length > 2 && (
-                      <span>+{email.cc.length - 2}</span>
+                      <button
+                        onClick={() => setShowFullHeaders(!showFullHeaders)}
+                        className="text-primary hover:underline text-sm"
+                      >
+                        {t('more_count', { count: email.cc.length - 2 })}
+                      </button>
                     )}
                   </>
                 )}
@@ -5447,7 +5215,7 @@ export function EmailViewer({
               </span>
               {email.size > 0 && !mvMobileViewer && (
                 <div className="text-xs text-muted-foreground/60">
-                  {formatFileSize(email.size)}
+                  <bdi>{formatFileSize(email.size)}</bdi>
                 </div>
               )}
             </div>
@@ -5759,7 +5527,7 @@ export function EmailViewer({
                       <Row label={t('subject')}>{email.subject || <span className="italic text-muted-foreground">{t('details.no_subject')}</span>}</Row>
                     )}
                     <Row label={t('details.size')}>
-                      {formatFileSize(email.size)}
+                      <bdi>{formatFileSize(email.size)}</bdi>
                       {topMimeType && (
                         <span className="text-muted-foreground"> · <span className="font-mono text-xs">{topMimeType}</span></span>
                       )}
@@ -5828,24 +5596,15 @@ export function EmailViewer({
                   {t('scheduled_banner', { date: email.scheduledSendAt ? formatScheduledSendAt(email.scheduledSendAt, timeFormat) : '' })}
                 </span>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              {/* The toolbar has these from sm up; on the phone it has no room. */}
+              <div className="flex flex-wrap items-center gap-2 sm:hidden">
                 {canCancelScheduled && (
                   <>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => void rescheduleScheduled(new Date(Date.now() + 1000).toISOString())}
-                      className="gap-1.5"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      {t('send_now')}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
                       onClick={() => {
-                        const delayedUntil = promptForRescheduleDelayedUntil();
-                        if (delayedUntil) void rescheduleScheduled(delayedUntil);
+                        setRescheduleOpen(true);
                       }}
                       className="gap-1.5"
                     >
@@ -5853,9 +5612,15 @@ export function EmailViewer({
                       {t('reschedule_send')}
                     </Button>
                     <Button size="sm" variant="outline" onClick={onCancelScheduledForEdit} className="gap-1.5">
-                      <EditIcon className="w-3.5 h-3.5" />
+                      <Pencil className="w-3.5 h-3.5" />
                       {email.isSmimeScheduled ? t('cancel_and_compose_again') : t('cancel_and_edit')}
                     </Button>
+                    {onCancelScheduledSend && !email.isSmimeScheduled && (
+                      <Button size="sm" variant="outline" onClick={onCancelScheduledSend} className="gap-1.5">
+                        <CalendarX className="w-3.5 h-3.5" />
+                        {t('cancel_scheduled_send')}
+                      </Button>
+                    )}
                   </>
                 )}
               </div>
@@ -5863,26 +5628,14 @@ export function EmailViewer({
           </div>
         )}
 
-        {/* Draft Banner */}
-        {isDraft && (
+        {/* Draft Banner: a scheduled message has its own. */}
+        {isDraft && !isScheduled && (
           <div className="border-b border-border bg-warning/10">
             <div className="px-6 py-2.5 flex items-center justify-between">
               <div className="flex items-center gap-2 text-warning">
                 <File className="w-4 h-4" />
                 <span className="text-sm font-medium">{t('draft_banner')}</span>
               </div>
-              {/* The toolbar already has Edit, except for a scheduled message. */}
-              {onEditDraft && isScheduled && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onEditDraft()}
-                  className="gap-1.5"
-                >
-                  <EditIcon className="w-3.5 h-3.5" />
-                  {t('edit_draft')}
-                </Button>
-              )}
             </div>
           </div>
         )}
@@ -6006,7 +5759,7 @@ export function EmailViewer({
             <div
               ref={belowHeaderGhostRef}
               aria-hidden="true"
-              className="absolute inset-y-0 left-0 right-0 flex items-center gap-2 invisible pointer-events-none whitespace-nowrap"
+              className="absolute inset-0 flex items-center gap-2 invisible pointer-events-none whitespace-nowrap"
             >
               {effectiveAttachments.map((attachment) => {
                 const FileIcon = getFileIcon(attachment.name || undefined, attachment.type);
@@ -6032,7 +5785,7 @@ export function EmailViewer({
                       {getAttachmentDisplayName(attachment.name, attachment.type)}
                     </span>
                     <span className="text-xs">
-                      {formatFileSize(attachment.size)}
+                      <bdi>{formatFileSize(attachment.size)}</bdi>
                     </span>
                   </div>
                 );
@@ -6086,7 +5839,7 @@ export function EmailViewer({
                       {getAttachmentDisplayName(attachment.name, attachment.type)}
                     </span>
                     <span className="text-xs text-muted-foreground flex-shrink-0">
-                      {formatFileSize(attachment.size)}
+                      <bdi>{formatFileSize(attachment.size)}</bdi>
                     </span>
                   </div>
                   <div className={cn(
@@ -6108,6 +5861,11 @@ export function EmailViewer({
                       >
                         <Eye className="w-4 h-4 text-foreground" />
                       </button>
+                    )}
+                    {canSaveToFiles && attachment.blobId && (
+                      <IconButton label={t("save_to_files.title")} onClick={(e) => { e.stopPropagation(); setSaveToFilesTarget(attachment); }}>
+                        <FolderInput className="w-4 h-4" />
+                      </IconButton>
                     )}
                     <AttachmentPluginMenu emailId={email?.id} attachment={attachment} />
                   </div>
@@ -6152,7 +5910,7 @@ export function EmailViewer({
                           {getAttachmentDisplayName(attachment.name, attachment.type)}
                         </span>
                         <span className="text-xs text-muted-foreground ms-auto flex-shrink-0">
-                          {formatFileSize(attachment.size)}
+                          <bdi>{formatFileSize(attachment.size)}</bdi>
                         </span>
                         <div className="absolute inset-y-0 end-0 rounded-e-md bg-background/95 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-opacity flex items-center justify-center gap-1 px-1.5">
                           <button
@@ -6170,6 +5928,11 @@ export function EmailViewer({
                             >
                               <Eye className="w-4 h-4 text-foreground" />
                             </button>
+                          )}
+                          {canSaveToFiles && attachment.blobId && (
+                            <IconButton label={t("save_to_files.title")} onClick={(e) => { e.stopPropagation(); setSaveToFilesTarget(attachment); }}>
+                              <FolderInput className="w-4 h-4" />
+                            </IconButton>
                           )}
                           <AttachmentPluginMenu emailId={email?.id} attachment={attachment} />
                         </div>
@@ -6231,9 +5994,14 @@ export function EmailViewer({
                         {getAttachmentDisplayName(attachment.name, attachment.type)}
                       </span>
                       <span className="text-xs text-muted-foreground flex-shrink-0">
-                        {formatFileSize(attachment.size)}
+                        <bdi>{formatFileSize(attachment.size)}</bdi>
                       </span>
                       {/* Phones have no hover: the plugin menu stays visible. */}
+                      {canSaveToFiles && attachment.blobId && (
+                        <IconButton label={t("save_to_files.title")} onClick={(e) => { e.stopPropagation(); setSaveToFilesTarget(attachment); }}>
+                          <FolderInput className="w-4 h-4" />
+                        </IconButton>
+                      )}
                       <AttachmentPluginMenu emailId={email?.id} attachment={attachment} className="-me-1 flex-shrink-0" iconClassName="w-3.5 h-3.5" />
                     </div>
                     <div className={cn(
@@ -6297,25 +6065,28 @@ export function EmailViewer({
                             {getAttachmentDisplayName(attachment.name, attachment.type)}
                           </span>
                           <span className="text-[10px] text-muted-foreground ms-auto flex-shrink-0">
-                            {formatFileSize(attachment.size)}
+                            <bdi>{formatFileSize(attachment.size)}</bdi>
                           </span>
+                          {canSaveToFiles && attachment.blobId && (
+                            <IconButton label={t("save_to_files.title")} onClick={(e) => { e.stopPropagation(); setSaveToFilesTarget(attachment); }}>
+                              <FolderInput className="w-4 h-4" />
+                            </IconButton>
+                          )}
                           <AttachmentPluginMenu emailId={email?.id} attachment={attachment} className="flex-shrink-0" iconClassName="w-3.5 h-3.5" />
                           <div className="absolute inset-y-0 end-0 rounded-e-md bg-background/95 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-opacity flex items-center justify-center gap-1 px-1.5">
-                            <button
-                              className="p-1 hover:bg-accent rounded transition-colors"
-                              title={t('download')}
+                            <IconButton
+                              label={t('download')}
                               onClick={(e) => { e.stopPropagation(); handleEffectiveAttachmentDownload(attachment); setShowAllMobileAttachments(false); }}
                             >
-                              <Download className="w-3.5 h-3.5 text-foreground" />
-                            </button>
+                              <Download />
+                            </IconButton>
                             {opensPreview && (
-                              <button
-                                className="p-1 hover:bg-accent rounded transition-colors"
-                                title={tFiles('preview')}
+                              <IconButton
+                                label={tFiles('preview')}
                                 onClick={(e) => { e.stopPropagation(); handleEffectiveAttachmentOpen(attachment); setShowAllMobileAttachments(false); }}
                               >
-                                <Eye className="w-3.5 h-3.5 text-foreground" />
-                              </button>
+                                <Eye />
+                              </IconButton>
                             )}
                           </div>
                         </div>
@@ -6525,65 +6296,44 @@ export function EmailViewer({
       </div>
       </div>
 
-      {/* Email Source Modal - pane-scoped inside a Pro pane so it never
-          covers the neighbouring split pane. */}
-      {showSourceModal && email && (
-        <div
-          className={cn(
-            "bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4",
-            isPaneScoped ? "absolute inset-0" : "fixed inset-0",
-          )}
-          onClick={() => setShowSourceModal(false)}
-        >
-          <div
-            className="bg-background rounded-lg shadow-2xl border border-border w-full max-w-4xl max-h-[90vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <div className="flex items-center gap-2">
-                <Code className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-semibold text-foreground">{t('email_source')}</h2>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={copySourceToClipboard}
-                  className="flex items-center gap-1.5"
-                >
-                  <Copy className="w-4 h-4" />
-                  {t('copy_source')}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowSourceModal(false)}
-                  className="h-10 w-10 lg:h-8 lg:w-8"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Modal Content */}
-            <div className="flex-1 overflow-auto p-4 bg-muted/30">
-              <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-words bg-background border border-border rounded-lg p-4">
-                {generateEmailSource(email)}
-              </pre>
-            </div>
-          </div>
-        </div>
+      {/* Mounted only while open: the reader renders on every message it opens. */}
+      {isScheduled && rescheduleOpen && (
+        <ScheduleSendDialog
+          isOpen={rescheduleOpen}
+          onClose={() => setRescheduleOpen(false)}
+          title={t('reschedule_send')}
+          supported={!!client?.hasDelayedSend()}
+          maxDelayedSend={client?.getMaxDelayedSend() ?? 0}
+          initialDate={email?.scheduledSendAt ? new Date(email.scheduledSendAt) : undefined}
+          onSchedule={(delayedUntil) => {
+            setRescheduleOpen(false);
+            void rescheduleScheduled(delayedUntil);
+          }}
+        />
       )}
+
+      {canSaveToFiles && client && saveToFilesTarget && (
+        <SaveToFilesDialog attachment={saveToFilesTarget} client={client} blobAccountId={blobAccountId} onClose={() => setSaveToFilesTarget(null)} />
+      )}
+
+      {/* View source: the raw message the server holds. */}
+      {showSourceModal && email && <ViewSourceDialog
+        isOpen={showSourceModal && !!email}
+        onClose={() => setShowSourceModal(false)}
+        blobId={email?.blobId}
+        client={blobSource ? blobSource.client : client}
+        accountId={blobSource?.accountId}
+        onDownload={() => void handleExportEmail()}
+      />}
     </div>
 
     {/* Mobile bottom action bar - pane-scoped inside a Pro pane (the
         viewport `sm:hidden` guard would otherwise hide it there, and
         `fixed` would span the whole app instead of the pane). */}
     {isMobile && !mvMobileViewer && (
-      <nav className={cn(
+      <nav ref={bottomBarRef} className={cn(
         "z-50 bg-background border-t border-border overflow-hidden pb-[calc(env(safe-area-inset-bottom)/2)]",
-        isPaneScoped ? "absolute bottom-0 left-0 right-0" : "fixed bottom-0 left-0 right-0 sm:hidden",
+        isPaneScoped ? "absolute bottom-0 inset-x-0" : "fixed bottom-0 inset-x-0 sm:hidden",
       )}>
         <div className="flex items-center overflow-x-auto mobile-scroll-hidden">
           <button
@@ -6604,7 +6354,7 @@ export function EmailViewer({
               className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-h-[44px] grow shrink-0 basis-[64px] text-primary active:text-primary/80 transition-colors duration-150"
               aria-label={t('tooltips.edit_draft')}
             >
-              <EditIcon className="w-5 h-5" />
+              <Pencil className="w-5 h-5" />
               <span className="text-[10px] font-medium leading-tight truncate max-w-full">{t('edit_draft')}</span>
             </button>
           ) : (
@@ -6612,7 +6362,6 @@ export function EmailViewer({
           <button
             onClick={() => onReply?.()}
             className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-h-[44px] grow shrink-0 basis-[64px] text-muted-foreground active:text-foreground transition-colors duration-150"
-            aria-label={t('tooltips.reply')}
           >
             <Reply className="w-5 h-5" />
             <span className="text-[10px] font-medium leading-tight truncate max-w-full">{t('reply')}</span>
@@ -6620,7 +6369,6 @@ export function EmailViewer({
           <button
             onClick={onReplyAll}
             className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-h-[44px] grow shrink-0 basis-[64px] text-muted-foreground active:text-foreground transition-colors duration-150"
-            aria-label={t('tooltips.reply_all')}
           >
             <ReplyAll className="w-5 h-5" />
             <span className="text-[10px] font-medium leading-tight truncate max-w-full">{t('reply_all')}</span>
@@ -6628,7 +6376,6 @@ export function EmailViewer({
           <button
             onClick={onForward}
             className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-h-[44px] grow shrink-0 basis-[64px] text-muted-foreground active:text-foreground transition-colors duration-150"
-            aria-label={t('tooltips.forward')}
           >
             <Forward className="w-5 h-5" />
             <span className="text-[10px] font-medium leading-tight truncate max-w-full">{t('forward')}</span>
@@ -6693,10 +6440,10 @@ export function EmailViewer({
             }} : {}),
           };
           if (client && supportsSync) {
-            createContact(client, contactData).then((created) => { if (created) toast.success('Contact added'); });
+            createContact(client, contactData).then((created) => { if (created) toast.success(t('contact_added')); });
           } else {
             void addLocalContact({ id: `local-${generateUUID()}`, addressBookIds: {}, ...contactData } as ContactCard)
-              .then((created) => { if (created) toast.success('Contact added'); });
+              .then((created) => { if (created) toast.success(t('contact_added')); });
           }
         }}
       />

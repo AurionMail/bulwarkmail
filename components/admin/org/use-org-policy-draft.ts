@@ -13,7 +13,7 @@ import {
 import type { PolicyScope } from '@/lib/admin/policy-scopes';
 import { apiFetch } from '@/lib/browser-navigation';
 import { useAdminUnsavedChanges } from '@/stores/admin-unsaved-store';
-import { useFlash } from '@/components/admin/flash-message';
+import { useAdminFeedback } from '@/components/admin/feedback';
 
 /** The scope id the Organisation pages edit; '' is Everyone (the global policy). */
 export const EVERYONE = '';
@@ -50,7 +50,8 @@ export function useOrgPolicyDraft(dirtyId: string) {
   const [policy, setPolicy] = useState<SettingsPolicy | null>(null);
   const [saved, setSaved] = useState<SettingsPolicy | null>(null);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useFlash();
+  // Outcomes show in a toast, like every admin page's.
+  const setMessage = useAdminFeedback();
   const scopeId = useOrgScopeStore((s) => s.scopeId);
   const setScopeId = useOrgScopeStore((s) => s.setScopeId);
 
@@ -228,7 +229,6 @@ export function useOrgPolicyDraft(dirtyId: string) {
     saving,
     save,
     discard,
-    message,
     setMessage,
     reload: load,
   };

@@ -35,8 +35,10 @@ import { AdminPageHeader } from '@/components/admin/page-header';
 import { AdminLink } from '@/components/admin/admin-link';
 import { AdminButtonLink } from '@/components/admin/button-link';
 import { Badge } from '@/components/admin/badge';
-import { Flash, useFlash } from '@/components/admin/flash-message';
+import { useAdminFeedback } from '@/components/admin/feedback';
 import { installVersion } from './marketplace';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 
 const CURRENT_APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '0.0.0';
 
@@ -129,13 +131,14 @@ const tdClass = 'px-4 py-2 align-top';
 const smallButtonClass = 'h-8 gap-1 text-xs';
 
 export function MarketplaceDetailPage({ slug }: { slug: string }) {
+  const { dialogProps: confirmProps, confirm } = useConfirmDialog();
 
   const [data, setData] = useState<PreviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [uninstalling, setUninstalling] = useState(false);
-  const [message, setMessage] = useFlash();
+  const setMessage = useAdminFeedback();
   const [showSource, setShowSource] = useState(false);
   const [showManifest, setShowManifest] = useState(false);
   // The version being previewed, from the install link (?version=) or a row
@@ -184,7 +187,7 @@ export function MarketplaceDetailPage({ slug }: { slug: string }) {
     const isUpdate = data.installed;
     setBusy(`install:${version}`);
     setMessage(null);
-    const result = await installVersion({ slug: data.extension.slug, version, type: data.extension.type });
+    const result = await installVersion({ slug: data.extension.slug, version, type: data.extension.type }, confirm);
     setBusy(null);
     if (!result.ok) {
       setMessage({ type: 'error', text: result.error });
@@ -203,7 +206,13 @@ export function MarketplaceDetailPage({ slug }: { slug: string }) {
 
   async function handleRollback(version: string) {
     if (!data) return;
-    if (!confirm(`Put v${version} of "${data.extension.name}" back in place of v${data.installedVersion}? The copy kept on this server is used; the directory is not asked.`)) return;
+    const ok = await confirm({
+      title: `Roll back to v${version}?`,
+      message: `"${data.extension.name}" v${version} replaces v${data.installedVersion}. The copy kept on this server is used; the directory is not asked.`,
+      confirmText: 'Roll back',
+      cancelText: 'Cancel',
+    });
+    if (!ok) return;
     setBusy(`rollback:${version}`);
     setMessage(null);
     try {
@@ -228,7 +237,14 @@ export function MarketplaceDetailPage({ slug }: { slug: string }) {
 
   async function handleUninstall() {
     if (!data) return;
-    if (!confirm(`Remove "${data.extension.name}"? Its kept versions are removed too; this cannot be undone.`)) return;
+    const ok = await confirm({
+      title: `Remove "${data.extension.name}"?`,
+      message: 'The versions kept on this server are removed too. This cannot be undone.',
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      variant: 'destructive',
+    });
+    if (!ok) return;
 
     setUninstalling(true);
     setMessage(null);
@@ -413,7 +429,7 @@ export function MarketplaceDetailPage({ slug }: { slug: string }) {
         </div>
       )}
 
-      <Flash message={message} onDismiss={() => setMessage(null)} />
+      <ConfirmDialog {...confirmProps} />
 
       <div className="mb-6 space-y-3 empty:hidden">
         {data.requestedVersionMissing && (

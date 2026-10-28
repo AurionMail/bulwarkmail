@@ -293,7 +293,14 @@ export function MailboxContextMenu({
         onClick={() => handleAction(() => onImportEmail?.(mailbox.id))}
         disabled={!onImportEmail || !canAddItems}
       />
+      <ContextMenuItem
+        icon={RefreshCw}
+        label={t("refresh")}
+        onClick={() => handleAction(onRefresh!)}
+        disabled={!onRefresh}
+      />
 
+      {/* Destructive entries last (R6). */}
       <ContextMenuSeparator />
 
       <ContextMenuItem
@@ -310,15 +317,6 @@ export function MailboxContextMenu({
         disabled={!onDeleteFolder || !canDelete}
         destructive
         testId="mailbox-delete"
-      />
-
-      <ContextMenuSeparator />
-
-      <ContextMenuItem
-        icon={RefreshCw}
-        label={t("refresh")}
-        onClick={() => handleAction(onRefresh!)}
-        disabled={!onRefresh}
       />
     </ContextMenu>
   );

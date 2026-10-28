@@ -1,15 +1,16 @@
 "use client";
 
-import { useCallback, useState, type CSSProperties, type DragEvent } from "react";
+import { useCallback, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import type { CalendarEvent, Calendar } from "@/lib/jmap/types";
 import { format } from "date-fns";
-import { Users } from "@/components/icons";
+import { ChevronDown, ChevronUp, Users } from "@/components/icons";
 import { getParticipantCount, isDeclinedByUser } from "@/lib/calendar-participants";
 import { getEventEndDate, getEventStartDate } from "@/lib/calendar-utils";
 import { useSettingsStore } from "@/stores/settings-store";
 import { readableTextOn } from "@/lib/color-transform";
+import { useLongPress } from "@/hooks/use-long-press";
 
 interface EventCardProps {
   event: CalendarEvent;
@@ -21,12 +22,19 @@ interface EventCardProps {
   onContextMenu?: (e: React.MouseEvent, event: CalendarEvent) => void;
   isSelected?: boolean;
   draggable?: boolean;
+  /**
+   * The event goes on before what is drawn: before the first day of a span,
+   * above the first visible hour of a block.
+   */
   continuesBefore?: boolean;
+  /** The event goes on after what is drawn: past the last day or hour. */
   continuesAfter?: boolean;
   className?: string;
   style?: CSSProperties;
   /** The user's calendar addresses, to tell whether they declined the event. */
   currentUserEmails?: string[];
+  /** False for a day scrolled out of view: Tab skips it (arrows still reach it). */
+  tabbable?: boolean;
 }
 
 function sanitizeColor(color: string | null | undefined, fallback = "#3b82f6"): string {
@@ -92,7 +100,7 @@ function createEventDragPreview(title: string, timeRange: string, color: string)
   return el;
 }
 
-export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onMouseLeave, onContextMenu, isSelected, draggable: isDraggable, continuesBefore = false, continuesAfter = false, className, style, currentUserEmails }: EventCardProps) {
+export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onMouseLeave, onContextMenu, isSelected, draggable: isDraggable, continuesBefore = false, continuesAfter = false, className, style, currentUserEmails, tabbable = true }: EventCardProps) {
   const t = useTranslations("calendar");
   const [isBeingDragged, setIsBeingDragged] = useState(false);
   const color = getEventColor(event, calendar);
@@ -109,6 +117,8 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
     try { return format(d, fmt); } catch { return "--:--"; }
   };
   const timeString = `${safeFormat(startDate, timeFmt)} – ${safeFormat(endTime, timeFmt)}`;
+  // An all-day event is read out as such, not as "00:00 – 23:00".
+  const spokenTime = event.showWithoutTime ? t("events.all_day") : timeString;
   // iTIP CANCEL marks the attendee's copy with status "cancelled" instead of
   // deleting it (#572), and a declined invitation stays on the calendar too
   // (#1110) - render both struck through and dimmed.
@@ -116,7 +126,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
   const isDeclined = !isCancelled && isDeclinedByUser(event, currentUserEmails);
   const isInactive = isCancelled || isDeclined;
   const statusLabel = isCancelled ? t("detail.cancelled") : isDeclined ? t("participants.declined") : null;
-  const ariaLabel = `${event.title || t("events.no_title")}, ${timeString}${calendarName ? `, ${calendarName}` : ""}${statusLabel ? `, ${statusLabel}` : ""}`;
+  const ariaLabel = `${event.title || t("events.no_title")}, ${spokenTime}${calendarName ? `, ${calendarName}` : ""}${statusLabel ? `, ${statusLabel}` : ""}`;
 
   const handleDragStart = useCallback((e: DragEvent) => {
     e.stopPropagation();
@@ -144,10 +154,28 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
     draggable: true as const,
     onDragStart: handleDragStart,
     onDragEnd: handleDragEnd,
-    "aria-roledescription": "draggable event",
+    "aria-roledescription": t("events.draggable_role"),
   } : {};
 
   const handleContextMenu = onContextMenu ? (e: React.MouseEvent) => onContextMenu(e, event) : undefined;
+
+  // Touch screens have no right-click: a long press opens the same menu,
+  // at the finger (R7).
+  const pressedRef = useRef<HTMLElement | null>(null);
+  const longPress = useLongPress(({ clientX, clientY }) => {
+    const target = pressedRef.current;
+    if (!onContextMenu || !target) return;
+    onContextMenu({
+      type: "contextmenu", clientX, clientY, detail: 1, currentTarget: target, target,
+      preventDefault: () => {}, stopPropagation: () => {},
+    } as unknown as React.MouseEvent, event);
+  }, !!onContextMenu);
+  const touchProps = onContextMenu ? {
+    onTouchStart: (e: React.TouchEvent<HTMLElement>) => { pressedRef.current = e.currentTarget; longPress.onTouchStart(e); },
+    onTouchMove: longPress.onTouchMove,
+    onTouchEnd: longPress.onTouchEnd,
+    onTouchCancel: longPress.onTouchCancel,
+  } : {};
 
   if (variant === "chip") {
     return (
@@ -156,7 +184,9 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
         onMouseEnter={(e) => onMouseEnter?.(e.currentTarget.getBoundingClientRect())}
         onMouseLeave={() => onMouseLeave?.()}
         onContextMenu={handleContextMenu}
+        {...touchProps}
         aria-label={ariaLabel}
+        tabIndex={tabbable ? undefined : -1}
         {...dragProps}
         className={cn(
           "flex items-center w-full text-start text-xs font-medium px-1.5 py-0.5 rounded-xs truncate",
@@ -167,7 +197,9 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
         )}
         style={{ ...eventFillStyle(color, { inactive: isInactive, selected: isSelected }), ...style }}
       >
-        <span className={cn("truncate", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
+        {/* The whole width, aligned to the title's own start: a short English
+            title in Arabic sat at the right, a cut one filled to the left. */}
+        <span dir="auto" className={cn("flex-1 min-w-0 truncate text-start", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
       </button>
     );
   }
@@ -179,7 +211,9 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
         onMouseEnter={(e) => onMouseEnter?.(e.currentTarget.getBoundingClientRect())}
         onMouseLeave={() => onMouseLeave?.()}
         onContextMenu={handleContextMenu}
+        {...touchProps}
         aria-label={ariaLabel}
+        tabIndex={tabbable ? undefined : -1}
         {...dragProps}
         className={cn(
           "w-full h-full text-start rounded-xs px-1.5 py-0.5 text-xs overflow-hidden",
@@ -195,7 +229,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
           {showTimeInMonthView && !event.showWithoutTime && (
             <span className="flex-shrink-0 font-normal opacity-85">{format(startDate, timeFmt)}</span>
           )}
-          <span className={cn("truncate font-medium", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
+          <span dir="auto" className={cn("flex-1 min-w-0 truncate text-start font-medium", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
         </div>
       </button>
     );
@@ -207,23 +241,36 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
       onMouseEnter={(e) => onMouseEnter?.(e.currentTarget.getBoundingClientRect())}
       onMouseLeave={() => onMouseLeave?.()}
       onContextMenu={handleContextMenu}
+      {...touchProps}
       aria-label={ariaLabel}
+      tabIndex={tabbable ? undefined : -1}
       {...dragProps}
       data-calendar-event
+      data-continues-before={continuesBefore || undefined}
+      data-continues-after={continuesAfter || undefined}
       className={cn(
-        "w-full h-full text-start rounded-xs px-1.5 py-0.5 text-xs overflow-hidden",
+        // A block box: an inline one hangs its line's descent below the
+        // grid's last hour and makes the filled pane scroll.
+        "relative block w-full h-full text-start rounded-xs px-1.5 py-0.5 text-xs overflow-hidden",
         "hover:opacity-90 transition-opacity cursor-pointer",
+        // Cut at the edge of the visible hours: a square edge and an arrow
+        // say the event runs on past it.
+        continuesBefore && "rounded-t-none",
+        continuesAfter && "rounded-b-none",
+        continuesBefore && "pe-4",
         isBeingDragged && "opacity-50",
         className
       )}
       style={{ ...eventFillStyle(color, { inactive: isInactive, separated: true, selected: isSelected }), ...style }}
     >
+      {continuesBefore && <ChevronUp aria-hidden="true" className="absolute top-0.5 end-0.5 w-3 h-3 opacity-85" />}
+      {continuesAfter && <ChevronDown aria-hidden="true" className="absolute bottom-0.5 end-0.5 w-3 h-3 opacity-85" />}
       {/* Shorter blocks have no room for a second line at the 60px hour, so
           their start time follows the title on the same line, when the
           block is wide enough to keep the title readable. */}
       <div className="@container">
         <div className="flex items-baseline gap-1 min-w-0">
-          <span className={cn("font-medium truncate", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
+          <span dir="auto" className={cn("font-medium truncate", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
           {!event.showWithoutTime && durationMinutes < 45 && (
             <span className="hidden @min-[120px]:inline flex-shrink-0 opacity-85 text-[10.5px]">{safeFormat(startDate, timeFmt)}</span>
           )}
@@ -231,7 +278,8 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
       </div>
       {!event.showWithoutTime && durationMinutes >= 45 && (
         <div className="opacity-85 text-[10.5px]">
-          {timeString}
+          {/* Start before end in a right-to-left layout too. */}
+          <bdi dir="ltr">{timeString}</bdi>
         </div>
       )}
       {getParticipantCount(event) > 0 && (

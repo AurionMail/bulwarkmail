@@ -16,6 +16,8 @@ import { useEmailStore } from "@/stores/email-store";
 import { useFilterStore } from "@/stores/filter-store";
 import { SettingsSection, SettingItem, ToggleSwitch, Select, AdvancedOnly } from './settings-section';
 import { Plus, Pencil, Trash2, GripVertical, Check, X, Loader2, Search } from "@/components/icons";
+import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
 import { KEYWORD_PREFIX } from "@/lib/thread-utils";
 import { findUnrecognizedKeywords, type UnrecognizedKeyword } from "@/lib/keyword-discovery";
@@ -93,6 +95,7 @@ function KeywordRow({
 }) {
   const t = useTranslations("settings.keywords");
   const hasChildren = hasChildKeywords(keyword.id, keywords);
+  const tagLabel = keyword.label || keyword.id;
   // Measured with the prefix attached, since that is what occupies the column.
   const keywordCandidates = (nestedTags ? keywordRenderings(keywordLevels(keyword.id)) : [keyword.id])
     .map((rendering) => KEYWORD_PREFIX + rendering);
@@ -134,24 +137,19 @@ function KeywordRow({
         ariaLabel={t("visibility_field")}
         className="text-xs py-1"
       />
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button
-          type="button"
-          onClick={onEdit}
-          className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-          title={t("edit")}
-        >
-          <Pencil className="w-3.5 h-3.5" />
-        </button>
-        <button
-          type="button"
+      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity">
+        <IconButton label={t("edit_tag", { name: tagLabel })} title={t("edit")} onClick={onEdit} className="text-muted-foreground">
+          <Pencil />
+        </IconButton>
+        <IconButton
+          label={t("delete_tag", { name: tagLabel })}
+          title={hasChildren ? t("has_children_delete") : t("delete")}
           onClick={onDelete}
           disabled={hasChildren}
-          className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
-          title={hasChildren ? t("has_children_delete") : t("delete")}
+          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
         >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+          <Trash2 />
+        </IconButton>
       </div>
     </div>
   );
@@ -243,7 +241,15 @@ function KeywordEditForm({
           placeholder={t("label_placeholder")}
           autoFocus
           maxLength={30}
-          onKeyDown={(e) => e.key === "Enter" && handleSave()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSave();
+            // Like folders, calendars and address books: Escape cancels.
+            if (e.key === "Escape") {
+              e.preventDefault();
+              e.stopPropagation();
+              onCancel();
+            }
+          }}
         />
         {nestedTags && normalizedId.length > 0 && (
           <p className="text-xs text-muted-foreground font-mono mt-1 break-all">
@@ -523,6 +529,7 @@ function UnrecognizedKeywords() {
 
 export function KeywordSettings() {
   const t = useTranslations("settings.keywords");
+  const tNotifications = useTranslations("notifications");
   const { emailKeywords, nestedTags, addKeyword, updateKeyword, renameKeyword, removeKeyword, reorderKeywords, updateSetting } =
     useSettingsStore();
   const { client } = useAuthStore();
@@ -634,8 +641,25 @@ export function KeywordSettings() {
     setEditingId(null);
   };
 
+  // A tag can be put back as it was, so it goes at once with an Undo (R3).
   const handleDelete = (id: string) => {
+    const before = useSettingsStore.getState().emailKeywords;
+    const index = before.findIndex((k) => k.id === id);
+    const removed = before[index];
+    if (!removed) return;
     removeKeyword(id);
+    toast.success(t("deleted"), {
+      action: {
+        label: tNotifications("rule_undo"),
+        onClick: () => {
+          const now = useSettingsStore.getState().emailKeywords;
+          if (now.some((k) => k.id === id)) return;
+          const restored = [...now];
+          restored.splice(Math.min(index, restored.length), 0, removed);
+          reorderKeywords(restored);
+        },
+      },
+    });
   };
 
   const handleVisibilityChange = (id: string, visibility: KeywordVisibility) => {
@@ -701,17 +725,18 @@ export function KeywordSettings() {
           />
         ) : (
           <div className="flex items-center gap-2 pt-1">
-            <button
-              type="button"
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => {
                 setIsAdding(true);
                 setEditingId(null);
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border border-dashed border-border hover:border-primary hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+              className="border-dashed text-muted-foreground hover:text-foreground"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus />
               {t("add_keyword")}
-            </button>
+            </Button>
           </div>
         )}
       </div>

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useCallback, useId } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { X, Loader2, Globe } from "@/components/icons";
+import { Dialog } from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import { useCalendarStore, type ICalSubscription } from "@/stores/calendar-store";
 import { CalendarColorPicker } from "@/components/settings/calendar-management-settings";
@@ -31,7 +32,9 @@ export function ICalSubscriptionModal({ client, onClose, editSubscription, initi
   const [refreshInterval, setRefreshInterval] = useState(editSubscription?.refreshInterval || 60);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const modalRef = useRef<HTMLDivElement>(null);
+  const urlRef = useRef<HTMLInputElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const id = useId();
 
   const isValid = url.trim().length > 0 && name.trim().length > 0;
 
@@ -83,143 +86,110 @@ export function ICalSubscriptionModal({ client, onClose, editSubscription, initi
     }
   }, [url, name, color, refreshInterval, client, isEdit, editSubscription, addICalSubscription, updateICalSubscription, onClose, t]);
 
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose]);
+  // Nothing closes it while the feed is being fetched.
+  const close = useCallback(() => {
+    if (!isSubmitting) onClose();
+  }, [isSubmitting, onClose]);
+  const changed = isEdit
+    ? url !== editSubscription!.url || name !== editSubscription!.name || color !== editSubscription!.color || refreshInterval !== editSubscription!.refreshInterval
+    : url.trim().length > 0 || name.trim().length > 0;
 
-  useEffect(() => {
-    const modal = modalRef.current;
-    if (!modal) return;
-    const focusableEls = modal.querySelectorAll<HTMLElement>(
-      'input, select, textarea, button, [tabindex]:not([tabindex="-1"])'
-    );
-    const firstEl = focusableEls[0];
-    const lastEl = focusableEls[focusableEls.length - 1];
-
-    const handler = (e: KeyboardEvent) => {
-      if (e.key !== "Tab") return;
-      if (e.shiftKey && document.activeElement === firstEl) {
-        e.preventDefault();
-        lastEl?.focus();
-      } else if (!e.shiftKey && document.activeElement === lastEl) {
-        e.preventDefault();
-        firstEl?.focus();
-      }
-    };
-    modal.addEventListener("keydown", handler);
-    firstEl?.focus();
-    return () => modal.removeEventListener("keydown", handler);
-  }, []);
+  const fieldClass = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px]" onClick={onClose} aria-hidden="true" />
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={t("title")}
-        className="relative bg-background border border-border rounded-lg shadow-xl w-full max-w-md mx-4 animate-in zoom-in-95 duration-200"
-      >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <div className="flex items-center gap-2">
-            <Globe className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold">{isEdit ? t("edit_title") : t("title")}</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-md hover:bg-muted transition-colors duration-150 text-muted-foreground hover:text-foreground"
-            aria-label={tCommon("close")}
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="px-6 py-4 space-y-4">
-          <p className="text-sm text-muted-foreground">{t("description")}</p>
-
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">
-              {t("url_label")}
-            </label>
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder={t("url_placeholder")}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              disabled={isSubmitting}
-              onKeyDown={(e) => { if (e.key === "Enter" && isValid) handleSubmit(); }}
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">
-              {t("name_label")}
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t("name_placeholder")}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              disabled={isSubmitting}
-              onKeyDown={(e) => { if (e.key === "Enter" && isValid) handleSubmit(); }}
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">
-              {t("color_label")}
-            </label>
-            <CalendarColorPicker value={color} onChange={setColor} allowCustom />
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">
-              {t("refresh_interval")}
-            </label>
-            <select
-              value={refreshInterval}
-              onChange={(e) => setRefreshInterval(Number(e.target.value))}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              disabled={isSubmitting}
-            >
-              <option value={15}>{t("interval_15")}</option>
-              <option value={30}>{t("interval_30")}</option>
-              <option value={60}>{t("interval_60")}</option>
-              <option value={360}>{t("interval_360")}</option>
-              <option value={1440}>{t("interval_1440")}</option>
-            </select>
-          </div>
-
-          {error && (
-            <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-md px-3 py-2">
-              {error}
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border">
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+    <Dialog
+      isOpen
+      onClose={close}
+      title={isEdit ? t("edit_title") : t("title")}
+      description={t("description")}
+      dirty={changed}
+      // A link handed over from webcal:// already fills the address.
+      initialFocus={url ? nameRef : urlRef}
+      footer={
+        <>
+          <Button variant="outline" onClick={close} disabled={isSubmitting}>
             {tCommon("cancel")}
           </Button>
           <Button onClick={handleSubmit} disabled={!isValid || isSubmitting}>
             {isSubmitting ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin me-2" />
+                <Spinner size="sm" className="me-2 text-current" />
                 {isEdit ? t("saving") : t("subscribing")}
               </>
             ) : (
               isEdit ? t("save") : t("subscribe")
             )}
           </Button>
+        </>
+      }
+    >
+      <div className="space-y-4 pt-4">
+        <div>
+          <label htmlFor={`${id}-url`} className="text-xs font-medium text-muted-foreground mb-1 block">
+            {t("url_label")}
+          </label>
+          <input
+            id={`${id}-url`}
+            ref={urlRef}
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder={t("url_placeholder")}
+            className={fieldClass}
+            disabled={isSubmitting}
+            onKeyDown={(e) => { if (e.key === "Enter" && isValid) handleSubmit(); }}
+          />
         </div>
+
+        <div>
+          <label htmlFor={`${id}-name`} className="text-xs font-medium text-muted-foreground mb-1 block">
+            {t("name_label")}
+          </label>
+          <input
+            id={`${id}-name`}
+            ref={nameRef}
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t("name_placeholder")}
+            className={fieldClass}
+            disabled={isSubmitting}
+            onKeyDown={(e) => { if (e.key === "Enter" && isValid) handleSubmit(); }}
+          />
+        </div>
+
+        <div role="group" aria-labelledby={`${id}-color`}>
+          <span id={`${id}-color`} className="text-xs font-medium text-muted-foreground mb-1 block">
+            {t("color_label")}
+          </span>
+          <CalendarColorPicker value={color} onChange={setColor} allowCustom />
+        </div>
+
+        <div>
+          <label htmlFor={`${id}-interval`} className="text-xs font-medium text-muted-foreground mb-1 block">
+            {t("refresh_interval")}
+          </label>
+          <select
+            id={`${id}-interval`}
+            value={refreshInterval}
+            onChange={(e) => setRefreshInterval(Number(e.target.value))}
+            className={fieldClass}
+            disabled={isSubmitting}
+          >
+            <option value={15}>{t("interval_15")}</option>
+            <option value={30}>{t("interval_30")}</option>
+            <option value={60}>{t("interval_60")}</option>
+            <option value={360}>{t("interval_360")}</option>
+            <option value={1440}>{t("interval_1440")}</option>
+          </select>
+        </div>
+
+        {error && (
+          <div role="alert" className="text-sm text-destructive bg-destructive/10 rounded-md px-3 py-2">
+            {error}
+          </div>
+        )}
       </div>
-    </div>
+    </Dialog>
   );
 }

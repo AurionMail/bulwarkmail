@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import type { FilterRule } from '@/lib/jmap/sieve-types';
@@ -81,19 +81,24 @@ async function openCard(server: ReturnType<typeof stalwart>) {
   useAuthStore.setState({ client: server.client as never });
   useVacationStore.setState({ isSupported: true });
   render(<VacationSettings />);
+  await waitFor(() => expect(server.client.getVacationResponse).toHaveBeenCalled());
+  await waitFor(() => expect(useVacationStore.getState().isLoading).toBe(false));
   await screen.findByText('status.label');
 }
 
 const forwardSwitch = () => screen.getByRole('switch', { name: 'forward.enabled_label' });
 const keepSwitch = () => screen.getByRole('switch', { name: 'forward.keep_label' });
 const addressInput = () => screen.getByLabelText('forward.to_label') as HTMLInputElement;
-const saveButton = () => screen.getByText('save').closest('button') as HTMLButtonElement;
-
+// The card saves as you go: switches at once, typing once it pauses.
 async function save(server: ReturnType<typeof stalwart>) {
-  fireEvent.click(saveButton());
-  await waitFor(() => expect(server.client.setVacationResponse).toHaveBeenCalled());
-  await waitFor(() => expect(toast.success.mock.calls.length + toast.error.mock.calls.length).toBe(1));
+  const before = server.client.setVacationResponse.mock.calls.length;
+  await waitFor(() => expect(server.client.setVacationResponse.mock.calls.length).toBeGreaterThan(before), { timeout: 3000 });
+  await waitFor(() => expect(useVacationStore.getState().isSaving).toBe(false));
+  await waitFor(() => expect(saved() || toast.error.mock.calls.length > 0).toBe(true));
 }
+const saved = () => /saved/.test(screen.getByRole('status').textContent ?? '');
+/** Long enough for a save that was due to have started. */
+const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 1100)));
 
 describe('forwarding in the vacation card', () => {
   it('is offered only where the server can run it next to the auto-reply', async () => {
@@ -111,7 +116,7 @@ describe('forwarding in the vacation card', () => {
     fireEvent.change(addressInput(), { target: { value: 'kollege@example.com' } });
     await save(server);
 
-    expect(toast.success).toHaveBeenCalledWith('vacation_saved');
+    expect(saved()).toBe(true);
     expect(server.client.setVacationResponse.mock.calls[0][0]).not.toHaveProperty('forward');
     expect(server.active()).toBe('filters');
     const written = server.content('filters');
@@ -135,7 +140,7 @@ describe('forwarding in the vacation card', () => {
     fireEvent.change(addressInput(), { target: { value: 'kollege@example.com' } });
     await save(server);
 
-    expect(toast.success).toHaveBeenCalledWith('vacation_saved');
+    expect(saved()).toBe(true);
     expect(server.client.setVacationResponse.mock.calls[0][0]).toMatchObject({ isEnabled: false });
     expect(server.scripts.some((s) => s.name === 'vacation' && s.isActive)).toBe(false);
     expect(server.active()).toBe('filters');
@@ -152,12 +157,10 @@ describe('forwarding in the vacation card', () => {
     fireEvent.change(addressInput(), { target: { value: 'kollege@example.com' } });
     await save(server);
     expect(server.active()).toBe('filters');
-    toast.success.mockClear();
 
     // Saving again turns Stalwart's own vacation script back on.
     fireEvent.change(screen.getByPlaceholderText('message.subject_placeholder'), { target: { value: 'Bis bald' } });
-    fireEvent.click(saveButton());
-    await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
+    await save(server);
     expect(server.client.setVacationResponse).toHaveBeenCalledTimes(2);
     expect(server.active()).toBe('filters');
     expect(server.content('filters')).toContain('# Vacation forwarding');
@@ -181,10 +184,11 @@ describe('forwarding in the vacation card', () => {
     fireEvent.click(forwardSwitch());
     fireEvent.change(addressInput(), { target: { value: 'kollege' } });
     expect(screen.getByText('warnings.forward_address')).toBeInTheDocument();
-    expect(saveButton().disabled).toBe(true);
+    await settle();
+    expect(server.client.setVacationResponse).not.toHaveBeenCalled();
     fireEvent.change(addressInput(), { target: { value: 'kollege@example.com' } });
     expect(screen.queryByText('warnings.forward_address')).toBeNull();
-    expect(saveButton().disabled).toBe(false);
+    await save(server);
   });
 
   it('does not count an address typed and switched off again as a change', async () => {
@@ -194,7 +198,8 @@ describe('forwarding in the vacation card', () => {
     fireEvent.change(addressInput(), { target: { value: 'kollege' } });
     fireEvent.click(forwardSwitch());
     // Nothing a save would store is different, so there is nothing to save.
-    expect(saveButton().disabled).toBe(true);
+    await settle();
+    expect(server.client.setVacationResponse).not.toHaveBeenCalled();
   });
 
   it('warns that a forwarding rule is skipped when a copy is kept and the server allows one redirect', async () => {
@@ -214,17 +219,16 @@ describe('forwarding in the vacation card', () => {
     fireEvent.click(forwardSwitch());
     fireEvent.change(addressInput(), { target: { value: 'kollege@example.com' } });
     await save(server);
-    toast.success.mockClear();
 
     // Back as stored after the save, as the server has it now.
     expect(useVacationStore.getState().forward).toMatchObject({ enabled: true, to: 'kollege@example.com' });
     expect(forwardSwitch().getAttribute('aria-checked')).toBe('true');
     expect(addressInput().value).toBe('kollege@example.com');
-    expect(saveButton().disabled).toBe(true);
+    await settle();
+    expect(server.client.setVacationResponse).toHaveBeenCalledTimes(1);
 
     fireEvent.click(forwardSwitch());
-    fireEvent.click(saveButton());
-    await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
+    await save(server);
     const written = server.content('filters');
     expect(written).not.toContain('# Vacation forwarding');
     expect(written).not.toContain('redirect');
@@ -244,7 +248,8 @@ describe('forwarding in the vacation card', () => {
     expect(forwardSwitch().getAttribute('aria-checked')).toBe('true');
     expect(addressInput().value).toBe('kollege@example.com');
     expect(keepSwitch().getAttribute('aria-checked')).toBe('true');
-    expect(saveButton().disabled).toBe(true);
+    await settle();
+    expect(server.client.setVacationResponse).not.toHaveBeenCalled();
   });
 
   it('says so when the auto-reply was saved but the forwarding was not', async () => {
@@ -256,10 +261,11 @@ describe('forwarding in the vacation card', () => {
     fireEvent.change(addressInput(), { target: { value: 'kollege@example.com' } });
     await save(server);
     expect(toast.error).toHaveBeenCalledWith('vacation_filters_save_failed');
-    expect(toast.success).not.toHaveBeenCalled();
-    // What was set stays, to be saved again.
+    expect(saved()).toBe(false);
+    // What was set stays, and isn't sent again and again until it changes.
     expect(forwardSwitch().getAttribute('aria-checked')).toBe('true');
-    expect(saveButton().disabled).toBe(false);
+    await settle();
+    expect(server.client.setVacationResponse).toHaveBeenCalledTimes(1);
   });
 
   it('saves only what was changed here, not forwarding another tab changed since', async () => {
@@ -276,7 +282,7 @@ describe('forwarding in the vacation card', () => {
     await server.client.updateSieveScript(server.scripts[0].id, stored(false), true, 'b');
     fireEvent.change(screen.getByPlaceholderText('message.subject_placeholder'), { target: { value: 'Bis bald' } });
     await save(server);
-    expect(toast.success).toHaveBeenCalledWith('vacation_saved');
+    expect(saved()).toBe(true);
     expect(parseScript(server.content('filters')).vacationForward).toMatchObject({ enabled: false });
     expect(server.content('filters')).not.toContain('redirect');
   });
@@ -297,14 +303,16 @@ describe('forwarding in the vacation card', () => {
     ], EXTENSIONS);
     await openCard(server);
     expect(screen.getByText('warnings.not_running')).toBeInTheDocument();
-    expect(saveButton().disabled).toBe(false);
+    // Turned back on only when asked, not by opening the page.
+    await settle();
+    expect(server.client.setVacationResponse).not.toHaveBeenCalled();
 
+    fireEvent.click(screen.getByRole('button', { name: 'save' }));
     await save(server);
-    expect(toast.success).toHaveBeenCalledWith('vacation_saved');
+    expect(saved()).toBe(true);
     expect(server.active()).toBe('filters');
     expect(server.content('filters')).toContain('# Vacation forwarding');
     expect(screen.queryByText('warnings.not_running')).toBeNull();
-    expect(saveButton().disabled).toBe(true);
   });
 
   it('starts over on another account, even where both store the same', async () => {
@@ -312,12 +320,12 @@ describe('forwarding in the vacation card', () => {
     await openCard(server);
     fireEvent.click(forwardSwitch());
     fireEvent.change(addressInput(), { target: { value: 'chef@a.example' } });
-    expect(saveButton().disabled).toBe(false);
 
     // Neither account has forwarding stored, so no stored value changes.
-    useAuthStore.setState({ activeAccountId: 'other-login' });
+    act(() => { useAuthStore.setState({ activeAccountId: 'other-login' }); });
     await waitFor(() => expect(forwardSwitch().getAttribute('aria-checked')).toBe('false'));
-    expect(saveButton().disabled).toBe(true);
+    await settle();
+    expect(server.client.setVacationResponse).not.toHaveBeenCalled();
     fireEvent.click(forwardSwitch());
     expect(addressInput().value).toBe('');
   });
@@ -336,12 +344,16 @@ describe('the vacation period in the card', () => {
     halfFilledIn(dateField(1), true);
     fireEvent.change(dateField(1), { target: { value: '' } });
     expect(screen.getByText('warnings.invalid_date')).toBeInTheDocument();
-    expect(saveButton().disabled).toBe(true);
+    // Said under the field it is about.
+    expect(dateField(1).getAttribute('aria-invalid')).toBe('true');
+    expect(document.getElementById(dateField(1).getAttribute('aria-describedby')!)?.textContent).toBe('warnings.invalid_date');
+    await settle();
+    expect(server.client.setVacationResponse).not.toHaveBeenCalled();
 
     halfFilledIn(dateField(1), false);
     fireEvent.change(dateField(1), { target: { value: '2026-10-17T18:00' } });
     expect(screen.queryByText('warnings.invalid_date')).toBeNull();
-    expect(saveButton().disabled).toBe(false);
+    await save(server);
   });
 
   it('checks the fields again on save, which a field filled in only half may never have told', async () => {
@@ -349,8 +361,7 @@ describe('the vacation period in the card', () => {
     await openCard(server);
     fireEvent.change(dateField(1), { target: { value: '' } });
     halfFilledIn(dateField(1), true);
-    fireEvent.click(saveButton());
-    expect(await screen.findByText('warnings.invalid_date')).toBeInTheDocument();
+    expect(await screen.findByText('warnings.invalid_date', undefined, { timeout: 3000 })).toBeInTheDocument();
     expect(server.client.setVacationResponse).not.toHaveBeenCalled();
   });
 
@@ -360,7 +371,17 @@ describe('the vacation period in the card', () => {
     fireEvent.change(dateField(1), { target: { value: '20266-10-16T18:00' } });
     expect(dateField(1).value).toBe('20266-10-16T18:00');
     expect(screen.getByText('warnings.invalid_date')).toBeInTheDocument();
-    expect(saveButton().disabled).toBe(true);
+    await settle();
+    expect(server.client.setVacationResponse).not.toHaveBeenCalled();
+  });
+
+  it('says an end before the start under the end date and keeps it from the server', async () => {
+    const server = stalwart([rule('a')]);
+    await openCard(server);
+    fireEvent.change(dateField(1), { target: { value: '2026-10-01T09:00' } });
+    expect(document.getElementById(dateField(1).getAttribute('aria-describedby')!)?.textContent).toBe('warnings.end_before_start');
+    await settle();
+    expect(server.client.setVacationResponse).not.toHaveBeenCalled();
   });
 
   it('keeps the dates the server has while their fields are left alone', async () => {
@@ -408,7 +429,7 @@ describe('who gets the auto-reply, in the vacation card', () => {
     fireEvent.change(audienceSelect(), { target: { value: 'external' } });
     await save(server);
 
-    expect(toast.success).toHaveBeenCalledWith('vacation_saved');
+    expect(saved()).toBe(true);
     expect(server.active()).toBe('filters');
     const written = server.content('filters');
     expect(written).toContain([
@@ -438,7 +459,6 @@ describe('who gets the auto-reply, in the vacation card', () => {
     await openCard(server);
     expect(screen.getByRole('switch', { name: 'status.label' }).getAttribute('aria-checked')).toBe('true');
     expect(audienceSelect().value).toBe('internal');
-    expect(saveButton().disabled).toBe(true);
 
     fireEvent.change(audienceSelect(), { target: { value: 'all' } });
     await save(server);
@@ -447,6 +467,44 @@ describe('who gets the auto-reply, in the vacation card', () => {
     expect(written).not.toContain('envelope :domain');
     expect(written).toContain('# Vacation auto-reply\ninclude :personal :optional "vacation";');
     expect(parseScript(written).vacationAudience).toBeUndefined();
+  });
+});
+
+describe('saving the out-of-office card', () => {
+  it('saves the auto-reply switch on change, with no Save button', async () => {
+    const server = stalwart([rule('a')]);
+    await openCard(server);
+    expect(screen.queryByRole('button', { name: 'save' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('switch', { name: 'status.label' }));
+    await save(server);
+    expect(server.client.setVacationResponse.mock.calls[0][0]).toMatchObject({ isEnabled: true });
+    expect(useVacationStore.getState().isEnabled).toBe(true);
+    expect(saved()).toBe(true);
+  });
+
+  it('waits for typing to pause, then saves once', async () => {
+    const server = stalwart([rule('a')]);
+    await openCard(server);
+    const subject = screen.getByPlaceholderText('message.subject_placeholder');
+    fireEvent.change(subject, { target: { value: 'B' } });
+    fireEvent.change(subject, { target: { value: 'Bis' } });
+    fireEvent.change(subject, { target: { value: 'Bis bald' } });
+    await save(server);
+    expect(server.client.setVacationResponse).toHaveBeenCalledTimes(1);
+    expect(server.client.setVacationResponse.mock.calls[0][0]).toMatchObject({ subject: 'Bis bald' });
+  });
+
+  it('saves what was typed when the page is left before the pause', async () => {
+    const server = stalwart([rule('a')]);
+    useAuthStore.setState({ client: server.client as never });
+    useVacationStore.setState({ isSupported: true });
+    const { unmount } = render(<VacationSettings />);
+    await screen.findByText('status.label');
+    fireEvent.change(screen.getByPlaceholderText('message.subject_placeholder'), { target: { value: 'Bis bald' } });
+    unmount();
+    await waitFor(() => expect(server.client.setVacationResponse).toHaveBeenCalledTimes(1));
+    expect(server.client.setVacationResponse.mock.calls[0][0]).toMatchObject({ subject: 'Bis bald' });
   });
 });
 

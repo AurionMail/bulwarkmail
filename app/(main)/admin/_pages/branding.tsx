@@ -15,10 +15,14 @@ import { SettingsSection, SettingItem, SectionNav } from '@/components/settings/
 import { Button } from '@/components/ui/button';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { AdminSaveBar } from '@/components/admin/save-bar';
+import { withEdit } from '@/lib/admin/edits';
 import { Badge } from '@/components/admin/badge';
-import { Flash, useFlash } from '@/components/admin/flash-message';
+import { useAdminFeedback } from '@/components/admin/feedback';
 import { inputClass, RevertButton } from '@/components/admin/config-items';
 import { cn } from '@/lib/utils';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
+import { useAdminUnsavedStore } from '@/stores/admin-unsaved-store';
 
 interface ConfigEntry {
   value?: unknown;
@@ -76,7 +80,7 @@ export function BrandingPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
-  const [message, setMessage] = useFlash();
+  const setMessage = useAdminFeedback();
   const [selectedHost, setSelectedHost] = useState<string | null>(null);
   const [addingHost, setAddingHost] = useState(false);
   const [newHostInput, setNewHostInput] = useState('');
@@ -112,7 +116,10 @@ export function BrandingPage() {
   }
 
   function handleChange(key: string, value: string) {
-    setEdits(prev => ({ ...prev, [key]: value }));
+    const saved = selectedHost
+      ? selectedEntry()?.[key as BrandingOverrideKey]
+      : config[key]?.value;
+    setEdits(prev => withEdit(prev, key, value, saved));
     setMessage(null);
   }
 
@@ -213,7 +220,7 @@ export function BrandingPage() {
 
     if (res.ok) {
       const data = await res.json();
-      setMessage({ type: 'success', text: `Uploaded ${file.name} successfully.` });
+      setMessage({ type: 'success', text: `${file.name} uploaded` });
       setEdits(prev => {
         const next = { ...prev };
         delete next[slot];
@@ -326,9 +333,14 @@ export function BrandingPage() {
 
   async function handleDeleteDomain() {
     if (!selectedHost) return;
-    if (!confirm(`Remove branding entry for ${selectedHost}? Uploaded files for this domain will be left behind on disk.`)) {
-      return;
-    }
+    const ok = await confirm({
+      title: `Remove the branding for ${selectedHost}?`,
+      message: 'The settings for this domain are removed. Files uploaded for it stay on disk.',
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      variant: 'destructive',
+    });
+    if (!ok) return;
     const next = domainEntries.filter(e => e.host !== selectedHost);
     const res = await apiFetch('/api/admin/config', {
       method: 'PATCH',
@@ -346,17 +358,22 @@ export function BrandingPage() {
     }
   }
 
+  // Another domain's settings replace the form: the page's own leave prompt
+  // asks first when this one holds edits.
   function handleScopeChange(host: string | null) {
-    if (Object.keys(edits).length > 0 && !confirm('Discard unsaved changes?')) return;
-    setSelectedHost(host);
-    setEdits({});
-    setMessage(null);
+    requestLeave(() => {
+      setSelectedHost(host);
+      setEdits({});
+      setMessage(null);
+    }, 'branding');
   }
 
   const hasEdits = Object.keys(edits).length > 0;
   const wildcardScope = !!selectedHost && !EXACT_HOST_RE.test(selectedHost);
 
   useAdminUnsavedChanges('branding', hasEdits);
+  const requestLeave = useAdminUnsavedStore((s) => s.requestLeave);
+  const { dialogProps: confirmProps, confirm } = useConfirmDialog();
 
   if (loading) {
     return (
@@ -383,7 +400,9 @@ export function BrandingPage() {
       accept={field.accept}
       value={currentValue(field.key)}
       badge={overrideBadge(field.key)}
-      placeholder={selectedHost ? 'Enter URL (uploads only for default scope)' : 'Enter URL or upload a file'}
+      // Files upload to the default scope and to exact hosts; a wildcard has
+      // no single host to serve them from (the scope line says so).
+      placeholder={wildcardScope ? 'Enter URL' : 'Enter URL or upload a file'}
       uploading={uploading === field.key}
       uploadDisabled={wildcardScope}
       uploaded={isUploadedFile(field.key)}
@@ -404,6 +423,7 @@ export function BrandingPage() {
           value={currentValue(field.key)}
           onChange={(e) => handleChange(field.key, e.target.value)}
           placeholder={placeholder}
+          title={placeholder}
           aria-label={field.label}
           autoComplete="off"
           spellCheck={false}
@@ -418,7 +438,7 @@ export function BrandingPage() {
     <div>
       <AdminPageHeader title={PAGE.label} description={PAGE.description} />
 
-      <Flash message={message} onDismiss={() => setMessage(null)} />
+      <ConfirmDialog {...confirmProps} />
 
       <div className="space-y-10">
         <SectionNav />
@@ -579,6 +599,7 @@ function ImageItem({ label, accept, value, badge, placeholder, uploading, upload
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
+            title={placeholder}
             aria-label={label}
             autoComplete="off"
             spellCheck={false}

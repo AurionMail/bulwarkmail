@@ -29,7 +29,9 @@ import {
   X,
   type AppIcon,
 } from '@/components/icons';
+import { useRegisterCommands } from '@/lib/command-registry';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
 import { Input } from '@/components/ui/input';
 import { AppearanceSettings } from '@/components/settings/appearance-settings';
 import { AppTopBannerSlot } from '@/components/plugins/app-top-banner-slot';
@@ -70,6 +72,7 @@ import { useSettingsStore } from '@/stores/settings-store';
 import { useManagedAccountStore } from '@/stores/managed-account-store';
 import { useIsDesktop } from '@/hooks/use-media-query';
 import { NavigationRail } from '@/components/layout/navigation-rail';
+import { PhoneHeaderActions } from '@/components/layout/phone-header-actions';
 import { SidebarAppsModal } from '@/components/layout/sidebar-apps-modal';
 import { InlineAppView } from '@/components/layout/inline-app-view';
 import { useSidebarApps } from '@/hooks/use-sidebar-apps';
@@ -82,16 +85,18 @@ import { productName } from '@/lib/product-name';
 import { usePolicyStore } from '@/stores/policy-store';
 import { cn } from '@/lib/utils';
 import {
+  type SettingsSearchEntry,
   type SettingsSearchTab,
   type SubResult,
-  collectSubResults,
-  flattenStrings,
-  withAppName,
   getByPath,
+  matchesAllWords,
+  settingsSubResults,
   tabKeywords,
-  tabSearchPaths,
+  tabSearchEntries,
   archiveActionSearchPaths,
 } from '@/lib/settings-search';
+import { useAccountStore } from '@/stores/account-store';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import { useLiteLinkSegments } from '@/hooks/use-lite-link-segments';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { MvTopBar } from "@/components/layout/mv-top-bar";
@@ -201,6 +206,10 @@ function migrateTarget(raw: string, section: string | null = null): { tab: strin
   return { tab, section: section ?? (raw in LEGACY_SECTION_MAP ? LEGACY_SECTION_MAP[raw] : null) };
 }
 
+function hasOneShotDeepLink(): boolean {
+  try { return !!sessionStorage.getItem('settings-deep-link-tab'); } catch { return false; }
+}
+
 function readPersistedTab(): SettingsTabId {
   try {
     // One-shot deep link from the sidebar section gears (Folders / Tags).
@@ -257,6 +266,9 @@ export interface SettingsAppProps {
   linkSegments?: string[];
 }
 
+/** Settings pages that share their name with an app in the palette's Go to group. */
+const APP_SETTINGS_TABS = new Set(['calendar', 'contacts', 'files']);
+
 export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = {}) {
   // Static Lite build: the route params are empty, read the link from the URL.
   const linkSegments = useLiteLinkSegments('settings', routeSegments);
@@ -264,6 +276,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   const t = useTranslations('settings');
   const tSidebar = useTranslations('sidebar');
   const tDelegates = useTranslations('delegates');
+  const tPalette = useTranslations('command_palette');
   useDocumentTitle(tSidebar('settings'));
   const { client, isAuthenticated, logout, checkAuth, isLoading: authLoading } = useAuthStore();
   const { showAppsModal, inlineApp, loadedApps, handleManageApps, handleInlineApp, closeInlineApp, closeAppsModal } = useSidebarApps();
@@ -289,9 +302,15 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     const target = targetFromDeepLink(linkSegments);
     return target?.section ? { tab: target.tab, id: target.section } : null;
   });
+  // On the phone the tab list is a screen of its own: a link or event that
+  // names a page opens that page, with the list one Back below it.
+  const [mobileShowContent, setMobileShowContent] = useState(
+    () => targetFromDeepLink(linkSegments) !== null || hasOneShotDeepLink(),
+  );
   const goTo = useCallback((target: SettingsTarget) => {
     setActiveTab(target.tab);
     setPendingSection(target.section ? { tab: target.tab, id: target.section } : null);
+    setMobileShowContent(true);
   }, []);
   // Active plugins that expose a `settings-section` slot — each becomes its own
   // Settings menu entry. Referentially stable per registry mutation, so it is
@@ -331,9 +350,8 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       if (target) goTo(target);
     });
   }, [isEmbedded, goTo]);
-  const [mobileShowContent, setMobileShowContent] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [pendingHighlight, setPendingHighlight] = useState<{ tab: SettingsTabId; label: string; pluginId?: string } | null>(null);
+  const [pendingHighlight, setPendingHighlight] = useState<{ tab: SettingsTabId; label: string; pluginId?: string; advanced?: boolean } | null>(null);
   const isDesktop = useIsDesktop();
 
   const messages = useMessages() as Record<string, unknown>;
@@ -350,30 +368,39 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   const clearManagedAccount = useManagedAccountStore((s) => s.clear);
 
   // Build a per-tab haystack for fulltext search and a list of sub-results
-  // (individual settings) per tab. Sub-results come from translation entries
-  // that have a `label`/`title` field, plus dynamic content (installed
+  // (individual settings) per tab: the rows each page draws (see
+  // lib/settings-search.ts), plus dynamic content (installed
   // plugins/themes/sidebar apps).
+  const touchScreen = useMediaQuery('(pointer: coarse)');
+  const mountainViewLayout = useSettingsStore((s) => s.interfaceLayout === 'mountain-view');
+  const multiAccount = useAccountStore((s) => s.accounts.length > 0);
   const { tabSearchHaystacks, tabSubResults } = useMemo(() => {
     const haystacks: Partial<Record<Tab, string>> = {};
     const subs: Partial<Record<Tab, SubResult[]>> = {};
-    const tabIds = Object.keys(tabSearchPaths) as Tab[];
-    for (const tabId of tabIds) {
-      const strings: string[] = [tabId.replace(/_/g, ' '), tabKeywords[tabId] ?? ''];
-      const list: SubResult[] = [];
-      for (const path of tabSearchPaths[tabId]) {
-        if (!archiveActionEnabled && archiveActionSearchPaths.has(path)) continue;
-        const node = withAppName(getByPath(messages, path), appName);
-        flattenStrings(node, strings);
-        collectSubResults(node, list);
-      }
-      // Dedupe sub-results by label
+    // Only rows the page draws right now, so every result lands on one.
+    const shown = (entry: SettingsSearchEntry) => {
+      if (!archiveActionEnabled && archiveActionSearchPaths.has(entry.label)) return false;
+      if (entry.when === 'touch') return touchScreen;
+      if (entry.when === 'mountainView') return mountainViewLayout;
+      if (entry.when === 'multiAccount') return multiAccount;
+      return true;
+    };
+    for (const tabId of Object.keys(tabSearchEntries) as Tab[]) {
+      const tabName = getByPath(messages, `settings.tabs.${tabId}`);
+      const list = settingsSubResults(messages, tabId, appName, shown)
+        // A section titled like its page is the page itself.
+        .filter((r) => r.label !== tabName);
       const seen = new Set<string>();
       subs[tabId] = list.filter((r) => {
         if (seen.has(r.label)) return false;
         seen.add(r.label);
         return true;
       });
-      haystacks[tabId] = strings.join(' ').toLowerCase();
+      haystacks[tabId] = [
+        tabId.replace(/_/g, ' '),
+        tabKeywords[tabId] ?? '',
+        ...list.flatMap((r) => [r.label, r.description ?? '']),
+      ].join(' ').toLowerCase();
     }
     if (installedPlugins.length) {
       const haystackText = installedPlugins.map((p) => {
@@ -418,7 +445,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       ];
     }
     return { tabSearchHaystacks: haystacks, tabSubResults: subs };
-  }, [messages, installedPlugins, installedThemes, sidebarAppsList, archiveActionEnabled, appName]);
+  }, [messages, installedPlugins, installedThemes, sidebarAppsList, archiveActionEnabled, appName, touchScreen, mountainViewLayout, multiAccount]);
 
   // Sidebar resize state
   const [settingsSidebarWidth, setSettingsSidebarWidth] = useState(() => {
@@ -503,7 +530,19 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     if (isDesktop) return;
     if (typeof window === 'undefined') return;
     if (!mobileShowContent) return;
+    // The first hydration pass reports a phone layout on every screen.
+    if (!isEmbedded && window.matchMedia('(min-width: 1024px)').matches) return;
 
+    // A page opened straight from a link has no list below it yet: turn the
+    // entry it arrived on into the list, then push the page on top. Inside
+    // the Pro shell /pro owns the address bar, so its URL stays.
+    if (!isEmbedded) {
+      const listPath = appPath(buildSettingsPath(null));
+      const here = window.location.pathname;
+      if (here !== listPath && here.startsWith(`${listPath}/`)) {
+        window.history.replaceState(window.history.state, '', listPath);
+      }
+    }
     window.history.pushState({ __settingsSubmenu: true }, '');
 
     const handlePop = () => {
@@ -511,7 +550,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     };
     window.addEventListener('popstate', handlePop);
     return () => window.removeEventListener('popstate', handlePop);
-  }, [isDesktop, mobileShowContent]);
+  }, [isDesktop, isEmbedded, mobileShowContent]);
 
   // After clicking a search sub-result, scroll the matching setting into view
   // and add a temporary highlight class. Some tabs fetch data and render
@@ -549,8 +588,9 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       if (cancelled) return;
       const el = document.querySelector<HTMLElement>(selector);
       if (!el) {
-        // The row may be an advanced one the switch hides: reveal, then keep looking.
-        if (Date.now() > deadline - 1600 && !useSettingsStore.getState().showAdvancedSettings) {
+        // An advanced row the switch hides: reveal it, then keep looking.
+        // Only for a row known to be advanced; any other stays as it is.
+        if (pendingHighlight.advanced && !useSettingsStore.getState().showAdvancedSettings) {
           useSettingsStore.getState().updateSetting('showAdvancedSettings', true);
         }
         if (Date.now() < deadline) {
@@ -635,10 +675,6 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     }
   }, [activeTab]);
 
-  if (!isAuthenticated) {
-    return null;
-  }
-
   const supportsVacation = client?.supportsVacationResponse() ?? false;
   const supportsCalendar = client?.supportsCalendars() ?? false;
   const supportsSieve = client?.supportsSieve() ?? false;
@@ -720,21 +756,21 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     }))
     .filter((g) => g.items.length > 0);
 
+  // Every word of the query counts, in any order, like the admin search.
   const trimmedQuery = searchQuery.trim().toLowerCase();
   const matchesQuery = (tab: TabDef) => {
     if (!trimmedQuery) return true;
-    if (tab.label.toLowerCase().includes(trimmedQuery)) return true;
-    return tabSearchHaystacks[tab.id as Tab]?.includes(trimmedQuery) ?? false;
+    return matchesAllWords(`${tab.label} ${tabSearchHaystacks[tab.id as Tab] ?? ''}`, trimmedQuery);
   };
 
   const subResultsForTab = (tabId: SettingsTabId): SubResult[] => {
     if (!trimmedQuery) return [];
     const list = tabSubResults[tabId as Tab] ?? [];
+    // Rows whose name matches come before rows matched by their description.
+    const byName = (r: SubResult) => (matchesAllWords(r.label, trimmedQuery) ? 0 : 1);
     return list
-      .filter((r) =>
-        r.label.toLowerCase().includes(trimmedQuery) ||
-        (r.description?.toLowerCase().includes(trimmedQuery) ?? false)
-      )
+      .filter((r) => matchesAllWords(`${r.label} ${r.description ?? ''}`, trimmedQuery))
+      .sort((a, b) => byName(a) - byName(b))
       .slice(0, 6);
   };
 
@@ -769,8 +805,31 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
 
   const handleSubResultSelect = (tabId: SettingsTabId, sub: SubResult) => {
     handleTabSelect(tabId);
-    setPendingHighlight({ tab: tabId, label: sub.label, pluginId: sub.pluginId });
+    setPendingHighlight({ tab: tabId, label: sub.label, pluginId: sub.pluginId, advanced: sub.advanced });
   };
+
+  // Ctrl/⌘+K in Settings: one "Go to <page>" per page shown in the list,
+  // found by the same words as the settings search ("out of office", "app
+  // password", "add rule"). The pages named after an app say "settings", so
+  // they don't read as the app's own "Go to Calendar" next to them.
+  useRegisterCommands(
+    tSidebar('settings'),
+    visibleTabs.map((tab) => ({
+      id: `go-${tab.id}`,
+      label: APP_SETTINGS_TABS.has(tab.id)
+        ? tPalette('go_to_settings_page', { name: tab.label })
+        : tPalette('go_to', { name: tab.label }),
+      icon: tab.icon,
+      keywords: [tabSearchHaystacks[tab.id as Tab] ?? ''],
+      run: () => handleTabSelect(tab.id),
+      when: () => tab.id !== effectiveActiveTab,
+    })),
+    isAuthenticated,
+  );
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const activeTabLabel = visibleTabs.find((tab) => tab.id === effectiveActiveTab)?.label ?? '';
 
@@ -858,15 +917,11 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
         <div className={cn("flex flex-col bg-background pt-[env(safe-area-inset-top)]", isEmbedded ? "h-full" : "h-dvh")}>
           <AppTopBannerSlot />
           <div className="flex items-center gap-2 px-4 h-14 border-b border-border bg-background shrink-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => window.history.back()}
-              className="h-10 w-10"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
+            <IconButton label={t('back_to_settings')} size="icon-lg" onClick={() => window.history.back()}>
+              <ArrowLeft />
+            </IconButton>
             <h1 className="font-semibold text-lg truncate">{activeTabLabel}</h1>
+            <PhoneHeaderActions />
           </div>
 
           <div className="flex-1 overflow-y-auto p-4">
@@ -891,21 +946,17 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       <div className={cn("flex flex-col bg-background pt-[env(safe-area-inset-top)]", isEmbedded ? "h-full" : "h-dvh")}>
         <AppTopBannerSlot />
         <div className="flex items-center gap-2 px-4 h-14 border-b border-border bg-background shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push('/')}
-            className="h-10 w-10"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
+          <IconButton label={t('back_to_mail')} size="icon-lg" onClick={() => router.push('/')}>
+            <ArrowLeft />
+          </IconButton>
           <div className="flex items-center gap-2">
             <SettingsIcon className="w-5 h-5 text-muted-foreground" />
             <h1 className="font-semibold text-lg">{t('title')}</h1>
           </div>
+          <PhoneHeaderActions />
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto" data-tour="settings-tabs">
           <div className="px-4 pt-3 pb-1">
             <div className="relative">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -918,14 +969,13 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
                 aria-label={t('search_placeholder')}
               />
               {searchQuery && (
-                <button
-                  type="button"
+                <IconButton
+                  label={t('search_clear')}
                   onClick={() => setSearchQuery('')}
-                  className="absolute end-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={t('search_clear')}
+                  className="absolute end-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full text-muted-foreground"
                 >
-                  <X className="w-4 h-4" />
-                </button>
+                  <X />
+                </IconButton>
               )}
             </div>
           </div>
@@ -968,9 +1018,9 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
                         <button
                           key={`${tab.id}:${sub.label}`}
                           onClick={() => handleSubResultSelect(tab.id, sub)}
-                          className="w-full flex items-center ps-12 pe-5 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 text-start"
+                          className="w-full flex items-center ps-12 pe-5 py-2 pointer-coarse:min-h-11 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 text-start"
                         >
-                          <span className="truncate">{sub.label}</span>
+                          <span className="truncate" title={sub.label}>{sub.label}</span>
                         </button>
                       ))}
                     </div>
@@ -1080,14 +1130,13 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
                 aria-label={t('search_placeholder')}
               />
               {searchQuery && (
-                <button
-                  type="button"
+                <IconButton
+                  label={t('search_clear')}
                   onClick={() => setSearchQuery('')}
-                  className="absolute end-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={t('search_clear')}
+                  className="absolute end-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full text-muted-foreground"
                 >
-                  <X className="w-4 h-4" />
-                </button>
+                  <X />
+                </IconButton>
               )}
             </div>
           </div>
@@ -1136,7 +1185,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
                           onClick={() => handleSubResultSelect(tab.id, sub)}
                           className="w-full text-start ps-9 pe-3 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150"
                         >
-                          <span className="truncate block">{sub.label}</span>
+                          <span className="truncate block" title={sub.label}>{sub.label}</span>
                         </button>
                       ))}
                     </div>
@@ -1164,6 +1213,9 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
 
       <div ref={attachContentScroll} className="flex-1 overflow-y-auto">
         <div className={effectiveActiveTab.startsWith(PLUGIN_PAGE_PREFIX) ? "px-6 py-6" : "max-w-3xl mx-auto px-6 py-6"}>
+          {/* The page's heading for screen readers; the sidebar shows which
+              page is open (the phone header has a visible one). */}
+          <h1 className="sr-only">{activeTabLabel}</h1>
           {renderTabContent()}
         </div>
       </div>

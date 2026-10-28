@@ -16,6 +16,9 @@ import { cn, formatFileSize } from "@/lib/utils";
 import { useRouter } from "@/i18n/navigation";
 import { Avatar } from "@/components/ui/avatar";
 import { useMenuNavigation } from "@/hooks/use-menu-navigation";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { IconButton } from "@/components/ui/icon-button";
 import { toUnicodeDomain, toUnicodeEmail } from "@/lib/idn";
 
 interface AccountSwitcherProps {
@@ -103,6 +106,7 @@ export function AccountSwitcher({
   const logout = useAuthStore((s) => s.logout);
   const removeAccount = useAuthStore((s) => s.removeAccount);
   const logoutAll = useAuthStore((s) => s.logoutAll);
+  const { dialogProps: confirmDialogProps, confirm } = useConfirmDialog();
 
   const updatePosition = useCallback(() => {
     if (!buttonRef.current) return;
@@ -190,11 +194,18 @@ export function AccountSwitcher({
     router.push(`/login?mode=add-account` as never);
   };
 
-  const handleRemove = (e: React.MouseEvent, account: AccountEntry) => {
+  const handleRemove = async (e: React.MouseEvent, account: AccountEntry) => {
     e.stopPropagation();
     const label = toUnicodeEmail(account.email || account.username);
-    if (!window.confirm(t("remove_account_confirm", { account: label }))) return;
-    removeAccount(account.id);
+    // The popover closes first: the dialog is the only thing asking now.
+    setOpen(false);
+    const ok = await confirm({
+      title: t("remove_account_title"),
+      message: t("remove_account_confirm", { account: label }),
+      confirmText: t("remove_account"),
+      variant: "destructive",
+    });
+    if (ok) removeAccount(account.id);
   };
 
   const handleLogout = () => {
@@ -273,7 +284,7 @@ export function AccountSwitcher({
           "flex items-center gap-2 transition-colors",
           mvPopover ? "rounded-full" : "rounded-md",
           variant !== "expanded"
-            ? "justify-center w-10 h-10 hover:bg-muted"
+            ? "justify-center w-10 h-10 pointer-coarse:w-11 pointer-coarse:h-11 hover:bg-muted"
             : "w-full px-2 py-1.5 hover:bg-muted text-start min-w-0",
           className
         )}
@@ -403,7 +414,7 @@ export function AccountSwitcher({
                   className={cn(
                     "w-full flex items-start gap-3 px-3 py-2.5 text-start transition-colors",
                     isActive ? "bg-accent/50" : "hover:bg-muted",
-                    (!isActive && !account.isDefault) ? (isDraggable ? "pe-14" : "pe-8") : (isDraggable && "pe-7")
+                    (!isActive && !account.isDefault) ? (isDraggable ? "pe-16" : "pe-10") : (isDraggable && "pe-7")
                   )}
                   role="menuitem"
                   disabled={isActive}
@@ -411,7 +422,7 @@ export function AccountSwitcher({
                   <div className="relative flex-shrink-0">
                     <AccountAvatar account={account} size="md" />
                     {isActive && (
-                      <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                      <div className="absolute -bottom-0.5 -end-0.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
                         <Check className="w-2.5 h-2.5 text-primary-foreground" />
                       </div>
                     )}
@@ -449,22 +460,24 @@ export function AccountSwitcher({
                 {isDraggable && (
                   <span
                     aria-hidden
-                    className="pointer-events-none absolute end-7 top-1/2 -translate-y-1/2 text-muted-foreground/50 opacity-0 transition-opacity group-hover/acct:opacity-100"
+                    className={cn(
+                      "pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted-foreground/50 opacity-0 transition-opacity group-hover/acct:opacity-100",
+                      !isActive && !account.isDefault ? "end-10" : "end-1.5"
+                    )}
                   >
                     <GripVertical className="w-4 h-4" />
                   </span>
                 )}
                 {!isActive && !account.isDefault && (
-                  <button
-                    type="button"
-                    onClick={(e) => handleRemove(e, account)}
+                  // Shown on hover and focus, and always on a touch screen (R7).
+                  <IconButton
+                    onClick={(e) => void handleRemove(e, account)}
                     role="menuitem"
-                    aria-label={t("remove_account")}
-                    title={t("remove_account")}
-                    className="absolute end-1.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground/60 opacity-0 transition-opacity group-hover/acct:opacity-100 hover:bg-destructive/10 hover:text-destructive focus:opacity-100 focus:outline-none focus:ring-1 focus:ring-destructive"
+                    label={t("remove_account")}
+                    className="absolute end-1.5 top-1/2 -translate-y-1/2 text-muted-foreground opacity-0 transition-opacity group-hover/acct:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 hover:bg-destructive/10 hover:text-destructive"
                   >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
+                    <X />
+                  </IconButton>
                 )}
                 </div>
               );
@@ -544,7 +557,7 @@ export function AccountSwitcher({
               <button
                 onClick={handleAddAccount}
                 data-testid="add-account"
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2 pointer-coarse:min-h-11 text-sm text-start text-foreground hover:bg-muted transition-colors"
                 role="menuitem"
               >
                 <Plus className="w-4 h-4" />
@@ -559,7 +572,7 @@ export function AccountSwitcher({
             {activeAccount && !activeAccount.isDefault && accounts.length > 1 && (
               <button
                 onClick={() => handleSetDefault(activeAccount.id)}
-                className={cn("w-full flex items-center gap-2 py-2 text-sm text-foreground hover:bg-muted transition-colors", mvPopover ? "px-4" : "px-3")}
+                className={cn("w-full flex items-center gap-2 py-2 pointer-coarse:min-h-11 text-sm text-start text-foreground hover:bg-muted transition-colors", mvPopover ? "px-4" : "px-3")}
                 role="menuitem"
               >
                 <Star className="w-4 h-4" />
@@ -568,7 +581,7 @@ export function AccountSwitcher({
             )}
             <button
               onClick={handleLogout}
-              className={cn("w-full flex items-center gap-2 py-2 text-sm text-foreground hover:bg-muted transition-colors", mvPopover ? "px-4" : "px-3")}
+              className={cn("w-full flex items-center gap-2 py-2 pointer-coarse:min-h-11 text-sm text-start text-foreground hover:bg-muted transition-colors", mvPopover ? "px-4" : "px-3")}
               role="menuitem"
             >
               <LogOut className="w-4 h-4" />
@@ -577,7 +590,7 @@ export function AccountSwitcher({
             {!mvPopover && accounts.length > 1 && (
               <button
                 onClick={handleLogoutAll}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2 pointer-coarse:min-h-11 text-sm text-start text-foreground hover:bg-muted transition-colors"
                 role="menuitem"
               >
                 <LogOut className="w-4 h-4" />
@@ -588,6 +601,7 @@ export function AccountSwitcher({
         </div>,
         document.body
       )}
+      <ConfirmDialog {...confirmDialogProps} />
     </>
   );
 }

@@ -154,6 +154,50 @@ describe('viewer send failures', () => {
     expect(onRescheduleScheduled).toHaveBeenCalledTimes(1);
   });
 
+  it('offers Cancel send, and shows one set of scheduled actions and no draft bar', () => {
+    const onCancelScheduledSend = vi.fn();
+    render(
+      <EmailViewer
+        email={makeEmail({ ...scheduled(), keywords: { $seen: true, $draft: true } })}
+        mailboxes={mailboxes}
+        selectedMailbox="inbox"
+        currentMailboxRole="inbox"
+        onCancelScheduledSend={onCancelScheduledSend}
+        onCancelScheduledForEdit={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('cancel-scheduled-send'));
+    expect(onCancelScheduledSend).toHaveBeenCalledTimes(1);
+    // The banner's buttons are for the phone only, where the toolbar has none.
+    const bannerReschedule = screen.getAllByText('reschedule_send').map(el => el.closest('div.flex-wrap')).find(Boolean);
+    expect(bannerReschedule?.className).toContain('sm:hidden');
+    expect(screen.getAllByText('send_now')).toHaveLength(1);
+    expect(screen.queryByText('draft_banner')).toBeNull();
+  });
+
+  it('reschedules through the schedule dialog, not a browser prompt', async () => {
+    const prompt = vi.spyOn(window, 'prompt');
+    const onRescheduleScheduled = vi.fn().mockResolvedValue(undefined);
+    useAuthStore.setState({ client: { hasDelayedSend: () => true, getMaxDelayedSend: () => 0 } as never });
+    render(
+      <EmailViewer
+        email={scheduled()}
+        mailboxes={mailboxes}
+        selectedMailbox="inbox"
+        currentMailboxRole="inbox"
+        onRescheduleScheduled={onRescheduleScheduled}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByText('reschedule_send').at(-1)!);
+    expect(prompt).not.toHaveBeenCalled();
+    fireEvent.click(await screen.findByText('schedule_preset.tomorrow_afternoon'));
+
+    await waitFor(() => expect(onRescheduleScheduled).toHaveBeenCalledTimes(1));
+    expect(new Date(onRescheduleScheduled.mock.calls[0][0]).getHours()).toBe(13);
+  });
+
   it('says the message was already sent when it went out while room was made on Stalwart 1.0', async () => {
     const onRescheduleScheduled = vi.fn().mockRejectedValue(new NoLongerScheduledError(true));
     render(
@@ -252,5 +296,25 @@ describe('viewer send failures', () => {
       await waitFor(() => expect(markEmailKeyword).toHaveBeenCalled());
       expect(markEmailKeyword).toHaveBeenCalledWith(client, 'e1', '$mdnsent', expect.objectContaining({ clientAccountId: 'login-a', accountId: 'ce' }));
     });
+  });
+});
+
+describe('recipients in the header', () => {
+  it('puts the comma after a name and makes Cc "+N" open the full list', () => {
+    const { container } = render(
+      <EmailViewer
+        email={makeEmail({
+          to: [{ name: 'Alice Johnson', email: 'alice@example.com' }, { name: 'Bob Chen', email: 'bob@example.com' }],
+          cc: [{ email: 'c1@example.com' }, { email: 'c2@example.com' }, { email: 'c3@example.com' }],
+        })}
+        mailboxes={mailboxes}
+        selectedMailbox="inbox"
+        currentMailboxRole="inbox"
+      />,
+    );
+    const alice = screen.getAllByText('Alice Johnson')[0].closest('span.inline-flex')!;
+    expect(alice.textContent).toBe('Alice Johnson,');
+    expect(container.textContent).not.toContain('+1');
+    expect(screen.getAllByRole('button', { name: 'more_count' }).length).toBeGreaterThan(0);
   });
 });

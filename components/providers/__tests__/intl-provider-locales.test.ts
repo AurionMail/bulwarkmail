@@ -22,5 +22,6 @@ describe('client message loader map', () => {
       const messages = await LOCALE_LOADERS[locale]();
       expect(Object.keys(messages).length, `locale "${locale}" has empty messages`).toBeGreaterThan(0);
     }
-  });
+    // Importing all 29 catalogs one after another takes ~5 s on a busy machine.
+  }, 30_000);
 });

@@ -1,11 +1,11 @@
 "use client";
 
-import { memo, useState, useEffect, useMemo, useCallback, Fragment, ReactNode } from "react";
+import { memo, useState, useEffect, useMemo, useCallback, useRef, Fragment, ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { PluginSidebarSections } from "@/components/plugins/plugin-sidebar-sections";
-import { Button } from "@/components/ui/button";
+import { Button, TOUCH_HIT_AREA } from "@/components/ui/button";
 import {
   Inbox,
   Send,
@@ -40,6 +40,7 @@ import {
   Mails,
   MailOpen,
   MoreHorizontal,
+  MoreVertical,
 } from "@/components/icons";
 import { cn, buildMailboxTree, MailboxNode } from "@/lib/utils";
 import { localizeMailboxName } from "@/lib/mailbox-label";
@@ -56,6 +57,9 @@ import { TagScopeContext, useAccountTags } from "@/hooks/use-account-tags";
 import { isEditableEventTarget } from "@/lib/keyboard";
 import { Mailbox } from "@/lib/jmap/types";
 import { useContextMenu } from "@/hooks/use-context-menu";
+import { useLongPress } from "@/hooks/use-long-press";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { IconButton } from "@/components/ui/icon-button";
 import { MailboxContextMenu, type MailboxContextTarget, type MailboxNotificationActions } from "./mailbox-context-menu";
 import { useAccountStore } from '@/stores/account-store';
 import { useShallow } from "zustand/react/shallow";
@@ -74,6 +78,7 @@ import { usePolicyStore } from "@/stores/policy-store";
 import { useEmailStore, buildTagViewAccountClients } from "@/stores/email-store";
 import { trashAndJunkIds } from "@/lib/unified-mailbox";
 import { toast } from "@/stores/toast-store";
+import { toastWithUndo, undoLabels, undoMoveAction } from "@/lib/email-action-toast";
 import { debug } from "@/lib/debug";
 import { AccountSwitcher } from "./account-switcher";
 import { useIsEmbedded } from "@/hooks/use-is-embedded";
@@ -187,18 +192,20 @@ const getIconForMailbox = (role?: string, hasChildren?: boolean, isExpanded?: bo
   return Folder;
 };
 
+// Role tints from the theme's tokens (R11), so a theme recolours them and
+// dark mode has its own values: the chart palette for the main roles.
 const ROLE_ICON_COLOR: Record<string, string> = {
-  inbox: "text-blue-600/80 dark:text-blue-400/80",
-  sent: "text-emerald-600/80 dark:text-emerald-400/80",
-  drafts: "text-violet-600/80 dark:text-violet-400/80",
+  inbox: "text-chart-1/80",
+  sent: "text-chart-2/80",
+  drafts: "text-chart-5/80",
   trash: "text-muted-foreground",
-  junk: "text-red-600/80 dark:text-red-400/80",
-  archive: "text-amber-600/80 dark:text-amber-400/80",
-  shared: "text-cyan-600/80 dark:text-cyan-400/80",
-  important: "text-orange-600/80 dark:text-orange-400/80",
-  memos: "text-yellow-600/80 dark:text-yellow-400/80",
-  scheduled: "text-sky-600/80 dark:text-sky-400/80",
-  snoozed: "text-slate-500/80 dark:text-slate-400/80",
+  junk: "text-chart-4/80",
+  archive: "text-chart-3/80",
+  shared: "text-info/80",
+  important: "text-warning/80",
+  memos: "text-warning/80",
+  scheduled: "text-info/80",
+  snoozed: "text-muted-foreground",
 };
 
 function getIconClass(isSelected: boolean, isVirtual: boolean, colorful: boolean, roleKey?: string) {
@@ -224,6 +231,8 @@ function SidebarRowCounts({
   isSelected: boolean;
   onUnreadClick?: () => void;
 }) {
+  const t = useTranslations('sidebar');
+  const tShell = useTranslations('shell');
   const showFolderTotalCount = useSettingsStore(s => s.showFolderTotalCount);
   const mountainView = useSettingsStore(s => s.interfaceLayout === 'mountain-view');
   // Per-folder override from the folder settings (#982).
@@ -259,25 +268,18 @@ function SidebarRowCounts({
 
   const unreadNode = unreadCount > 0 ? (
     onUnreadClick ? (
-      <span
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         onClick={(e) => {
           e.stopPropagation();
           onUnreadClick();
         }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            e.stopPropagation();
-            onUnreadClick();
-          }
-        }}
-        className={cn(unreadClass, "cursor-pointer hover:underline")}
-        title={`${unreadCount} unread`}
+        className={cn(unreadClass, "cursor-pointer hover:underline rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring")}
+        title={t('unread_filter', { count: unreadCount })}
+        aria-label={t('unread_filter', { count: unreadCount })}
       >
         {unreadCount}
-      </span>
+      </button>
     ) : (
       <span className={unreadClass}>{unreadCount}</span>
     )
@@ -286,7 +288,7 @@ function SidebarRowCounts({
   return (
     <span
       className="ms-2 flex-shrink-0 flex items-baseline gap-1"
-      title={totalCount > 0 ? `${unreadCount} unread / ${totalCount} total` : `${unreadCount} unread`}
+      title={totalCount > 0 ? tShell("folder_counts", { unread: unreadCount, total: totalCount }) : tShell("folder_unread", { count: unreadCount })}
       data-testid="folder-counts"
       data-unread={unreadCount}
       data-total={totalCount}
@@ -298,6 +300,32 @@ function SidebarRowCounts({
       {totalCount > 0 && <span className={totalClass}>{totalCount}</span>}
     </span>
   );
+}
+
+/**
+ * What a row's menu handler needs from an event, for a menu opened by a
+ * long-press (at the finger) or from the row's ⋮ (under the button).
+ */
+/**
+ * R11: a name cut with an ellipsis gets a title with the full text. Measured
+ * when the pointer arrives, since only then is the title shown: a shortened
+ * form, or one the row's width still cuts.
+ */
+function titleIfCut(element: HTMLElement, full: string, shortened: boolean) {
+  element.title = shortened || element.scrollWidth > element.clientWidth ? full : "";
+}
+
+function menuEventAt(element: HTMLElement, point?: { clientX: number; clientY: number }): React.MouseEvent {
+  return {
+    type: point ? "contextmenu" : "click",
+    detail: 0,
+    clientX: point?.clientX ?? 0,
+    clientY: point?.clientY ?? 0,
+    currentTarget: element,
+    target: element,
+    preventDefault: () => {},
+    stopPropagation: () => {},
+  } as unknown as React.MouseEvent;
 }
 
 interface SidebarRowProps {
@@ -358,11 +386,25 @@ function SidebarRow({
   const t = useTranslations('sidebar');
   const leftPad = isCollapsed ? 0 : ROW_PX_BASE + depth * INDENT_STEP;
   const [labelRef, shortenedLabel] = useShortenedText(labelCandidates ?? [label]);
+  // Touch has no right-click: a long-press opens the same menu (R7), and a
+  // ⋮ shows it too.
+  const rowRef = useRef<HTMLDivElement>(null);
+  const hasMenu = !!onContextMenu && !isVirtual;
+  // The ⋮ is for touch, where there is no right-click; rendered only there.
+  const coarsePointer = useMediaQuery('(pointer: coarse)');
+  const longPress = useLongPress((point) => {
+    if (rowRef.current && onContextMenu) onContextMenu(menuEventAt(rowRef.current, point));
+  }, hasMenu);
 
   return (
     <div
+      ref={rowRef}
       {...(dropHandlers || {})}
       onContextMenu={onContextMenu}
+      onTouchStart={hasMenu ? longPress.onTouchStart : undefined}
+      onTouchMove={hasMenu ? longPress.onTouchMove : undefined}
+      onTouchEnd={hasMenu ? longPress.onTouchEnd : undefined}
+      onTouchCancel={hasMenu ? longPress.onTouchCancel : undefined}
       data-testid="folder-row"
       data-mv-nav-row=""
       data-folder-role={testRole ?? undefined}
@@ -387,7 +429,7 @@ function SidebarRow({
       {!isCollapsed && (
         <div
           className="flex items-center flex-shrink-0"
-          style={{ paddingLeft: leftPad }}
+          style={{ paddingInlineStart: leftPad }}
         >
           {hasChildren && onExpandToggle ? (
             <button
@@ -396,7 +438,9 @@ function SidebarRow({
                 onExpandToggle();
               }}
               data-testid="folder-expand-toggle"
-              className="flex items-center justify-center rounded hover:bg-muted active:bg-accent transition-colors"
+              aria-label={isExpanded ? t('collapse_tooltip') : t('expand_tooltip')}
+              aria-expanded={isExpanded}
+              className={cn("flex items-center justify-center rounded hover:bg-muted active:bg-accent transition-colors", TOUCH_HIT_AREA)}
               style={{ width: CHEVRON_SLOT, height: CHEVRON_SLOT }}
               title={isExpanded ? t('collapse_tooltip') : t('expand_tooltip')}
             >
@@ -427,7 +471,14 @@ function SidebarRow({
         </span>
         {!isCollapsed && (
           <>
-            <span ref={labelRef} className="flex-1 truncate">{shortenedLabel}</span>
+            <span
+              ref={labelRef}
+              className="flex-1 truncate"
+              title={shortenedLabel !== label ? label : undefined}
+              onPointerEnter={(e) => titleIfCut(e.currentTarget, label, shortenedLabel !== label)}
+            >
+              {shortenedLabel}
+            </span>
             {muted && (
               <BellOff
                 className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground"
@@ -435,17 +486,34 @@ function SidebarRow({
                 data-testid="folder-muted"
               />
             )}
-            <SidebarRowCounts
-              unread={unread}
-              total={total}
-              role={testRole}
-              mailboxId={testMailboxId}
-              isSelected={isSelected}
-              onUnreadClick={onUnreadClick}
-            />
           </>
         )}
       </button>
+      {/* Beside the row's button, not in it: the unread count is a button
+          of its own (it filters the folder to unread). */}
+      {!isCollapsed && (
+        <SidebarRowCounts
+          unread={unread}
+          total={total}
+          role={testRole}
+          mailboxId={testMailboxId}
+          isSelected={isSelected}
+          onUnreadClick={onUnreadClick}
+        />
+      )}
+      {hasMenu && !isCollapsed && coarsePointer && (
+        <IconButton
+          label={t('folder_options', { name: label })}
+          data-testid="folder-row-menu"
+          className="ms-1 flex-shrink-0 text-muted-foreground"
+          onClick={(e) => {
+            e.stopPropagation();
+            onContextMenu(menuEventAt(e.currentTarget));
+          }}
+        >
+          <MoreVertical />
+        </IconButton>
+      )}
     </div>
   );
 }
@@ -497,73 +565,56 @@ function SidebarSectionHeader({
     ? "text-xs font-semibold text-muted-foreground truncate"
     : "text-sm font-semibold text-foreground truncate";
 
+  // The toggle is one button; Add and Settings are buttons beside it, not
+  // inside it (a button in a button is one control to the keyboard).
   return (
-    <button
-      onClick={onToggle}
+    <div
       onContextMenu={onContextMenu}
-      data-testid={testId}
-      data-section-name={label}
-      data-expanded={expanded ? 'true' : 'false'}
       className={cn(
         "group w-full flex items-center pb-1 select-none rounded-sm hover:bg-muted/40 transition-colors",
         paddingX,
         paddingY
       )}
     >
-      {expanded ? (
-        <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-      ) : (
-        <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-      )}
-      {icon && <span className="ms-1.5 flex-shrink-0">{icon}</span>}
-      <span className={cn(textClass, icon ? "ms-1.5" : "ms-1.5")}>
-        {label}
-      </span>
-      {status}
-      {onAdd && (
-        <span
-          role="button"
-          tabIndex={0}
-          onClick={(e) => {
-            e.stopPropagation();
-            onAdd();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              e.stopPropagation();
-              onAdd();
-            }
-          }}
-          className="ms-auto p-1 rounded text-muted-foreground/70 hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-          title={addTitle}
-          aria-label={addTitle}
+      <button
+        type="button"
+        onClick={onToggle}
+        data-testid={testId}
+        data-section-name={label}
+        data-expanded={expanded ? 'true' : 'false'}
+        aria-expanded={expanded}
+        className="flex flex-1 min-w-0 items-center text-start rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {expanded ? (
+          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+        ) : (
+          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+        )}
+        {icon && <span className="ms-1.5 flex-shrink-0">{icon}</span>}
+        <span className={cn(textClass, "ms-1.5")} title={label}>
+          {label}
+        </span>
+        {status}
+      </button>
+      {onAdd && addTitle && (
+        <IconButton
+          label={addTitle}
+          onClick={onAdd}
+          className="-my-1.5 text-muted-foreground/70 hover:text-foreground"
         >
           <Plus className="w-3.5 h-3.5" />
-        </span>
+        </IconButton>
       )}
-      {onSettings && (
-        <span
-          role="button"
-          tabIndex={0}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSettings();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              e.stopPropagation();
-              onSettings();
-            }
-          }}
-          className={cn(!onAdd && "ms-auto", "p-1 rounded text-muted-foreground/70 hover:text-foreground hover:bg-muted transition-colors cursor-pointer")}
-          title={settingsTitle}
+      {onSettings && settingsTitle && (
+        <IconButton
+          label={settingsTitle}
+          onClick={onSettings}
+          className="-my-1.5 text-muted-foreground/70 hover:text-foreground"
         >
           <Settings className="w-3.5 h-3.5" />
-        </span>
+        </IconButton>
       )}
-    </button>
+    </div>
   );
 }
 
@@ -636,18 +687,12 @@ function MailboxTreeItem({
   const { dropHandlers, isValidDropTarget, isInvalidDropTarget } = useMailboxDrop({
     mailbox: node,
     accountId: dragAccountId ?? undefined,
-    onSuccess: (count, mailboxName) => {
-      if (count === 1) {
-        toast.success(
-          tNotifications('email_moved'),
-          tNotifications('moved_to_mailbox', { mailbox: mailboxName })
-        );
-      } else {
-        toast.success(
-          tNotifications('emails_moved', { count }),
-          tNotifications('moved_to_mailbox', { mailbox: mailboxName })
-        );
-      }
+    onSuccess: (count, mailboxName, restore, receipts) => {
+      toastWithUndo(
+        count === 1 ? tNotifications('email_moved') : tNotifications('emails_moved', { count }),
+        undoMoveAction(useAuthStore.getState().client, restore, undoLabels(tNotifications), receipts),
+        tNotifications('moved_to_mailbox', { mailbox: mailboxName }),
+      );
     },
     onError: () => {
       toast.error(tNotifications('move_failed'), tNotifications('move_error'));
@@ -996,7 +1041,7 @@ function VacationBanner() {
 
   return (
     <button
-      onClick={() => router.push('/settings')}
+      onClick={() => router.push(buildSettingsPath('vacation'))}
       className={cn(
         "flex items-center gap-2 w-full px-3 py-2 text-xs",
         "bg-amber-500/10 dark:bg-amber-400/10 text-amber-700 dark:text-amber-400",
@@ -1326,7 +1371,7 @@ function SidebarImpl({
     return (
       <SidebarRow
         key={key}
-        icon={<CalendarClock className={cn("w-4 h-4 flex-shrink-0", mvShell ? "text-foreground/80" : "text-sky-600 dark:text-sky-400")} />}
+        icon={<CalendarClock className={cn("w-4 h-4 flex-shrink-0", mvShell ? "text-foreground/80" : ROLE_ICON_COLOR.scheduled)} />}
         label={t('scheduled')}
         depth={account?.depth ?? 0}
         isSelected={!selectedKeyword && isScheduledSelected}

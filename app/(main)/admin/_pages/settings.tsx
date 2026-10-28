@@ -8,7 +8,8 @@ import { useAdminUnsavedChanges } from '@/stores/admin-unsaved-store';
 import { SettingsSection, SectionNav } from '@/components/settings/settings-section';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { AdminSaveBar } from '@/components/admin/save-bar';
-import { Flash, useFlash } from '@/components/admin/flash-message';
+import { withEdit } from '@/lib/admin/edits';
+import { useAdminFeedback } from '@/components/admin/feedback';
 import { ConfigTextItem, ConfigToggleItem, ConfigSelectItem, ConfigNote } from '@/components/admin/config-items';
 import { JmapServersSection } from './_jmap-servers-section';
 import type { JmapServerEntry } from '@/lib/admin/jmap-servers';
@@ -26,7 +27,7 @@ export function SettingsPage() {
   const [edits, setEdits] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useFlash();
+  const setMessage = useAdminFeedback();
 
   useEffect(() => {
     fetchConfig();
@@ -42,7 +43,7 @@ export function SettingsPage() {
   }
 
   function handleChange(key: string, value: unknown) {
-    setEdits(prev => ({ ...prev, [key]: value }));
+    setEdits(prev => withEdit(prev, key, value, config[key]?.value));
     setMessage(null);
   }
 
@@ -111,7 +112,6 @@ export function SettingsPage() {
     <div>
       <AdminPageHeader title={PAGE.label} description={PAGE.description} />
 
-      <Flash message={message} onDismiss={() => setMessage(null)} />
 
       <div className="space-y-10">
         <SectionNav />

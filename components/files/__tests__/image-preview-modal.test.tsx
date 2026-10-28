@@ -55,4 +55,16 @@ describe('ImagePreviewModal', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('closes on Back instead of leaving Files, like the other previews', async () => {
+    const push = vi.spyOn(window.history, 'pushState');
+    const { onClose } = await renderViewer();
+    // The history entry is added a tick after opening.
+    await act(async () => { await new Promise((r) => setTimeout(r, 5)); });
+    expect(push).toHaveBeenCalledTimes(1);
+
+    act(() => { window.dispatchEvent(new PopStateEvent('popstate', { state: null })); });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    push.mockRestore();
+  });
 });

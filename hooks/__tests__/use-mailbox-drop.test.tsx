@@ -92,8 +92,8 @@ describe('useMailboxDrop', () => {
     await drop(mailbox({}), ['m016', 't016']);
 
     expect(moveEmailsToMailbox.mock.calls).toEqual([
-      [client016, ['m016', 't016'], 'f', 'userb@v10', drag.draggedEmails],
-      [client016, ['m016', 't016'], 'f', 'userb@v016', drag.draggedEmails],
+      [client016, ['m016', 't016'], 'f', 'userb@v10', drag.draggedEmails, []],
+      [client016, ['m016', 't016'], 'f', 'userb@v016', drag.draggedEmails, []],
     ]);
     expect(crossAccountMoveEmails).not.toHaveBeenCalled();
   });
@@ -108,7 +108,7 @@ describe('useMailboxDrop', () => {
 
     await drop(mailbox({}), ['x']);
 
-    expect(moveEmailsToMailbox).toHaveBeenCalledWith(client016, ['x'], 'f', 'userb@v016', [dragged]);
+    expect(moveEmailsToMailbox).toHaveBeenCalledWith(client016, ['x'], 'f', 'userb@v016', [dragged], []);
   });
 
   it('moves a drop onto another login\'s folder across accounts, although both logins are account `e`', async () => {
@@ -118,7 +118,7 @@ describe('useMailboxDrop', () => {
 
     await drop(mailbox({}), ['m1'], 'userb@v10');
 
-    expect(crossAccountMoveEmails).toHaveBeenCalledWith(new Map([['userb@v016', ['m1']]]), 'userb@v10', 'f', undefined, undefined);
+    expect(crossAccountMoveEmails).toHaveBeenCalledWith(new Map([['userb@v016', ['m1']]]), 'userb@v10', 'f', undefined, undefined, { receipts: [] });
     expect(moveEmailsToMailbox).not.toHaveBeenCalled();
   });
 

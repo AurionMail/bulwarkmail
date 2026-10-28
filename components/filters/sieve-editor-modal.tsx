@@ -1,10 +1,20 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { X, AlertTriangle, CheckCircle, Loader2 } from "@/components/icons";
-import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { Dialog } from "@/components/ui/dialog";
+import { AlertTriangle, CheckCircle, Loader2 } from "@/components/icons";
+import { useDiscardChanges } from "@/components/settings/use-discard-changes";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { parseScript } from "@/lib/sieve/parser";
+
+/** Rules made in the visual builder (not external or opaque blocks). */
+function hasVisualRules(script: string): boolean {
+  const parsed = parseScript(script);
+  return !parsed.isOpaque && parsed.rules.some((r) => !r.origin || r.origin === "bulwark");
+}
 
 interface SieveEditorModalProps {
   content: string;
@@ -20,16 +30,22 @@ export function SieveEditorModal({
   onValidate,
 }: SieveEditorModalProps) {
   const t = useTranslations("settings.filters.sieve_editor");
+  const tSettings = useTranslations("settings");
   const [script, setScript] = useState(content);
   const [isValidating, setIsValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<{
     isValid: boolean;
     errors?: string[];
   } | null>(null);
-  const [showSaveWarning, setShowSaveWarning] = useState(false);
 
-  const modalRef = useFocusTrap({ isActive: true, onEscape: onClose });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const dirty = script !== content;
+  const { confirmDiscard, discardDialog } = useDiscardChanges();
+  // Escape, the X, Cancel: an edited script is only dropped when the user
+  // says so; a click outside is ignored while it is edited.
+  const requestClose = useCallback(async () => {
+    if (await confirmDiscard(dirty)) onClose();
+  }, [confirmDiscard, dirty, onClose]);
 
   const lineCount = script.split("\n").length;
 
@@ -46,17 +62,23 @@ export function SieveEditorModal({
     }
   }, [script, onValidate, t]);
 
-  const handleSave = useCallback(() => {
-    if (!showSaveWarning) {
-      setShowSaveWarning(true);
-      return;
+  // The visual rules only go away when the saved script no longer carries
+  // them in a form the builder reads; only then does Save ask, once.
+  const startsWithVisualRules = useMemo(() => hasVisualRules(content), [content]);
+  const { dialogProps: overwriteProps, confirm: confirmOverwrite } = useConfirmDialog();
+  const handleSave = useCallback(async () => {
+    if (startsWithVisualRules && !hasVisualRules(script)) {
+      const ok = await confirmOverwrite({
+        title: t("overwrite_title"),
+        message: t("overwrite_message"),
+        confirmText: t("save"),
+        cancelText: tSettings("keep_editing"),
+        variant: "destructive",
+      });
+      if (!ok) return;
     }
     onSave(script);
-  }, [script, showSaveWarning, onSave]);
-
-  useEffect(() => {
-    textareaRef.current?.focus();
-  }, []);
+  }, [startsWithVisualRules, script, confirmOverwrite, t, tSettings, onSave]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Tab") {
@@ -72,33 +94,49 @@ export function SieveEditorModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px]" onClick={onClose} aria-hidden="true" />
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={t("title")}
-        className="relative bg-background border border-border rounded-lg shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200"
-      >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 className="text-lg font-semibold text-foreground">{t("title")}</h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-md hover:bg-muted transition-colors duration-150 text-muted-foreground hover:text-foreground"
-            aria-label={t("cancel")}
+    <>
+    <Dialog
+      isOpen
+      onClose={() => void requestClose()}
+      dirty={dirty}
+      title={t("title")}
+      size="lg"
+      className="max-w-4xl max-h-[90vh]"
+      bodyClassName="flex flex-col"
+      initialFocus={textareaRef}
+      footer={
+        <>
+          <Button
+            variant="outline"
+            onClick={handleValidate}
+            disabled={isValidating || !script.trim()}
+            className="me-auto"
           >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="px-6 py-4 flex-1 overflow-hidden flex flex-col space-y-4">
+            {isValidating ? (
+              <>
+                <Loader2 className="w-4 h-4 me-2 animate-spin" />
+                {t("validating")}
+              </>
+            ) : (
+              t("validate")
+            )}
+          </Button>
+          <Button variant="outline" onClick={() => void requestClose()}>
+            {t("cancel")}
+          </Button>
+          <Button onClick={() => void handleSave()} disabled={!script.trim()}>
+            {t("save")}
+          </Button>
+        </>
+      }
+    >
+        <div className="pt-4 flex-1 min-h-0 flex flex-col space-y-4">
           <div className="flex items-start gap-2 p-3 rounded-md bg-warning/10 border border-warning/20 text-sm text-warning">
             <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <p>{t("warning")}</p>
           </div>
 
-          <div className="flex-1 min-h-0 flex border border-border rounded-md overflow-hidden">
+          <div className="flex-1 min-h-[16rem] h-[50vh] flex border border-border rounded-md overflow-hidden">
             <div
               className="w-10 flex-shrink-0 bg-muted border-e border-border py-2 text-end pe-2 select-none overflow-hidden"
               aria-hidden="true"
@@ -118,7 +156,6 @@ export function SieveEditorModal({
               onChange={(e) => {
                 setScript(e.target.value);
                 setValidationResult(null);
-                setShowSaveWarning(false);
               }}
               onKeyDown={handleKeyDown}
               className="flex-1 bg-background text-foreground font-mono text-sm p-2 resize-none focus:outline-none leading-[1.5rem]"
@@ -155,40 +192,11 @@ export function SieveEditorModal({
               )}
             </div>
           )}
-
-          {showSaveWarning && (
-            <div className="flex items-start gap-2 p-3 rounded-md bg-warning/10 border border-warning/20 text-sm text-warning">
-              <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <p>{t("save_warning")}</p>
-            </div>
-          )}
         </div>
 
-        <div className="flex items-center justify-between px-6 py-4 border-t border-border">
-          <Button
-            variant="outline"
-            onClick={handleValidate}
-            disabled={isValidating || !script.trim()}
-          >
-            {isValidating ? (
-              <>
-                <Loader2 className="w-4 h-4 me-2 animate-spin" />
-                {t("validating")}
-              </>
-            ) : (
-              t("validate")
-            )}
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose}>
-              {t("cancel")}
-            </Button>
-            <Button onClick={handleSave} disabled={!script.trim()}>
-              {showSaveWarning ? t("confirm_save") : t("save")}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
+    </Dialog>
+    {discardDialog}
+    <ConfirmDialog {...overwriteProps} />
+    </>
   );
 }

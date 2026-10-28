@@ -1,11 +1,21 @@
 "use client";
 
+import { useEffect, useId, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { X, Keyboard } from "@/components/icons";
-import { KEYBOARD_SHORTCUTS, type ShortcutEntry } from "@/hooks/use-keyboard-shortcuts";
+import { Keyboard } from "@/components/icons";
+import { Dialog } from "@/components/ui/dialog";
+import {
+  SHORTCUT_APPS,
+  sectionsWithGeneral,
+  shortcutAppForPath,
+  type ShortcutAppId,
+  type ShortcutEntry,
+  type ShortcutSection,
+} from "@/lib/keyboard-shortcuts";
+import { shortcutAlternatives } from "@/lib/shortcut-keys";
 import { useSettingsStore } from "@/stores/settings-store";
 import { cn } from "@/lib/utils";
-import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { usePathname } from "@/i18n/navigation";
 import { useTour } from "@/components/tour/tour-provider";
 import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
 import { usePluginActions } from "@/components/plugins/plugin-actions";
@@ -14,16 +24,29 @@ import { usePolicyStore } from "@/stores/policy-store";
 interface KeyboardShortcutsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** The app to open on. Default: the app of the current page. */
+  app?: ShortcutAppId;
 }
 
-export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsModalProps) {
+/**
+ * The keyboard shortcuts help (`?`): one tab per app that has keys, opened
+ * on the current app's, each with the keys that work everywhere under
+ * "Global".
+ */
+export function KeyboardShortcutsModal({ isOpen, onClose, app }: KeyboardShortcutsModalProps) {
   const t = useTranslations();
   const { startTour } = useTour();
+  const pathname = usePathname();
+  const tabsId = useId();
+  // The focus starts on the list itself: on the first control it would
+  // scroll to the tour link at the bottom when there are no tabs.
+  const contentRef = useRef<HTMLDivElement>(null);
   const interfaceLayout = useSettingsStore((state) => state.interfaceLayout);
   const shell = useProInterfaceActive() ? "pro" : "standard";
   const features = usePolicyStore((s) => s.policy.features);
   // Plugin buttons in the composer that have a shortcut (composer-toolbar-actions).
   const pluginComposerShortcuts = usePluginActions("composer-toolbar-actions").filter((a) => a.shortcut);
+
   // Rows that belong to one interface layout (or one shell) are listed only under it,
   // and a row of a gated feature only while the admin has it on.
   const shown = (entries: readonly ShortcutEntry[]) =>
@@ -31,155 +54,116 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
       && (!entry.shell || entry.shell === shell)
       && (!entry.feature || (features[entry.feature] ?? true)));
 
-  const modalRef = useFocusTrap({
-    isActive: isOpen,
-    onEscape: onClose,
-    restoreFocus: true,
-  });
+  const apps = SHORTCUT_APPS.filter((a) => a.sections.some((s) => shown(s.entries).length > 0));
+  const currentApp = app ?? shortcutAppForPath(pathname ?? "/");
+  const initial = apps.some((a) => a.id === currentApp) ? currentApp : apps[0]?.id ?? "mail";
+  const [selected, setSelected] = useState<ShortcutAppId>(initial);
+  // Each time it opens, it opens on the current app.
+  useEffect(() => {
+    if (isOpen) setSelected(initial);
+  }, [isOpen, initial]);
 
-  if (!isOpen) return null;
+  const selectedApp = SHORTCUT_APPS.find((a) => a.id === selected);
+  const sections = sectionsWithGeneral(selectedApp?.sections ?? []);
+
+  const extraRows = (section: ShortcutSection) =>
+    selected === "mail" && section.id === "composer"
+      ? pluginComposerShortcuts.map((action) => (
+          <ShortcutRow
+            key={`${action.pluginId}:${action.id}`}
+            shortcutKey={action.shortcut!}
+            description={`${action.label} (${action.pluginName})`}
+          />
+        ))
+      : null;
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center z-50 p-4 animate-in fade-in duration-150"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      title={
+        <span className="flex items-center gap-3">
+          <Keyboard className="w-5 h-5 text-muted-foreground" />
+          {t("shortcuts.title")}
+        </span>
+      }
+      initialFocus={contentRef}
     >
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="shortcuts-dialog-title"
-        className={cn(
-          "bg-background border border-border rounded-lg shadow-xl",
-          "w-full max-w-2xl max-h-[90vh] overflow-hidden",
-          "animate-in zoom-in-95 duration-200"
-        )}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <div className="flex items-center gap-3">
-            <Keyboard className="w-5 h-5 text-muted-foreground" />
-            <h2 id="shortcuts-dialog-title" className="text-lg font-semibold text-foreground">
-              {t("shortcuts.title")}
-            </h2>
+      <div ref={contentRef} tabIndex={-1} className="outline-none">
+        {apps.length > 1 && (
+          <div role="tablist" aria-label={t("shortcuts.title")} className="mt-4 flex flex-wrap gap-1 border-b border-border">
+            {apps.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                role="tab"
+                id={`${tabsId}-${a.id}`}
+                aria-selected={a.id === selected}
+                aria-controls={`${tabsId}-panel`}
+                onClick={() => setSelected(a.id)}
+                className={cn(
+                  "-mb-px px-3 py-2 text-sm border-b-2 transition-colors",
+                  a.id === selected
+                    ? "border-primary text-foreground font-medium"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {t(a.title)}
+              </button>
+            ))}
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-md hover:bg-muted transition-colors duration-150 text-muted-foreground hover:text-foreground"
-            aria-label={t("common.close")}
-          >
-            <X className="w-5 h-5" />
-          </button>
+        )}
+
+        <div
+          id={`${tabsId}-panel`}
+          role={apps.length > 1 ? "tabpanel" : undefined}
+          aria-labelledby={apps.length > 1 ? `${tabsId}-${selected}` : undefined}
+          className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-8"
+        >
+          {sections.map((section) => {
+            const rows = shown(section.entries);
+            const extra = extraRows(section);
+            if (rows.length === 0 && !extra?.length) return null;
+            return (
+              <section key={section.id} className={cn(section.wide && "md:col-span-2")}>
+                <h3 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wider">
+                  {t(section.title)}
+                </h3>
+                {/* A wide section's two columns line up with the columns of the
+                    sections above it: the same 2rem gap as the panel grid. */}
+                <div className={cn(section.wide ? "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2" : "space-y-2")}>
+                  {rows.map((shortcut) => (
+                    <ShortcutRow
+                      key={`${shortcut.key}:${shortcut.description}`}
+                      shortcutKey={shortcut.key}
+                      description={t(shortcut.description)}
+                    />
+                  ))}
+                  {extra}
+                </div>
+              </section>
+            );
+          })}
         </div>
 
-        {/* Content */}
-        <div className="p-4 md:p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Navigation Section */}
-            <section>
-              <h3 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wider">
-                {t("shortcuts.sections.navigation")}
-              </h3>
-              <div className="space-y-2">
-                {shown(KEYBOARD_SHORTCUTS.navigation).map((shortcut) => (
-                  <ShortcutRow
-                    key={shortcut.key}
-                    shortcutKey={shortcut.key}
-                    description={t(shortcut.description)}
-                  />
-                ))}
-              </div>
-            </section>
-
-            {/* Actions Section */}
-            <section>
-              <h3 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wider">
-                {t("shortcuts.sections.actions")}
-              </h3>
-              <div className="space-y-2">
-                {shown(KEYBOARD_SHORTCUTS.actions).map((shortcut) => (
-                  <ShortcutRow
-                    key={shortcut.key}
-                    shortcutKey={shortcut.key}
-                    description={t(shortcut.description)}
-                  />
-                ))}
-              </div>
-            </section>
-
-            {/* Global Section */}
-            <section className="md:col-span-2">
-              <h3 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wider">
-                {t("shortcuts.sections.global")}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {shown(KEYBOARD_SHORTCUTS.global).map((shortcut) => (
-                  <ShortcutRow
-                    key={shortcut.key}
-                    shortcutKey={shortcut.key}
-                    description={t(shortcut.description)}
-                  />
-                ))}
-              </div>
-            </section>
-
-            {/* Threads Section */}
-            <section className="md:col-span-2">
-              <h3 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wider">
-                {t("shortcuts.sections.threads")}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {shown(KEYBOARD_SHORTCUTS.threads).map((shortcut) => (
-                  <ShortcutRow
-                    key={shortcut.key}
-                    shortcutKey={shortcut.key}
-                    description={t(shortcut.description)}
-                  />
-                ))}
-              </div>
-            </section>
-
-            {/* Composer Section */}
-            <section className="md:col-span-2">
-              <h3 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wider">
-                {t("shortcuts.sections.composer")}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {shown(KEYBOARD_SHORTCUTS.composer).map((shortcut) => (
-                  <ShortcutRow
-                    key={shortcut.key}
-                    shortcutKey={shortcut.key}
-                    description={t(shortcut.description)}
-                  />
-                ))}
-                {pluginComposerShortcuts.map((action) => (
-                  <ShortcutRow
-                    key={`${action.pluginId}:${action.id}`}
-                    shortcutKey={action.shortcut!}
-                    description={`${action.label} (${action.pluginName})`}
-                  />
-                ))}
-              </div>
-            </section>
-          </div>
-
-          {/* Footer tip */}
-          <div className="mt-6 pt-4 border-t border-border">
-            <p className="text-sm text-muted-foreground text-center">
-              {t("shortcuts.tip")}
-            </p>
-            <p className="text-sm text-center mt-2">
-              <button
-                onClick={() => { onClose(); startTour(); }}
-                className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors"
-              >
-                {t("tour.take_a_tour")}
-              </button>
-            </p>
-          </div>
+        {/* Footer tip */}
+        <div className="mt-6 pt-4 border-t border-border">
+          <p className="text-sm text-muted-foreground text-center">
+            {t("shortcuts.tip")}
+          </p>
+          <p className="text-sm text-center mt-2">
+            <button
+              type="button"
+              onClick={() => { onClose(); startTour(); }}
+              className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors"
+            >
+              {t("tour.take_a_tour")}
+            </button>
+          </p>
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
@@ -190,19 +174,22 @@ function ShortcutRow({
   shortcutKey: string;
   description: string;
 }) {
-  // Split keys by " / " to render multiple key badges
-  const keys = shortcutKey.split(" / ");
+  const t = useTranslations("shortcuts");
+  const keys = shortcutAlternatives(shortcutKey);
 
   return (
-    <div className="flex items-center justify-between py-1.5">
-      <span className="text-sm text-muted-foreground">{description}</span>
-      <div className="flex items-center gap-1.5 ms-4">
+    <div className="flex items-center justify-between gap-4 py-1.5">
+      <span className="min-w-0 text-sm text-muted-foreground">{description}</span>
+      {/* The description wraps first. A key never breaks inside ("Shift + ↓"),
+          and an alternative keeps its "or" with it ("n or c"); only a very
+          long list wraps, between alternatives. */}
+      <div className="flex flex-wrap items-center justify-end gap-x-1.5 gap-y-1 shrink-0 max-w-[75%]">
         {keys.map((key, index) => (
-          <span key={index}>
-            {index > 0 && <span className="text-muted-foreground/50 mx-1 text-xs">or</span>}
+          <span key={index} className="inline-flex items-center gap-1.5 whitespace-nowrap">
+            {index > 0 && <span className="text-muted-foreground/50 text-xs">{t("or")}</span>}
             <kbd
               className={cn(
-                "inline-flex items-center justify-center",
+                "inline-flex items-center justify-center whitespace-nowrap",
                 "px-2 py-0.5 text-xs font-mono font-medium",
                 "bg-muted border border-border rounded",
                 "text-foreground shadow-sm",

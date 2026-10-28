@@ -85,13 +85,18 @@ describe('the reader toolbar and the plugin side panel', () => {
     expect(root.firstElementChild!.contains(panel)).toBe(false);
   });
 
-  it('closes the More menu when a click goes into a frame', () => {
+  it('closes the More menu when a click goes into a frame', async () => {
     show();
     act(() => { fireEvent.click(screen.getByRole('button', { name: 'more_actions' })); });
     expect(screen.getByRole('menu', { name: 'more_actions' })).toBeTruthy();
+    // The menu watches for that from the next tick on.
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
     // A click in the message body or a plugin panel moves focus into that
     // frame: this document sees no mousedown, only the window losing focus.
-    act(() => { window.dispatchEvent(new Event('blur')); });
+    act(() => {
+      (document.activeElement as HTMLElement | null)?.blur();
+      window.dispatchEvent(new Event('blur'));
+    });
     expect(screen.queryByRole('menu', { name: 'more_actions' })).toBeNull();
   });
 

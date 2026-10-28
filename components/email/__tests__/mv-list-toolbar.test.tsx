@@ -60,7 +60,7 @@ describe('MvListToolbar filing actions', () => {
     fireEvent.click(screen.getByLabelText('move_to'));
     fireEvent.click(screen.getByText('Receipts'));
 
-    await waitFor(() => expect(batchMoveToMailbox).toHaveBeenCalledWith({}, 'receipts'));
+    await waitFor(() => expect(batchMoveToMailbox).toHaveBeenCalledWith({}, 'receipts', undefined, []));
   });
 
   it('does not offer the folder you are already in as a destination', () => {
@@ -149,6 +149,10 @@ describe('MvListToolbar overflow menu', () => {
     open();
 
     expect(screen.getByText('mark_all_folders_read')).toBeInTheDocument();
+    // The app's one menu (R6): the ContextMenu, in a portal, with its rows.
+    const menu = screen.getByRole('menu');
+    expect(menu.parentElement).toBe(document.body);
+    expect(screen.getByRole('menuitem', { name: 'mark_all_folders_read' }).className).toContain('pointer-coarse:min-h-11');
   });
 
   it('withholds emptying the folder outside spam and the bin', () => {
@@ -273,7 +277,8 @@ describe('MvListToolbar delete prompt', () => {
     select(folder);
     deleteSelection();
 
-    expect(await screen.findByText('permanent_delete_confirm_title')).toBeInTheDocument();
+    // A selection: "Delete these emails permanently?", not the one-message title.
+    expect(await screen.findByText('permanent_delete_confirm_batch_title')).toBeInTheDocument();
     expect(batchDelete).not.toHaveBeenCalled();
   });
 });

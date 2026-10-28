@@ -15,11 +15,13 @@ import { AdminPageHeader } from '@/components/admin/page-header';
 import { AdminLink } from '@/components/admin/admin-link';
 import { AdminSaveBar } from '@/components/admin/save-bar';
 import { Badge } from '@/components/admin/badge';
-import { Flash, useFlash } from '@/components/admin/flash-message';
+import { useAdminFeedback } from '@/components/admin/feedback';
 import { inputClass } from '@/components/admin/config-items';
 import { ExtensionIcon } from '@/components/admin/extension-icon';
 import { cn } from '@/lib/utils';
 import { useExtensionIcons } from './use-extension-icons';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 
 export interface ConfigField {
   type: 'string' | 'secret' | 'boolean' | 'number' | 'select';
@@ -72,6 +74,7 @@ interface Props {
  * can turn it off, what it may do, and the versions kept for a rollback.
  */
 export function ExtensionDetailPage({ kind, id }: Props) {
+  const { dialogProps: confirmProps, confirm } = useConfirmDialog();
   const words = KIND_LABEL[kind];
   const listHref = adminPath(kind === 'plugin' ? 'plugins' : 'themes');
   const [entry, setEntry] = useState<ExtensionEntry | null>(null);
@@ -81,7 +84,7 @@ export function ExtensionDetailPage({ kind, id }: Props) {
   const [revealSecrets, setRevealSecrets] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
-  const [message, setMessage] = useFlash();
+  const setMessage = useAdminFeedback();
   const iconFor = useExtensionIcons();
 
   const load = useCallback(async () => {
@@ -124,7 +127,12 @@ export function ExtensionDetailPage({ kind, id }: Props) {
   }, [schema, savedValues]);
 
   const dirty = Object.keys(savedValues).some((key) => (formValues[key] ?? '') !== savedValues[key]);
-  useAdminUnsavedChanges(`${kind}-config`, dirty);
+  // On/off and "force on" wait for Save like the settings below.
+  const [availabilityDraft, setAvailabilityDraft] = useState<{ enabled?: boolean; forceEnabled?: boolean }>({});
+  const shownForced = availabilityDraft.forceEnabled ?? !!entry?.forceEnabled;
+  const shownEnabled = shownForced || (availabilityDraft.enabled ?? !!entry?.enabled);
+  const availabilityDirty = !!entry && (shownEnabled !== entry.enabled || shownForced !== !!entry.forceEnabled);
+  useAdminUnsavedChanges(`${kind}-config`, dirty || availabilityDirty);
 
   async function saveConfig() {
     if (!schema) return;
@@ -202,21 +210,32 @@ export function ExtensionDetailPage({ kind, id }: Props) {
     }
   }
 
-  async function setEnabled(enabled: boolean) {
-    if (await patch({ enabled }, 'enabled')) setEntry((prev) => (prev ? { ...prev, enabled } : prev));
+  async function saveAvailability(): Promise<boolean> {
+    if (!entry) return true;
+    const body: Record<string, unknown> = {};
+    if (shownForced !== !!entry.forceEnabled) body.forceEnabled = shownForced;
+    if (shownEnabled !== entry.enabled) body.enabled = shownEnabled;
+    const ok = await patch(body, 'availability');
+    if (ok) setEntry((prev) => (prev ? { ...prev, enabled: shownEnabled, forceEnabled: shownForced } : prev));
+    setAvailabilityDraft({});
+    return ok;
   }
 
-  async function setForced(forceEnabled: boolean) {
-    const body: Record<string, unknown> = { forceEnabled };
-    if (forceEnabled) body.enabled = true;
-    if (await patch(body, 'forced')) {
-      setEntry((prev) => (prev ? { ...prev, forceEnabled, ...(forceEnabled ? { enabled: true } : {}) } : prev));
-    }
+  async function save() {
+    if (availabilityDirty && !(await saveAvailability())) return;
+    if (dirty) await saveConfig();
+    else setMessage({ type: 'success', text: 'Saved' });
   }
 
   async function rollback(version: string) {
     if (!entry) return;
-    if (!confirm(`Put v${version} of "${entry.name}" back in place of v${entry.version}? The copy kept on this server is used.`)) return;
+    const ok = await confirm({
+      title: `Roll back to v${version}?`,
+      message: `"${entry.name}" v${version} replaces v${entry.version}. The copy kept on this server is used.`,
+      confirmText: 'Roll back',
+      cancelText: 'Cancel',
+    });
+    if (!ok) return;
     setBusy(`rollback:${version}`);
     setMessage(null);
     try {
@@ -239,7 +258,14 @@ export function ExtensionDetailPage({ kind, id }: Props) {
 
   async function remove() {
     if (!entry) return;
-    if (!confirm(`Remove "${entry.name}" for every user? Its kept versions are removed too; this cannot be undone.`)) return;
+    const ok = await confirm({
+      title: `Remove "${entry.name}"?`,
+      message: 'It is removed for every user, with the versions kept on this server. This cannot be undone.',
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      variant: 'destructive',
+    });
+    if (!ok) return;
     setBusy('remove');
     setMessage(null);
     const res = await apiFetch(words.endpoint, {
@@ -310,8 +336,13 @@ export function ExtensionDetailPage({ kind, id }: Props) {
         actions={(
           <>
             <label className="flex h-9 items-center gap-2.5 rounded-md border border-input bg-background px-3 text-sm">
-              <span className={cn('font-medium', entry.enabled ? 'text-foreground' : 'text-muted-foreground')}>{entry.enabled ? 'On' : 'Off'}</span>
-              <ToggleSwitch checked={entry.enabled} disabled={busy === 'enabled'} onChange={(v) => void setEnabled(v)} ariaLabel={`${entry.name} enabled`} />
+              <span className={cn('font-medium', shownEnabled ? 'text-foreground' : 'text-muted-foreground')}>{shownEnabled ? 'On' : 'Off'}</span>
+              <ToggleSwitch
+                checked={shownEnabled}
+                disabled={busy === 'availability' || shownForced}
+                onChange={(v) => { setMessage(null); setAvailabilityDraft((prev) => ({ ...prev, enabled: v })); }}
+                ariaLabel={`${entry.name} enabled`}
+              />
             </label>
             <Button variant="outline" size="sm" className="gap-2 text-destructive hover:text-destructive" disabled={busy === 'remove'} onClick={() => void remove()}>
               {busy === 'remove' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
@@ -323,7 +354,7 @@ export function ExtensionDetailPage({ kind, id }: Props) {
 
       {entry.description && <p className="-mt-2 mb-6 text-sm text-foreground">{entry.description}</p>}
 
-      <Flash message={message} onDismiss={() => setMessage(null)} />
+      <ConfirmDialog {...confirmProps} />
 
       <div className="space-y-10">
         <SettingsSection id="availability" title="Availability" description={`Whether users get this ${words.one} and whether they can turn it off.`}>
@@ -333,7 +364,11 @@ export function ExtensionDetailPage({ kind, id }: Props) {
               ? 'Users cannot turn it off in their settings. Turning this on also enables the plugin.'
               : 'Users cannot deactivate it. Turning this on also enables the theme.'}
           >
-            <ToggleSwitch checked={!!entry.forceEnabled} disabled={busy === 'forced'} onChange={(v) => void setForced(v)} />
+            <ToggleSwitch
+              checked={shownForced}
+              disabled={busy === 'availability'}
+              onChange={(v) => { setMessage(null); setAvailabilityDraft((prev) => ({ ...prev, forceEnabled: v })); }}
+            />
           </SettingItem>
           <SettingItem label="Source" description={entry.source?.kind === 'marketplace' ? 'Installed from the extension directory; updates show up in the marketplace.' : 'Installed from an uploaded ZIP.'}>
             {entry.source?.kind === 'marketplace' ? (
@@ -407,11 +442,11 @@ export function ExtensionDetailPage({ kind, id }: Props) {
       </div>
 
       <AdminSaveBar
-        dirty={dirty}
-        saving={saving}
-        onSave={saveConfig}
-        onDiscard={() => setFormValues(savedValues)}
-        saveLabel="Save settings"
+        dirty={dirty || availabilityDirty}
+        saving={saving || busy === 'availability'}
+        onSave={() => void save()}
+        onDiscard={() => { setFormValues(savedValues); setAvailabilityDraft({}); }}
+        saveLabel="Save"
       />
     </div>
   );

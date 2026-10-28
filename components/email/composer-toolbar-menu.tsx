@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ContextMenu, CONTEXT_MENU_ITEM_CLASS } from "@/components/ui/context-menu";
+import { useContextMenu } from "@/hooks/use-context-menu";
 import { Check, ChevronDown, iconForName, Puzzle, type AppIcon } from "@/components/icons";
 import { usePluginActions } from "@/components/plugins/plugin-actions";
 import { runAction } from "@/lib/plugin-sandbox/actions";
@@ -17,48 +18,32 @@ interface ComposerToolbarMenuProps {
 }
 
 /**
- * A labelled toolbar button that opens a small menu above it. The label is
- * always the accessible name; it is only hidden visually on narrow screens.
+ * A labelled toolbar button that opens a menu (the ContextMenu, so it looks
+ * and answers keys like every other menu, R6) above it. The label is always
+ * the accessible name; it is only hidden visually on narrow screens.
  */
 export function ComposerToolbarMenu({ icon: Icon, label, activeCount = 0, testId, children }: ComposerToolbarMenuProps) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const menuId = useId();
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.stopPropagation();
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown, true);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown, true);
-    };
-  }, [open]);
-
-  const close = () => setOpen(false);
+  const menu = useContextMenu<null>();
+  const open = menu.contextMenu.isOpen;
+  const close = menu.closeContextMenu;
 
   return (
-    <div ref={rootRef} className="relative">
+    <div className="relative">
       <Button
         type="button"
         variant="ghost"
-        onClick={() => setOpen((v) => !v)}
+        // The press that would close an open menu as a click outside toggles it instead.
+        onMouseDown={(e) => { if (open) e.stopPropagation(); }}
+        onClick={(e) => {
+          if (open) close();
+          else menu.openContextMenuFrom(e.currentTarget, null, "start");
+        }}
         // 44px on a phone, where 36px was hard to hit with a finger.
         className={cn("h-9 max-md:h-11 max-md:min-w-11 justify-center gap-1.5 px-2 sm:px-2.5", open && "bg-muted")}
         title={label}
         aria-label={label}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-controls={open ? menuId : undefined}
         data-testid={testId}
       >
         <Icon className="w-4 h-4" />
@@ -72,16 +57,9 @@ export function ComposerToolbarMenu({ icon: Icon, label, activeCount = 0, testId
         )}
         <ChevronDown className="hidden @[40rem]/composer-bar:block w-3.5 h-3.5 text-muted-foreground" />
       </Button>
-      {open && (
-        <div
-          id={menuId}
-          role="menu"
-          aria-label={label}
-          className="absolute start-0 bottom-full z-50 mb-2 min-w-56 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg"
-        >
-          {children(close)}
-        </div>
-      )}
+      <ContextMenu ref={menu.menuRef} isOpen={open} position={menu.contextMenu.position} onClose={close}>
+        <div className="min-w-56">{children(close)}</div>
+      </ContextMenu>
     </div>
   );
 }
@@ -100,9 +78,9 @@ export function ComposerToolbarMenuItem({ icon: Icon, onSelect, testId, children
       role="menuitem"
       onClick={onSelect}
       data-testid={testId}
-      className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-start text-sm hover:bg-accent hover:text-accent-foreground"
+      className={CONTEXT_MENU_ITEM_CLASS}
     >
-      {Icon ? <Icon className="w-4 h-4 shrink-0 text-muted-foreground" /> : null}
+      {Icon ? <Icon className="w-4 h-4 shrink-0" /> : null}
       <span className="flex-1">{children}</span>
     </button>
   );
@@ -125,7 +103,7 @@ export function ComposerToolbarMenuCheckItem({ checked, onToggle, description, t
       aria-checked={checked}
       onClick={onToggle}
       data-testid={testId}
-      className="flex w-full items-start gap-2 rounded-sm px-3 py-2 text-start text-sm hover:bg-accent hover:text-accent-foreground"
+      className={cn(CONTEXT_MENU_ITEM_CLASS, "items-start")}
     >
       <span
         className={cn(
@@ -160,7 +138,7 @@ export function ComposerToolbarMenuRadioItem({ checked, onSelect, testId, childr
       aria-checked={checked}
       onClick={onSelect}
       data-testid={testId}
-      className="flex w-full items-center gap-2 rounded-sm px-3 py-1.5 text-start text-sm hover:bg-accent hover:text-accent-foreground"
+      className={CONTEXT_MENU_ITEM_CLASS}
     >
       <span
         className={cn(
@@ -267,12 +245,9 @@ export function ComposerPluginMenuItems({ surface, context, onSelect, separator,
               onSelect?.();
               void runAction(action, surface, typeof context === "function" ? context() : context);
             }}
-            className={cn(
-              "flex w-full items-center gap-2 rounded-sm px-3 py-2 text-start text-sm hover:bg-accent hover:text-accent-foreground",
-              action.danger && "text-destructive",
-            )}
+            className={cn(CONTEXT_MENU_ITEM_CLASS, action.danger && "text-destructive")}
           >
-            <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
+            <Icon className="w-4 h-4 shrink-0" />
             <span className="flex-1">
               <span className="block">{action.label}</span>
               {action.description && <span className="block text-xs text-muted-foreground">{action.description}</span>}

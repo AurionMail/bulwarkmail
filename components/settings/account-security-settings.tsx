@@ -19,9 +19,13 @@ import { sanitizeI18nHtml } from '@/lib/email-sanitization';
 import { IS_LITE } from '@/lib/lite';
 import { useConfig } from '@/hooks/use-config';
 import { totpIssuer } from '@/lib/totp-issuer';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { IconButton } from '@/components/ui/icon-button';
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 
 function PasswordChangeSection() {
   const t = useTranslations('settings.security');
+  const tLogin = useTranslations('login');
   const { changePassword, isSaving, otpEnabled } = useAccountSecurityStore();
   const [currentPassword, setCurrentPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
@@ -62,7 +66,7 @@ function PasswordChangeSection() {
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-2">
         <Key className="w-4 h-4 text-muted-foreground" />
-        <h4 className="text-sm font-medium text-foreground">{t('password.title')}</h4>
+        <h4 data-search-label={t('password.title')} className="text-sm font-medium text-foreground">{t('password.title')}</h4>
       </div>
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
@@ -76,13 +80,14 @@ function PasswordChangeSection() {
               autoComplete="current-password"
               className="pe-10"
             />
-            <button
-              type="button"
+            <IconButton
+              label={showCurrent ? tLogin('hide_password') : tLogin('show_password')}
+              aria-pressed={showCurrent}
               onClick={() => setShowCurrent(!showCurrent)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute end-1 top-1/2 -translate-y-1/2 text-muted-foreground"
             >
-              {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
+              {showCurrent ? <EyeOff /> : <Eye />}
+            </IconButton>
           </div>
         </div>
         {otpEnabled && (
@@ -110,13 +115,14 @@ function PasswordChangeSection() {
               autoComplete="new-password"
               className="pe-10"
             />
-            <button
-              type="button"
+            <IconButton
+              label={showNew ? tLogin('hide_password') : tLogin('show_password')}
+              aria-pressed={showNew}
               onClick={() => setShowNew(!showNew)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute end-1 top-1/2 -translate-y-1/2 text-muted-foreground"
             >
-              {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
+              {showNew ? <EyeOff /> : <Eye />}
+            </IconButton>
           </div>
         </div>
         <div>
@@ -328,7 +334,7 @@ function TotpSection() {
             </div>
           )}
           <div className="flex items-center gap-2">
-            <code className="text-xs bg-background px-2 py-1 rounded border border-border flex-1 truncate">{setupUrl}</code>
+            <code dir="ltr" className="text-xs bg-background px-2 py-1 rounded border border-border flex-1 truncate">{setupUrl}</code>
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">{t('password.current')}</label>
@@ -390,7 +396,7 @@ function parseIpList(raw: string): string[] {
     .filter(Boolean);
 }
 
-function CredentialRow({ entry, onRemove, isSaving }: { entry: AppPasswordInfo | ApiKeyInfo; onRemove: (id: string) => void; isSaving: boolean }) {
+function CredentialRow({ entry, onRemove, isSaving, deleteLabel }: { entry: AppPasswordInfo | ApiKeyInfo; onRemove: (id: string) => void; isSaving: boolean; deleteLabel: string }) {
   return (
     <div className="flex items-start justify-between py-2 px-3 bg-muted/50 rounded-md gap-2">
       <div className="flex flex-col min-w-0 flex-1">
@@ -414,15 +420,14 @@ function CredentialRow({ entry, onRemove, isSaving }: { entry: AppPasswordInfo |
           </div>
         )}
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
+      <IconButton
+        label={deleteLabel}
         onClick={() => onRemove(entry.id)}
         disabled={isSaving}
         className="text-destructive hover:text-destructive shrink-0"
       >
-        <Trash2 className="w-3 h-3" />
-      </Button>
+        <Trash2 />
+      </IconButton>
     </div>
   );
 }
@@ -437,6 +442,7 @@ interface CredentialSectionProps {
 
 function CredentialSection({ icon: Icon, i18nNamespace, entries, onCreate, onRemove }: CredentialSectionProps) {
   const t = useTranslations('settings.security');
+  const tCommon = useTranslations('common');
   const tk = (key: string) => t(`${i18nNamespace}.${key}`);
   const { isSaving, isLoadingAuth } = useAccountSecurityStore();
   const [showAdd, setShowAdd] = useState(false);
@@ -467,7 +473,18 @@ function CredentialSection({ icon: Icon, i18nNamespace, entries, onCreate, onRem
     }
   };
 
+  const { dialogProps: confirmProps, confirm } = useConfirmDialog();
+
+  // A credential can't be brought back, so it asks first (R3).
   const handleRemove = async (id: string) => {
+    const entry = entries.find((e) => e.id === id);
+    const ok = await confirm({
+      title: tk('delete_title'),
+      message: t(`${i18nNamespace}.delete_message`, { name: entry?.description || id }),
+      confirmText: tCommon('delete'),
+      variant: 'destructive',
+    });
+    if (!ok) return;
     try {
       await onRemove(id);
       toast.success(tk('removed'));
@@ -489,7 +506,7 @@ function CredentialSection({ icon: Icon, i18nNamespace, entries, onCreate, onRem
       <div className="space-y-2">
         <div className="flex items-center gap-2 mb-2">
           <Icon className="w-4 h-4 text-muted-foreground" />
-          <h4 className="text-sm font-medium text-foreground">{tk('title')}</h4>
+          <h4 data-search-label={tk('title')} className="text-sm font-medium text-foreground">{tk('title')}</h4>
         </div>
         <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
       </div>
@@ -501,11 +518,11 @@ function CredentialSection({ icon: Icon, i18nNamespace, entries, onCreate, onRem
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Icon className="w-4 h-4 text-muted-foreground" />
-          <h4 className="text-sm font-medium text-foreground">{tk('title')}</h4>
+          <h4 data-search-label={tk('title')} className="text-sm font-medium text-foreground">{tk('title')}</h4>
         </div>
         <Button variant="outline" size="sm" onClick={() => setShowAdd(!showAdd)}>
           <Plus className="w-3 h-3 me-1" />
-          {t('app_passwords.add')}
+          {tk('new')}
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">{tk('description')}</p>
@@ -568,12 +585,13 @@ function CredentialSection({ icon: Icon, i18nNamespace, entries, onCreate, onRem
       {entries.length > 0 ? (
         <div className="space-y-1">
           {entries.map((entry) => (
-            <CredentialRow key={entry.id} entry={entry} onRemove={handleRemove} isSaving={isSaving} />
+            <CredentialRow key={entry.id} entry={entry} onRemove={handleRemove} isSaving={isSaving} deleteLabel={tCommon('delete')} />
           ))}
         </div>
       ) : (
         <p className="text-xs text-muted-foreground italic">{tk('none')}</p>
       )}
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 }
@@ -606,6 +624,7 @@ function ApiKeysSection() {
 
 function PublicKeysSection() {
   const t = useTranslations('settings.security');
+  const tCommon = useTranslations('common');
   const tk = (key: string) => t(`public_keys.${key}`);
   const {
     publicKeys,
@@ -645,7 +664,17 @@ function PublicKeysSection() {
     }
   };
 
+  const { dialogProps: confirmProps, confirm } = useConfirmDialog();
+
   const handleRemove = async (id: string) => {
+    const key = publicKeys.find((k) => k.id === id);
+    const ok = await confirm({
+      title: tk('delete_title'),
+      message: t('public_keys.delete_message', { name: key?.description || id }),
+      confirmText: tCommon('delete'),
+      variant: 'destructive',
+    });
+    if (!ok) return;
     try {
       await removePublicKey(id);
       toast.success(tk('removed'));
@@ -659,7 +688,14 @@ function PublicKeysSection() {
       encryptionConfig.type !== 'Disabled' && encryptionConfig.publicKeyId === keyId;
 
     if (isCurrentlyActiveKey) {
-      // Disable encryption
+      // Turning it off changes how new mail is stored, so it asks first.
+      const ok = await confirm({
+        title: t('encryption.disable_title'),
+        message: t('encryption.disable_message'),
+        confirmText: t('encryption.disable_button'),
+        variant: 'destructive',
+      });
+      if (!ok) return;
       try {
         await updateEncryptionAtRest({ type: 'Disabled' });
         toast.success(t('encryption.disabled_success'));
@@ -698,7 +734,7 @@ function PublicKeysSection() {
       <div className="space-y-2">
         <div className="flex items-center gap-2 mb-2">
           <Lock className="w-4 h-4 text-muted-foreground" />
-          <h4 className="text-sm font-medium text-foreground">{tk('title')}</h4>
+          <h4 data-search-label={tk('title')} className="text-sm font-medium text-foreground">{tk('title')}</h4>
         </div>
         <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
       </div>
@@ -710,11 +746,11 @@ function PublicKeysSection() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Lock className="w-4 h-4 text-muted-foreground" />
-          <h4 className="text-sm font-medium text-foreground">{t('encryption.section_title')}</h4>
+          <h4 data-search-label={t('encryption.section_title')} className="text-sm font-medium text-foreground">{t('encryption.section_title')}</h4>
         </div>
         <Button variant="outline" size="sm" onClick={() => setShowAdd(!showAdd)}>
           <Plus className="w-3 h-3 me-1" />
-          {t('app_passwords.add')}
+          {tk('add')}
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">{t('encryption.description')}</p>
@@ -744,7 +780,7 @@ function PublicKeysSection() {
           <div className="flex gap-2">
             <Button type="submit" size="sm" disabled={isSaving || !description.trim() || !publicKey.trim()}>
               {isSaving ? <Loader2 className="w-4 h-4 me-1 animate-spin" /> : null}
-              {t('app_passwords.create')}
+              {tk('add_submit')}
             </Button>
             <Button type="button" variant="ghost" size="sm" onClick={() => setShowAdd(false)}>
               {t('app_passwords.cancel')}
@@ -836,30 +872,27 @@ function PublicKeysSection() {
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <IconButton
+                    label={isEncryptedWithThisKey ? t('encryption.disable_tooltip') : t('encryption.enable_tooltip')}
                     onClick={() => handleToggleEncryption(key.id)}
                     disabled={isSaving}
-                    title={isEncryptedWithThisKey ? t('encryption.disable_tooltip') : t('encryption.enable_tooltip')}
                     className={cn(
                       isEncryptedWithThisKey
                         ? 'text-green-600 hover:text-green-700 dark:text-green-400'
                         : 'text-muted-foreground hover:text-foreground'
                     )}
                   >
-                    {isEncryptedWithThisKey ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-                  </Button>
+                    {isEncryptedWithThisKey ? <Lock /> : <Unlock />}
+                  </IconButton>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <IconButton
+                    label={tCommon('delete')}
                     onClick={() => handleRemove(key.id)}
                     disabled={isSaving || isEncryptedWithThisKey}
                     className="text-destructive hover:text-destructive"
                   >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
+                    <Trash2 />
+                  </IconButton>
                 </div>
               </div>
             );
@@ -868,6 +901,7 @@ function PublicKeysSection() {
       ) : (
         <p className="text-xs text-muted-foreground italic">{tk('none')}</p>
       )}
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 }
@@ -890,7 +924,7 @@ function EmailClientSection() {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Monitor className="w-4 h-4 text-muted-foreground" />
-        <h4 className="text-sm font-medium text-foreground">{t('email_client.title')}</h4>
+        <h4 data-search-label={t('email_client.title')} className="text-sm font-medium text-foreground">{t('email_client.title')}</h4>
       </div>
       <p className="text-xs text-muted-foreground">{t('email_client.description')}</p>
       <div className="p-3 bg-muted/70 dark:bg-muted/40 rounded-md space-y-2">
@@ -1288,7 +1322,7 @@ export function LinkDeviceSection() {
       <p className="sr-only" aria-live="polite">{announcement}</p>
       <div className="flex items-center gap-2">
         <QrCode className="w-4 h-4 text-muted-foreground" />
-        <h4 className="text-sm font-medium text-foreground">{t('link_device.title')}</h4>
+        <h4 data-search-label={t('link_device.title')} className="text-sm font-medium text-foreground">{t('link_device.title')}</h4>
       </div>
       <p className="text-xs text-muted-foreground">{t('link_device.description')}</p>
 
@@ -1517,7 +1551,7 @@ export function AccountSecuritySettings() {
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Shield className="w-4 h-4 text-muted-foreground" />
-                <h4 className="text-sm font-medium text-foreground">{t('totp.section_title')}</h4>
+                <h4 data-search-label={t('totp.section_title')} className="text-sm font-medium text-foreground">{t('totp.section_title')}</h4>
               </div>
               <TotpSection />
             </div>

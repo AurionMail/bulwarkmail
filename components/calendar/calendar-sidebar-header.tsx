@@ -6,6 +6,8 @@ import { Plus } from "@/components/icons";
 
 interface CalendarSidebarHeaderProps {
   onCreateEvent: () => void;
+  /** The create button's name: what it makes in the current view. */
+  createLabel?: string;
   /** Mark the button for the guided tour; off while the toolbar's own "+" is the visible one. */
   tourTarget?: boolean;
 }
@@ -14,8 +16,9 @@ interface CalendarSidebarHeaderProps {
  * Title row at the top of the calendar sidebar, the same shape as the
  * contacts sidebar header: the app name on the left and "+" on the right.
  */
-export function CalendarSidebarHeader({ onCreateEvent, tourTarget = true }: CalendarSidebarHeaderProps) {
+export function CalendarSidebarHeader({ onCreateEvent, createLabel, tourTarget = true }: CalendarSidebarHeaderProps) {
   const t = useTranslations("calendar");
+  const label = createLabel ?? t("events.create");
 
   return (
     // Same h-14 box as the mail sidebar's account switcher, so the apps line up;
@@ -23,12 +26,12 @@ export function CalendarSidebarHeader({ onCreateEvent, tourTarget = true }: Cale
     <div className="px-3 h-14 box-content border-b border-border flex items-center justify-between flex-shrink-0">
       <span className="text-sm font-semibold truncate">{t("title")}</span>
       <Button
-        size="icon"
+        size="icon-sm"
         variant="ghost"
         onClick={onCreateEvent}
-        className="h-8 w-8 flex-shrink-0"
-        aria-label={t("events.create")}
-        title={t("events.create")}
+        className="flex-shrink-0"
+        aria-label={label}
+        title={label}
         data-tour={tourTarget ? "create-event-button" : undefined}
       >
         <Plus className="w-4 h-4" />

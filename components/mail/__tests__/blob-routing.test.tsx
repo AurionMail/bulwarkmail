@@ -432,7 +432,7 @@ async function openPhoneConversation(ref: Email, threadClient: JMAPClient, selec
   fireEvent.click(await screen.findByText('Routing conversation'));
   await screen.findByRole('button', { name: 'email_viewer.back_to_list' });
   await waitFor(() => expect(threadFetch).toHaveBeenCalled());
-  await screen.findByText('threads.messages_other');
+  await screen.findByText('threads.messages_count');
   return threadFetch;
 }
 

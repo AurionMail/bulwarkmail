@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
 
@@ -33,5 +33,20 @@ describe('WelcomeBanner tips', () => {
     expect(screen.getByText('tip_compose_touch')).toBeInTheDocument();
     expect(screen.getByText('tip_sidebar_touch')).toBeInTheDocument();
     expect(screen.queryByText('tip_shortcuts')).toBeNull();
+  });
+});
+
+describe('WelcomeBanner and Escape', () => {
+  beforeEach(() => {
+    useSettingsStore.setState({ onboardingCompleted: false });
+  });
+
+  it('stays when Escape is pressed elsewhere, and is not marked as seen', () => {
+    device.isMobile = false;
+    render(<WelcomeBanner />);
+    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(screen.getByRole('complementary')).toBeInTheDocument();
+    expect(useSettingsStore.getState().onboardingCompleted).toBe(false);
   });
 });

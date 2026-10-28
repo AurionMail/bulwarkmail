@@ -88,12 +88,32 @@ describe('command palette', () => {
     render(<CommandPaletteHost />);
     pressCtrlK();
 
-    const labels = screen.getAllByRole('option').map((o) => o.textContent);
+    // The label, without the key hint after it.
+    const labels = screen.getAllByRole('option').map((o) => o.querySelector('.flex-1')?.textContent);
     expect(labels).toContain('go_to(mail)');
     expect(labels).toContain('go_to(settings)');
     expect(labels).toContain('compose');
     expect(labels).toContain('shortcuts');
     expect(screen.queryByText('group_plugins')).toBeNull();
+  });
+
+  it("shows Mail's c and / hints only in Mail, where those keys compose and search", () => {
+    const hint = (label: string) => {
+      const row = screen.getAllByRole('option').find((o) => o.querySelector('.flex-1')?.textContent === label)!;
+      return [...row.querySelectorAll('kbd')].map((k) => k.textContent).join(' ');
+    };
+    const { unmount } = render(<CommandPaletteHost />);
+    pressCtrlK();
+    expect(hint('compose')).toBe('c');
+    expect(hint('search')).toBe('/');
+    unmount();
+
+    // Calendar has its own c (new event) and / (search events).
+    nav.pathname = '/calendar/week/2026-10-28';
+    render(<CommandPaletteHost />);
+    pressCtrlK();
+    expect(hint('compose')).toBe('');
+    expect(hint('search')).toBe('');
   });
 
   it('shows plugin entries with the plugin name and runs them with Enter', async () => {
@@ -181,5 +201,44 @@ describe('command palette', () => {
     pressCtrlK();
     expect(screen.queryByRole('option', { name: /^theme_/ })).toBeNull();
     expect(screen.getByRole('option', { name: 'shortcuts' })).toBeInTheDocument();
+  });
+});
+
+describe('command palette on a phone', () => {
+  const realMatchMedia = window.matchMedia;
+  beforeEach(() => {
+    window.matchMedia = ((query: string) => ({
+      matches: query === '(pointer: coarse)',
+      media: query, onchange: null,
+      addListener: () => {}, removeListener: () => {}, addEventListener: () => {}, removeEventListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+  });
+  afterEach(() => { window.matchMedia = realMatchMedia; });
+
+  it('has a close button, as it fills the screen with nothing to tap around it', () => {
+    render(<CommandPaletteHost />);
+    act(() => appCommands.openCommandPalette());
+    act(() => { fireEvent.click(screen.getByRole('button', { name: 'close' })); });
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('offers no keyboard shortcuts on a touch screen', () => {
+    render(<CommandPaletteHost />);
+    act(() => appCommands.openCommandPalette());
+    expect(screen.queryByRole('option', { name: 'shortcuts' })).toBeNull();
+    expect(screen.getByRole('option', { name: 'compose' })).toBeInTheDocument();
+  });
+});
+
+describe('command palette and plugin pages', () => {
+  it('goes to a plugin page like to the built-in apps', async () => {
+    const pages = await import('@/lib/plugin-sandbox/pages');
+    act(() => pages.setPluginPages('kanban', 'Kanban', [{ id: 'board', title: 'Board' }]));
+    render(<CommandPaletteHost />);
+    pressCtrlK();
+    act(() => { fireEvent.click(screen.getByRole('option', { name: /go_to\(Board\)/ })); });
+    expect(nav.push).toHaveBeenCalledWith('/apps/kanban/board');
+    pages.resetPages();
   });
 });

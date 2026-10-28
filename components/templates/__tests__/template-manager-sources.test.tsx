@@ -54,7 +54,7 @@ describe('template manager sources', () => {
     const row = screen.getByTestId('template-row');
     expect(within(row).getByText('Welcome')).toBeInTheDocument();
     expect(within(row).queryByRole('button', { name: 'edit' })).toBeNull();
-    expect(within(row).queryByRole('button', { name: 'confirm_delete' })).toBeNull();
+    expect(within(row).queryByRole('button', { name: 'delete' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'add' })).toBeNull();
 
     fireEvent.click(within(row).getByRole('button', { name: 'preview' }));

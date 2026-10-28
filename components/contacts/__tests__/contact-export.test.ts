@@ -124,3 +124,12 @@ describe('vCard export of contact photos', () => {
     expect(await exported!.text()).toContain('FN:Contact 1');
   });
 });
+
+describe('vCard file names', () => {
+  it('keep letters of any script instead of turning them into underscores', async () => {
+    const { sanitizeFilename } = await import('../contact-export');
+    expect(sanitizeFilename('Jürgen Müller')).toBe('Jürgen_Müller');
+    expect(sanitizeFilename('李 雷')).toBe('李_雷');
+    expect(sanitizeFilename('a/b:c')).toBe('a_b_c');
+  });
+});

@@ -42,32 +42,32 @@ const ACTION_CONFIG: Record<HoverAction, {
   delete: {
     icon: Trash2,
     titleKey: "delete",
-    className: "hover:text-red-600 dark:hover:text-red-400",
+    className: "hover:text-destructive",
   },
   star: {
     icon: Star,
     titleKey: "star",
-    className: "hover:text-amber-500 dark:hover:text-amber-400",
+    className: "hover:text-foreground",
   },
   markRead: {
     icon: Mail,
     titleKey: "mark_read",
-    className: "hover:text-blue-600 dark:hover:text-blue-400",
+    className: "hover:text-foreground",
   },
   archive: {
     icon: Archive,
     titleKey: "archive",
-    className: "hover:text-green-600 dark:hover:text-green-400",
+    className: "hover:text-foreground",
   },
   tag: {
     icon: Tag,
     titleKey: "tag",
-    className: "hover:text-purple-600 dark:hover:text-purple-400",
+    className: "hover:text-foreground",
   },
   spam: {
     icon: ShieldAlert,
     titleKey: "spam",
-    className: "hover:text-orange-600 dark:hover:text-orange-400",
+    className: "hover:text-foreground",
   },
 };
 
@@ -122,7 +122,8 @@ export function EmailHoverActions({
   );
   const hoverActionsMode = useSettingsStore((state) => state.hoverActionsMode);
   const hoverActionsCorner = useSettingsStore((state) => state.hoverActionsCorner);
-  const t = useTranslations("settings.email_behavior.hover_actions");
+  // The words the row's menu uses for the same actions (R10).
+  const t = useTranslations("context_menu");
   const isMobile = useIsMobile();
   // Buttons plugins add to the row (message-row-actions), after the app's own.
   const pluginTarget = useMessageActionTarget(email);
@@ -238,9 +239,13 @@ export function EmailHoverActions({
         : isNotSpam
           ? ShieldCheck
           : Icon;
-    const title = isNotSpam ? t("not_spam") : t(config.titleKey);
+    const title = isNotSpam ? t("not_spam")
+      : actionId === "markRead" ? t(isUnread ? "mark_read" : "mark_unread")
+      : actionId === "star" ? t(isStarred ? "unstar" : "star")
+      : actionId === "spam" ? t("mark_as_spam")
+      : t(config.titleKey);
     const className = isNotSpam
-      ? "hover:text-green-600 dark:hover:text-green-400"
+      ? "hover:text-foreground"
       : config.className;
 
     return (
@@ -251,6 +256,7 @@ export function EmailHoverActions({
         onClick={(e) => handleAction(e, actionId)}
         onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
         title={title}
+        aria-label={title}
         aria-haspopup={actionId === "tag" ? "menu" : undefined}
         aria-expanded={actionId === "tag" ? tagPickerPos !== null : undefined}
         className={cn(
@@ -306,7 +312,8 @@ export function EmailHoverActions({
 
   // While the picker is open the row is no longer hovered, so the toolbar has to
   // stay mounted and visible or the picker would close under its own anchor.
-  const visibilityClass = tagPickerPos ? "flex" : "hidden group-hover:flex";
+  // Shown on keyboard focus too (R7), not only on hover.
+  const visibilityClass = tagPickerPos ? "flex" : "hidden group-hover:flex group-focus-within:flex";
 
   if (hoverActionsMode === 'floating') {
     return (

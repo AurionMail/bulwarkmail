@@ -94,6 +94,21 @@ export function partlyRefusedWarning(result: { rejectedRecipients?: RejectedReci
 }
 
 /**
+ * The toast after a reschedule the server took (R9): when the message goes
+ * out now (`sendAt`, formatted), and whom the server refused, if anyone.
+ */
+export function rescheduledToast(
+  result: { rejectedRecipients?: RejectedRecipient[] },
+  tViewer: Translate,
+  tComposer: Translate,
+  sendAt: string,
+): { kind: 'success' | 'warning'; title: string; message?: string } {
+  const title = tViewer('rescheduled_for', { date: sendAt });
+  const refused = partlyRefusedWarning(result, tComposer);
+  return refused ? { kind: 'warning', title, message: refused } : { kind: 'success', title };
+}
+
+/**
  * The toast for a failed "Undo send" or "Cancel and edit". A failed cancel
  * may still let the mail go, so it must never read as done: it gets
  * `cancelFailedTitle` and the reason. One that went through while a step

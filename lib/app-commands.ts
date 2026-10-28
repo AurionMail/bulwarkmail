@@ -8,13 +8,20 @@
 
 import { useEffect, useRef } from 'react';
 
-export type AppCommand = 'compose' | 'search';
+export type AppCommand = 'compose' | 'search' | 'all-inboxes' | 'show-list' | 'tour-end';
 
 export const COMMAND_PALETTE_OPEN_EVENT = 'bulwark:command-palette';
 
 /** Open the command palette from a button or menu (phones have no Ctrl+K). */
 export function openCommandPalette(): void {
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(COMMAND_PALETTE_OPEN_EVENT));
+}
+
+export const KEYBOARD_SHORTCUTS_OPEN_EVENT = 'bulwark:keyboard-shortcuts';
+
+/** Open the keyboard shortcuts help, on the current app's section, like `?` does. */
+export function openKeyboardShortcuts(): void {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(KEYBOARD_SHORTCUTS_OPEN_EVENT));
 }
 
 const EVENT = 'bulwark:app-command';

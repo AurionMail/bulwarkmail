@@ -226,4 +226,12 @@ describe('composer title', () => {
     render(<EmailComposer initialData={{ ...DATA, mode: 'compose' }} />);
     expect(screen.getByRole('button', { name: 'close' })).toBeInTheDocument();
   });
+
+  // R4: Close at the top end. On a phone it moves to the start (Send is at the end there).
+  it('puts Close at the end of the header, and at the start only on a phone', () => {
+    render(<EmailComposer initialData={{ ...DATA, mode: 'compose' }} />);
+    const close = screen.getByRole('button', { name: 'close' });
+    expect(close.parentElement!.lastElementChild).toBe(close);
+    expect(close.className).toContain('max-md:order-first');
+  });
 });

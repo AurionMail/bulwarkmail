@@ -15,7 +15,7 @@ import { usePolicyStore } from '@/stores/policy-store';
 import { fetchConfig, type ConfigData } from '@/hooks/use-config';
 import { productName } from '@/lib/product-name';
 import {
-  collectSubResults, getByPath, tabKeywords, tabSearchPaths, withAppName, type SettingsSearchTab, type SubResult,
+  getByPath, settingsSubResults, tabKeywords, tabSearchEntries, type SettingsSearchTab,
 } from '@/lib/settings-search';
 import { currentSessionLimits } from '@/lib/session-policy/limits';
 import type { AppSettingsView, SettingsSearchResult } from '../plugin-types';
@@ -81,29 +81,25 @@ export async function doAppSearchSettings(query: unknown, options?: unknown): Pr
 
   const scored: { score: number; order: number; result: SettingsSearchResult }[] = [];
   let order = 0;
-  for (const tab of Object.keys(tabSearchPaths) as SettingsSearchTab[]) {
+  for (const tab of Object.keys(tabSearchEntries) as SettingsSearchTab[]) {
     if (!pages.has(tab)) continue;
     const page = pageName(local, tab);
     const pageHaystack = `${page} ${pageName(english, tab)} ${tab.replace(/_/g, ' ')} ${tabKeywords[tab] ?? ''}`.toLowerCase();
-    for (const path of tabSearchPaths[tab]) {
-      // The merged catalogue has the English one's shape, so both walks line up.
-      const mine: SubResult[] = [];
-      const theirs: SubResult[] = [];
-      collectSubResults(withAppName(getByPath(local, path), appName), mine);
-      collectSubResults(withAppName(getByPath(english, path), appName), theirs);
-      mine.forEach((entry, i) => {
-        const en = theirs[i];
-        const text = `${entry.label} ${entry.description ?? ''} ${en?.label ?? ''} ${en?.description ?? ''}`.toLowerCase();
-        let score = 0;
-        for (const word of words) {
-          if (text.includes(word)) score += 2;
-          else if (pageHaystack.includes(word)) score += 1;
-        }
-        if (score > 0) {
-          scored.push({ score, order: order++, result: { pageId: tab, page, label: entry.label, ...(entry.description ? { description: entry.description } : {}) } });
-        }
-      });
-    }
+    // The merged catalogue has the English one's shape, so both lists line up.
+    const mine = settingsSubResults(local, tab, appName);
+    const theirs = settingsSubResults(english, tab, appName);
+    mine.forEach((entry, i) => {
+      const en = theirs[i];
+      const text = `${entry.label} ${entry.description ?? ''} ${en?.label ?? ''} ${en?.description ?? ''}`.toLowerCase();
+      let score = 0;
+      for (const word of words) {
+        if (text.includes(word)) score += 2;
+        else if (pageHaystack.includes(word)) score += 1;
+      }
+      if (score > 0) {
+        scored.push({ score, order: order++, result: { pageId: tab, page, label: entry.label, ...(entry.description ? { description: entry.description } : {}) } });
+      }
+    });
   }
   scored.sort((a, b) => b.score - a.score || a.order - b.order);
   const seen = new Set<string>();

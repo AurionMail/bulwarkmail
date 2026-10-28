@@ -512,4 +512,15 @@ describe('composer with the @ recipient list', () => {
       expect(card()).not.toHaveTextContent('mention_card_not_recipient');
     });
   });
+
+  // The Insert link dialog portals to the body but sits inside the composer
+  // in React's tree, so its keys bubble through the composer's handler.
+  it('lets Escape in the Insert link dialog close only that dialog, not the composer', async () => {
+    const { onClose } = await renderComposer();
+    fireEvent.click(screen.getByTitle('link'));
+    const dialog = await screen.findByRole('dialog', { name: 'insert_link' });
+    fireEvent.keyDown(dialog.querySelector('input')!, { key: 'Escape' });
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+  });
 });

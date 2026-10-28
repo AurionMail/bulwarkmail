@@ -151,6 +151,8 @@ export interface IJMAPClient {
   // ── Push / state ──────────────────────────────────────────────
   setupPushNotifications(): boolean;
   closePushNotifications(): void;
+  /** Whether this client holds one of the tab's live event streams (vs. slow-polling or none). */
+  hasSSEStream(): boolean;
   onConnectionChange(callback: (connected: boolean) => void): void;
   onRateLimit(callback: (rateLimited: boolean, retryAfterMs: number) => void): void;
   isRateLimited(): boolean;
@@ -371,6 +373,12 @@ export interface IJMAPClient {
    * least one mailbox, so the server refuses this for a message only in it.
    */
   removeEmailsFromMailbox(emailIds: string[], mailboxId: string, accountId?: string): Promise<void>;
+  /**
+   * Put messages back where they were before a move, delete to Trash,
+   * archive or "remove from folder": each one's whole `mailboxIds`, and its
+   * read state when `seen` is given. Backs the toasts' Undo.
+   */
+  restoreEmails(emails: Array<{ id: string; mailboxIds: Record<string, boolean>; seen?: boolean }>, accountId?: string): Promise<void>;
   emptyMailbox(mailboxId: string, accountId?: string): Promise<number>;
   moveMailboxContents(fromMailboxId: string, toMailboxId: string, accountId?: string, markAsRead?: boolean): Promise<number>;
   markMailboxAsRead(mailboxId: string, accountId?: string): Promise<number>;
@@ -657,6 +665,12 @@ export interface IJMAPClient {
   getFileNodes(ids: string[] | null, properties?: string[]): Promise<FileNode[]>;
   createFileDirectory(name: string, parentId: string | null): Promise<FileNode>;
   createFileNode(name: string, blobId: string, type: string, size: number, parentId: string | null): Promise<FileNode>;
+  /**
+   * Blob/copy (RFC 8620 §6.3): copies blobs from one account of this session
+   * into another, on the server. Returns the new id of each copied blob;
+   * throws when one was not copied.
+   */
+  copyBlobs(fromAccountId: string, blobIds: string[], toAccountId: string): Promise<Record<string, string>>;
   updateFileNode(id: string, updates: Partial<Pick<FileNode, 'name' | 'parentId'>>): Promise<void>;
   updateFileNodes(updates: Record<string, Partial<Pick<FileNode, 'name' | 'parentId'>>>): Promise<{ updated: string[]; notUpdated: Record<string, string> }>;
   destroyFileNodes(ids: string[]): Promise<{ destroyed: string[]; notDestroyed: string[] }>;

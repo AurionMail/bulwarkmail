@@ -16,7 +16,7 @@ beforeEach(() => {
 describe('runBatchEmailAction', () => {
   it('reports success when the action ran', async () => {
     await runBatchEmailAction(async () => true, messages);
-    expect(toast.success).toHaveBeenCalledWith('3 messages archived');
+    expect(toast.success).toHaveBeenCalledWith('3 messages archived', undefined);
     expect(toast.error).not.toHaveBeenCalled();
   });
 
@@ -41,6 +41,6 @@ describe('runBatchEmailAction', () => {
     useEmailStore.setState({ error: 'Failed to load the folder' });
     await runBatchEmailAction(async () => true, messages);
     expect(toast.error).not.toHaveBeenCalled();
-    expect(toast.success).toHaveBeenCalledWith('3 messages archived');
+    expect(toast.success).toHaveBeenCalledWith('3 messages archived', undefined);
   });
 });

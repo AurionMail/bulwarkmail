@@ -4,8 +4,9 @@ import { Suspense, useState, useEffect, useCallback, useRef, useMemo } from "rea
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
-import { ArrowLeft, Users, AlertTriangle } from "@/components/icons";
+import { ArrowLeft, Users, UsersRound, AlertTriangle, Plus, UserPlus, Upload, BookPlus } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { ContextMenuItem } from "@/components/ui/context-menu";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { ContactList } from "@/components/contacts/contact-list";
@@ -15,9 +16,10 @@ import { ContactGroupForm } from "@/components/contacts/contact-group-form";
 import { ContactGroupDetail } from "@/components/contacts/contact-group-detail";
 import { ContactsSidebar, type ContactCategory } from "@/components/contacts/contacts-sidebar";
 import { ContactImportDialog } from "@/components/contacts/contact-import-dialog";
+import { AddressBookPickerDialog } from "@/components/contacts/address-book-picker-dialog";
 import { DirectoryBrowser, directoryKey } from "@/components/contacts/directory-browser";
 import { DirectoryEntryDetail } from "@/components/contacts/directory-entry-detail";
-import { RenameDialog } from "@/components/files/rename-dialog";
+import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { exportContacts } from "@/components/contacts/contact-export";
 import { AppTopBannerSlot } from "@/components/plugins/app-top-banner-slot";
 import { useContactStore, getContactDisplayName, getContactPrimaryEmail, type DirectoryEntry } from "@/stores/contact-store";
@@ -48,6 +50,10 @@ import { useDeepLinkUrl } from "@/hooks/use-deep-link-url";
 import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
 import { useLiteLinkSegments } from "@/hooks/use-lite-link-segments";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { useRegisterCommands } from "@/lib/command-registry";
+import { useCloseOnBack } from "@/hooks/use-close-on-back";
+import { useLeaveGuard } from "@/lib/leave-guard";
+import { useDeleteCategory } from "@/hooks/use-delete-category";
 import { MvTopBar } from "@/components/layout/mv-top-bar";
 import { useMountainViewShell } from "@/hooks/use-mountain-view-shell";
 
@@ -128,7 +134,11 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   const [createPrefill, setCreatePrefill] = useState<{ email?: string; name?: string } | undefined>(undefined);
   const [returnToEmail, setReturnToEmail] = useState(false);
   const [renamingKeyword, setRenamingKeyword] = useState<string | null>(null);
+  // "Move to…": the contacts waiting for an address book to be picked.
+  const [movingContactIds, setMovingContactIds] = useState<string[] | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  // Who a new group starts with: the selection when it came from "Add to group".
+  const [newGroupMemberIds, setNewGroupMemberIds] = useState<string[]>([]);
   const [directorySelection, setDirectorySelection] = useState<Set<string>>(() => new Set());
   const [openDirectoryKey, setOpenDirectoryKey] = useState<string | null>(null);
   const directoryPrincipals = useContactStore((s) => s.directoryPrincipals);
@@ -151,6 +161,73 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   const isNarrow = !isDesktop;
   const [narrowSidebarOpen, setNarrowSidebarOpen] = useState(false);
   useEffect(() => { if (!isNarrow) setNarrowSidebarOpen(false); }, [isNarrow]);
+  // A new view (a form, a group, a contact) replaces whatever the drawer was for.
+  useEffect(() => { setNarrowSidebarOpen(false); }, [view]);
+  // R5: an editor with unsaved changes asks before anything replaces it.
+  const [editorDirty, setEditorDirtyState] = useState(false);
+  const editorDirtyRef = useRef(false);
+  const setEditorDirty = useCallback((dirty: boolean) => {
+    editorDirtyRef.current = dirty;
+    setEditorDirtyState(dirty);
+  }, []);
+  useEffect(() => {
+    if (view !== "create" && view !== "edit" && view !== "group-create" && view !== "group-edit") setEditorDirty(false);
+  }, [view, setEditorDirty]);
+  const askDiscard = useCallback(() => confirmDialog({
+    title: t("form.discard_title"),
+    message: t("form.discard_message"),
+    confirmText: t("form.discard"),
+    cancelText: t("form.keep_editing"),
+    variant: "destructive",
+  }), [confirmDialog, t]);
+  const confirmDiscard = useCallback(async () => {
+    if (!editorDirtyRef.current) return true;
+    const discard = await askDiscard();
+    if (discard) setEditorDirty(false);
+    return discard;
+  }, [askDiscard, setEditorDirty]);
+  // The rail and the phone tab bar ask too, before they leave Contacts. Only
+  // ask there: leaving unmounts the form, and clearing it first would let the
+  // Back guard below take its history step back over the navigation.
+  useLeaveGuard(() => editorDirtyRef.current, askDiscard);
+  const guard = <A extends unknown[]>(action: (...args: A) => unknown) => (...args: A): void => {
+    if (!editorDirtyRef.current) {
+      action(...args);
+      return;
+    }
+    void confirmDiscard().then((discard) => { if (discard) action(...args); });
+  };
+  // Leaving the page or going Back asks too.
+  useEffect(() => {
+    if (!editorDirty) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [editorDirty]);
+  const handleCancelRef = useRef<() => void>(() => {});
+  // Set when the app itself goes Back (to the email it came from): the
+  // guard's history entry is in the way then, and is stepped over.
+  const leavingRef = useRef(false);
+  const backGuard = useCloseOnBack({ active: editorDirty, onBack: () => {
+    if (leavingRef.current) {
+      leavingRef.current = false;
+      window.history.back();
+      return;
+    }
+    void confirmDiscard().then((discard) => {
+      if (discard) handleCancelRef.current();
+      else backGuard.rearm();
+    });
+  } });
+  const routerBack = useCallback(() => {
+    if (backGuard.armed()) leavingRef.current = true;
+    router.back();
+  }, [backGuard, router]);
+  // Anything picked in the drawer closes it (R7).
+  const fromDrawer = <A extends unknown[], R>(action: (...args: A) => R) => (...args: A): R => {
+    setNarrowSidebarOpen(false);
+    return action(...args);
+  };
 
   // Panel resize state - sidebar (categories)
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -350,6 +427,31 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     }
   }, [client, moveContactToAddressBook, t]);
 
+  // Address books contacts can be moved to; "Move to…" needs a second one.
+  const writableBooks = useMemo(() => addressBooks.filter((b) => b.myRights?.mayWrite !== false), [addressBooks]);
+  const canMoveContacts = !!client && supportsSync && writableBooks.length > 1;
+  const handleMoveContacts = useCallback((ids: string[]) => {
+    if (ids.length > 0) setMovingContactIds(ids);
+  }, []);
+  // The book the contacts are in, when they share one, so the picker can leave it out.
+  const movingFromBookId = useMemo(() => {
+    if (!movingContactIds) return null;
+    const books = new Set(movingContactIds.flatMap((id) => {
+      const c = contacts.find((x) => x.id === id);
+      return c?.addressBookIds ? Object.keys(c.addressBookIds).filter((k) => c.addressBookIds[k]) : [];
+    }));
+    return books.size === 1 ? [...books][0] : null;
+  }, [movingContactIds, contacts]);
+
+  // Deleting a category only takes a label off contacts: no question, an Undo (R3).
+  const deleteCategory = useDeleteCategory();
+  const handleDeleteKeyword = useCallback(async (keyword: string) => {
+    if (!(await deleteCategory(keyword))) return;
+    if (typeof activeCategory === "object" && "keyword" in activeCategory && activeCategory.keyword === keyword) {
+      setActiveCategory("all");
+    }
+  }, [deleteCategory, activeCategory]);
+
   const handleDropContactsToCategory = useCallback(async (contactIds: string[], keyword: string) => {
     if (!client && supportsSync) return;
     try {
@@ -398,7 +500,6 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
       await createAddressBook(client, name);
       await refreshAddressBooks();
       toast.success(t("address_books.created"));
-      setCreatingAddressBook(false);
     } catch (error) {
       console.error('Failed to create address book:', error);
       toast.error(t("address_books.create_failed"));
@@ -434,14 +535,31 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     setView("edit");
   };
 
-  const deleteContactById = useCallback(async (contactId: string) => {
-    const confirmed = await confirmDialog({
-      title: t("delete_confirm_title"),
-      message: t("delete_confirm"),
+  // R3: the confirm names what goes ("Delete Alice Smith?", "Delete 3
+  // contacts?") and says what is lost with it.
+  const confirmDeleteContacts = useCallback((ids: string[]) => {
+    const only = ids.length === 1 ? contacts.find((c) => c.id === ids[0]) : undefined;
+    const name = only ? getContactDisplayName(only).trim() : "";
+    return confirmDialog({
+      title: name ? t("delete_named_title", { name }) : t("bulk.delete_confirm", { count: ids.length }),
+      message: t("delete_details_message"),
       confirmText: t("form.delete"),
       variant: "destructive",
     });
-    if (!confirmed) return;
+  }, [contacts, confirmDialog, t]);
+  const confirmDeleteGroup = useCallback((groupId: string) => {
+    const group = contacts.find((c) => c.id === groupId);
+    const name = group ? getContactDisplayName(group).trim() : "";
+    return confirmDialog({
+      title: name ? t("delete_named_title", { name }) : t("groups.delete_confirm_title"),
+      message: t("groups.delete_message"),
+      confirmText: t("form.delete"),
+      variant: "destructive",
+    });
+  }, [contacts, confirmDialog, t]);
+
+  const deleteContactById = useCallback(async (contactId: string) => {
+    if (!(await confirmDeleteContacts([contactId]))) return;
 
     try {
       const deleted = supportsSync && client
@@ -455,7 +573,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
       console.error('Failed to delete contact:', error);
       toast.error(t("toast.error_delete"));
     }
-  }, [confirmDialog, t, supportsSync, client, deleteContact, deleteLocalContact, selectedContactId]);
+  }, [confirmDeleteContacts, t, supportsSync, client, deleteContact, deleteLocalContact, selectedContactId]);
 
   const handleDelete = async () => {
     if (!selectedContact) return;
@@ -475,11 +593,24 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     clearSelection();
     toggleContactSelection(id);
     if (groups.length === 0) {
+      // No group to add to yet: a new one, with the contact already in it.
+      setNewGroupMemberIds([id]);
       setView("group-create");
       return;
     }
     setView("bulk-add-to-group");
   }, [clearSelection, toggleContactSelection, groups.length]);
+
+  // After a save or a duplicate the new card is on screen, not "Select a contact".
+  const showNewestContact = useCallback(() => {
+    const newest = useContactStore.getState().contacts.at(-1);
+    if (!newest) {
+      setView("list");
+      return;
+    }
+    setSelectedContact(newest.id);
+    setView("detail");
+  }, [setSelectedContact]);
 
   const handleDuplicateContact = useCallback(async (source: ContactCard) => {
     const { id: _id, uid: _uid, created: _created, updated: _updated, ...rest } = source;
@@ -494,15 +625,24 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
         localAccountId: source.localAccountId,
       }, "keep");
     }
-    const created = supportsSync && client
-      ? await createContact(client, data)
-      : await addLocalContact({
-        id: `local-${generateUUID()}`,
-        addressBookIds: data.addressBookIds || {},
-        ...data,
-      });
-    if (created) toast.success(t("toast.created"));
-  }, [supportsSync, client, createContact, addLocalContact, t]);
+    let created: boolean;
+    try {
+      created = supportsSync && client
+        ? await createContact(client, data)
+        : await addLocalContact({
+          id: `local-${generateUUID()}`,
+          addressBookIds: data.addressBookIds || {},
+          ...data,
+        });
+    } catch (error) {
+      console.error("Failed to duplicate contact:", error);
+      toast.error(t("toast.error_create"));
+      return;
+    }
+    if (!created) return;
+    toast.success(t("toast.created"));
+    showNewestContact();
+  }, [supportsSync, client, createContact, addLocalContact, t, showNewestContact]);
 
   const handleSaveNew = useCallback(async (data: Partial<ContactCard>, options?: ContactSaveOptions) => {
     const created = supportsSync && client
@@ -515,15 +655,16 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     // A plugin stopped it: keep the form open with what was typed.
     if (!created) return;
     toast.success(t("toast.created"));
+    setEditorDirty(false);
     setDefaultBookIdForCreate(undefined);
     setCreatePrefill(undefined);
     if (returnToEmail) {
       setReturnToEmail(false);
-      router.back();
+      routerBack();
       return;
     }
-    setView("list");
-  }, [supportsSync, client, createContact, addLocalContact, t, returnToEmail, router]);
+    showNewestContact();
+  }, [supportsSync, client, createContact, addLocalContact, t, returnToEmail, routerBack, setEditorDirty, showNewestContact]);
 
   const handleSaveEdit = useCallback(async (data: Partial<ContactCard>, options?: ContactSaveOptions) => {
     if (!selectedContact) return;
@@ -537,12 +678,13 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   }, [supportsSync, client, selectedContact, updateContact, updateLocalContact, t]);
 
   const handleCancel = () => {
+    setEditorDirty(false);
     setDefaultBookIdForCreate(undefined);
     // Came from email → cancel returns to the email instead of the contact list.
     if (returnToEmail && view === "create") {
       setCreatePrefill(undefined);
       setReturnToEmail(false);
-      router.back();
+      routerBack();
       return;
     }
     if (view === "create") setCreatePrefill(undefined);
@@ -555,6 +697,8 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     }
   };
 
+  handleCancelRef.current = handleCancel;
+
   const _handleSelectGroup = (id: string) => {
     setSelectedGroupId(id);
     setActiveCategory({ groupId: id });
@@ -563,6 +707,14 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
 
   const handleCreateGroup = () => {
     setSelectedGroupId(null);
+    setNewGroupMemberIds([]);
+    setView("group-create");
+  };
+
+  // "Add to group": a new group starting with the selected contacts.
+  const handleCreateGroupFromSelection = () => {
+    setSelectedGroupId(null);
+    setNewGroupMemberIds(Array.from(selectedContactIds));
     setView("group-create");
   };
 
@@ -591,6 +743,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
       bcc: field === "bcc" ? recipients : [],
       subject: "",
       body: "",
+      inApp: true,
     });
     router.push("/");
   }, [router]);
@@ -643,13 +796,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   }, [openComposeInApp]);
 
   const handleDeleteGroupFromSidebar = useCallback(async (groupId: string) => {
-    const confirmed = await confirmDialog({
-      title: t("groups.delete_confirm_title"),
-      message: t("groups.delete_confirm"),
-      confirmText: t("form.delete"),
-      variant: "destructive",
-    });
-    if (!confirmed) return;
+    if (!(await confirmDeleteGroup(groupId))) return;
 
     try {
       await deleteGroup(supportsSync && client ? client : null, groupId);
@@ -663,18 +810,11 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
       console.error('Failed to delete group:', error);
       toast.error(t("toast.error_delete"));
     }
-  }, [confirmDialog, deleteGroup, supportsSync, client, selectedGroupId, t]);
+  }, [confirmDeleteGroup, deleteGroup, supportsSync, client, selectedGroupId, t]);
 
   const handleDeleteGroup = async () => {
     if (!selectedGroup) return;
-
-    const confirmed = await confirmDialog({
-      title: t("groups.delete_confirm_title"),
-      message: t("groups.delete_confirm"),
-      confirmText: t("form.delete"),
-      variant: "destructive",
-    });
-    if (!confirmed) return;
+    if (!(await confirmDeleteGroup(selectedGroup.id))) return;
 
     try {
       await deleteGroup(supportsSync && client ? client : null, selectedGroup.id);
@@ -702,9 +842,10 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     } else {
       await createGroup(jmapClient, name, memberIds);
       toast.success(t("toast.created"));
+      clearSelection();
       setView("list");
     }
-  }, [view, selectedGroup, selectedGroupMembers, supportsSync, client, createGroup, updateGroup, addMembersToGroup, removeMembersFromGroup, t]);
+  }, [view, selectedGroup, selectedGroupMembers, supportsSync, client, createGroup, updateGroup, addMembersToGroup, removeMembersFromGroup, clearSelection, t]);
 
   const handleRemoveGroupMember = async (memberId: string) => {
     if (!selectedGroup) return;
@@ -724,13 +865,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   const handleBulkDelete = async () => {
     if (selectedContactIds.size === 0) return;
 
-    const confirmed = await confirmDialog({
-      title: t("bulk.delete_confirm_title"),
-      message: t("bulk.delete_confirm", { count: selectedContactIds.size }),
-      confirmText: t("bulk.delete"),
-      variant: "destructive",
-    });
-    if (!confirmed) return;
+    if (!(await confirmDeleteContacts(Array.from(selectedContactIds)))) return;
 
     try {
       if (!(await bulkDeleteContacts(
@@ -748,7 +883,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   const handleBulkAddToGroup = () => {
     if (selectedContactIds.size === 0) return;
     if (groups.length === 0) {
-      setView("group-create");
+      handleCreateGroupFromSelection();
       return;
     }
     setView("bulk-add-to-group");
@@ -761,6 +896,14 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
       clearSelection();
     }
   };
+
+  // The command palette's Contacts group (Ctrl/⌘+K).
+  useRegisterCommands(tSidebar("contacts"), [
+    { id: "new-contact", label: t("create_new"), icon: UserPlus, run: () => guard(handleCreateNew)() },
+    { id: "import", label: t("import.title"), icon: Upload, run: () => setShowImportDialog(true) },
+    { id: "new-group", label: t("groups.create"), icon: UsersRound, run: () => guard(handleCreateGroup)() },
+    { id: "new-address-book", label: t("address_books.create"), icon: BookPlus, run: () => setCreatingAddressBook(true), when: () => !!client },
+  ], contactsEnabled);
 
   const handleBulkAddToGroupConfirm = async (groupId: string) => {
     try {
@@ -786,13 +929,13 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
         <DirectoryEntryDetail
           entry={directoryPrincipals.find((e) => directoryKey(e) === openDirectoryKey) ?? null}
           onCompose={(entry) => handleComposeDirectory([entry])}
-          onAddToContacts={handleAddDirectoryEntryToContacts}
+          onAddToContacts={guard(handleAddDirectoryEntryToContacts)}
         />
       );
     }
     switch (view) {
       case "create":
-        return <ContactForm addressBooks={addressBooks} allKeywords={allKeywords} defaultAddressBookId={defaultBookIdForCreate} prefill={createPrefill} onSave={handleSaveNew} onCancel={handleCancel} />;
+        return <ContactForm addressBooks={addressBooks} allKeywords={allKeywords} defaultAddressBookId={defaultBookIdForCreate} prefill={createPrefill} onSave={handleSaveNew} onCancel={guard(handleCancel)} onDirtyChange={setEditorDirty} />;
 
       case "edit":
         if (!selectedContact) return null;
@@ -802,7 +945,8 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
             addressBooks={addressBooks}
             allKeywords={allKeywords}
             onSave={handleSaveEdit}
-            onCancel={handleCancel}
+            onCancel={guard(handleCancel)}
+            onDirtyChange={setEditorDirty}
             loadCurrentMedia={supportsSync && client ? () => fetchContactFromServer(client, selectedContact.id) : undefined}
           />
         );
@@ -818,10 +962,10 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
             onRemoveMember={handleRemoveGroupMember}
             onComposeGroup={(field) => handleComposeGroupFromSidebar(selectedGroup.id, field)}
             isMobile={isMobile}
-            onSelectMember={(id) => {
+            onSelectMember={guard((id: string) => {
               setSelectedContact(id);
               setView("detail");
-            }}
+            })}
           />
         );
 
@@ -829,8 +973,10 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
         return (
           <ContactGroupForm
             individuals={individuals}
+            currentMemberIds={newGroupMemberIds}
             onSave={handleSaveGroup}
-            onCancel={handleCancel}
+            onCancel={guard(handleCancel)}
+            onDirtyChange={setEditorDirty}
           />
         );
 
@@ -842,7 +988,8 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
             individuals={individuals}
             currentMemberIds={selectedGroupMembers.map(m => m.id)}
             onSave={handleSaveGroup}
-            onCancel={handleCancel}
+            onCancel={guard(handleCancel)}
+            onDirtyChange={setEditorDirty}
           />
         );
 
@@ -856,6 +1003,16 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
               </p>
             </div>
             <div className="flex-1 overflow-y-auto divide-y divide-border">
+              <button
+                type="button"
+                onClick={handleCreateGroupFromSelection}
+                className="w-full flex items-center gap-3 px-6 py-3 text-start hover:bg-muted transition-colors"
+              >
+                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <UsersRound className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0 text-sm font-medium">{t("bulk.new_group")}</div>
+              </button>
               {groups.map((group) => {
                 const gName = getContactDisplayName(group);
                 const memberCount = group.members
@@ -909,6 +1066,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                 ? () => void handleDuplicateContact(selectedContact)
                 : undefined
             }
+            onMoveTo={selectedContact && canMoveContacts ? () => handleMoveContacts([selectedContact.id]) : undefined}
             isMobile={isMobile}
           />
         );
@@ -919,9 +1077,9 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     return (
       <div className="flex h-dvh items-center justify-center bg-background p-6">
         <div className="max-w-lg text-center space-y-3">
-          <AlertTriangle className="w-10 h-10 text-yellow-500 mx-auto" />
-          <p className="text-sm font-medium">Contacts feature is disabled by your administrator</p>
-          <p className="text-xs text-muted-foreground">Please contact your administrator if you need access.</p>
+          <AlertTriangle className="w-10 h-10 text-amber-600 dark:text-amber-400 mx-auto" />
+          <p className="text-sm font-medium">{t("disabled_title")}</p>
+          <p className="text-xs text-muted-foreground">{t("disabled_description")}</p>
         </div>
       </div>
     );
@@ -934,7 +1092,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     if (returnToEmail) {
       setReturnToEmail(false);
       setCreatePrefill(undefined);
-      router.back();
+      routerBack();
       return;
     }
     setView("list");
@@ -975,7 +1133,8 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
         {inlineApp && (
           <InlineAppView apps={loadedApps} activeAppId={inlineApp!.id} onClose={closeInlineApp} />
         )}
-        <div className={cn("relative flex flex-1 min-h-0", inlineApp && "hidden")}>
+        {/* Clips the closed drawer, so it never sits over the nav rail. */}
+        <div className={cn("relative flex flex-1 min-h-0 overflow-hidden", inlineApp && "hidden")}>
           {/* Narrow-pane backdrop for the overlay categories sidebar */}
           {isNarrow && narrowSidebarOpen && (
             <div
@@ -992,15 +1151,18 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
               {(!isMobile || isNarrow) && (
                 <>
                   <div
+                    data-testid={isNarrow ? "contacts-sidebar-drawer" : undefined}
                     className={cn(
                       "border-e border-border flex flex-col flex-shrink-0 bg-background",
                       !isSidebarResizing && "transition-[width] duration-300",
                       isNarrow && cn(
-                        "absolute inset-y-0 left-0 z-50 w-72 pt-[env(safe-area-inset-top)]",
-                        "transform transition-transform duration-300 ease-in-out",
-                        !narrowSidebarOpen && "-translate-x-full"
+                        "absolute inset-y-0 start-0 z-50 w-72 pt-[env(safe-area-inset-top)]",
+                        "transform transition-[transform,visibility] duration-300 ease-in-out",
+                        !narrowSidebarOpen && "invisible -translate-x-full rtl:translate-x-full"
                       )
                     )}
+                    // Closed, the drawer is out of reach: no clicks, no Tab stops.
+                    inert={isNarrow && !narrowSidebarOpen}
                     style={isNarrow ? undefined : { width: `${sidebarWidth}px` }}
                   >
                     <ContactsSidebar
@@ -1008,34 +1170,34 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                       individuals={individuals}
                       addressBooks={addressBooks}
                       activeCategory={activeCategory}
-                      onSelectCategory={handleSelectCategory}
-                      onCreateGroup={handleCreateGroup}
-                      onCreateContact={handleCreateNew}
-                      onCreateAddressBook={client ? () => setCreatingAddressBook(true) : undefined}
-                      onImport={() => setShowImportDialog(true)}
-                      onEditGroup={handleEditGroupFromSidebar}
-                      onDeleteGroup={handleDeleteGroupFromSidebar}
-                      onComposeGroup={handleComposeGroupFromSidebar}
+                      onSelectCategory={guard(handleSelectCategory)}
+                      onCreateGroup={fromDrawer(guard(handleCreateGroup))}
+                      onCreateContact={fromDrawer(guard(handleCreateNew))}
+                      onCreateAddressBook={client ? fromDrawer(() => setCreatingAddressBook(true)) : undefined}
+                      onImport={fromDrawer(() => setShowImportDialog(true))}
+                      onEditGroup={fromDrawer(guard(handleEditGroupFromSidebar))}
+                      onDeleteGroup={fromDrawer(handleDeleteGroupFromSidebar)}
+                      onComposeGroup={fromDrawer(handleComposeGroupFromSidebar)}
                       onDropContacts={handleDropContacts}
                       onDropContactsToCategory={handleDropContactsToCategory}
-                      onRenameAddressBook={client ? (book) => setRenamingAddressBook(book) : undefined}
-                      onShareAddressBook={client ? (book) => setSharingAddressBookId(book.id) : undefined}
-                      onSetDefaultAddressBook={client ? async (book) => {
+                      onRenameAddressBook={client ? fromDrawer((book: AddressBook) => setRenamingAddressBook(book)) : undefined}
+                      onShareAddressBook={client ? fromDrawer((book: AddressBook) => setSharingAddressBookId(book.id)) : undefined}
+                      onSetDefaultAddressBook={client ? fromDrawer(async (book: AddressBook) => {
                         try {
                           await setDefaultAddressBook(client, book);
                           toast.success(t("address_books.default_updated"));
                         } catch {
                           toast.error(t("address_books.set_default_failed"));
                         }
-                      } : undefined}
-                      onCreateContactInBook={(book) => {
+                      }) : undefined}
+                      onCreateContactInBook={fromDrawer(guard((book: AddressBook) => {
                         setDefaultBookIdForCreate(book.id);
                         setSelectedContact(null);
                         setView("create");
-                      }}
-                      onDeleteAddressBook={client ? async (book) => {
+                      }))}
+                      onDeleteAddressBook={client ? fromDrawer(async (book: AddressBook) => {
                         const ok = await confirmDialog({
-                          title: t("address_books.delete"),
+                          title: t("address_books.delete_title"),
                           message: t("address_books.confirm_delete", { name: book.name }),
                           variant: "destructive",
                           confirmText: t("address_books.delete"),
@@ -1047,8 +1209,9 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                         } catch {
                           toast.error(t("address_books.delete_failed"));
                         }
-                      } : undefined}
-                      onRenameKeyword={(kw) => setRenamingKeyword(kw)}
+                      }) : undefined}
+                      onRenameKeyword={fromDrawer((kw: string) => setRenamingKeyword(kw))}
+                      onDeleteKeyword={fromDrawer((kw: string) => void handleDeleteKeyword(kw))}
                       directoryCount={showDirectory ? directoryPrincipals.length : undefined}
                       multiAccountMode={multiAccountEnabled && accountClients.length > 1}
                     />
@@ -1071,7 +1234,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
               <div
                 data-tour="contacts-list"
                 className={cn(
-                  "border-e border-border bg-background flex flex-col flex-shrink-0",
+                  "relative border-e border-border bg-background flex flex-col flex-shrink-0",
                   isMobile ? "w-full" : "",
                   !isListResizing && !isMobile && "transition-[width] duration-300"
                 )}
@@ -1111,8 +1274,8 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                   selectedContactId={selectedContactId}
                   searchQuery={searchQuery}
                   onSearchChange={setSearchQuery}
-                  onSelectContact={handleSelectContact}
-                  onCreateNew={handleCreateNew}
+                  onSelectContact={guard(handleSelectContact)}
+                  onCreateNew={guard(handleCreateNew)}
                   className="flex-1"
                   selectedContactIds={selectedContactIds}
                   onToggleSelection={toggleContactSelection}
@@ -1120,14 +1283,38 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                   onSelectAll={selectAllContacts}
                   onClearSelection={clearSelection}
                   onBulkDelete={handleBulkDelete}
-                  onBulkAddToGroup={handleBulkAddToGroup}
+                  onBulkAddToGroup={guard(handleBulkAddToGroup)}
                   onBulkExport={handleBulkExport}
-                  onEditContact={handleEditContact}
+                  onEditContact={guard(handleEditContact)}
                   onDeleteContact={handleDeleteContact}
-                  onAddContactToGroup={handleAddContactToGroup}
+                  onAddContactToGroup={guard(handleAddContactToGroup)}
+                  onComposeContact={handleComposeContact}
+                  onDuplicateContact={(contact) => void handleDuplicateContact(contact)}
+                  onMoveContacts={canMoveContacts ? handleMoveContacts : undefined}
                   onMenuClick={isNarrow ? () => setNarrowSidebarOpen(true) : undefined}
+                  emptyView={activeCategory !== "all"}
+                  onImport={() => setShowImportDialog(true)}
+                  phoneMenuItems={(close) => (
+                    // On the phone these are otherwise only in the drawer's "+".
+                    <>
+                      <ContextMenuItem icon={UsersRound} label={t("groups.create")} onClick={() => { close(); guard(handleCreateGroup)(); }} />
+                      <ContextMenuItem icon={Upload} label={t("import.title")} onClick={() => { close(); setShowImportDialog(true); }} />
+                    </>
+                  )}
                   isLoading={supportsSync && !contactsLoaded}
                 />
+                )}
+                {/* The phone's create button, as in Mail and Files (R7). */}
+                {isMobile && activeCategory !== "directory" && selectedContactIds.size === 0 && (
+                  <Button
+                    size="icon-lg"
+                    className="absolute bottom-4 end-4 z-20 rounded-full shadow-lg"
+                    aria-label={t("create_new")}
+                    title={t("create_new")}
+                    onClick={guard(handleCreateNew)}
+                  >
+                    <Plus className="w-5 h-5" />
+                  </Button>
                 )}
               </div>
 
@@ -1153,7 +1340,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={mobileBackToList}
+                    onClick={guard(mobileBackToList)}
                     className="touch-manipulation"
                   >
                     <ArrowLeft className="w-4 h-4 me-2" />
@@ -1181,65 +1368,78 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
 
       <SidebarAppsModal isOpen={showAppsModal} onClose={closeAppsModal} />
       <ConfirmDialog {...confirmDialogProps} />
-      {renamingKeyword !== null && (
-        <RenameDialog
-          currentName={renamingKeyword}
-          title={t("rename_category")}
-          label={t("category_name_label")}
-          onCancel={() => setRenamingKeyword(null)}
-          onConfirm={async (newName) => {
+      <PromptDialog
+        isOpen={renamingKeyword !== null}
+        onClose={() => setRenamingKeyword(null)}
+        title={t("rename_category")}
+        placeholder={t("category_name_label")}
+        defaultValue={renamingKeyword ?? ""}
+        confirmText={t("form.save")}
+        cancelText={t("form.cancel")}
+        onSubmit={(newName) => {
+          const keyword = renamingKeyword;
+          if (keyword === null || newName === keyword) return;
+          void (async () => {
             try {
-              await renameKeyword(supportsSync && client ? client : null, renamingKeyword, newName);
+              await renameKeyword(supportsSync && client ? client : null, keyword, newName);
               toast.success(t("category_renamed"));
-              if (typeof activeCategory === "object" && "keyword" in activeCategory && activeCategory.keyword === renamingKeyword) {
-                setActiveCategory({ keyword: newName.trim() });
+              if (typeof activeCategory === "object" && "keyword" in activeCategory && activeCategory.keyword === keyword) {
+                setActiveCategory({ keyword: newName });
               }
-              setRenamingKeyword(null);
             } catch (err) {
               console.error("Failed to rename category:", err);
               toast.error(t("category_rename_failed"));
             }
-          }}
-        />
-      )}
-      {creatingAddressBook && (
-        <RenameDialog
-          currentName=""
-          title={t("address_books.create")}
-          label={t("address_books.name_label")}
-          onCancel={() => setCreatingAddressBook(false)}
-          onConfirm={handleCreateAddressBook}
-        />
-      )}
-      {renamingAddressBook && (
-        <RenameDialog
-          currentName={renamingAddressBook.name}
-          title={t("address_books.rename")}
-          label={t("address_books.name_label")}
-          onCancel={() => setRenamingAddressBook(null)}
-          onConfirm={async (newName) => {
-            if (!client) return;
+          })();
+        }}
+      />
+      <PromptDialog
+        isOpen={creatingAddressBook}
+        onClose={() => setCreatingAddressBook(false)}
+        title={t("address_books.create")}
+        placeholder={t("address_books.name_label")}
+        confirmText={t("address_books.create_confirm")}
+        cancelText={t("form.cancel")}
+        onSubmit={(name) => void handleCreateAddressBook(name)}
+      />
+      <PromptDialog
+        isOpen={renamingAddressBook !== null}
+        onClose={() => setRenamingAddressBook(null)}
+        title={t("address_books.rename")}
+        placeholder={t("address_books.name_label")}
+        defaultValue={renamingAddressBook?.name ?? ""}
+        confirmText={t("form.save")}
+        cancelText={t("form.cancel")}
+        onSubmit={(newName) => {
+          const book = renamingAddressBook;
+          if (!client || !book || newName === book.name) return;
+          void (async () => {
             try {
-              await renameAddressBook(client, renamingAddressBook, newName);
+              await renameAddressBook(client, book, newName);
               toast.success(t("address_books.renamed"));
-              setRenamingAddressBook(null);
             } catch (err) {
               console.error("Failed to rename address book:", err);
               toast.error(t("address_books.rename_failed"));
             }
-          }}
-        />
-      )}
+          })();
+        }}
+      />
+      <AddressBookPickerDialog
+        isOpen={movingContactIds !== null}
+        onClose={() => setMovingContactIds(null)}
+        addressBooks={writableBooks}
+        currentId={movingFromBookId}
+        count={movingContactIds?.length ?? 0}
+        onPick={(book) => {
+          if (movingContactIds) void handleDropContacts(movingContactIds, book);
+        }}
+      />
       {showImportDialog && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-lg border border-border shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
-            <ContactImportDialog
-              existingContacts={contacts}
-              onImport={handleImportContacts}
-              onClose={() => setShowImportDialog(false)}
-            />
-          </div>
-        </div>
+        <ContactImportDialog
+          existingContacts={contacts}
+          onImport={handleImportContacts}
+          onClose={() => setShowImportDialog(false)}
+        />
       )}
       {sharingAddressBookId && client && (() => {
         const book = addressBooks.find((b) => b.id === sharingAddressBookId);

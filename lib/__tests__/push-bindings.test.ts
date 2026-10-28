@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { reconcilePushBindings, releasePushBindings, type PushBinding, type PushRole } from '../push-bindings';
+import { DemoJMAPClient } from '../demo/demo-client';
 
 /** A client that counts what the reconciliation does to it. */
 class FakeClient {
@@ -96,6 +97,41 @@ describe('reconcilePushBindings', () => {
     });
     expect(old.closes).toBe(1);
     expect(fresh.setups).toBe(1);
+  });
+
+  it('switches between demo logins, which have no live stream', () => {
+    const work = new DemoJMAPClient('work');
+    const personal = new DemoJMAPClient('personal');
+    const bindings = new Map<DemoJMAPClient, PushBinding>();
+    const roles: Array<[string, PushRole]> = [];
+    const onError = vi.fn();
+    const run = (active: string) => reconcilePushBindings({
+      bindings,
+      clients: new Map([['work', work], ['personal', personal]]),
+      activeAccountId: active,
+      listen: (c, role) => { roles.push([c === work ? 'work' : 'personal', role]); },
+      onError,
+    });
+    run('work');
+    expect(() => run('personal')).not.toThrow();
+    expect(() => run('work')).not.toThrow();
+    expect(onError).not.toHaveBeenCalled();
+    expect(bindings.get(work)?.role).toBe('active');
+    expect(bindings.get(personal)?.role).toBe('background');
+  });
+
+  it('treats a client without hasSSEStream as having no stream', () => {
+    const plain = (name: string) => ({ name, setupPushNotifications: vi.fn(), closePushNotifications: vi.fn() });
+    const a = plain('a');
+    const b = plain('b');
+    const bindings = new Map<ReturnType<typeof plain>, PushBinding>();
+    const run = (active: string) => reconcilePushBindings({
+      bindings, clients: new Map([['a', a], ['b', b]]), activeAccountId: active, listen: vi.fn(),
+    });
+    run('a');
+    expect(() => run('b')).not.toThrow();
+    expect(bindings.get(b)?.role).toBe('active');
+    expect(bindings.get(a)?.role).toBe('background');
   });
 
   it('releases everything on logout', () => {

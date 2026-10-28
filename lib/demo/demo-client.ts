@@ -12,6 +12,7 @@ import { compareEmails, type SortLevel } from '@/lib/message-list-order';
 import { withBasePath } from '@/lib/browser-navigation';
 import { toInertBlob } from '@/lib/file-preview';
 import type { StorageQuota } from "@/lib/quota";
+import { buildDemoEml, demoEmlBlobId, demoEmlEmailId } from './demo-eml';
 
 // Fixture blobs with real bytes behind them, served from public/demo/ (see
 // fixtures/assets.ts for the list and the licences). Any other blob id falls
@@ -19,6 +20,12 @@ import type { StorageQuota } from "@/lib/quota";
 const DEMO_BLOB_ASSETS: Record<string, string> = Object.fromEntries(
   Object.entries(DEMO_ASSETS).map(([blobId, asset]) => [blobId, asset.path]),
 );
+
+/** Gives a demo message a raw-message blob (see demo-eml.ts) unless it has one. */
+function withEmlBlob(email: Email): Email {
+  if (!email.blobId) email.blobId = demoEmlBlobId(email.id);
+  return email;
+}
 
 /** localStorage key that switches the simulated incoming mail off (screenshot runs). */
 export const DEMO_SIMULATE_KEY = 'bulwark-demo-simulate';
@@ -47,7 +54,10 @@ export class DemoJMAPClient implements IJMAPClient {
     this.data = getDemoData(profile);
     // Fixtures carry raw headers the way a server sends them; derive the
     // parsed fields the viewer reads, as JMAPClient.parseEmailHeaders does.
-    for (const email of this.data.emails) this.deriveHeaderFields(email);
+    for (const email of this.data.emails) {
+      this.deriveHeaderFields(email);
+      withEmlBlob(email);
+    }
     this.recalcMailboxCounts();
     for (const s of this.data.scheduled) {
       const id = generateDemoId('submission');
@@ -164,6 +174,8 @@ export class DemoJMAPClient implements IJMAPClient {
 
   setupPushNotifications(): boolean { return true; }
   closePushNotifications(): void { /* no-op in demo */ }
+  // Demo changes arrive through the state-change callback, not a live stream.
+  hasSSEStream(): boolean { return false; }
   onConnectionChange(callback: (connected: boolean) => void): void { this.connectionCallback = callback; }
   onRateLimit(): void { /* no-op in demo */ }
   isRateLimited(): boolean { return false; }
@@ -373,7 +385,10 @@ export class DemoJMAPClient implements IJMAPClient {
   }
 
   async getEmail(emailId: string): Promise<Email | null> {
-    return this.data.emails.find(e => e.id === emailId) ?? null;
+    // A copy, as a server sends: the app stamps what it opens (a scheduled
+    // send's fields), which must not stick to the stored message.
+    const email = this.data.emails.find(e => e.id === emailId);
+    return email ? structuredClone(email) : null;
   }
 
   async getTagCounts(tagIds: string[], accountId?: string, excludeMailboxIds?: string[]): Promise<Record<string, { total: number; unread: number }>> {
@@ -652,6 +667,19 @@ export class DemoJMAPClient implements IJMAPClient {
     this.recalcMailboxCounts();
   }
 
+  async restoreEmails(emails: Array<{ id: string; mailboxIds: Record<string, boolean>; seen?: boolean }>): Promise<void> {
+    for (const { id, mailboxIds, seen } of emails) {
+      const email = this.data.emails.find(e => e.id === id);
+      if (!email) continue;
+      email.mailboxIds = { ...mailboxIds };
+      if (seen !== undefined) {
+        if (seen) email.keywords.$seen = true;
+        else delete email.keywords.$seen;
+      }
+    }
+    this.recalcMailboxCounts();
+  }
+
   async emptyMailbox(mailboxId: string, _accountId?: string): Promise<number> {
     const before = this.data.emails.length;
     this.data.emails = this.data.emails.filter(e => !e.mailboxIds[mailboxId]);
@@ -794,9 +822,9 @@ export class DemoJMAPClient implements IJMAPClient {
     };
 
     if (existing >= 0) {
-      this.data.emails[existing] = email;
+      this.data.emails[existing] = withEmlBlob(email);
     } else {
-      this.data.emails.push(email);
+      this.data.emails.push(withEmlBlob(email));
     }
     this.recalcMailboxCounts();
     return id;
@@ -846,7 +874,7 @@ export class DemoJMAPClient implements IJMAPClient {
       inReplyTo: inReplyTo?.length ? inReplyTo : undefined,
       references: references?.length ? references : undefined,
     };
-    this.data.emails.push(email);
+    this.data.emails.push(withEmlBlob(email));
     let emailSubmissionId: string | undefined;
     if (delayedUntil) {
       emailSubmissionId = generateDemoId('submission');
@@ -911,6 +939,9 @@ export class DemoJMAPClient implements IJMAPClient {
     if (blobId === GONOGO_INVITE_BLOB) {
       return new Blob([createGoNoGoInvitationIcs()], { type: 'text/calendar; method=REQUEST' });
     }
+    const emlOf = demoEmlEmailId(blobId);
+    const emlEmail = emlOf ? this.data.emails.find((e) => e.id === emlOf) : undefined;
+    if (emlEmail) return new Blob([buildDemoEml(emlEmail)], { type: 'message/rfc822' });
     const asset = DEMO_BLOB_ASSETS[blobId];
     if (asset) {
       try {
@@ -1380,6 +1411,11 @@ export class DemoJMAPClient implements IJMAPClient {
     return node;
   }
 
+  async copyBlobs(_fromAccountId: string, blobIds: string[], _toAccountId: string): Promise<Record<string, string>> {
+    // One demo store holds every account's blobs.
+    return Object.fromEntries(blobIds.map((id) => [id, id]));
+  }
+
   async createFileNode(name: string, blobId: string, type: string, size: number, parentId: string | null): Promise<FileNode> {
     const node: FileNode = {
       id: generateDemoId('file'),
@@ -1391,8 +1427,10 @@ export class DemoJMAPClient implements IJMAPClient {
   }
 
   async updateFileNode(id: string, updates: Partial<Pick<FileNode, 'name' | 'parentId'>>): Promise<void> {
+    // A rename or move leaves `modified` alone, as on Stalwart: it dates the
+    // content, and a move or its Undo shouldn't make a file look edited.
     const node = this.data.fileNodes.find(n => n.id === id);
-    if (node) Object.assign(node, updates, { modified: new Date().toISOString() });
+    if (node) Object.assign(node, updates);
   }
 
   async updateFileNodes(updates: Record<string, Partial<Pick<FileNode, 'name' | 'parentId'>>>): Promise<{ updated: string[]; notUpdated: Record<string, string> }> {
@@ -1400,7 +1438,7 @@ export class DemoJMAPClient implements IJMAPClient {
     for (const [id, patch] of Object.entries(updates)) {
       const node = this.data.fileNodes.find(n => n.id === id);
       if (node) {
-        Object.assign(node, patch, { modified: new Date().toISOString() });
+        Object.assign(node, patch);
         updated.push(id);
       }
     }
@@ -1408,7 +1446,18 @@ export class DemoJMAPClient implements IJMAPClient {
   }
 
   async destroyFileNodes(ids: string[]): Promise<{ destroyed: string[]; notDestroyed: string[] }> {
+    // Like the server: a folder goes with everything in it (emptying the trash).
     const idSet = new Set(ids);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const n of this.data.fileNodes) {
+        if (n.parentId && idSet.has(n.parentId) && !idSet.has(n.id)) {
+          idSet.add(n.id);
+          grew = true;
+        }
+      }
+    }
     this.data.fileNodes = this.data.fileNodes.filter(n => !idSet.has(n.id));
     return { destroyed: ids, notDestroyed: [] };
   }
@@ -1453,7 +1502,7 @@ export class DemoJMAPClient implements IJMAPClient {
       preview: 'Signed/encrypted demo message',
       hasAttachment: false,
     };
-    this.data.emails.push(email);
+    this.data.emails.push(withEmlBlob(email));
     let emailSubmissionId: string | undefined;
     if (delayedUntil) {
       emailSubmissionId = generateDemoId('submission');
@@ -1579,7 +1628,7 @@ export class DemoJMAPClient implements IJMAPClient {
       messageId: `<${id}@demo.example.com>`,
     };
 
-    this.data.emails.unshift(email);
+    this.data.emails.unshift(withEmlBlob(email));
     this.recalcMailboxCounts();
 
     // Notify state change to trigger UI refresh

@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { X, Search, Star, FileText } from '@/components/icons';
-import { cn } from '@/lib/utils';
+import { Search, Star, FileText, Settings } from '@/components/icons';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Dialog } from '@/components/ui/dialog';
 import { useTemplateStore } from '@/stores/template-store';
 import { useAuthStore } from '@/stores/auth-store';
-import { useFocusTrap } from '@/hooks/use-focus-trap';
 import { useTemplateSources } from '@/hooks/use-template-sources';
 import {
   filterTemplates,
@@ -18,6 +18,7 @@ import type { TemplateSource } from '@/lib/templates/template-sources';
 import { refreshAccountTemplates, resolveAccountId } from '@/lib/templates/personal-templates';
 import { refreshTeamTemplates } from '@/lib/templates/team-templates';
 import { PlaceholderFillModal } from './placeholder-fill-modal';
+import { TemplateManagerModal } from './template-manager-modal';
 import type { EmailTemplate } from '@/lib/template-types';
 
 interface TemplatePickerProps {
@@ -54,11 +55,9 @@ export function TemplatePicker({ isOpen, onClose, onSelect, accountId }: Templat
     if (id) refreshTeamTemplates(id);
   }, [isOpen, accountId]);
 
-  const modalRef = useFocusTrap({
-    isActive: isOpen && !showFillModal,
-    onEscape: onClose,
-    restoreFocus: true,
-  });
+  // "Manage templates" (MAIL-31): the template manager in place of the
+  // picker, which comes back when it closes.
+  const [showManager, setShowManager] = useState(false);
 
   const handleSelectTemplate = (template: EmailTemplate, source: TemplateSource) => {
     const placeholders = getPlaceholdersFromTemplate(template);
@@ -199,34 +198,25 @@ export function TemplatePicker({ isOpen, onClose, onSelect, accountId }: Templat
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
-        <div
-          ref={modalRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="template-picker-title"
-          // The mail shortcuts behind the dialog must not see its keys.
-          onKeyDown={(e) => e.stopPropagation()}
-          className={cn(
-            'bg-background border border-border rounded-lg shadow-xl',
-            'w-full max-w-md max-h-[70vh] overflow-hidden',
-            'animate-in zoom-in-95 duration-200'
-          )}
-        >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <h2 id="template-picker-title" className="text-sm font-semibold text-foreground">{t('picker_title')}</h2>
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+      <Dialog
+        isOpen={!showFillModal && !showManager}
+        onClose={onClose}
+        title={t('picker_title')}
+        className="max-h-[70vh]"
+        bodyClassName="px-0 pb-0 mt-3 border-t border-border"
+        footer={
+          <Button variant="outline" size="sm" className="me-auto mt-3 gap-2" onClick={() => setShowManager(true)}>
+            <Settings className="w-4 h-4" />
+            {t('manage')}
+          </Button>
+        }
+      >
+        {/* The mail shortcuts behind the dialog must not see its keys. */}
+        <div onKeyDown={(e) => e.stopPropagation()}>
 
           <div className="px-4 py-2 border-b border-border">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -266,7 +256,9 @@ export function TemplatePicker({ isOpen, onClose, onSelect, accountId }: Templat
             )}
           </div>
         </div>
-      </div>
+      </Dialog>
+
+      {showManager && <TemplateManagerModal isOpen accountId={accountId} onClose={() => setShowManager(false)} />}
 
       {showFillModal && selectedTemplate && (
         <PlaceholderFillModal

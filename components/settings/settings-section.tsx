@@ -4,6 +4,7 @@ import { ReactNode, createContext, useContext, useEffect, useId, useState, useCa
 import { useTranslations } from 'next-intl';
 import { OrgLockedNote } from './org-locked-note';
 import { cn } from '@/lib/utils';
+import { Button, TOUCH_HIT_AREA } from '@/components/ui/button';
 import { useSettingsStore } from '@/stores/settings-store';
 
 /**
@@ -117,7 +118,9 @@ export function SectionNav() {
     if (!host) return;
     const collect = () => {
       const list = Array.from(host.querySelectorAll<HTMLElement>('[data-settings-section]'))
-        .map((el) => ({ id: el.dataset.settingsSection ?? '', title: el.querySelector('h3')?.textContent?.trim() ?? '' }))
+        // The section's own title, not the heading's text, which also holds
+        // the Advanced badge ("Loading & searchAdvanced").
+        .map((el) => ({ id: el.dataset.settingsSection ?? '', title: (el.dataset.searchLabel ?? el.querySelector('h3')?.textContent ?? '').trim() }))
         .filter((entry) => entry.id && entry.title);
       setSections((prev) => (
         prev.length === list.length && prev.every((p, i) => p.id === list[i].id && p.title === list[i].title) ? prev : list
@@ -132,14 +135,16 @@ export function SectionNav() {
   return (
     <div ref={ref} hidden={sections.length < 2} data-testid="settings-section-nav" className="flex flex-wrap gap-1.5 mb-6">
       {sections.map((section) => (
-        <button
+        <Button
           key={section.id}
           type="button"
+          variant="ghost"
+          size="xs"
           onClick={() => { if (ref.current?.parentElement) scrollToSettingsSection(section.id, ref.current.parentElement); }}
-          className="px-3 py-1.5 text-xs rounded-md bg-muted hover:bg-accent hover:text-accent-foreground text-foreground transition-colors duration-150"
+          className="px-3 text-xs font-normal bg-muted text-foreground"
         >
           {section.title}
-        </button>
+        </Button>
       ))}
     </div>
   );
@@ -255,15 +260,20 @@ export function ToggleSwitch({ checked, onChange, disabled, ariaLabel, testId }:
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-150',
-        checked ? 'bg-primary' : 'bg-muted',
+        'inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-150',
+        // 44px to hit on a touch screen, drawn the same size (R1).
+        TOUCH_HIT_AREA,
+        // Off: an outlined track and a grey knob, 3:1 against the page in
+        // both schemes (a light track with a white knob was ~1.1:1). The
+        // ring is inset, so the on state keeps its size and look.
+        checked ? 'bg-primary' : 'bg-muted ring-1 ring-inset ring-muted-foreground',
         disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
       )}
     >
       <span
         className={cn(
-          'inline-block h-4 w-4 transform rounded-full bg-background transition-transform duration-150',
-          checked ? 'ltr:translate-x-6 rtl:-translate-x-6' : 'ltr:translate-x-1 rtl:-translate-x-1'
+          'inline-block h-4 w-4 transform rounded-full transition-transform duration-150',
+          checked ? 'bg-background ltr:translate-x-6 rtl:-translate-x-6' : 'bg-muted-foreground ltr:translate-x-1 rtl:-translate-x-1'
         )}
       />
     </button>
@@ -320,7 +330,7 @@ export function Select({ value, onChange, options, disabled, className, ariaLabe
       aria-labelledby={ariaLabel ? undefined : labelledBy}
       dir="auto"
       className={cn(
-        "px-3 py-1.5 text-sm rounded-md bg-muted border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-150",
+        "px-3 py-1.5 text-sm rounded-md bg-muted border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-150 pointer-coarse:min-h-11",
         disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:border-muted-foreground",
         className
       )}

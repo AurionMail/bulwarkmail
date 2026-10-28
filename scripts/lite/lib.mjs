@@ -39,6 +39,7 @@ export const LITE_REMOVED_PATHS = [
   "instrumentation.ts",
   "instrumentation.node.ts",
   "app/(main)/[...rest]",
+  "app/(main)/[locale]/[...rest]",
   "app/(main)/protocol",
   "e2e",
   "integration",
@@ -288,6 +289,33 @@ export function buildRootRedirect({ basePath = "", locales, defaultLocale = "en"
 }
 
 /**
+ * The not-found texts of each built locale for the 404 shim: the title and
+ * text of app/(main)/[locale]/not-found.tsx and its button.
+ *
+ * @param {string} root
+ * @param {string[]} locales
+ * @returns {Record<string, { title: string, description: string, home: string }>}
+ */
+export function readNotFoundMessages(root, locales) {
+  /** @type {Record<string, { title: string, description: string, home: string }>} */
+  const messages = {};
+  for (const locale of locales) {
+    try {
+      const table = JSON.parse(readFileSync(join(root, "locales", locale, "common.json"), "utf8"));
+      const title = table?.not_found?.title;
+      const description = table?.not_found?.description;
+      const home = table?.errors?.go_home;
+      if (typeof title === "string" && typeof description === "string" && typeof home === "string") {
+        messages[locale] = { title, description, home };
+      }
+    } catch {
+      // A locale without a table keeps the English page.
+    }
+  }
+  return messages;
+}
+
+/**
  * 404.html for hosts without rewrite rules (GitHub Pages, S3 website hosting).
  *
  * `next build` exports Next's default not-found page as 404.html: the
@@ -299,8 +327,25 @@ export function buildRootRedirect({ basePath = "", locales, defaultLocale = "en"
  * hands the link over (hooks/use-lite-link-segments.ts). Only `<locale>` and
  * `<surface>` from the allowlists ever reach `location.replace`, so a crafted
  * URL cannot turn this into an open redirect.
+ *
+ * A path without a locale (/login, /mail/...) goes to the same path under
+ * the reader's locale, picked as the root index.html picks it; the target
+ * stays on this origin and starts with an allowlisted locale.
+ *
+ * A page that stays a 404 speaks the language of its URL (/de/gibtsnicht in
+ * German), else the reader's: `messages` holds each built locale's texts,
+ * which are set as text, never as markup.
  */
-export function buildNotFoundShim({ basePath = "", locales, surfaces = LITE_SURFACES }) {
+export function buildNotFoundShim({ basePath = "", locales, surfaces = LITE_SURFACES, defaultLocale = "en", messages = {} }) {
+  const fallback = locales.includes(defaultLocale) ? defaultLocale : locales[0];
+  const english = messages.en ?? {
+    title: "Page not found",
+    description: "This page doesn't exist or has moved. Check the address, or go back to your inbox.",
+    home: "Go to inbox",
+  };
+  const built = {};
+  for (const locale of locales) if (messages[locale]) built[locale] = messages[locale];
+  const escapeHtml = (text) => String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -319,6 +364,31 @@ export function buildNotFoundShim({ basePath = "", locales, surfaces = LITE_SURF
     path = path.slice(base.length) || "/";
   }
   var parts = path.split("/").filter(Boolean);
+  if (parts.length > 0 && locales.indexOf(parts[0]) === -1) {
+    var fallback = ${JSON.stringify(fallback)};
+    var pick = function (tag) {
+      if (!tag) return null;
+      tag = String(tag);
+      if (locales.indexOf(tag) !== -1) return tag;
+      var lower = tag.toLowerCase();
+      if (lower.indexOf("zh") === 0) {
+        if (/zh-(tw|hk|mo|hant)/.test(lower) && locales.indexOf("zh-TW") !== -1) return "zh-TW";
+        if (locales.indexOf("zh") !== -1) return "zh";
+      }
+      var short = lower.split("-")[0];
+      for (var i = 0; i < locales.length; i++) if (locales[i].toLowerCase() === short) return locales[i];
+      return null;
+    };
+    var chosen = null;
+    try {
+      var stored = JSON.parse(localStorage.getItem(${JSON.stringify(LOCALE_STORAGE_KEY)}) || "null");
+      chosen = pick(stored && stored.state && stored.state.locale);
+    } catch (e) {}
+    var langs = navigator.languages || [navigator.language];
+    for (var j = 0; !chosen && j < langs.length; j++) chosen = pick(langs[j]);
+    location.replace(base + "/" + (chosen || fallback) + "/" + parts.join("/") + location.search + location.hash);
+    return;
+  }
   if (parts.length < 2 || locales.indexOf(parts[0]) === -1 || surfaces.indexOf(parts[1]) === -1) return;
   var target = base + "/" + parts[0] + "/" + parts[1] + "/";
   // The shell itself is missing (host misconfigured): show the 404 instead of looping.
@@ -328,20 +398,67 @@ export function buildNotFoundShim({ basePath = "", locales, surfaces = LITE_SURF
 })();
 </script>
 <style>
-  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: system-ui, sans-serif; background: #fff; color: #111; }
-  @media (prefers-color-scheme: dark) { body { background: #0a0a0a; color: #ededed; } }
-  main { text-align: center; padding: 1rem; }
-  h1 { font-size: 2.25rem; margin: 0 0 .5rem; }
-  p { margin: 0 0 1.5rem; opacity: .7; }
-  a { color: inherit; }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: system-ui, sans-serif; background: #fff; color: #0a0a0a; }
+  @media (prefers-color-scheme: dark) { body { background: #0a0a0a; color: #fafafa; } a { background: #fafafa; color: #0a0a0a; } }
+  main { text-align: center; padding: 1rem; max-width: 28rem; }
+  .code { margin: 0 0 .5rem; font-size: .875rem; font-weight: 600; color: #737373; }
+  h1 { font-size: 1.5rem; font-weight: 700; margin: 0 0 .5rem; }
+  p { margin: 0 0 1.5rem; color: #737373; }
+  a { display: inline-block; padding: .5rem 1rem; border-radius: .375rem; background: #0a0a0a; color: #fafafa; font-size: .875rem; font-weight: 500; text-decoration: none; }
 </style>
 </head>
 <body>
 <main>
-  <h1>404</h1>
-  <p>This page could not be found.</p>
-  <a href="${basePath}/">Go home</a>
+  <p class="code">404</p>
+  <h1 id="not-found-title">${escapeHtml(english.title)}</h1>
+  <p id="not-found-text">${escapeHtml(english.description)}</p>
+  <a id="not-found-home" href="${basePath}/">${escapeHtml(english.home)}</a>
 </main>
+<script>
+(function () {
+  var base = ${JSON.stringify(basePath)};
+  var messages = ${inlineJson(built)};
+  var fallback = ${JSON.stringify(fallback)};
+  var rtl = ${JSON.stringify(RTL_LOCALES)};
+  var pick = function (tag) {
+    if (!tag) return null;
+    tag = String(tag);
+    if (messages[tag]) return tag;
+    var lower = tag.toLowerCase();
+    if (lower.indexOf("zh") === 0) {
+      if (/zh-(tw|hk|mo|hant)/.test(lower) && messages["zh-TW"]) return "zh-TW";
+      if (messages.zh) return "zh";
+    }
+    var short = lower.split("-")[0];
+    for (var key in messages) if (Object.prototype.hasOwnProperty.call(messages, key) && key.toLowerCase() === short) return key;
+    return null;
+  };
+  var path = location.pathname;
+  if (base && path.indexOf(base + "/") === 0) path = path.slice(base.length);
+  // The locale of the URL first, then the one picked in Settings, then the browser's.
+  var first = path.split("/").filter(Boolean)[0];
+  var locale = first && Object.prototype.hasOwnProperty.call(messages, first) ? first : null;
+  if (!locale) {
+    try {
+      var stored = JSON.parse(localStorage.getItem(${JSON.stringify(LOCALE_STORAGE_KEY)}) || "null");
+      locale = pick(stored && stored.state && stored.state.locale);
+    } catch (e) {}
+  }
+  var langs = navigator.languages || [navigator.language];
+  for (var j = 0; !locale && j < langs.length; j++) locale = pick(langs[j]);
+  if (!locale) locale = messages[fallback] ? fallback : null;
+  if (!locale) return;
+  var text = messages[locale];
+  document.documentElement.lang = locale;
+  document.documentElement.dir = rtl.indexOf(locale) !== -1 ? "rtl" : "ltr";
+  document.title = "404 - " + text.title;
+  document.getElementById("not-found-title").textContent = text.title;
+  document.getElementById("not-found-text").textContent = text.description;
+  var home = document.getElementById("not-found-home");
+  home.textContent = text.home;
+  home.setAttribute("href", base + "/" + locale + "/");
+})();
+</script>
 </body>
 </html>
 `;

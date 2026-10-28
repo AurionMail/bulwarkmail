@@ -495,15 +495,17 @@ export function generateScript(
     lines.push('}');
   }
 
-  // Append preserved external rules verbatim. Each rawBlock already carries its
-  // own leading comments and trailing whitespace from the source script.
-  if (externalRules.length > 0) {
+  // Append preserved external rules verbatim. Each rawBlock carries its own
+  // leading comments, but also the blank lines around it in the source
+  // script; trim those and put exactly one blank line between blocks, so a
+  // save writes the same script as the one before it.
+  const externalBlocks = externalRules
+    .map((ext) => (ext.rawBlock ?? '').trim())
+    .filter((block) => block.length > 0);
+  if (externalBlocks.length > 0) {
     lines.push('');
     lines.push('# --- External rules (managed outside Bulwark) ---');
-    for (const ext of externalRules) {
-      if (!ext.rawBlock) continue;
-      lines.push(ext.rawBlock.replace(/\s+$/, ''));
-    }
+    lines.push(externalBlocks.join('\n\n'));
   }
 
   lines.push('');

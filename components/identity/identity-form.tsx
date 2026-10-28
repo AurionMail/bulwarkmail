@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,9 +49,11 @@ interface IdentityFormProps {
   identity?: Identity;
   onSave: (data: IdentityFormData) => Promise<void>;
   onCancel: () => void;
+  /** Told whenever the form starts or stops holding unsaved input. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
-export function IdentityForm({ identity, onSave, onCancel }: IdentityFormProps) {
+export function IdentityForm({ identity, onSave, onCancel, onDirtyChange }: IdentityFormProps) {
   const t = useTranslations('identities.form');
   const tValidation = useTranslations('identities.validation_errors');
   const tDisplay = useTranslations('identities.display');
@@ -83,6 +85,18 @@ export function IdentityForm({ identity, onSave, onCancel }: IdentityFormProps) 
   const signatureHidden = org.restriction.hidden;
   const signatureLocked = org.restriction.locked && !signatureHidden;
   const signatureEditable = !signatureHidden && !signatureLocked;
+
+  const dirty =
+    formData.name !== (identity?.name || '') ||
+    formData.email !== (identity?.email || '') ||
+    (formData.textSignature || '') !== (identity?.textSignature || '') ||
+    (formData.htmlSignature || '') !== (identity?.htmlSignature || '') ||
+    replyToInput !== (identity?.replyTo?.map(a => a.email).join(', ') || '') ||
+    bccInput !== (identity?.bcc?.map(a => a.email).join(', ') || '');
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
 
   const parseEmailList = (input: string): EmailAddress[] | undefined => {
     if (!input.trim()) return undefined;

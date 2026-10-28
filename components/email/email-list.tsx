@@ -8,18 +8,23 @@ import type { Attachment } from "@/lib/jmap/types";
 import type { LoadListAttachments } from "@/lib/list-attachments";
 import { listRowShowsChips } from "./attachment-chips";
 import { listVerificationCode } from "@/lib/verification-code";
-import { EmailContextMenu, type CopyTargetAccount } from "./email-context-menu";
+import { EmailContextMenu } from "./email-context-menu";
+import { ViewSourceDialog } from "./view-source-dialog";
+import { useCopyToAccount, useEmailExport, requestPrint } from "@/hooks/use-message-file-actions";
 import { BatchTagButton } from "./batch-tag-button";
 import { cn, cleanPreview } from "@/lib/utils";
-import { Trash2, Mail, MailX, MailOpen, Loader2, SearchX, AlertTriangle, CalendarClock, ShieldCheck, X, FolderX } from "@/components/icons";
+import { Trash2, Mail, MailX, MailOpen, Loader2, SearchX, AlertTriangle, CalendarClock, ShieldCheck, ShieldAlert, Archive, MoreVertical, X, FolderX } from "@/components/icons";
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
+import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useArchiveActionEnabled } from "@/lib/archive-gate";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder, type ListRow } from "@/stores/email-store";
+import { useEmailStore, resolveEmailBlobContext, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder, restoreBatchesForSelection, type ListRow , type CrossAccountMoveReceipt } from "@/stores/email-store";
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { useShallow } from "zustand/react/shallow";
 import { useAuthStore } from "@/stores/auth-store";
-import { useAccountStore } from "@/stores/account-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useListRowShape } from "@/hooks/use-list-row-shape";
 import { useUIStore } from "@/stores/ui-store";
@@ -29,7 +34,7 @@ import { useContextMenu } from "@/hooks/use-context-menu";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useTranslations } from "next-intl";
 import { toast } from "@/stores/toast-store";
-import { runBatchEmailAction } from "@/lib/email-action-toast";
+import { runBatchEmailAction, toastWithUndo, undoLabels, undoMoveAction } from "@/lib/email-action-toast";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { TagDisplayContext, useMeasuredTagDisplay } from "@/hooks/use-tag-display";
 import { SearchChips } from "@/components/search/search-chips";
@@ -69,6 +74,10 @@ interface EmailListProps {
   onForward?: (email: Email) => void;
   onForwardAsAttachment?: (email: Email) => void;
   onBatchForwardAsAttachment?: () => void;
+  /** The empty search state's "Clear search". */
+  onClearSearch?: () => void;
+  /** The empty Drafts folder's "Compose". */
+  onCompose?: () => void;
   onMarkAsRead?: (email: Email, read: boolean) => void;
   onToggleStar?: (email: Email) => void;
   onTogglePinned?: (email: Email) => void;
@@ -85,6 +94,8 @@ interface EmailListProps {
   isScheduledView?: boolean;
   onLoadMoreScheduled?: () => void;
   onCancelScheduledForEdit?: (email: Email) => void | Promise<void>;
+  /** Stop a scheduled message from going out; it goes back to Drafts. */
+  onCancelScheduledSend?: (email: Email) => void | Promise<void>;
   onRescheduleScheduled?: (email: Email) => void | Promise<void>;
   /**
    * Mountain View folds the batch verbs into the single toolbar above the
@@ -148,6 +159,8 @@ export function EmailList({
   onForward,
   onForwardAsAttachment,
   onBatchForwardAsAttachment,
+  onClearSearch,
+  onCompose,
   onMarkAsRead,
   onToggleStar,
   onTogglePinned,
@@ -164,6 +177,7 @@ export function EmailList({
   hideBatchToolbar = false,
   onLoadMoreScheduled,
   onCancelScheduledForEdit,
+  onCancelScheduledSend,
   onRescheduleScheduled,
 }: EmailListProps) {
   const t = useTranslations('email_list');
@@ -171,6 +185,9 @@ export function EmailList({
   const tSpam = useTranslations('email_viewer.spam');
   const tNotifications = useTranslations('notifications');
   const tViewer = useTranslations('email_viewer');
+  const tSidebar = useTranslations('sidebar');
+  const mountainViewList = useSettingsStore((state) => state.interfaceLayout === 'mountain-view');
+  const undo = undoLabels(tNotifications);
   const { client } = useAuthStore(useShallow((state) => ({ client: state.client })));
   const {
     selectedEmailKeys,
@@ -245,6 +262,8 @@ export function EmailList({
   const effectiveMailboxRole =
     mailboxes.find(m => m.id === selectedMailbox)?.role
     ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined);
+  // Spam is pointless on your own outgoing mail, as in the context menu.
+  const spamApplicable = !['sent', 'drafts', 'scheduled'].includes(effectiveMailboxRole || '');
 
   const disableThreading = useSettingsStore((state) => state.disableThreading);
   // The order the current folder view was fetched in (#718), so thread
@@ -316,7 +335,8 @@ export function EmailList({
   const sectionRowCount = useMemo(() => unreadSectionRowCount(emails, unreadSection), [emails, unreadSection]);
   const totalEmails = useEmailStore((state) => state.totalEmails);
 
-  const { contextMenu, openContextMenu, closeContextMenu, menuRef } = useContextMenu<Email>();
+  const { contextMenu, openContextMenu, openContextMenuFrom, closeContextMenu, menuRef } = useContextMenu<Email>();
+  const archiveActionEnabled = useArchiveActionEnabled();
   /**
    * The row the menu was opened on, as the list currently has it. The menu holds
    * the message it was handed when it opened, but tags can be applied from
@@ -354,32 +374,10 @@ export function EmailList({
 
   // "Copy to" lists the folders of the other connected accounts. Only with
   // more than one account connected; the menu's own account is left out.
-  const accounts = useAccountStore((state) => state.accounts);
-  const accountMailboxes = useEmailStore((state) => state.accountMailboxes);
-  const fetchAccountMailboxes = useEmailStore((state) => state.fetchAccountMailboxes);
-  const copyEmailsToAccount = useEmailStore((state) => state.copyEmailsToAccount);
-  const copySourceLogin = contextMenuEmail
-    ? contextMenuEmail.sourceClientAccountId ?? viewingAccountId ?? activeAccountId
-    : null;
-  const copyAccounts = useMemo(() => {
-    if (!contextMenu.isOpen) return [];
-    const connected = useAuthStore.getState().getAllConnectedClients();
-    if (connected.size < 2) return [];
-    return accounts.filter((account) => account.id !== copySourceLogin && connected.has(account.id));
-  }, [contextMenu.isOpen, accounts, copySourceLogin]);
-  useEffect(() => {
-    for (const account of copyAccounts) {
-      if (accountMailboxes[account.id]) continue;
-      const accountClient = useAuthStore.getState().getClientForAccount(account.id);
-      if (accountClient) void fetchAccountMailboxes(accountClient, account.id);
-    }
-  }, [copyAccounts, accountMailboxes, fetchAccountMailboxes]);
-  const copyTargets = useMemo<CopyTargetAccount[]>(
-    () => copyAccounts
-      .filter((account) => accountMailboxes[account.id])
-      .map((account) => ({ accountId: account.id, label: account.label || account.email || account.id, mailboxes: accountMailboxes[account.id] })),
-    [copyAccounts, accountMailboxes],
-  );
+  const { copyTargets, copyToAccount } = useCopyToAccount(contextMenuEmail, contextMenu.isOpen);
+  // Export, Print and View source from the row (R6), as the reader has them.
+  const exportEmail = useEmailExport();
+  const [sourceEmail, setSourceEmail] = useState<Email | null>(null);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const parentRef = useRef<HTMLDivElement>(null);
@@ -612,9 +610,66 @@ export function EmailList({
     setIsProcessing(true);
     try {
       const emailIds = resolveSelectedEmails(useEmailStore.getState()).map(e => e.id);
-      if (await batchUndoSpam(client, emailIds)) toast.success(tSpam('toast_not_spam_batch', { count: emailIds.length }));
+      const restore = restoreBatchesForSelection(client);
+      if (await batchUndoSpam(client, emailIds)) {
+        toastWithUndo(tSpam('toast_not_spam_batch', { count: emailIds.length }), undoMoveAction(client, restore, undo));
+      }
     } catch {
       toast.error(tSpam('error_not_spam'));
+    } finally {
+      setTimeout(() => setIsProcessing(false), 500);
+    }
+  };
+
+  const handleBatchMarkAsSpam = async () => {
+    if (!client || isProcessing) return;
+    setIsProcessing(true);
+    try {
+      const emailIds = resolveSelectedEmails(useEmailStore.getState()).map(e => e.id);
+      const restore = restoreBatchesForSelection(client);
+      if (await batchMarkAsSpam(client, emailIds)) {
+        toastWithUndo(tSpam('toast_batch', { count: emailIds.length }), undoMoveAction(client, restore, undo));
+      }
+    } catch {
+      toast.error(tSpam('error'));
+    } finally {
+      setTimeout(() => setIsProcessing(false), 500);
+    }
+  };
+
+  const handleBatchArchive = async () => {
+    if (!client || isProcessing) return;
+    setIsProcessing(true);
+    const count = selectedEmailKeys.size;
+    const restore = restoreBatchesForSelection(client);
+    try {
+      await runBatchEmailAction(() => batchArchive(client), {
+        success: tNotifications('emails_archived', { count }),
+        error: tNotifications('error_archiving'),
+        describeError: (error) => error instanceof ArchiveMailboxNotFoundError
+          ? tViewer('archive_mailbox_not_found')
+          : undefined,
+        undo: undoMoveAction(client, restore, undo),
+      });
+    } finally {
+      setTimeout(() => setIsProcessing(false), 500);
+    }
+  };
+
+  const handleBatchMoveToMailbox = async (mailboxId: string) => {
+    if (!client || isProcessing) return;
+    setIsProcessing(true);
+    const count = selectedEmailKeys.size;
+    // Undo puts the messages back; those a mixed-account list moved to
+    // another account move back the same way (the receipts).
+    const restore = restoreBatchesForSelection(client);
+    const receipts: CrossAccountMoveReceipt[] = [];
+    try {
+      await runBatchEmailAction(() => batchMoveToMailbox(client, mailboxId, undefined, receipts), {
+        success: tNotifications('emails_moved', { count }),
+        error: tNotifications('move_failed'),
+        undo: undoMoveAction(client, restore, undo, receipts),
+      });
     } finally {
       setTimeout(() => setIsProcessing(false), 500);
     }
@@ -629,7 +684,7 @@ export function EmailList({
     if (shouldConfirmBulkDelete(currentMailbox)) {
       const confirmed = await confirmDialog({
         title: isInTrash
-          ? t('permanent_delete_confirm_title')
+          ? t('permanent_delete_confirm_batch_title')
           : t('batch_actions.delete_confirm_title'),
         message: isInTrash
           ? t('permanent_delete_confirm_batch_message', { count: selectedEmailKeys.size })
@@ -644,10 +699,12 @@ export function EmailList({
 
     setIsProcessing(true);
     const count = selectedEmailKeys.size;
+    const restore = isInTrash ? null : restoreBatchesForSelection(client);
     try {
       await runBatchEmailAction(() => batchDelete(client, isInTrash), {
         success: tNotifications('emails_deleted', { count }),
         error: tNotifications('error_deleting'),
+        undo: undoMoveAction(client, restore, undo),
       });
     } finally {
       setTimeout(() => setIsProcessing(false), 500);
@@ -820,46 +877,49 @@ export function EmailList({
       {/* Batch Actions Toolbar */}
       <div
         ref={batchToolbarRef}
+        // Collapsed it is still in the page: keep its buttons out of the Tab
+        // order and away from screen readers.
+        inert={!(hasSelection && !isScheduledView && !hideBatchToolbar)}
         className={cn(
           "transition-all duration-300 ease-in-out overflow-hidden",
           hasSelection && !isScheduledView && !hideBatchToolbar ? "max-h-16 opacity-100" : "max-h-0 opacity-0"
         )}
       >
+        {/* Only drawn while shown: collapsed it would still render every button. */}
+        {hasSelection && !isScheduledView && !hideBatchToolbar && (
         <div className={cn("py-2 border-b bg-accent/30 border-border flex items-center justify-between gap-2", batchNarrow ? "px-2" : "px-4")} data-batch-narrow={batchNarrow ? "" : undefined}>
           <div className="flex items-center gap-2 min-w-0 animate-in fade-in slide-in-from-left-3 duration-300">
             <span className="text-sm font-medium text-foreground whitespace-nowrap truncate">
               {t('batch_actions.selected_messages', { count: selectedEmailKeys.size })}
             </span>
           </div>
-          <div className={cn("flex items-center flex-shrink-0 animate-in fade-in slide-in-from-right-3 duration-300", batchNarrow ? "gap-0.5 [&_button]:px-2" : "gap-1")}>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleBatchMarkAsRead(true)}
-              title={t('batch_actions.mark_read')}
+          <div className={cn("flex items-center flex-shrink-0 animate-in fade-in slide-in-from-right-3 duration-300", batchNarrow ? "gap-0" : "gap-0.5")}>
+            {/* The context menu's batch entries, in its order (R6). What
+                doesn't fit a narrow bar is in its ⋮, which is that menu. */}
+            {archiveActionEnabled && effectiveMailboxRole !== 'archive' && (
+              <IconButton label={tContextMenu('archive')} onClick={() => void handleBatchArchive()} disabled={isProcessing} data-testid="batch-archive">
+                <Archive />
+              </IconButton>
+            )}
+            <IconButton
+              label={t('batch_actions.delete')}
+              onClick={handleBatchDelete}
               disabled={isProcessing}
-              className="hover:bg-accent transition-colors disabled:opacity-50"
+              data-testid="batch-delete"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
             >
-              {isProcessing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <MailOpen className="w-4 h-4" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleBatchMarkAsRead(false)}
-              title={t('batch_actions.mark_unread')}
-              disabled={isProcessing}
-              className="hover:bg-accent transition-colors disabled:opacity-50"
-            >
-              {isProcessing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Mail className="w-4 h-4" />
-              )}
-            </Button>
+              <Trash2 />
+            </IconButton>
+            {selectionCanLeaveFolder && !batchNarrow && (
+              <IconButton
+                label={tContextMenu('remove_from_folder')}
+                onClick={handleBatchRemoveFromFolder}
+                disabled={isProcessing}
+                data-testid="batch-remove-from-folder"
+              >
+                <FolderX />
+              </IconButton>
+            )}
             <BatchTagButton
               key={hasSelection ? 'selection' : 'none'}
               title={tContextMenu('tag')}
@@ -870,54 +930,38 @@ export function EmailList({
               active={hasSelection && !isScheduledView}
               disabled={isProcessing}
             />
-            {effectiveMailboxRole === 'junk' && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBatchUndoSpam}
-                title={tContextMenu('not_spam')}
+            {spamApplicable && !batchNarrow && (
+              <IconButton
+                label={effectiveMailboxRole === 'junk' ? tContextMenu('not_spam') : tContextMenu('mark_as_spam')}
+                onClick={effectiveMailboxRole === 'junk' ? handleBatchUndoSpam : handleBatchMarkAsSpam}
                 disabled={isProcessing}
-                className="text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100/50 dark:hover:bg-emerald-950/30 transition-colors disabled:opacity-50"
+                data-testid={effectiveMailboxRole === 'junk' ? 'batch-not-spam' : 'batch-spam'}
               >
-                {isProcessing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <ShieldCheck className="w-4 h-4" />
-                )}
-              </Button>
+                {effectiveMailboxRole === 'junk' ? <ShieldCheck /> : <ShieldAlert />}
+              </IconButton>
             )}
-            {selectionCanLeaveFolder && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBatchRemoveFromFolder}
-                title={tContextMenu('remove_from_folder')}
-                aria-label={tContextMenu('remove_from_folder')}
-                disabled={isProcessing}
-                data-testid="batch-remove-from-folder"
-                className="hover:bg-accent transition-colors disabled:opacity-50"
-              >
-                {isProcessing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <FolderX className="w-4 h-4" />
-                )}
-              </Button>
+            {!batchNarrow && (
+              <>
+                <IconButton label={t('batch_actions.mark_read')} onClick={() => handleBatchMarkAsRead(true)} disabled={isProcessing}>
+                  <MailOpen />
+                </IconButton>
+                <IconButton label={t('batch_actions.mark_unread')} onClick={() => handleBatchMarkAsRead(false)} disabled={isProcessing}>
+                  <Mail />
+                </IconButton>
+              </>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleBatchDelete}
-              title={t('batch_actions.delete')}
-              disabled={isProcessing}
-              className="text-red-600 dark:text-red-400 hover:bg-red-100/50 dark:hover:bg-red-950/30 transition-colors disabled:opacity-50"
+            <IconButton
+              label={t('batch_actions.more')}
+              aria-haspopup="menu"
+              data-testid="batch-more"
+              disabled={isProcessing || selectedEmailsForRemoval.length === 0}
+              onClick={(e) => {
+                const anchor = selectedEmailsForRemoval[0];
+                if (anchor) openContextMenuFrom(e.currentTarget, anchor, 'end');
+              }}
             >
-              {isProcessing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4" />
-              )}
-            </Button>
+              {isProcessing ? <Spinner size="sm" /> : <MoreVertical />}
+            </IconButton>
             {hasSelection && (
               <PluginActions
                 surface="message-bulk-actions"
@@ -930,19 +974,31 @@ export function EmailList({
               />
             )}
             <div className={cn("w-px h-6 bg-border", batchNarrow ? "mx-0.5" : "mx-1")} />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearSelection}
-              title={t('batch_actions.clear_selection')}
-              aria-label={t('batch_actions.clear_selection')}
-              disabled={isProcessing}
-              className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 whitespace-nowrap"
-            >
-              {batchNarrow ? <X className="w-4 h-4" /> : t('batch_actions.clear_selection')}
-            </Button>
+            {/* The bar's buttons share one height (R1): 32px icons, and the
+                text button at xs when there is room for it. */}
+            {batchNarrow ? (
+              <IconButton
+                label={t('batch_actions.clear_selection')}
+                onClick={clearSelection}
+                disabled={isProcessing}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X />
+              </IconButton>
+            ) : (
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={clearSelection}
+                disabled={isProcessing}
+                className="text-muted-foreground hover:text-foreground whitespace-nowrap"
+              >
+                {t('batch_actions.clear_selection')}
+              </Button>
+            )}
           </div>
         </div>
+        )}
       </div>
 
       {/* Advanced Search Filter Chips */}
@@ -1008,7 +1064,12 @@ export function EmailList({
       {/* Email List */}
       <div
         ref={parentRef}
-        className="flex-1 overflow-y-auto bg-background relative"
+        // The mail shell's "Skip to message list" lands here.
+        id="message-list"
+        tabIndex={-1}
+        // Room under the last row for the round Compose button, which would
+        // otherwise sit on that row's actions (Mountain View has no such button).
+        className={cn("flex-1 overflow-y-auto bg-background relative outline-none", !mountainViewList && "pb-20")}
         data-tour="email-list"
         // The column header above keeps the same gutter, so its titles stay over the columns.
         style={listColumns ? { scrollbarGutter: 'stable' } : undefined}
@@ -1026,22 +1087,19 @@ export function EmailList({
         {isLoading && emails.length === 0 ? (
           <LoadingSkeleton />
         ) : emails.length === 0 && !isLoading ? (
-          <div className="flex flex-col items-center justify-center h-full py-12">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted shadow-lg flex items-center justify-center">
-              {isScheduledView ? (
-                <CalendarClock className="w-10 h-10 text-muted-foreground" />
-              ) : searchQuery || !isFilterEmpty(searchFilters) ? (
-                <SearchX className="w-10 h-10 text-muted-foreground" />
-              ) : (
-                <MailX className="w-10 h-10 text-muted-foreground" />
-              )}
-            </div>
-            <p className="text-base font-medium text-foreground">
-              {isScheduledView ? t('no_scheduled_emails') : searchQuery || !isFilterEmpty(searchFilters) ? t('no_search_results') : t('no_emails')}
-            </p>
-            <p className="text-sm mt-1 text-muted-foreground">
-              {isScheduledView ? t('no_scheduled_emails_description') : searchQuery || !isFilterEmpty(searchFilters) ? t('no_search_results_description') : t('no_emails_description')}
-            </p>
+          <div className="flex flex-col items-center justify-center h-full">
+            {/* R9: an empty search offers Clear search; Drafts, which the
+                user fills, offers Compose. */}
+            <EmptyState
+              icon={isScheduledView ? CalendarClock : isSearching ? SearchX : MailX}
+              title={isScheduledView ? t('no_scheduled_emails') : isSearching ? t('no_search_results') : t('no_emails')}
+              description={isScheduledView ? t('no_scheduled_emails_description') : isSearching ? t('no_search_results_description') : t('no_emails_description')}
+              actions={!isScheduledView && isSearching && onClearSearch ? (
+                <Button size="sm" variant="outline" onClick={onClearSearch}>{tSidebar('clear_search')}</Button>
+              ) : !isScheduledView && !isSearching && effectiveMailboxRole === 'drafts' && onCompose ? (
+                <Button size="sm" onClick={onCompose}>{tSidebar('compose')}</Button>
+              ) : undefined}
+            />
             <PluginSlot name="message-list-empty" className="mt-4 w-full max-w-md px-4" extraProps={emptySlotProps} />
           </div>
         ) : (
@@ -1174,82 +1232,67 @@ export function EmailList({
           onUndoSpam={() => onUndoSpam?.(contextMenuEmail!)}
           onEditDraft={() => onEditDraft?.(contextMenuEmail!)}
           onCancelScheduledForEdit={onCancelScheduledForEdit ? () => onCancelScheduledForEdit(contextMenuEmail!) : undefined}
+          onCancelScheduledSend={onCancelScheduledSend ? () => void onCancelScheduledSend(contextMenuEmail!) : undefined}
           onRescheduleScheduled={onRescheduleScheduled ? () => onRescheduleScheduled(contextMenuEmail!) : undefined}
           copyTargets={copyTargets}
           onCopyToAccount={async (accountId, mailboxId) => {
-            // Pass the emails, not their ids: an id alone cannot say which
-            // account's namesake to copy.
-            const ids = selectedEmailKeys.has(emailKeyFor(contextMenuEmail!)) && selectedEmailKeys.size > 1
+            const emails = selectedEmailKeys.has(emailKeyFor(contextMenuEmail!)) && selectedEmailKeys.size > 1
               ? resolveSelectedEmails(useEmailStore.getState())
               : [contextMenuEmail!];
-            const target = accountMailboxes[accountId]?.find((mb) => mb.id === mailboxId);
-            await runBatchEmailAction(() => copyEmailsToAccount(ids, accountId, target?.originalId ?? mailboxId), {
-              success: tNotifications('emails_copied', { count: ids.length }),
-              error: tNotifications('copy_failed'),
+            await copyToAccount(emails, accountId, mailboxId);
+          }}
+          onExport={() => {
+            const target = contextMenuEmail!;
+            void exportEmail(target, {
+              onArchive: onArchive ? () => onArchive(target) : undefined,
+              onDelete: onDelete ? () => onDelete(target) : undefined,
+              archiveEnabled: archiveActionEnabled,
             });
           }}
+          onPrint={onEmailSelect ? () => {
+            // The print window opens in the click; the reader fills it once
+            // the message is open.
+            const target = contextMenuEmail!;
+            if (requestPrint(emailKeyFor(target))) onEmailSelect(target);
+          } : undefined}
+          onViewSource={() => setSourceEmail(contextMenuEmail)}
           onBatchMarkAsRead={(read) => markSelectionRead(read)}
           batchTagIds={selectionTags.all}
           batchPartialTagIds={selectionTags.some}
           batchTagScope={selectionTags.scope}
           onBatchToggleTag={handleBatchToggleTag}
-          onBatchDelete={async () => {
-            if (!client) return;
-            const count = selectedEmailKeys.size;
-            await runBatchEmailAction(() => batchDelete(client), {
-              success: tNotifications('emails_deleted', { count }),
-              error: tNotifications('error_deleting'),
-            });
-          }}
-          onBatchArchive={async () => {
-            if (!client) return;
-            const count = selectedEmailKeys.size;
-            await runBatchEmailAction(() => batchArchive(client), {
-              success: tNotifications('emails_archived', { count }),
-              error: tNotifications('error_archiving'),
-              describeError: (error) => error instanceof ArchiveMailboxNotFoundError
-                ? tViewer('archive_mailbox_not_found')
-                : undefined,
-            });
-          }}
+          onBatchDelete={() => void handleBatchDelete()}
+          onBatchArchive={() => void handleBatchArchive()}
           batchEmails={selectedEmailsForRemoval}
           onBatchRemoveFromFolder={() => void handleBatchRemoveFromFolder()}
-          onBatchMoveToMailbox={async (mailboxId) => {
-            if (!client) return;
-            const count = selectedEmailKeys.size;
-            await runBatchEmailAction(() => batchMoveToMailbox(client, mailboxId), {
-              success: tNotifications('emails_moved', { count }),
-              error: tNotifications('move_failed'),
-            });
-          }}
-          onBatchMarkAsSpam={async () => {
-            if (client) {
-              const emailIds = resolveSelectedEmails(useEmailStore.getState()).map(e => e.id);
-              try {
-                if (await batchMarkAsSpam(client, emailIds)) toast.success(
-                  tSpam('toast_batch', { count: emailIds.length })
-                );
-              } catch {
-                toast.error(tSpam('error'));
-              }
-            }
-          }}
+          onBatchMoveToMailbox={(mailboxId) => void handleBatchMoveToMailbox(mailboxId)}
+          onBatchMarkAsSpam={() => void handleBatchMarkAsSpam()}
           onBatchUndoSpam={async () => {
             if (client) {
-              const emailIds = resolveSelectedEmails(useEmailStore.getState()).map(e => e.id);
-              try {
-                if (await batchUndoSpam(client, emailIds)) toast.success(
-                  tSpam('toast_not_spam_batch', { count: emailIds.length })
-                );
-              } catch {
-                toast.error(tSpam('error_not_spam'));
-              }
+              await handleBatchUndoSpam();
             }
           }}
         />
       )}
 
       <ConfirmDialog {...confirmDialogProps} />
+      {sourceEmail && (() => {
+        const source = resolveEmailBlobContext(sourceEmail, client);
+        return (
+          <ViewSourceDialog
+            isOpen
+            onClose={() => setSourceEmail(null)}
+            blobId={sourceEmail.blobId}
+            client={source.client}
+            accountId={source.accountId}
+            onDownload={() => void exportEmail(sourceEmail, {
+              onArchive: onArchive ? () => onArchive(sourceEmail) : undefined,
+              onDelete: onDelete ? () => onDelete(sourceEmail) : undefined,
+              archiveEnabled: archiveActionEnabled,
+            }, source)}
+          />
+        );
+      })()}
     </div>
     </TagDisplayContext.Provider>
   );

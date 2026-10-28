@@ -2,13 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { X, FileText, Pencil, Trash2, Star, Copy, Search, Eye } from '@/components/icons';
+import { FileText, Pencil, Trash2, Star, Copy, CopyPlus, Search, Eye } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
 import { Input } from '@/components/ui/input';
+import { Dialog } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { EmptyState } from '@/components/ui/empty-state';
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
+import { useDiscardChanges } from '@/components/settings/use-discard-changes';
 import { TemplateForm } from './template-form';
 import { TemplateBodyPreview } from './template-body-preview';
-import { useFocusTrap } from '@/hooks/use-focus-trap';
 import { useTemplateSources } from '@/hooks/use-template-sources';
 import { useTemplateSourceActions, type TemplateSaveResult } from '@/hooks/use-template-source-actions';
 import { OrgLockedNote } from '@/components/settings/org-locked-note';
@@ -33,6 +38,7 @@ const tabId = (key: string) => `template-source-tab-${key.replace(/[^a-zA-Z0-9_-
 export function TemplateManagerModal({ isOpen, onClose, accountId }: TemplateManagerModalProps) {
   const t = useTranslations('templates');
   const tSettings = useTranslations('settings.templates');
+  const tCommon = useTranslations('common');
   const tOrg = useTranslations('org_templates');
 
   const { sources, personalHidden } = useTemplateSources(accountId);
@@ -41,18 +47,22 @@ export function TemplateManagerModal({ isOpen, onClose, accountId }: TemplateMan
   const [selectedKey, setSelectedKey] = useState<string>(PERSONAL_SOURCE);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [formDirty, setFormDirty] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const { confirmDiscard, discardDialog } = useDiscardChanges();
+  const { dialogProps: deleteDialogProps, confirm: confirmDelete } = useConfirmDialog();
 
   const source: TemplateSource | undefined = sources.find((s) => s.key === selectedKey) ?? sources[0];
   const personal = sources.find((s) => s.kind === 'personal');
+  const formOpen = isCreating || !!editingId;
 
   const closeForm = () => {
     setIsCreating(false);
     setEditingId(null);
+    setFormDirty(false);
     setError(null);
   };
 
@@ -63,19 +73,20 @@ export function TemplateManagerModal({ isOpen, onClose, accountId }: TemplateMan
     if (id) refreshTeamTemplates(id);
   }, [isOpen, accountId]);
 
-  const modalRef = useFocusTrap({
-    isActive: isOpen,
-    onEscape: () => {
-      if (isCreating || editingId) closeForm();
-      else onClose();
-    },
-    restoreFocus: true,
-  });
+  // Escape, the X and Cancel ask first while the form holds changes (R5).
+  const requestClose = async () => {
+    if (!(await confirmDiscard(formDirty))) return;
+    closeForm();
+    onClose();
+  };
+  const requestCloseForm = async () => {
+    if (!(await confirmDiscard(formDirty))) return;
+    closeForm();
+  };
 
   const selectSource = (key: string) => {
     setSelectedKey(key);
     closeForm();
-    setDeleteConfirmId(null);
     setPreviewId(null);
   };
 
@@ -110,12 +121,17 @@ export function TemplateManagerModal({ isOpen, onClose, accountId }: TemplateMan
     else void run(() => actions.add(source, data), closeForm);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (template: EmailTemplate) => {
     if (!source?.editable) return;
-    void run(() => actions.remove(source, id), () => setDeleteConfirmId(null));
+    const ok = await confirmDelete({
+      title: t('delete_title'),
+      message: t('delete_message', { name: template.name }),
+      confirmText: tCommon('delete'),
+      cancelText: tCommon('cancel'),
+      variant: 'destructive',
+    });
+    if (ok) await run(() => actions.remove(source, template.id), () => {});
   };
-
-  if (!isOpen) return null;
 
   const templates = source?.templates ?? [];
   const filtered = searchQuery ? filterTemplates(templates, searchQuery) : templates;
@@ -133,301 +149,248 @@ export function TemplateManagerModal({ isOpen, onClose, accountId }: TemplateMan
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="template-manager-title"
-        // The mail shortcuts behind the dialog must not see its keys.
-        onKeyDown={(e) => e.stopPropagation()}
-        className={cn(
-          'bg-background border border-border rounded-lg shadow-xl',
-          'w-full max-w-3xl max-h-[90vh] overflow-hidden',
-          'animate-in zoom-in-95 duration-200'
-        )}
+    <>
+      <Dialog
+        isOpen={isOpen}
+        onClose={() => void requestClose()}
+        title={tSettings('title')}
+        size="lg"
+        dirty={formDirty}
+        testId="template-manager"
       >
-        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border">
-          <div className="flex items-center gap-3 min-w-0">
-            <FileText className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-            <h2 id="template-manager-title" className="text-lg font-semibold text-foreground truncate">
-              {tSettings('title')}
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-md hover:bg-muted transition-colors duration-150 text-muted-foreground hover:text-foreground"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
-          {showTabs && (
-            <div
-              role="tablist"
-              aria-label={tOrg('sources_label')}
-              className="flex flex-wrap gap-2 mb-3"
-              data-testid="template-sources"
-              onKeyDown={(e) => {
-                // Arrow keys, Home and End move between the lists, as in any tab list.
-                const index = sources.findIndex((s) => s.key === source?.key);
-                const next = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? index + 1
-                  : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? index - 1
-                    : e.key === 'Home' ? 0
-                      : e.key === 'End' ? sources.length - 1
-                        : null;
-                if (next === null || sources.length === 0) return;
-                e.preventDefault();
-                const target = sources[(next + sources.length) % sources.length];
-                selectSource(target.key);
-                document.getElementById(tabId(target.key))?.focus();
-              }}
-            >
-              {sources.map((s) => (
-                <button
-                  key={s.key}
-                  id={tabId(s.key)}
-                  type="button"
-                  role="tab"
-                  aria-selected={s.key === source?.key}
-                  aria-controls={PANEL_ID}
-                  tabIndex={s.key === source?.key ? 0 : -1}
-                  data-testid={`template-source-tab-${s.kind}`}
-                  onClick={() => selectSource(s.key)}
-                  className={cn(
-                    'max-w-full truncate rounded-full border px-3 py-1 text-sm transition-colors',
-                    s.key === source?.key
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'
-                  )}
-                >
-                  {sourceTitle(s)} <span className="text-xs opacity-70">{s.templates.length}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
+        {/* The mail shortcuts behind the dialog must not see its keys. */}
+        <div onKeyDown={(e) => e.stopPropagation()}>
+        {showTabs && (
           <div
-            id={PANEL_ID}
-            role={showTabs ? 'tabpanel' : undefined}
-            aria-labelledby={showTabs && source ? tabId(source.key) : undefined}
+            role="tablist"
+            aria-label={tOrg('sources_label')}
+            className="flex flex-wrap gap-2 mb-3"
+            data-testid="template-sources"
+            onKeyDown={(e) => {
+              // Arrow keys, Home and End move between the lists, as in any tab list.
+              const index = sources.findIndex((s) => s.key === source?.key);
+              const next = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? index + 1
+                : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? index - 1
+                  : e.key === 'Home' ? 0
+                    : e.key === 'End' ? sources.length - 1
+                      : null;
+              if (next === null || sources.length === 0) return;
+              e.preventDefault();
+              const target = sources[(next + sources.length) % sources.length];
+              selectSource(target.key);
+              document.getElementById(tabId(target.key))?.focus();
+            }}
           >
-          {note && <div className="mb-4" data-testid="template-source-note">{note}</div>}
-
-          {!source && (
-            <div className="flex flex-col items-center py-8 text-muted-foreground">
-              <FileText className="w-10 h-10 mb-3 opacity-40" />
-              <p className="text-sm">{tSettings('no_templates')}</p>
-            </div>
-          )}
-
-          {source && !isCreating && !editingId && (
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('search_placeholder')}
-                  className="ps-9"
-                />
-              </div>
-              {editable && (
-                <Button onClick={() => { setIsCreating(true); setError(null); }} size="sm">
-                  {tSettings('add')}
-                </Button>
-              )}
-            </div>
-          )}
-
-          {error && (
-            <p role="alert" className="mb-3 text-sm text-red-600 dark:text-red-400" data-testid="template-save-error">{error}</p>
-          )}
-
-          {editable && isCreating && (
-            <div className="mb-6 p-4 border border-border rounded-lg bg-muted/30">
-              <h3 className="text-sm font-semibold mb-4">{tSettings('add')}</h3>
-              <TemplateForm
-                categorySource={templates}
-                shared={!isPersonal}
-                busy={busy}
-                onSave={handleSave}
-                onCancel={closeForm}
-              />
-            </div>
-          )}
-
-          {editable && editingId && (
-            <div className="mb-6 p-4 border border-border rounded-lg bg-muted/30">
-              <h3 className="text-sm font-semibold mb-4">{tSettings('edit')}</h3>
-              <TemplateForm
-                template={templates.find((tpl) => tpl.id === editingId)}
-                categorySource={templates}
-                shared={!isPersonal}
-                busy={busy}
-                onSave={handleSave}
-                onCancel={closeForm}
-              />
-            </div>
-          )}
-
-          <div className="space-y-2">
-            {source && filtered.map((template) => (
-              <div key={template.id} className="rounded-md border border-border hover:bg-muted/50 transition-colors" data-testid="template-row">
-                <div className="flex items-center gap-2 sm:gap-3 p-3">
-                  {isPersonal && (
-                    <button
-                      type="button"
-                      onClick={() => void actions.toggleFavorite(source, template.id)}
-                      aria-label={tSettings('favorite')}
-                      aria-pressed={template.isFavorite}
-                      className="flex-shrink-0"
-                    >
-                      <Star
-                        className={cn(
-                          'w-4 h-4 transition-colors',
-                          template.isFavorite
-                            ? 'fill-amber-400 text-amber-400'
-                            : 'text-muted-foreground hover:text-amber-400'
-                        )}
-                      />
-                    </button>
-                  )}
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">
-                        {template.name}
-                      </p>
-                      {template.category && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium flex-shrink-0 max-w-[40%] truncate">
-                          {template.category}
-                        </span>
-                      )}
-                    </div>
-                    {template.subject && (
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">
-                        {template.subject}
-                      </p>
-                    )}
-                    {isPersonal && actions.localOnly[template.id] && (
-                      <p className="text-xs text-amber-700 dark:text-amber-400 mt-1" data-testid="template-local-only">
-                        {actions.localOnly[template.id] === 'too-large' ? tOrg('local_only_too_large') : tOrg('local_only_no_room')}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    {editable ? (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => { setEditingId(template.id); setIsCreating(false); setError(null); }}
-                          disabled={!!editingId || isCreating}
-                          aria-label={tSettings('edit')}
-                          className="h-11 w-11 sm:h-8 sm:w-8 p-0"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => void run(() => actions.duplicate(source, template.id, t('copy_suffix')), () => {})}
-                          disabled={!!editingId || isCreating || busy}
-                          aria-label={tOrg('duplicate')}
-                          className="h-11 w-11 sm:h-8 sm:w-8 p-0"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                        </Button>
-                        {deleteConfirmId === template.id ? (
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDelete(template.id)}
-                              disabled={busy}
-                              className="h-7 text-xs"
-                            >
-                              {tSettings('confirm_delete')}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setDeleteConfirmId(null)}
-                              className="h-7 text-xs"
-                            >
-                              {tSettings('cancel')}
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeleteConfirmId(template.id)}
-                            disabled={!!editingId || isCreating}
-                            aria-label={tSettings('confirm_delete')}
-                            className="h-11 w-11 sm:h-8 sm:w-8 p-0 hover:text-red-600 dark:hover:text-red-400"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setPreviewId(previewId === template.id ? null : template.id)}
-                          aria-label={t('preview')}
-                          aria-expanded={previewId === template.id}
-                          className="h-11 w-11 sm:h-8 sm:w-8 p-0"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </Button>
-                        {personal?.editable && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => void run(() => actions.copyToPersonal(template), () => {})}
-                            disabled={busy}
-                            aria-label={tOrg('copy_to_personal')}
-                            title={tOrg('copy_to_personal')}
-                            className="h-11 w-11 sm:h-8 sm:w-8 p-0"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                          </Button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-                {previewId === template.id && (
-                  <div className="border-t border-border px-3 py-2" data-testid="template-preview">
-                    <TemplateBodyPreview template={template} />
-                  </div>
+            {sources.map((s) => (
+              <button
+                key={s.key}
+                id={tabId(s.key)}
+                type="button"
+                role="tab"
+                aria-selected={s.key === source?.key}
+                aria-controls={PANEL_ID}
+                tabIndex={s.key === source?.key ? 0 : -1}
+                data-testid={`template-source-tab-${s.kind}`}
+                onClick={() => selectSource(s.key)}
+                className={cn(
+                  'max-w-full truncate rounded-full border px-3 py-1 text-sm transition-colors',
+                  s.key === source?.key
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'
                 )}
-              </div>
+              >
+                {sourceTitle(s)} <span className="text-xs opacity-70">{s.templates.length}</span>
+              </button>
             ))}
+          </div>
+        )}
 
-            {source && filtered.length === 0 && !isCreating && (
-              <div className="flex flex-col items-center py-8 text-muted-foreground">
-                <FileText className="w-10 h-10 mb-3 opacity-40" />
-                <p className="text-sm">
-                  {searchQuery ? t('no_results') : tSettings('no_templates')}
-                </p>
-              </div>
+        <div
+          id={PANEL_ID}
+          role={showTabs ? 'tabpanel' : undefined}
+          aria-labelledby={showTabs && source ? tabId(source.key) : undefined}
+        >
+        {note && <div className="mb-4" data-testid="template-source-note">{note}</div>}
+
+        {!source && (
+          <EmptyState icon={FileText} title={tSettings('no_templates')} />
+        )}
+
+        {source && !formOpen && (
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex-1 relative">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t('search_placeholder')}
+                aria-label={t('search_placeholder')}
+                className="ps-9"
+              />
+            </div>
+            {editable && (
+              <Button onClick={() => { setIsCreating(true); setError(null); }} size="sm">
+                {tSettings('add')}
+              </Button>
             )}
           </div>
+        )}
 
-          {isPersonal && actions.storedInAccount && (
-            <p className="mt-4 text-xs text-muted-foreground" data-testid="template-storage-note">{tOrg('personal_in_account')}</p>
-          )}
+        {error && (
+          <p role="alert" className="mb-3 text-sm text-red-600 dark:text-red-400" data-testid="template-save-error">{error}</p>
+        )}
+
+        {editable && isCreating && (
+          <div className="mb-6 p-4 border border-border rounded-lg bg-muted/30">
+            <h3 className="text-sm font-semibold mb-4">{tSettings('add')}</h3>
+            <TemplateForm
+              categorySource={templates}
+              shared={!isPersonal}
+              busy={busy}
+              onSave={handleSave}
+              onCancel={() => void requestCloseForm()}
+              onDirtyChange={setFormDirty}
+            />
           </div>
+        )}
+
+        {editable && editingId && (
+          <div className="mb-6 p-4 border border-border rounded-lg bg-muted/30">
+            <h3 className="text-sm font-semibold mb-4">{tSettings('edit')}</h3>
+            <TemplateForm
+              template={templates.find((tpl) => tpl.id === editingId)}
+              categorySource={templates}
+              shared={!isPersonal}
+              busy={busy}
+              onSave={handleSave}
+              onCancel={() => void requestCloseForm()}
+              onDirtyChange={setFormDirty}
+            />
+          </div>
+        )}
+
+        <div className="space-y-2">
+          {source && filtered.map((template) => (
+            <div key={template.id} className="rounded-md border border-border hover:bg-muted/50 transition-colors" data-testid="template-row">
+              <div className="flex items-center gap-2 sm:gap-3 p-3">
+                {isPersonal && (
+                  <IconButton
+                    label={tSettings('favorite')}
+                    aria-pressed={!!template.isFavorite}
+                    onClick={() => void actions.toggleFavorite(source, template.id)}
+                    className="flex-shrink-0 -ms-1.5"
+                  >
+                    <Star
+                      className={cn(
+                        'w-4 h-4 transition-colors',
+                        template.isFavorite ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground'
+                      )}
+                    />
+                  </IconButton>
+                )}
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate" dir="auto" title={template.name}>
+                      {template.name}
+                    </p>
+                    {template.category && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium flex-shrink-0 max-w-[40%] truncate">
+                        {template.category}
+                      </span>
+                    )}
+                  </div>
+                  {template.subject && (
+                    <p className="text-xs text-muted-foreground truncate mt-0.5" dir="auto" title={template.subject}>
+                      {template.subject}
+                    </p>
+                  )}
+                  {isPersonal && actions.localOnly[template.id] && (
+                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-1" data-testid="template-local-only">
+                      {actions.localOnly[template.id] === 'too-large' ? tOrg('local_only_too_large') : tOrg('local_only_no_room')}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {editable ? (
+                    <>
+                      <IconButton
+                        label={tSettings('edit')}
+                        onClick={() => { setEditingId(template.id); setIsCreating(false); setError(null); }}
+                        disabled={formOpen}
+                        className="pointer-coarse:h-11 pointer-coarse:w-11"
+                      >
+                        <Pencil />
+                      </IconButton>
+                      <IconButton
+                        label={t('duplicate')}
+                        onClick={() => void run(() => actions.duplicate(source, template.id, t('copy_suffix')), () => {})}
+                        disabled={formOpen || busy}
+                        className="pointer-coarse:h-11 pointer-coarse:w-11"
+                      >
+                        <CopyPlus />
+                      </IconButton>
+                      <IconButton
+                        label={tCommon('delete')}
+                        onClick={() => void handleDelete(template)}
+                        disabled={formOpen || busy}
+                        className="pointer-coarse:h-11 pointer-coarse:w-11"
+                      >
+                        <Trash2 />
+                      </IconButton>
+                    </>
+                  ) : (
+                    <>
+                      <IconButton
+                        label={t('preview')}
+                        onClick={() => setPreviewId(previewId === template.id ? null : template.id)}
+                        aria-expanded={previewId === template.id}
+                        className="pointer-coarse:h-11 pointer-coarse:w-11"
+                      >
+                        <Eye />
+                      </IconButton>
+                      {personal?.editable && (
+                        <IconButton
+                          label={tOrg('copy_to_personal')}
+                          onClick={() => void run(() => actions.copyToPersonal(template), () => {})}
+                          disabled={busy}
+                          className="pointer-coarse:h-11 pointer-coarse:w-11"
+                        >
+                          <Copy />
+                        </IconButton>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+              {previewId === template.id && (
+                <div className="border-t border-border px-3 py-2" data-testid="template-preview">
+                  <TemplateBodyPreview template={template} />
+                </div>
+              )}
+            </div>
+          ))}
+
+          {source && filtered.length === 0 && !isCreating && (
+            <EmptyState
+              icon={FileText}
+              title={searchQuery ? t('no_results') : tSettings('no_templates')}
+              actions={searchQuery || !editable ? undefined : (
+                <Button size="sm" onClick={() => { setIsCreating(true); setError(null); }}>{tSettings('add')}</Button>
+              )}
+            />
+          )}
         </div>
-      </div>
-    </div>
+
+        {isPersonal && actions.storedInAccount && (
+          <p className="mt-4 text-xs text-muted-foreground" data-testid="template-storage-note">{tOrg('personal_in_account')}</p>
+        )}
+        </div>
+        </div>
+      </Dialog>
+      {discardDialog}
+      <ConfirmDialog {...deleteDialogProps} />
+    </>
   );
 }

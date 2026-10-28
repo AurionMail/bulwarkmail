@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { Tag } from "@/components/icons";
 import { TagPicker } from "./tag-picker";
 import type { TagScope } from "@/hooks/use-account-tags";
@@ -67,10 +67,9 @@ export function BatchTagButton({
 
   return (
     <>
-      <Button
+      <IconButton
         ref={buttonRef}
-        variant="ghost"
-        size="sm"
+        label={title}
         data-testid="batch-tag"
         onClick={(event) => {
           const rect = event.currentTarget.getBoundingClientRect();
@@ -83,15 +82,12 @@ export function BatchTagButton({
                 },
           );
         }}
-        title={title}
-        aria-label={title}
         aria-haspopup="menu"
         aria-expanded={isOpen}
         disabled={disabled}
-        className="hover:bg-accent transition-colors disabled:opacity-50"
       >
-        <Tag className="w-4 h-4" />
-      </Button>
+        <Tag />
+      </IconButton>
       {isOpen &&
         createPortal(
           <div

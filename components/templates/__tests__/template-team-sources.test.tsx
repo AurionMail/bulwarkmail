@@ -115,7 +115,7 @@ describe('team templates in the manager', () => {
     expect(screen.queryByRole('button', { name: 'add' })).toBeNull();
     const row = screen.getByTestId('template-row');
     expect(within(row).queryByRole('button', { name: 'edit' })).toBeNull();
-    expect(within(row).queryByRole('button', { name: 'confirm_delete' })).toBeNull();
+    expect(within(row).queryByRole('button', { name: 'delete' })).toBeNull();
     expect(within(row).getByRole('button', { name: 'copy_to_personal' })).toBeInTheDocument();
   });
 

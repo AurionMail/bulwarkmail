@@ -88,7 +88,7 @@ describe('FilePreviewModal history lifecycle (modeled queued traversal)', () => 
     const { onClose } = openPreview();
     await advance(0);
     expect(window.history.state).toMatchObject(originalState);
-    expect(window.history.state.__filePreview).toBeTruthy();
+    expect(window.history.state.__closeOnBack).toBeTruthy();
     clickClose();
     expect(onClose).toHaveBeenCalledOnce();
     expect(screen.queryByRole('dialog')).toBeNull();

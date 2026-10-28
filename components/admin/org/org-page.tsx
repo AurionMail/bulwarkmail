@@ -5,7 +5,6 @@ import { Loader2, Lock, RotateCcw } from '@/components/icons';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { AdminSaveBar } from '@/components/admin/save-bar';
 import { AdminLink } from '@/components/admin/admin-link';
-import { Flash } from '@/components/admin/flash-message';
 import { SectionNav, SettingItem } from '@/components/settings/settings-section';
 import { adminPageDef, type AdminPageId } from '@/lib/admin/admin-nav';
 import type { RestrictionKeyDef } from '@/lib/admin/restriction-keys';
@@ -155,7 +154,6 @@ export function OrgPage({ pageId, draft, children, scoped = true }: {
   return (
     <div>
       <AdminPageHeader title={page.label} description={page.description} />
-      <Flash message={draft.message} onDismiss={() => draft.setMessage(null)} />
       {draft.loading ? (
         <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
           <Loader2 className="me-2 h-4 w-4 animate-spin" /> Loading

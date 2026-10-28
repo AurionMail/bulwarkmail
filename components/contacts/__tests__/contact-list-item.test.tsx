@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { ContactListItem } from '../contact-list-item';
 import type { ContactCard } from '@/lib/jmap/types';
@@ -81,5 +81,25 @@ describe('ContactListItem', () => {
   it('hides avatar in extra-compact density', () => {
     const { container } = render(<ContactListItem contact={contact} {...baseProps} density="extra-compact" />);
     expect(container.querySelector('[data-testid="avatar"]') || container.querySelector('.rounded-full')).toBeNull();
+  });
+
+  it('opens the row menu on long-press without leaking the press state onto the row', () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.useFakeTimers();
+    try {
+      const onLongPress = vi.fn();
+      const { container } = render(<ContactListItem contact={contact} {...baseProps} onLongPress={onLongPress} />);
+      const row = container.firstElementChild!;
+      const touchStart = new Event('touchstart', { bubbles: true });
+      Object.defineProperty(touchStart, 'touches', { value: [{ clientX: 5, clientY: 5 }] });
+      act(() => { row.dispatchEvent(touchStart); });
+      act(() => { vi.advanceTimersByTime(600); });
+      expect(onLongPress).toHaveBeenCalledWith(row);
+      const unknownProp = errors.mock.calls.some((args) => args.some((a) => String(a).includes('isPressed')));
+      expect(unknownProp).toBe(false);
+    } finally {
+      vi.useRealTimers();
+      errors.mockRestore();
+    }
   });
 });

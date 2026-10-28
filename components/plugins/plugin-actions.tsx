@@ -2,7 +2,7 @@
 
 import { useMemo, useSyncExternalStore, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { iconForName, MoreHorizontal, Puzzle } from '@/components/icons';
+import { iconForName, MoreVertical, Puzzle } from '@/components/icons';
 import { ContextMenu, ContextMenuItem } from '@/components/ui/context-menu';
 import { useContextMenu } from '@/hooks/use-context-menu';
 import { cn } from '@/lib/utils';
@@ -213,7 +213,7 @@ function PluginActionsOverflow({ surface, context, mailboxRole, mimeType, classN
           'hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         )}
       >
-        <MoreHorizontal className="h-4 w-4" />
+        <MoreVertical className="h-4 w-4" />
       </button>
       <ContextMenu ref={menuRef} isOpen={contextMenu.isOpen} position={contextMenu.position} onClose={closeContextMenu}>
         <PluginActions

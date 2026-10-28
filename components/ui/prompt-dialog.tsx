@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
 interface PromptDialogProps {
@@ -16,6 +16,23 @@ interface PromptDialogProps {
   defaultValue?: string;
   confirmText?: string;
   cancelText?: string;
+  /**
+   * Checks the trimmed value as it is typed. A message is shown under the
+   * field and blocks submitting; null means the value is fine.
+   */
+  validate?: (value: string) => string | null;
+  /** Select only the part before the last dot ("report" of "report.pdf"), for file names. */
+  selectBaseName?: boolean;
+  /** A third button at the start of the footer, e.g. "Remove link"; closes the dialog. */
+  extraAction?: { label: string; onClick: () => void };
+}
+
+/** The selection range for a name: all of it, or the part before the extension. */
+export function nameSelectionRange(value: string, baseName: boolean): [number, number] {
+  if (!baseName) return [0, value.length];
+  const dot = value.lastIndexOf(".");
+  // ".bashrc" has no extension to keep; "a." keeps nothing after its dot.
+  return dot > 0 ? [0, dot] : [0, value.length];
 }
 
 export function PromptDialog({
@@ -28,48 +45,35 @@ export function PromptDialog({
   defaultValue = "",
   confirmText,
   cancelText,
+  validate,
+  selectBaseName = false,
+  extraAction,
 }: PromptDialogProps) {
   const t = useTranslations("confirm_dialog");
   const id = useId();
   const [value, setValue] = useState(defaultValue);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const dialogRef = useFocusTrap({
-    isActive: isOpen,
-    onEscape: onClose,
-    restoreFocus: true,
-  });
-
   useEffect(() => {
     if (isOpen) {
       setValue(defaultValue);
       const t = setTimeout(() => {
-        inputRef.current?.focus();
-        inputRef.current?.select();
+        const input = inputRef.current;
+        if (!input) return;
+        input.focus();
+        const [start, end] = nameSelectionRange(input.value, selectBaseName);
+        input.setSelectionRange(start, end);
       }, 50);
       return () => clearTimeout(t);
     }
-  }, [isOpen, defaultValue]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleBackdropClick = (e: MouseEvent) => {
-      if (dialogRef.current && !dialogRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-
-    document.addEventListener("mousedown", handleBackdropClick);
-    return () => document.removeEventListener("mousedown", handleBackdropClick);
-  }, [isOpen, onClose, dialogRef]);
-
-  if (!isOpen) return null;
+  }, [isOpen, defaultValue, selectBaseName]);
 
   const resolvedConfirmText = confirmText || t("confirm");
   const resolvedCancelText = cancelText || t("cancel");
   const trimmed = value.trim();
-  const canSubmit = trimmed.length > 0;
+  const error = trimmed.length > 0 && validate ? validate(trimmed) : null;
+  const canSubmit = trimmed.length > 0 && !error;
+  const errorId = `${id}-error`;
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -82,45 +86,56 @@ export function PromptDialog({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center z-[60] p-4 animate-in fade-in duration-150">
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={`${id}-title`}
-        className="bg-background border border-border rounded-lg shadow-xl w-full max-w-md animate-in zoom-in-95 duration-200"
-      >
-        <form onSubmit={handleSubmit}>
-          <div className="p-6">
-            <h2
-              id={`${id}-title`}
-              className="text-lg font-semibold text-foreground"
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      description={message}
+      showClose={false}
+      initialFocus={inputRef}
+      onSubmit={handleSubmit}
+      footer={
+        <>
+          {extraAction && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="me-auto"
+              onClick={() => {
+                try {
+                  extraAction.onClick();
+                } finally {
+                  onClose();
+                }
+              }}
             >
-              {title}
-            </h2>
-            {message && (
-              <p className="mt-2 text-sm text-muted-foreground">{message}</p>
-            )}
-            <Input
-              ref={inputRef}
-              type="text"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder={placeholder}
-              className="mt-4"
-            />
-          </div>
-
-          <div className="flex items-center justify-end gap-3 px-6 pb-6">
-            <Button type="button" variant="outline" onClick={onClose}>
-              {resolvedCancelText}
+              {extraAction.label}
             </Button>
-            <Button type="submit" variant="default" disabled={!canSubmit}>
-              {resolvedConfirmText}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+          )}
+          <Button type="button" variant="outline" onClick={onClose}>
+            {resolvedCancelText}
+          </Button>
+          <Button type="submit" variant="default" disabled={!canSubmit}>
+            {resolvedConfirmText}
+          </Button>
+        </>
+      }
+    >
+      <Input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder={placeholder}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
+        className={error ? "mt-4 border-destructive focus-visible:border-destructive" : "mt-4"}
+      />
+      {error && (
+        <p id={errorId} role="alert" className="mt-1.5 text-xs text-destructive">
+          {error}
+        </p>
+      )}
+    </Dialog>
   );
 }

@@ -152,8 +152,13 @@
 }
 
 
-* {
-  border-color: var(--color-border);
+/* The default border colour. In the base layer, so a border colour utility
+   (border-primary, border-transparent, border-destructive, border-input)
+   wins over it; unlayered, it outranked every utility and drew them grey. */
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
 }
 
 body {
@@ -487,10 +492,10 @@ optgroup {
   opacity: 0.8;
 }
 
-/* Toast animations */
+/* Toast animations. They slide in from the end edge: --toast-slide is -1 in RTL. */
 @keyframes toast-enter {
   from {
-    transform: translateX(calc(100% + 1.25rem));
+    transform: translateX(calc((100% + 1.25rem) * var(--toast-slide, 1)));
     opacity: 0;
   }
   to {
@@ -505,7 +510,7 @@ optgroup {
     opacity: 1;
   }
   to {
-    transform: translateX(calc(100% + 1.25rem));
+    transform: translateX(calc((100% + 1.25rem) * var(--toast-slide, 1)));
     opacity: 0;
   }
 }
@@ -725,7 +730,11 @@ optgroup {
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    /* Every element transitions `all` by default once it has a duration.
+       Visibility is left out: a transition from hidden would keep a newly
+       shown menu or dialog hidden for a frame, and focus() would miss it. */
+    transition-property: all, visibility !important;
+    transition-duration: 0.01ms, 0s !important;
     scroll-behavior: auto !important;
   }
 }
@@ -736,7 +745,8 @@ optgroup {
 [data-animations="off"] *::after {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
+  transition-property: all, visibility !important;
+  transition-duration: 0.01ms, 0s !important;
   scroll-behavior: auto !important;
 }
 
@@ -960,7 +970,8 @@ optgroup {
 }
 
 /* RTL: mirror directional icons (chevrons/arrows) so prev/next, back/forward,
-   and panel-collapse affordances point the correct way in right-to-left layouts.
+   reply/forward and panel-collapse affordances point the correct way in
+   right-to-left layouts.
    Tabler emits a `tabler-icon-<name>` class per icon, so we target the
    directional ones only — vertical chevrons (up/down) are intentionally left. */
 [dir="rtl"] .tabler-icon-chevron-left,
@@ -971,6 +982,10 @@ optgroup {
 [dir="rtl"] .tabler-icon-arrow-right,
 [dir="rtl"] .tabler-icon-arrow-big-left,
 [dir="rtl"] .tabler-icon-arrow-big-right,
+[dir="rtl"] .tabler-icon-arrow-back-up,
+[dir="rtl"] .tabler-icon-arrow-back-up-double,
+[dir="rtl"] .tabler-icon-arrow-forward-up,
+[dir="rtl"] .tabler-icon-arrow-forward-up-double,
 [dir="rtl"] .tabler-icon-layout-sidebar-left,
 [dir="rtl"] .tabler-icon-layout-sidebar-right {
   transform: scaleX(-1);

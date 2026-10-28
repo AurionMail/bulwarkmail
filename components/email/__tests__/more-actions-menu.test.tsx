@@ -125,7 +125,8 @@ describe('email viewer More actions menu', () => {
     flushFrames();
 
     const subMenu = screen.getByRole('menu', { name: 'move_to' });
-    tap(within(subMenu).getByRole('menuitem', { name: /Archive/ }));
+    // Named as the sidebar names it (the i18n mock renders the key).
+    tap(within(subMenu).getByRole('menuitem', { name: /mailboxes.archive/ }));
 
     expect(onMoveToMailbox).toHaveBeenCalledWith('archive');
   });
@@ -179,5 +180,60 @@ describe('email viewer More actions menu', () => {
     // Closing keeps the transition so the panel slides out instead of vanishing.
     expect(panel.className).toContain('translate-x-full');
     expect(panel.className).toContain('transition-transform');
+  });
+});
+
+describe('phone More panel parity', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'setTimeout'] });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('offers the message and conversation links the row menu has, and no keyboard shortcuts', () => {
+    renderViewer({ onShowShortcuts: vi.fn() } as never);
+    openMoreMenu();
+    const menu = screen.getByRole('menu', { name: 'more_actions' });
+    expect(within(menu).getByRole('menuitem', { name: /copy_message/ })).toBeTruthy();
+    expect(within(menu).getByRole('menuitem', { name: /copy_conversation/ })).toBeTruthy();
+    expect(within(menu).queryByRole('menuitem', { name: /keyboard_shortcuts/ })).toBeNull();
+  });
+});
+describe('phone touch targets (MAIL-18)', () => {
+  it('draws the panel close at 44px and gives the subject star the touch hit area', () => {
+    renderViewer({ onToggleStar: vi.fn() });
+    const close = screen.getByTestId('more-panel-close');
+    expect(close.className).toContain('h-11');
+    expect(close.className).toContain('w-11');
+    const star = screen.getByTestId('subject-star');
+    expect(star).toHaveAccessibleName('star');
+    expect(star.className).toContain('pointer-coarse:after:min-h-11');
+  });
+});
+
+// R8: a key hint means nothing on a touch screen, and a screen reader read
+// "Reply (r)". The names are the plain ones; a hint stays in the tooltip.
+describe('phone reader names (MAIL-20)', () => {
+  it('names the bottom bar and the star without key hints', () => {
+    renderViewer({ onToggleStar: vi.fn(), onReply: vi.fn(), onReplyAll: vi.fn(), onForward: vi.fn() });
+    expect(screen.getByTestId('subject-star')).toHaveAccessibleName('star');
+    for (const name of ['reply', 'reply_all', 'forward']) {
+      expect(screen.getAllByRole('button', { name }).length).toBeGreaterThan(0);
+    }
+    const hinted = screen.queryAllByRole('button').filter((b) => /^tooltips\.(reply|reply_all|forward|star|unstar)$/.test(b.getAttribute('aria-label') ?? ''));
+    expect(hinted).toEqual([]);
+  });
+});
+
+// The phone bar said "Spam" where every menu says "Report spam".
+describe('reader spam button name', () => {
+  it('says Report spam like the menus, and Not spam in the Spam folder', () => {
+    const { unmount } = renderViewer({ onMarkAsSpam: vi.fn(), onUndoSpam: vi.fn() });
+    expect(screen.getAllByRole('button', { name: 'spam.button_title' }).length).toBeGreaterThan(0);
+    expect(screen.queryAllByRole('button', { name: 'spam_short' })).toEqual([]);
+    unmount();
+    renderViewer({ onMarkAsSpam: vi.fn(), onUndoSpam: vi.fn(), currentMailboxRole: 'junk' });
+    expect(screen.getAllByRole('button', { name: 'spam.not_spam_title' }).length).toBeGreaterThan(0);
   });
 });

@@ -21,6 +21,8 @@ import { useShallow } from "zustand/react/shallow";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatFileSize, cn, cleanPreview } from "@/lib/utils";
+import { IconButton } from "@/components/ui/icon-button";
+import { PaneSpinner } from "@/components/ui/spinner";
 import {
   ArrowLeft,
   ChevronDown,
@@ -31,7 +33,6 @@ import {
   Paperclip,
   Star,
   Download,
-  Loader2,
   FileText,
   FileImage,
   FileVideo,
@@ -58,6 +59,7 @@ import { usePluginRenderedBody } from "@/hooks/use-plugin-rendered-body";
 import { emailToReadView } from "@/lib/plugin-projection";
 import { AttachmentPluginMenu, ReaderAboveQuoteSlot } from "./reader-plugin-surfaces";
 import { useNoThirdPartyTraffic } from "@/hooks/use-third-party-mode";
+import { ConversationHeaderActions, type ConversationActions } from "./conversation-header-actions";
 
 export type ConversationAttachmentHandler = (
   blobId: string, name: string, type: string | undefined, source: EmailBlobContext,
@@ -77,6 +79,11 @@ interface ThreadConversationViewProps {
   onMarkAsRead?: (emailId: string, read: boolean) => void;
   /** Role of the folder the conversation was opened from, for plugin actions limited to some folders. */
   mailboxRole?: string | null;
+  /**
+   * The conversation's actions in the header, on its newest message as the
+   * list row offers them: Archive, Delete, Move and ⋮ with the rest.
+   */
+  actions?: ConversationActions;
 }
 
 // Helper function to get file icon based on mime type or extension
@@ -196,6 +203,7 @@ export function ThreadConversationView({
   blobSource,
   onMarkAsRead,
   mailboxRole,
+  actions,
 }: ThreadConversationViewProps) {
   const t = useTranslations();
   const externalContent = useConversationExternalContent();
@@ -243,36 +251,27 @@ export function ThreadConversationView({
   };
 
   if (isLoading) {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">{t("threads.loading")}</p>
-        </div>
-      </div>
-    );
+    // One centred spinner for a whole pane (R9).
+    return <PaneSpinner label={t("threads.loading")} className="bg-background" />;
   }
 
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Header */}
       <div className="flex items-center px-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 sticky top-0 z-10" style={{ gap: 'var(--density-item-gap)', paddingBlock: 'var(--density-header-py)' }}>
-        <button
-          onClick={onBack}
-          className="p-2 -ms-2 rounded-full hover:bg-muted transition-colors"
-          aria-label={t('email_viewer.back_to_list')}
-          title={t('email_viewer.back_to_list')}
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
+        <IconButton size="icon-lg" className="-ms-2 flex-shrink-0" onClick={onBack} label={t('email_viewer.back_to_list')}>
+          <ArrowLeft />
+        </IconButton>
         <div className="flex-1 min-w-0">
-          <h1 className="font-semibold text-foreground break-words">
+          {/* Two lines at most, so a long subject leaves the actions their room. */}
+          <h1 className="font-semibold text-foreground break-words line-clamp-2" dir="auto" title={thread.latestEmail.subject || undefined}>
             {thread.latestEmail.subject || t("email_viewer.no_subject")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {t("threads.messages_other", { count: emails.length })}
+            {t("threads.messages_count", { count: emails.length })}
           </p>
         </div>
+        {actions && <ConversationHeaderActions email={thread.latestEmail} actions={actions} />}
       </div>
 
       {/* Email Cards */}
@@ -396,11 +395,11 @@ function EmailCard({
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <span className={cn(
+            <span dir="auto" className={cn(
               "font-medium truncate",
               isUnread ? "text-foreground" : "text-muted-foreground"
             )}>
-              {sender?.name || (sender?.email && formatAddress(sender.email)) || "Unknown"}
+              {sender?.name || (sender?.email && formatAddress(sender.email)) || t('email_viewer.unknown_sender')}
             </span>
             <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} interactive={false} />
             {isStarred && (
@@ -414,7 +413,7 @@ function EmailCard({
             {formatDate(emailDisplayDate(email))}
           </div>
           {!isExpanded && density !== 'extra-compact' && (
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+            <p dir="auto" className="text-sm text-muted-foreground mt-1 line-clamp-2">
               {cleanPreview(email.preview) || t('email_viewer.no_preview_available')}
             </p>
           )}
@@ -444,8 +443,9 @@ function EmailCard({
           <PluginSlot name="email-footer" className="w-full" extraProps={plugin.idProps} />
 
           {/* Action Buttons; plugin reader actions behind a "more" button, as
-              in the single reader's More panel on phones. */}
-          <div className="px-4 pb-4 flex gap-2">
+              in the single reader's More panel on phones. Long names (Arabic
+              "Reply all") wrap to a second line instead of being cut. */}
+          <div className="px-4 pb-4 flex flex-wrap gap-2">
             {onReply && (
               <Button
                 variant="outline"
@@ -454,10 +454,10 @@ function EmailCard({
                   e.stopPropagation();
                   onReply();
                 }}
-                className="flex-1 min-w-0 px-2 whitespace-nowrap"
+                className="flex-auto px-2 whitespace-nowrap"
               >
                 <Reply className="w-4 h-4 me-1.5 shrink-0" />
-                <span className="truncate">{t("email_viewer.reply")}</span>
+                {t("email_viewer.reply")}
               </Button>
             )}
             {onReplyAll && (
@@ -468,10 +468,10 @@ function EmailCard({
                   e.stopPropagation();
                   onReplyAll();
                 }}
-                className="flex-1 min-w-0 px-2 whitespace-nowrap"
+                className="flex-auto px-2 whitespace-nowrap"
               >
                 <ReplyAll className="w-4 h-4 me-1.5 shrink-0" />
-                <span className="truncate">{t("email_viewer.reply_all")}</span>
+                {t("email_viewer.reply_all")}
               </Button>
             )}
             {onForward && (
@@ -482,10 +482,10 @@ function EmailCard({
                   e.stopPropagation();
                   onForward();
                 }}
-                className="flex-1 min-w-0 px-2 whitespace-nowrap"
+                className="flex-auto px-2 whitespace-nowrap"
               >
                 <Forward className="w-4 h-4 me-1.5 shrink-0" />
-                <span className="truncate">{t("email_viewer.forward")}</span>
+                {t("email_viewer.forward")}
               </Button>
             )}
             <PluginActions
@@ -896,6 +896,9 @@ export function ConversationEmailBody({
         ) : (
           <div
             ref={setPlainBodyEl}
+            // Its own direction, as in the reader: English text in an Arabic
+            // UI read "1+" and ".change".
+            dir="auto"
             className={cn(
               "prose prose-sm max-w-none",
               !emailAlwaysLightMode && "dark:prose-invert",

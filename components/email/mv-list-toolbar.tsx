@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Archive,
   CheckSquare,
@@ -11,23 +11,24 @@ import {
   Mail,
   MailOpen,
   MoreVertical,
-  RotateCcw,
   Search,
   ShieldAlert,
   ShieldCheck,
   Square,
   Tag,
   Trash2,
+  RefreshCw,
 } from "@/components/icons";
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShallow } from "zustand/react/shallow";
-import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
+import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder, restoreBatchesForSelection , type CrossAccountMoveReceipt } from "@/stores/email-store";
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
-import { runBatchEmailAction } from "@/lib/email-action-toast";
+import { runBatchEmailAction, toastWithUndo, undoLabels, undoMoveAction } from "@/lib/email-action-toast";
 import { toast } from "@/stores/toast-store";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
-import { useMenuNavigation } from "@/hooks/use-menu-navigation";
+import { useContextMenu } from "@/hooks/use-context-menu";
+import { ContextMenu, ContextMenuItem, ContextMenuSeparator, ContextMenuHeader, CONTEXT_MENU_ITEM_CLASS } from "@/components/ui/context-menu";
 import { useArchiveActionEnabled } from "@/lib/archive-gate";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TagPicker } from "@/components/email/tag-picker";
@@ -109,7 +110,6 @@ export function MvListToolbar({
 }: MvListToolbarProps) {
   const t = useTranslations("email_list");
   const tBatch = useTranslations("email_list.batch_actions");
-  const tActions = useTranslations("settings.email_behavior.hover_actions");
   const archiveActionEnabled = useArchiveActionEnabled();
   const tFolder = useTranslations("mailbox_context_menu");
   const tMenu = useTranslations("context_menu");
@@ -118,6 +118,7 @@ export function MvListToolbar({
   const tViewer = useTranslations("email_viewer");
   const tNotifications = useTranslations("notifications");
   const tSpam = useTranslations("email_viewer.spam");
+  const undo = undoLabels(tNotifications);
 
   const client = useAuthStore((s) => s.client);
   const {
@@ -157,61 +158,29 @@ export function MvListToolbar({
   })));
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
-  const closeMenu = useCallback(() => setMenuOpen(false), []);
-  const { menuRef, onKeyDown: onMenuKeyDown } = useMenuNavigation<HTMLDivElement>({
-    open: menuOpen,
-    onClose: closeMenu,
-    triggerRef: menuButtonRef,
-  });
-  const [moveOpen, setMoveOpen] = useState(false);
+  // The ⋮, Move to and Tag menus are the ContextMenu, as every menu (R6).
+  const overflowMenu = useContextMenu<null>();
+  const menuOpen = overflowMenu.contextMenu.isOpen;
+  const closeMenu = overflowMenu.closeContextMenu;
+  const moveMenu = useContextMenu<null>();
+  const moveOpen = moveMenu.contextMenu.isOpen;
+  const closeMove = moveMenu.closeContextMenu;
   // Gmail's "Move to" menu opens on a search field that narrows the folders.
   const [moveQuery, setMoveQuery] = useState("");
   useEffect(() => { if (!moveOpen) setMoveQuery(""); }, [moveOpen]);
-  const moveButtonRef = useRef<HTMLButtonElement>(null);
-  const closeMove = useCallback(() => setMoveOpen(false), []);
-  const { menuRef: moveRef, onKeyDown: onMoveKeyDown } = useMenuNavigation<HTMLDivElement>({
-    open: moveOpen,
-    onClose: closeMove,
-    triggerRef: moveButtonRef,
-  });
-
-  const [tagOpen, setTagOpen] = useState(false);
-  const tagButtonRef = useRef<HTMLButtonElement>(null);
-  const closeTag = useCallback(() => setTagOpen(false), []);
-  const { menuRef: tagRef, onKeyDown: onTagKeyDown } = useMenuNavigation<HTMLDivElement>({
-    open: tagOpen,
-    onClose: closeTag,
-    triggerRef: tagButtonRef,
+  const tagMenu = useContextMenu<null>();
+  const tagOpen = tagMenu.contextMenu.isOpen;
+  const closeTag = tagMenu.closeContextMenu;
+  /** A trigger's press while its menu is open closes it, instead of reading as a click outside. */
+  const toggleFrom = (menu: typeof overflowMenu) => ({
+    onMouseDown: (e: React.MouseEvent) => { if (menu.contextMenu.isOpen) e.stopPropagation(); },
+    onClick: (e: React.MouseEvent<HTMLElement>) => {
+      if (menu.contextMenu.isOpen) menu.closeContextMenu();
+      else menu.openContextMenuFrom(e.currentTarget, null, "start");
+    },
   });
 
   const { dialogProps: confirmDialogProps, confirm: confirmDialog } = useConfirmDialog();
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onPointerDown = (e: MouseEvent) => {
-      if (
-        menuButtonRef.current?.contains(e.target as Node) ||
-        menuRef.current?.contains(e.target as Node)
-      ) return;
-      setMenuOpen(false);
-    };
-    document.addEventListener("mousedown", onPointerDown);
-    return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [menuOpen, menuRef]);
-
-  useEffect(() => {
-    if (!moveOpen && !tagOpen) return;
-    const onPointerDown = (e: MouseEvent) => {
-      const inside = (button: HTMLElement | null, menu: HTMLElement | null) =>
-        button?.contains(e.target as Node) || menu?.contains(e.target as Node);
-      if (!inside(moveButtonRef.current, moveRef.current)) setMoveOpen(false);
-      if (!inside(tagButtonRef.current, tagRef.current)) setTagOpen(false);
-    };
-    document.addEventListener("mousedown", onPointerDown);
-    return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [moveOpen, tagOpen, moveRef, tagRef]);
 
   const selectionCount = selectedEmailKeys.size;
   const hasSelection = selectionCount > 0;
@@ -233,7 +202,7 @@ export function MvListToolbar({
   // rejected promise or a store error turns into an error toast instead of
   // an unhandled rejection with nothing on screen.
   const run = async (
-    action: () => Promise<void>,
+    action: () => Promise<boolean | void>,
     messages?: Parameters<typeof runBatchEmailAction>[1],
   ) => {
     if (!client || isProcessing) return;
@@ -271,7 +240,7 @@ export function MvListToolbar({
       const permanent = bulkDeleteIsPermanent(target);
       if (shouldConfirmBulkDelete(target)) {
         const confirmed = await confirmDialog({
-          title: permanent ? t("permanent_delete_confirm_title") : tBatch("delete_confirm_title"),
+          title: permanent ? t("permanent_delete_confirm_batch_title") : tBatch("delete_confirm_title"),
           message: permanent
             ? t("permanent_delete_confirm_batch_message", { count: selectionCount })
             : tBatch("delete_confirm_message", { count: selectionCount }),
@@ -280,9 +249,11 @@ export function MvListToolbar({
         });
         if (!confirmed) return;
       }
-      await runBatchEmailAction(() => batchDelete(client, isInTrash), {
+      const restore = permanent ? null : restoreBatchesForSelection(client);
+      await runBatchEmailAction(() => batchDelete(client, permanent), {
         success: tNotifications("emails_deleted", { count: selectionCount }),
         error: tNotifications("error_deleting"),
+        undo: undoMoveAction(client, restore, undo),
       });
     });
 
@@ -313,15 +284,15 @@ export function MvListToolbar({
               role="menuitem"
               onClick={() => handleMove(node.id)}
               style={{ paddingInlineStart: `${12 + depth * 16}px` }}
-              className="w-full flex items-center gap-2 pe-3 py-2 text-start text-sm hover:bg-muted"
+              className={CONTEXT_MENU_ITEM_CLASS}
             >
-              <Folder className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
+              <Folder className="w-4 h-4 flex-shrink-0" />
               <span className="truncate">{label}</span>
             </button>
           ) : (
             <div
               style={{ paddingInlineStart: `${12 + depth * 16}px` }}
-              className="flex items-center gap-2 pe-3 py-2 text-sm text-muted-foreground"
+              className="flex items-center gap-2 pe-3 py-1.5 text-sm text-muted-foreground"
             >
               <Folder className="w-4 h-4 flex-shrink-0" />
               <span className="truncate">{label}</span>
@@ -359,13 +330,15 @@ export function MvListToolbar({
   for (const [tagId, count] of tagCounts) (count === selectedEmails.length ? appliedTags : partialTags).push(tagId);
 
   const handleMove = (mailboxId: string) => {
-    setMoveOpen(false);
+    closeMove();
     const count = selectionCount;
-    void run(async () => {
-      if (client) await batchMoveToMailbox(client, mailboxId);
-    }, {
+    const restore = client ? restoreBatchesForSelection(client) : null;
+    // What a mixed-account list moves to another account moves back that way.
+    const receipts: CrossAccountMoveReceipt[] = [];
+    void run(async () => (client ? batchMoveToMailbox(client, mailboxId, undefined, receipts) : false), {
       success: tNotifications("emails_moved", { count }),
       error: tNotifications("move_failed"),
+      undo: undoMoveAction(client, restore, undo, receipts),
     });
   };
 
@@ -382,11 +355,12 @@ export function MvListToolbar({
     run(async () => {
       if (!client) return;
       const ids = resolveSelectedEmails(useEmailStore.getState()).map((email) => email.id);
+      const restore = restoreBatchesForSelection(client);
       try {
         if (isInJunk) {
-          if (await batchUndoSpam(client, ids)) toast.success(tSpam("toast_not_spam_batch", { count: ids.length }));
+          if (await batchUndoSpam(client, ids)) toastWithUndo(tSpam("toast_not_spam_batch", { count: ids.length }), undoMoveAction(client, restore, undo));
         } else {
-          if (await batchMarkAsSpam(client, ids)) toast.success(tSpam("toast_batch", { count: ids.length }));
+          if (await batchMarkAsSpam(client, ids)) toastWithUndo(tSpam("toast_batch", { count: ids.length }), undoMoveAction(client, restore, undo));
         }
       } catch {
         toast.error(isInJunk ? tSpam("error_not_spam") : tSpam("error"));
@@ -423,7 +397,7 @@ export function MvListToolbar({
       </button>
 
       <ToolbarButton
-        icon={RotateCcw}
+        icon={RefreshCw}
         label={tCommon("refresh")}
         onClick={onRefresh}
         disabled={!client || isRefreshing}
@@ -432,9 +406,8 @@ export function MvListToolbar({
 
       <div className="relative shrink-0">
         <button
-          ref={menuButtonRef}
           type="button"
-          onClick={() => setMenuOpen((v) => !v)}
+          {...toggleFrom(overflowMenu)}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
           title={tViewer("more_actions")}
@@ -448,58 +421,45 @@ export function MvListToolbar({
         >
           <MoreVertical className="w-[18px] h-[18px]" />
         </button>
-        {menuOpen && (
-          <div
-            ref={menuRef}
-            onKeyDown={onMenuKeyDown}
-            role="menu"
-            className="absolute start-0 top-full mt-1 z-50 min-w-56 rounded-lg border border-border bg-popover py-1 shadow-xl"
-          >
-            <button
-              type="button"
-              role="menuitem"
+        <ContextMenu ref={overflowMenu.menuRef} isOpen={menuOpen} position={overflowMenu.contextMenu.position} onClose={closeMenu}>
+          <div className="min-w-56" data-mv-overflow-menu="">
+            <ContextMenuItem
+              icon={MailOpen}
+              label={tFolder("mark_folder_read")}
               disabled={!onMarkFolderRead}
               onClick={() => {
-                setMenuOpen(false);
+                closeMenu();
                 onMarkFolderRead?.();
               }}
-              className="w-full px-3 py-2 text-start text-sm hover:bg-muted disabled:opacity-50"
-            >
-              {tFolder("mark_folder_read")}
-            </button>
+            />
             {onMarkAllFoldersRead && (
-              <button
-                type="button"
-                role="menuitem"
+              <ContextMenuItem
+                icon={MailOpen}
+                label={tFolder("mark_all_folders_read")}
                 onClick={() => {
-                  setMenuOpen(false);
+                  closeMenu();
                   onMarkAllFoldersRead();
                 }}
-                className="w-full px-3 py-2 text-start text-sm hover:bg-muted"
-              >
-                {tFolder("mark_all_folders_read")}
-              </button>
+              />
             )}
             {/* Offered only where emptying a folder is the usual thing to
                 do: spam and the bin. */}
             {onEmptyFolder && (isInJunk || isInTrash) && (
               <>
-                <div className="my-1 h-px bg-border" />
-                <button
-                  type="button"
-                  role="menuitem"
+                <ContextMenuSeparator />
+                <ContextMenuItem
+                  icon={FolderX}
+                  label={tFolder("empty_folder")}
+                  destructive
                   onClick={() => {
-                    setMenuOpen(false);
+                    closeMenu();
                     onEmptyFolder();
                   }}
-                  className="w-full px-3 py-2 text-start text-sm text-destructive hover:bg-muted"
-                >
-                  {tFolder("empty_folder")}
-                </button>
+                />
               </>
             )}
           </div>
-        )}
+        </ContextMenu>
       </div>
 
       {hasSelection && !disabled && (
@@ -508,13 +468,14 @@ export function MvListToolbar({
           {archiveActionEnabled && (
             <ToolbarButton
               icon={Archive}
-              label={tActions("archive")}
-              onClick={() => run(async () => { if (client) await batchArchive(client); }, {
+              label={tMenu("archive")}
+              onClick={() => run(async () => (client ? batchArchive(client) : false), {
                 success: tNotifications("emails_archived", { count: selectionCount }),
                 error: tNotifications("error_archiving"),
                 describeError: (error) => error instanceof ArchiveMailboxNotFoundError
                   ? tViewer("archive_mailbox_not_found")
                   : undefined,
+                undo: undoMoveAction(client, client ? restoreBatchesForSelection(client) : null, undo),
               })}
               disabled={isProcessing}
               busy={isProcessing}
@@ -523,7 +484,7 @@ export function MvListToolbar({
           {spamApplicable && (
             <ToolbarButton
               icon={isInJunk ? ShieldCheck : ShieldAlert}
-              label={isInJunk ? tActions("not_spam") : tActions("spam")}
+              label={isInJunk ? tMenu("not_spam") : tMenu("mark_as_spam")}
               onClick={handleSpam}
               disabled={isProcessing}
             />
@@ -541,7 +502,7 @@ export function MvListToolbar({
             label={tBatch("delete")}
             onClick={handleDelete}
             disabled={isProcessing}
-            className="hover:text-red-600 dark:hover:text-red-400"
+            className="hover:text-destructive"
           />
           {/* Gmail's order: what to do with it, how it reads, where it goes. */}
           <div className="w-px h-6 bg-border mx-1 shrink-0" />
@@ -561,9 +522,8 @@ export function MvListToolbar({
           {moveTree.length > 0 && (
             <div className="relative shrink-0">
               <button
-                ref={moveButtonRef}
                 type="button"
-                onClick={() => { setTagOpen(false); setMoveOpen((v) => !v); }}
+                {...toggleFrom(moveMenu)}
                 aria-haspopup="menu"
                 aria-expanded={moveOpen}
                 title={tMenu("move_to")}
@@ -577,52 +537,38 @@ export function MvListToolbar({
               >
                 <FolderInput className="w-[18px] h-[18px]" />
               </button>
-              {moveOpen && (
-                <div
-                  ref={moveRef}
-                  onKeyDown={onMoveKeyDown}
-                  role="menu"
-                  aria-label={tMenu("move_to")}
-                  className="absolute start-0 top-full mt-1 z-50 min-w-64 max-h-96 flex flex-col rounded-lg border border-border bg-popover py-1 shadow-xl"
-                  data-mv-move-menu=""
-                >
-                  <div className="px-3 pt-1.5 text-sm text-muted-foreground">{tMenu("move_to")}</div>
-                  <label className="mx-3 mb-1 flex items-center gap-2 border-b border-border">
+              <ContextMenu ref={moveMenu.menuRef} isOpen={moveOpen} position={moveMenu.contextMenu.position} onClose={closeMove}>
+                <div className="min-w-64" data-mv-move-menu="">
+                  <ContextMenuHeader>{tMenu("move_to")}</ContextMenuHeader>
+                  <label className="mx-3 my-1 flex items-center gap-2 border-b border-border">
                     <input
-                      autoFocus
                       value={moveQuery}
                       onChange={(e) => setMoveQuery(e.target.value)}
-                      onKeyDown={(e) => { if (e.key !== "Escape" && e.key !== "ArrowDown" && e.key !== "ArrowUp") e.stopPropagation(); }}
                       className="h-8 min-w-0 flex-1 bg-transparent text-sm focus:outline-none"
                       aria-label={tMenu("move_to")}
                     />
                     <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
                   </label>
-                  <div className="min-h-0 flex-1 overflow-y-auto">
+                  <div className="max-h-72 overflow-y-auto">
                     {moveMatches ? renderMoveNodes(moveMatches) : renderMoveNodes(moveTree)}
                   </div>
                   {onCreateFolder && (
                     <>
-                      <div className="my-1 h-px bg-border" />
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => { setMoveOpen(false); onCreateFolder(); }}
-                        className="w-full px-3 py-2 text-start text-sm hover:bg-muted"
-                      >
-                        {tSidebar("create_label")}
-                      </button>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem
+                        label={tSidebar("create_label")}
+                        onClick={() => { closeMove(); onCreateFolder(); }}
+                      />
                     </>
                   )}
                 </div>
-              )}
+              </ContextMenu>
             </div>
           )}
           <div className="relative shrink-0">
             <button
-              ref={tagButtonRef}
               type="button"
-              onClick={() => { setMoveOpen(false); setTagOpen((v) => !v); }}
+              {...toggleFrom(tagMenu)}
               aria-haspopup="menu"
               aria-expanded={tagOpen}
               title={tMenu("tag")}
@@ -636,17 +582,11 @@ export function MvListToolbar({
             >
               <Tag className="w-[18px] h-[18px]" />
             </button>
-            {tagOpen && (
-              <div
-                ref={tagRef}
-                onKeyDown={onTagKeyDown}
-                role="menu"
-                aria-label={tMenu("tag")}
-                className="absolute start-0 top-full mt-1 z-50 min-w-64 rounded-lg border border-border bg-popover py-1 shadow-xl"
-              >
+            <ContextMenu ref={tagMenu.menuRef} isOpen={tagOpen} position={tagMenu.contextMenu.position} onClose={closeTag}>
+              <div className="w-64">
                 <TagPicker selectedIds={appliedTags} partialIds={partialTags} onToggle={handleToggleTag} scope={commonTagScope(selectedEmails)} />
               </div>
-            )}
+            </ContextMenu>
           </div>
           <PluginActions
             surface="message-bulk-actions"

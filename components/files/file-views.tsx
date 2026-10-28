@@ -2,11 +2,12 @@
 
 import { useRef } from "react";
 import { useTranslations } from "next-intl";
-import { ArrowUp, ArrowDown, MoreHorizontal, Download, Share2, Star, Check } from "@/components/icons";
-import { cn, formatFileSize } from "@/lib/utils";
+import { ArrowUp, ArrowDown, MoreVertical, Download, Share2, Star, Check } from "@/components/icons";
+import { cn } from "@/lib/utils";
+import { IconButton } from "@/components/ui/icon-button";
 import type { FileResource } from "@/stores/file-store";
 import {
-  ResourceIcon, ShareBadge, Thumbnail, canShowThumbnail, formatFullDate, formatShortDate,
+  FileSize, ResourceIcon, ShareBadge, Thumbnail, canShowThumbnail, formatFullDate, formatShortDate,
   type IconOptions,
 } from "@/components/files/file-item-parts";
 import type { SortDir, SortKey } from "@/components/files/files-header";
@@ -36,6 +37,8 @@ export interface FileViewProps {
   iconOptions: IconOptions;
   getImageUrl: (name: string) => Promise<string>;
   handlers: FileItemHandlers;
+  /** A line about an item, as its tooltip (where a deleted item came from). */
+  itemNote?: (resource: FileResource) => string | undefined;
 }
 
 const LONG_PRESS_MS = 450;
@@ -102,6 +105,8 @@ function SelectBox({ checked, visible, onToggle, label }: {
       onDoubleClick={(e) => e.stopPropagation()}
       className={cn(
         "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-opacity",
+        // A 44px hit area on touch, as every Button has (R1).
+        "relative pointer-coarse:after:absolute pointer-coarse:after:top-1/2 pointer-coarse:after:left-1/2 pointer-coarse:after:size-full pointer-coarse:after:min-h-11 pointer-coarse:after:min-w-11 pointer-coarse:after:-translate-x-1/2 pointer-coarse:after:-translate-y-1/2",
         checked ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/50 bg-background",
         visible || checked ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
       )}
@@ -138,7 +143,7 @@ const LIST_COLUMNS = "grid grid-cols-[auto_minmax(0,1fr)_auto] sm:grid-cols-[aut
 
 export function FileListView({
   resources, selected, focusedName, dropTarget, cutNames, starredPaths, pathOf, touch, iconOptions, getImageUrl, handlers,
-  sortKey, sortDir, onSort, allSelected, someSelected, onToggleAll,
+  sortKey, sortDir, onSort, allSelected, someSelected, onToggleAll, itemNote, dateLabel,
 }: FileViewProps & {
   sortKey: SortKey;
   sortDir: SortDir;
@@ -146,6 +151,8 @@ export function FileListView({
   allSelected: boolean;
   someSelected: boolean;
   onToggleAll: () => void;
+  /** The date column's heading, "Modified" unless told otherwise. */
+  dateLabel?: string;
 }) {
   const t = useTranslations("files");
   const selecting = selected.size > 0;
@@ -165,7 +172,7 @@ export function FileListView({
           {someSelected && !allSelected && <span className="sr-only">{t("selected_count", { count: selected.size })}</span>}
         </div>
         <SortHeader label={t("name")} column="name" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-        <SortHeader label={t("modified")} column="modified" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hidden md:block" />
+        <SortHeader label={dateLabel ?? t("modified")} column="modified" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hidden md:block" />
         <SortHeader label={t("size")} column="size" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hidden sm:block text-end" />
         <div role="columnheader" className="w-[4.75rem]"><span className="sr-only">{t("context_menu")}</span></div>
       </div>
@@ -183,13 +190,14 @@ export function FileListView({
           iconOptions={iconOptions}
           getImageUrl={getImageUrl}
           handlers={handlers}
+          note={itemNote?.(resource)}
         />
       ))}
     </div>
   );
 }
 
-function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isStarred, selecting, touch, iconOptions, getImageUrl, handlers }: {
+function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isStarred, selecting, touch, iconOptions, getImageUrl, handlers, note }: {
   resource: FileResource;
   isSelected: boolean;
   isFocused: boolean;
@@ -201,6 +209,7 @@ function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isS
   iconOptions: IconOptions;
   getImageUrl: (name: string) => Promise<string>;
   handlers: FileItemHandlers;
+  note?: string;
 }) {
   const t = useTranslations("files");
   const touchProps = useTouchPress(touch, selecting, resource, handlers);
@@ -220,7 +229,7 @@ function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isS
         LIST_COLUMNS,
         "group px-4 border-b border-border/60 cursor-default select-none transition-colors outline-none",
         touch ? "min-h-[52px] py-1.5" : "h-10",
-        isSelected ? "bg-primary/10" : isDropTarget ? "bg-primary/10 ring-1 ring-inset ring-primary/50" : "hover:bg-muted/60",
+        isSelected ? "bg-selection" : isDropTarget ? "bg-primary/10 ring-1 ring-inset ring-primary/50" : "hover:bg-muted/60",
         isFocused && "ring-1 ring-inset ring-ring/60",
         isCut && "opacity-50",
       )}
@@ -251,17 +260,18 @@ function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isS
               }}
               onDoubleClick={(e) => e.stopPropagation()}
               className={cn("truncate text-start hover:underline underline-offset-2 decoration-muted-foreground/50", resource.isDirectory && "font-medium")}
-              title={resource.name}
+              title={note ? `${resource.name}\n${note}` : resource.name}
             >
               {resource.name}
             </button>
-            {isStarred && <Star className="w-3.5 h-3.5 shrink-0 text-amber-500 fill-current" aria-label={t("favorites")} />}
+            {isStarred && <Star className="w-3.5 h-3.5 shrink-0 text-amber-400 fill-amber-400" aria-label={t("favorites")} />}
             <ShareBadge resource={resource} t={t} />
           </div>
           {touch && (
             <div className="text-xs text-muted-foreground truncate">
+              {note && <>{note} · </>}
               {formatShortDate(resource.lastModified)}
-              {!resource.isDirectory && !resource.isSymlink && <> · {formatFileSize(resource.contentLength)}</>}
+              {!resource.isDirectory && !resource.isSymlink && <> · <FileSize bytes={resource.contentLength} /></>}
             </div>
           )}
         </div>
@@ -270,7 +280,7 @@ function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isS
         {!touch && formatShortDate(resource.lastModified)}
       </div>
       <div role="gridcell" className="hidden sm:block text-muted-foreground tabular-nums text-end">
-        {!touch && (resource.isDirectory || resource.isSymlink ? "—" : formatFileSize(resource.contentLength))}
+        {!touch && (resource.isDirectory || resource.isSymlink ? "—" : <FileSize bytes={resource.contentLength} />)}
       </div>
       <div role="gridcell" className="flex items-center justify-end gap-0.5 w-[4.75rem]">
         {!touch && !resource.isDirectory && !resource.isSymlink && (
@@ -279,17 +289,16 @@ function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isS
         {!touch && handlers.canShare(resource) && (
           <RowAction icon={Share2} label={t("share")} onClick={() => handlers.onShare(resource)} />
         )}
-        <button
-          type="button"
+        <IconButton
           data-item-action
-          aria-label={t("more_actions", { name: resource.name })}
+          label={t("more_actions", { name: resource.name })}
           title={t("context_menu")}
           onClick={(e) => { e.stopPropagation(); handlers.onContextMenu(e, resource); }}
           onDoubleClick={(e) => e.stopPropagation()}
-          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-colors"
+          className="text-muted-foreground hover:text-foreground"
         >
-          <MoreHorizontal className="w-4 h-4" />
-        </button>
+          <MoreVertical />
+        </IconButton>
       </div>
     </div>
   );
@@ -297,17 +306,15 @@ function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isS
 
 function RowAction({ icon: Icon, label, onClick }: { icon: React.ComponentType<{ className?: string }>; label: string; onClick: () => void }) {
   return (
-    <button
-      type="button"
+    <IconButton
       data-item-action
-      aria-label={label}
-      title={label}
+      label={label}
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       onDoubleClick={(e) => e.stopPropagation()}
-      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+      className="text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
     >
-      <Icon className="w-4 h-4" />
-    </button>
+      <Icon />
+    </IconButton>
   );
 }
 
@@ -388,7 +395,7 @@ function FolderTile({ resource, isSelected, isFocused, isDropTarget, isCut, isSt
       {...touchProps}
       className={cn(
         "group relative flex items-center gap-2.5 h-11 ps-3 pe-1 rounded-lg border cursor-default select-none transition-colors",
-        isSelected ? "border-primary/60 bg-primary/10" : isDropTarget ? "border-primary bg-primary/10" : "border-border bg-background hover:bg-muted/60",
+        isSelected ? "border-primary/60 bg-selection" : isDropTarget ? "border-primary bg-primary/10" : "border-border bg-background hover:bg-muted/60",
         isFocused && "ring-2 ring-ring/50",
         isCut && "opacity-50",
       )}
@@ -409,18 +416,17 @@ function FolderTile({ resource, isSelected, isFocused, isDropTarget, isCut, isSt
       >
         {resource.name}
       </button>
-      {isStarred && <Star className="w-3.5 h-3.5 shrink-0 text-amber-500 fill-current" aria-label={t("favorites")} />}
+      {isStarred && <Star className="w-3.5 h-3.5 shrink-0 text-amber-400 fill-amber-400" aria-label={t("favorites")} />}
       <ShareBadge resource={resource} t={t} />
-      <button
-        type="button"
+      <IconButton
         data-item-action
-        aria-label={t("more_actions", { name: resource.name })}
+        label={t("more_actions", { name: resource.name })}
         onClick={(e) => { e.stopPropagation(); handlers.onContextMenu(e, resource); }}
         onDoubleClick={(e) => e.stopPropagation()}
-        className={cn("p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/10", !touch && "opacity-0 group-hover:opacity-100 focus-visible:opacity-100")}
+        className={cn("text-muted-foreground hover:text-foreground", !touch && "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100")}
       >
-        <MoreHorizontal className="w-4 h-4" />
-      </button>
+        <MoreVertical />
+      </IconButton>
     </div>
   );
 }
@@ -441,7 +447,7 @@ function FileTile({ resource, isSelected, isFocused, isCut, selecting, touch, ic
       {...touchProps}
       className={cn(
         "group relative flex flex-col rounded-lg border overflow-hidden cursor-default select-none transition-colors",
-        isSelected ? "border-primary/60 bg-primary/10" : "border-border bg-background hover:bg-muted/60",
+        isSelected ? "border-primary/60 bg-selection" : "border-border bg-background hover:bg-muted/60",
         isFocused && "ring-2 ring-ring/50",
         isCut && "opacity-50",
       )}
@@ -476,21 +482,20 @@ function FileTile({ resource, isSelected, isFocused, isCut, selecting, touch, ic
           </button>
           <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0">
             <span className="truncate">
-              {resource.isSymlink ? "" : `${formatFileSize(resource.contentLength)} · `}{formatShortDate(resource.lastModified)}
+              {!resource.isSymlink && <><FileSize bytes={resource.contentLength} /> · </>}{formatShortDate(resource.lastModified)}
             </span>
             <ShareBadge resource={resource} t={t} className="w-3 h-3" />
           </div>
         </div>
-        <button
-          type="button"
+        <IconButton
           data-item-action
-          aria-label={t("more_actions", { name: resource.name })}
+          label={t("more_actions", { name: resource.name })}
           onClick={(e) => { e.stopPropagation(); handlers.onContextMenu(e, resource); }}
           onDoubleClick={(e) => e.stopPropagation()}
-          className={cn("p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/10 shrink-0", !touch && "opacity-0 group-hover:opacity-100 focus-visible:opacity-100")}
+          className={cn("text-muted-foreground hover:text-foreground shrink-0", !touch && "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100")}
         >
-          <MoreHorizontal className="w-4 h-4" />
-        </button>
+          <MoreVertical />
+        </IconButton>
       </div>
     </div>
   );

@@ -6,6 +6,14 @@ import { useTranslations } from "next-intl";
 import { useTour } from "./tour-provider";
 import { cn } from "@/lib/utils";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { Button } from "@/components/ui/button";
+import { isEditableEventTarget } from "@/lib/keyboard";
+import { isDocumentRTL } from "@/i18n/direction";
+import { findTourTarget, isTourStepOnPage } from "./tour-steps";
+import { usePathname } from "@/i18n/navigation";
+import { useIsMobile } from "@/hooks/use-media-query";
+
+export { findTourTarget };
 
 interface Rect {
   top: number;
@@ -19,15 +27,20 @@ const TOOLTIP_GAP = 12;
 const TOOLTIP_MAX_W = 360;
 
 function getTargetRect(selector: string): Rect | null {
-  const el = document.querySelector(selector);
+  const el = findTourTarget(selector);
   if (!el) return null;
   const r = el.getBoundingClientRect();
-  // Element might exist but be hidden (zero dimensions)
-  if (r.width === 0 && r.height === 0) return null;
   return { top: r.top, left: r.left, width: r.width, height: r.height };
 }
 
-function computeTooltipPosition(
+/** Polls (100 ms apart) before a step whose target is in the DOM but has no size is skipped. */
+const HIDDEN_TARGET_ATTEMPTS = 10;
+/** Polls before a step whose target never appeared (another page loading) is skipped. */
+const MISSING_TARGET_ATTEMPTS = 50;
+/** Polls while the step's app is still loading (a first visit compiles it in development). */
+const PAGE_LOAD_ATTEMPTS = 300;
+
+export function computeTooltipPosition(
   target: Rect,
   placement: "top" | "bottom" | "left" | "right",
   tooltipSize: { width: number; height: number }
@@ -37,21 +50,25 @@ function computeTooltipPosition(
   const tw = Math.max(tooltipSize.width, 200); // minimum fallback width
   const th = Math.max(tooltipSize.height, 100); // minimum fallback height
 
+  // Along the side it sits on, the card slides to stay on screen: above a
+  // tab at the end of the phone's tab bar it can't be centred on the tab.
+  const alongX = (left: number) => Math.max(8, Math.min(left, vw - tw - 8));
+  const alongY = (top: number) => Math.max(8, Math.min(top, vh - th - 8));
   const positions = {
     bottom: {
       top: target.top + target.height + PADDING + TOOLTIP_GAP,
-      left: target.left + target.width / 2 - tw / 2,
+      left: alongX(target.left + target.width / 2 - tw / 2),
     },
     top: {
       top: target.top - PADDING - TOOLTIP_GAP - th,
-      left: target.left + target.width / 2 - tw / 2,
+      left: alongX(target.left + target.width / 2 - tw / 2),
     },
     right: {
-      top: target.top + target.height / 2 - th / 2,
+      top: alongY(target.top + target.height / 2 - th / 2),
       left: target.left + target.width + PADDING + TOOLTIP_GAP,
     },
     left: {
-      top: target.top + target.height / 2 - th / 2,
+      top: alongY(target.top + target.height / 2 - th / 2),
       left: target.left - PADDING - TOOLTIP_GAP - tw,
     },
   };
@@ -77,8 +94,14 @@ function computeTooltipPosition(
 
 export function TourOverlay() {
   const t = useTranslations();
-  const { currentStep, totalSteps, steps, nextStep, prevStep, stopTour } = useTour();
+  const { currentStep, totalSteps, steps, nextStep, prevStep, skipStep, stopTour } = useTour();
   const step = steps[currentStep];
+  const phone = useIsMobile();
+  // The same anchor can be in the app being left (the tab bar in Settings
+  // while Files loads): look for the target only once the step's app is up.
+  const pathname = usePathname();
+  const onPageRef = useRef(true);
+  onPageRef.current = !step || isTourStepOnPage(step, pathname);
 
   const [targetRect, setTargetRect] = useState<Rect | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
@@ -89,8 +112,12 @@ export function TourOverlay() {
 
   // Use refs for callbacks to avoid stale closures in timers/intervals
   const updatePositionRef = useRef<() => void>(() => {});
-  const nextStepRef = useRef<() => void>(() => {});
-  nextStepRef.current = nextStep;
+  const skipStepRef = useRef<(direction: 1 | -1) => void>(() => {});
+  // A step with nothing to point at is skipped in the direction the user went.
+  const directionRef = useRef<1 | -1>(1);
+  const goNext = useCallback(() => { directionRef.current = 1; nextStep(); }, [nextStep]);
+  const goPrev = useCallback(() => { directionRef.current = -1; prevStep(); }, [prevStep]);
+  skipStepRef.current = skipStep;
 
   const focusTrapRef = useFocusTrap({
     isActive: visible,
@@ -123,7 +150,6 @@ export function TourOverlay() {
   // Wait for target element to appear, then show
   useEffect(() => {
     if (!step) return;
-    console.log(`[Tour] Step ${currentStep + 1}/${totalSteps}: "${step.id}" - target: ${step.target}, placement: ${step.placement}, interactive: ${!!step.interactive}`);
     setVisible(false);
     // Keep old targetRect and tooltipPos so the cutout/tooltip animate to the new position
     // instead of disappearing and reappearing
@@ -140,20 +166,17 @@ export function TourOverlay() {
     }
 
     let attempts = 0;
-    const maxAttempts = 50; // 5 seconds
     let cancelled = false;
 
     const tryFind = () => {
       if (cancelled) return true;
-      const el = document.querySelector(step.target);
+      if (!onPageRef.current) return false;
+      const el = findTourTarget(step.target);
       if (el) {
-        const rect = el.getBoundingClientRect();
-        console.log(`[Tour] Step ${currentStep + 1} "${step.id}": element FOUND (${rect.width}x${rect.height} at ${Math.round(rect.left)},${Math.round(rect.top)})`);
         el.scrollIntoView({ behavior: "smooth", block: "nearest" });
         // Delay after scroll for layout to settle
         pendingTimerRef.current = setTimeout(() => {
           if (cancelled) return;
-          console.log(`[Tour] Step ${currentStep + 1} "${step.id}": showing tooltip`);
           updatePositionRef.current();
           setVisible(true);
           // Second position update after tooltip renders with final dimensions
@@ -163,24 +186,28 @@ export function TourOverlay() {
         }, 200);
         return true;
       }
-      if (attempts % 10 === 0) {
-        console.log(`[Tour] Step ${currentStep + 1} "${step.id}": element NOT found (attempt ${attempts + 1}/${maxAttempts})`);
-      }
       return false;
     };
 
     if (tryFind()) return () => { cancelled = true; };
 
-    // Poll for element appearance (for page navigation)
+    // Poll for the element to appear (another page loading). One that is in
+    // the DOM but not rendered in this layout (the rail on a phone) is given
+    // up on sooner.
+    let loading = 0;
     const interval = setInterval(() => {
+      if (!onPageRef.current && ++loading < PAGE_LOAD_ATTEMPTS) return;
       attempts++;
-      if (tryFind() || attempts >= maxAttempts) {
+      if (tryFind()) {
         clearInterval(interval);
-        if (attempts >= maxAttempts && !cancelled) {
-          // Skip this step if element never appears
-          console.warn(`[Tour] Step ${currentStep + 1} "${step.id}": SKIPPED - element never appeared after ${maxAttempts} attempts`);
-          nextStepRef.current();
-        }
+        return;
+      }
+      const limit = document.querySelector(step.target) ? HIDDEN_TARGET_ATTEMPTS : MISSING_TARGET_ATTEMPTS;
+      if (attempts >= limit) {
+        clearInterval(interval);
+        if (cancelled) return;
+        // Dropped from this run, so the counter never counts it.
+        skipStepRef.current(directionRef.current);
       }
     }, 100);
 
@@ -192,7 +219,7 @@ export function TourOverlay() {
         pendingTimerRef.current = null;
       }
     };
-  }, [step, currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [step, currentStep]);
 
   // Recalculate on resize/scroll (debounced)
   useEffect(() => {
@@ -213,17 +240,23 @@ export function TourOverlay() {
     };
   }, [visible, updatePosition]);
 
-  // Keyboard navigation
+  // Keyboard navigation. Enter on a focused button (Skip, Back) and keys
+  // typed into a field (the search step) are theirs, not the tour's.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight" || e.key === "Enter") {
+      const onControl = e.target instanceof HTMLElement && !!e.target.closest("button, a[href]");
+      const typing = isEditableEventTarget(e);
+      // The arrow pointing the way you read goes on: → in LTR, ← in RTL.
+      const forward = isDocumentRTL() ? "ArrowLeft" : "ArrowRight";
+      const back = isDocumentRTL() ? "ArrowRight" : "ArrowLeft";
+      if ((e.key === forward && !typing) || (e.key === "Enter" && !onControl && !typing)) {
         e.preventDefault();
         e.stopPropagation();
-        nextStep();
-      } else if (e.key === "ArrowLeft") {
+        goNext();
+      } else if (e.key === back && !typing) {
         e.preventDefault();
         e.stopPropagation();
-        prevStep();
+        goPrev();
       } else if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
@@ -232,7 +265,7 @@ export function TourOverlay() {
     };
     window.addEventListener("keydown", handler, true);
     return () => window.removeEventListener("keydown", handler, true);
-  }, [nextStep, prevStep, stopTour]);
+  }, [goNext, goPrev, stopTour]);
 
   // Re-position after tooltip content renders with new dimensions
   useEffect(() => {
@@ -269,6 +302,7 @@ export function TourOverlay() {
     <>
       {/* SVG overlay with cutout */}
       <svg
+        data-tour-layer=""
         className="fixed inset-0 z-[9998]"
         width="100%"
         height="100%"
@@ -303,6 +337,7 @@ export function TourOverlay() {
       {/* Click-through cutout zone for interactive steps */}
       {isInteractive && cutout && (
         <div
+          data-tour-layer=""
           className="fixed z-[9998]"
           style={{
             top: cutout.y,
@@ -318,6 +353,7 @@ export function TourOverlay() {
       {/* Non-interactive overlay click blocker around cutout */}
       {!isInteractive && cutout && (
         <div
+          data-tour-layer=""
           className="fixed z-[9998]"
           style={{
             top: cutout.y,
@@ -335,19 +371,23 @@ export function TourOverlay() {
           (tooltipRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
           (focusTrapRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
         }}
+        data-tour-layer=""
         role="dialog"
         aria-modal="true"
         aria-label={t(step.titleKey)}
+        aria-hidden={!visible || undefined}
         className={cn(
           "fixed z-[9999] transition-all",
-          visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+          // While the next target is looked for, the card is not there at
+          // all: an invisible card would still catch taps.
+          visible ? "opacity-100 translate-y-0" : "invisible opacity-0 translate-y-2"
         )}
         style={{
           top: tooltipPos?.top ?? -9999,
           left: tooltipPos?.left ?? -9999,
           maxWidth: TOOLTIP_MAX_W,
           transition: reducedMotion ? "none" : "opacity 200ms ease, transform 200ms ease, top 300ms ease, left 300ms ease",
-          pointerEvents: "auto",
+          pointerEvents: visible ? "auto" : "none",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -361,35 +401,20 @@ export function TourOverlay() {
           <h3 className="font-semibold text-sm text-foreground">{t(step.titleKey)}</h3>
 
           {/* Description */}
-          <p className="text-sm text-muted-foreground mt-1">{t(step.descriptionKey)}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t(phone && step.phoneDescriptionKey ? step.phoneDescriptionKey : step.descriptionKey)}</p>
 
           {/* Navigation buttons */}
           <div className="flex items-center justify-between mt-3">
-            <button
-              onClick={stopTour}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted"
-            >
+            <Button variant="ghost" size="xs" onClick={stopTour} className="text-xs text-muted-foreground -ms-2">
               {t("tour.skip")}
-            </button>
+            </Button>
             <div className="flex gap-2">
-              <button
-                onClick={prevStep}
-                disabled={isFirst}
-                className={cn(
-                  "text-xs px-3 py-1.5 rounded-md border border-border transition-colors",
-                  isFirst
-                    ? "opacity-40 cursor-not-allowed"
-                    : "hover:bg-muted"
-                )}
-              >
+              <Button variant="outline" size="xs" onClick={goPrev} disabled={isFirst} className="text-xs">
                 {t("tour.back")}
-              </button>
-              <button
-                onClick={nextStep}
-                className="text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
+              </Button>
+              <Button size="xs" onClick={goNext} className="text-xs">
                 {isLast ? t("tour.finish") : t("tour.next")}
-              </button>
+              </Button>
             </div>
           </div>
 

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Search, Check, X } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { useBottomControls } from "@/hooks/use-bottom-controls";
 import type { ContactCard } from "@/lib/jmap/types";
 import { getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
 
@@ -16,6 +17,8 @@ interface ContactGroupFormProps {
   currentMemberIds?: string[];
   onSave: (name: string, memberIds: string[]) => Promise<void>;
   onCancel: () => void;
+  /** Reports whether the form holds changes not yet saved. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 export function ContactGroupForm({
@@ -24,6 +27,7 @@ export function ContactGroupForm({
   currentMemberIds = [],
   onSave,
   onCancel,
+  onDirtyChange,
 }: ContactGroupFormProps) {
   const t = useTranslations("contacts");
   const isEditing = !!group;
@@ -37,6 +41,11 @@ export function ContactGroupForm({
   const [memberSearch, setMemberSearch] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [initial] = useState(() => ({ name, members: [...selectedIds].sort().join(",") }));
+  const dirty = name !== initial.name || [...selectedIds].sort().join(",") !== initial.members;
+  useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
+  const footerRef = useBottomControls();
 
   const filteredIndividuals = useMemo(() => {
     if (!memberSearch) return individuals;
@@ -87,7 +96,7 @@ export function ContactGroupForm({
 
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
         {error && (
-          <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 px-3 py-2 rounded">
+          <div role="alert" className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">
             {error}
           </div>
         )}
@@ -109,7 +118,7 @@ export function ContactGroupForm({
             {t("groups.members_label")} ({selectedIds.size})
           </label>
           <div className="relative mb-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder={t("groups.search_members")}
               value={memberSearch}
@@ -175,7 +184,9 @@ export function ContactGroupForm({
                   <button
                     type="button"
                     onClick={() => toggleMember(id)}
-                    className="hover:text-red-600 dark:hover:text-red-400"
+                    aria-label={t("groups.remove_member", { name: getContactDisplayName(contact) })}
+                    title={t("groups.remove_member", { name: getContactDisplayName(contact) })}
+                    className="hover:text-destructive"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -186,7 +197,8 @@ export function ContactGroupForm({
         )}
       </div>
 
-      <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border">
+      {/* Toasts sit above Save and Cancel, not on them. */}
+      <div ref={footerRef} className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isSaving}>
           {t("form.cancel")}
         </Button>

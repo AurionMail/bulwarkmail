@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { AdminSaveBar } from '@/components/admin/save-bar';
 import { Badge } from '@/components/admin/badge';
-import { Flash, useFlash } from '@/components/admin/flash-message';
+import { useAdminFeedback } from '@/components/admin/feedback';
 import { inputClass } from '@/components/admin/config-items';
 
 // `allMailViewEnabled` is deprecated (folded into `crossAllViewEnabled`, normalized
@@ -78,7 +78,7 @@ export function PolicyPage() {
   const [savedPolicy, setSavedPolicy] = useState<SettingsPolicy>({ ...DEFAULT_POLICY });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useFlash();
+  const setMessage = useAdminFeedback();
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => { fetchPolicy(); }, []);
@@ -271,7 +271,6 @@ export function PolicyPage() {
     <div>
       <AdminPageHeader title={PAGE.label} description={PAGE.description} />
 
-      <Flash message={message} onDismiss={() => setMessage(null)} />
 
       {loading ? (
         <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">

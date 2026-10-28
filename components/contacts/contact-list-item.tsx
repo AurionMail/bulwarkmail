@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, type DragEvent } from "react";
+import { useCallback, useRef, type DragEvent } from "react";
+import { useLongPress } from "@/hooks/use-long-press";
+import { useTranslations } from "next-intl";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { ContactCard } from "@/lib/jmap/types";
@@ -18,9 +20,19 @@ interface ContactListItemProps {
   onClick: (e: React.MouseEvent) => void;
   onCheckboxClick: (e: React.MouseEvent) => void;
   onContextMenu?: (e: React.MouseEvent, contact: ContactCard) => void;
+  /** The keyboard cursor: the row that takes Tab and shows a focus ring. */
+  isFocused?: boolean;
+  onFocus?: () => void;
+  /** Long-press on touch: the row's menu, as right-click does (R7). */
+  onLongPress?: (row: HTMLElement) => void;
 }
 
-export function ContactListItem({ contact, isSelected, isChecked, hasSelection, density, selectedContactIds, onClick, onCheckboxClick, onContextMenu }: ContactListItemProps) {
+export function ContactListItem({ contact, isSelected, isChecked, hasSelection, density, selectedContactIds, onClick, onCheckboxClick, onContextMenu, isFocused = false, onFocus, onLongPress }: ContactListItemProps) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const longPress = useLongPress(() => {
+    if (rowRef.current) onLongPress?.(rowRef.current);
+  }, !!onLongPress);
+  const t = useTranslations("contacts");
   const name = getContactDisplayName(contact);
   const email = getContactPrimaryEmail(contact);
   const org = contact.organizations
@@ -46,20 +58,27 @@ export function ContactListItem({ contact, isSelected, isChecked, hasSelection, 
       box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 14px; font-weight: 500;
       z-index: 9999; white-space: nowrap; pointer-events: none;
     `;
-    preview.textContent = ids.length === 1 ? (name || "1 contact") : `${ids.length} contacts`;
+    preview.textContent = ids.length === 1 && name ? name : t("drag_count", { count: ids.length });
     document.body.appendChild(preview);
     e.dataTransfer.setDragImage(preview, 0, 0);
     requestAnimationFrame(() => preview.remove());
-  }, [contact.id, name, email, selectedContactIds]);
+  }, [contact.id, name, email, selectedContactIds, t]);
 
   return (
     <div
+      ref={rowRef}
+      {...(onLongPress ? longPress.handlers : {})}
+      role="option"
+      aria-selected={isSelected || isChecked}
+      tabIndex={isFocused ? 0 : -1}
+      data-contact-id={contact.id}
+      onFocus={onFocus}
       draggable
       onDragStart={handleDragStart}
       onClick={onClick}
       onContextMenu={onContextMenu ? (e) => onContextMenu(e, contact) : undefined}
       className={cn(
-        "w-full flex items-center cursor-pointer select-none transition-all duration-200 border-b border-border",
+        "w-full flex items-center cursor-pointer select-none transition-all duration-200 border-b border-border outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
         isSelected
           ? "bg-selection shadow-sm"
           : "bg-background hover:bg-muted hover:shadow-sm",
@@ -69,6 +88,10 @@ export function ContactListItem({ contact, isSelected, isChecked, hasSelection, 
     >
       {hasSelection && (
         <button
+          type="button"
+          role="checkbox"
+          aria-checked={isChecked}
+          aria-label={t("select_contact", { name: name || email || "-" })}
           onClick={onCheckboxClick}
           className={cn(
             "p-1 rounded flex-shrink-0 transition-all duration-200",

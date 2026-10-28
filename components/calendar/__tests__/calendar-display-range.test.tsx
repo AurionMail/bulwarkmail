@@ -3,6 +3,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { CalendarWeekView } from '../calendar-week-view';
 import { CalendarDayView } from '../calendar-day-view';
 import { useSettingsStore } from '@/stores/settings-store';
+import { fillHourHeight } from '@/hooks/use-display-hours';
 import type { CalendarEvent, Calendar } from '@/lib/jmap/types';
 
 const calendars = [{ id: 'cal-1', name: 'Work', color: '#123456' }] as unknown as Calendar[];
@@ -127,7 +128,7 @@ describe('calendar display hours and working days (#1164)', () => {
     expect(eventBlock('weekend')).toBeNull();
     const trip = screen.getByText('Event trip').closest<HTMLElement>('.absolute')!;
     // Column 5 of 6, two columns wide (jsdom rounds the percentages)
-    expect(trip.style.left).toBe('calc(66.6667% + 1px)');
+    expect(trip.style.insetInlineStart).toBe('calc(66.6667% + 1px)');
     expect(trip.style.width).toBe('calc(33.3333% - 2px)');
   });
 
@@ -152,5 +153,81 @@ describe('calendar display hours and working days (#1164)', () => {
     expect(eventBlock('early')).toBeNull();
     expect(eventBlock('noon')?.style.top).toBe(`${4 * 64}px`);
     expect(document.querySelector('[data-hidden-events="before"]')).toHaveTextContent('1');
+  });
+});
+
+describe('time grid height (CAL-27)', () => {
+  // A tablet-tall pane: the grid's scroll root reports 1100px of room and
+  // its sticky header 100px, leaving 1000px for 12 hours.
+  beforeEach(() => {
+    useSettingsStore.setState(initialSettings, true);
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.getAttribute('role') === 'grid' ? 1100 : 0;
+    });
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains('sticky') && this.classList.contains('top-0') ? 100 : 0;
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it('stretches the hour rows to fill the pane below a short range', () => {
+    renderWeek({ events: [makeEvent('noon', '2026-09-09T12:00:00', 'PT1H')] });
+    // floor(1000 / 12) = 83px an hour instead of leaving 280px empty
+    expect(screen.getAllByRole('gridcell')[0].style.height).toBe('83px');
+    expect(eventBlock('noon')?.style.top).toBe(`${4 * 83}px`);
+    expect(eventBlock('noon')?.style.height).toBe('83px');
+  });
+
+  it('fits the rows to the pane, shrinking them only a little', () => {
+    expect(fillHourHeight(60, 1000, 12)).toBe(83);
+    // 59px rows instead of 4px of scrolling
+    expect(fillHourHeight(60, 716, 12)).toBe(59);
+    // a whole day on a short pane scrolls at the normal height
+    expect(fillHourHeight(60, 716, 24)).toBe(60);
+    expect(fillHourHeight(60, 0, 12)).toBe(60);
+  });
+
+  it('keeps the normal row height when the whole day is shown', () => {
+    useSettingsStore.setState({ calendarLimitHours: false });
+    renderWeek();
+    expect(screen.getAllByRole('gridcell')[0].style.height).toBe('60px');
+  });
+
+  it('marks events that run past the visible hours instead of cutting them silently', () => {
+    renderWeek({
+      events: [
+        makeEvent('late', '2026-09-09T19:00:00', 'PT2H'),
+        makeEvent('early', '2026-09-09T07:00:00', 'PT2H'),
+        makeEvent('inside', '2026-09-09T12:00:00', 'PT1H'),
+      ],
+    });
+    const card = (id: string) => screen.getByText('Event ' + id).closest('button')!;
+    expect(card('late')).toHaveAttribute('data-continues-after');
+    expect(card('late')).not.toHaveAttribute('data-continues-before');
+    expect(card('early')).toHaveAttribute('data-continues-before');
+    expect(card('inside')).not.toHaveAttribute('data-continues-after');
+    expect(card('inside')).not.toHaveAttribute('data-continues-before');
+  });
+
+  it('fills the day view too', () => {
+    render(
+      <CalendarDayView
+        focus={{ date: new Date(2026, 8, 9), nonce: 0 }}
+        windowKey="day:2026-09-09"
+        rangeStart={new Date(2026, 8, 9)}
+        rangeEnd={new Date(2026, 8, 9)}
+        selectedDate={new Date(2026, 8, 9)}
+        events={[makeEvent('late', '2026-09-09T19:30:00', 'PT2H')]}
+        calendars={calendars}
+        onSelectEvent={vi.fn()}
+        onCreateAtTime={vi.fn()}
+      />,
+    );
+    expect(screen.getAllByRole('gridcell')[0].style.height).toBe('83px');
+    expect(screen.getByText('Event late').closest('button')).toHaveAttribute('data-continues-after');
   });
 });

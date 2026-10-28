@@ -12,6 +12,7 @@ import { ImpersonationReconciler } from "@/components/impersonation/impersonatio
 import { PluginDialogHost } from "@/components/plugins/plugin-dialog-host";
 import { ExternalRecipientConfirmHost } from "@/components/email/external-recipient-confirm";
 import { CommandPaletteHost } from "@/components/command-palette/command-palette";
+import { TotpReauthDialog } from "@/components/totp-reauth-dialog";
 import { PluginConnectDialog } from "@/components/plugins/plugin-connect-dialog";
 import { QuickRuleHost } from "@/components/filters/quick-rule-host";
 import { PluginConsentDialog } from "@/components/plugins/plugin-consent-dialog";
@@ -70,6 +71,7 @@ export default async function LocaleLayout({
                   <PluginDialogHost />
                   <ExternalRecipientConfirmHost />
                   <CommandPaletteHost />
+                  <TotpReauthDialog />
                   <PluginConnectDialog />
                   <QuickRuleHost />
                   <PluginConsentDialog />

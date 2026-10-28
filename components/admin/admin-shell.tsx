@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   ArrowLeft,
   ArrowUpCircle,
@@ -91,6 +92,8 @@ const subscribeNothing = () => () => {};
  */
 export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly, onLogout, children }: AdminShellProps) {
   const pathname = usePathname();
+  const tShell = useTranslations('shell');
+  const tSettings = useTranslations('settings');
   const location = useAdminLocation();
   const isDesktop = useIsDesktop();
   // The server can't know the window width, so its HTML would be the phone
@@ -192,10 +195,16 @@ export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly,
       );
     }
     if (id === 'version' && hasUpdate) {
+      // A dot only: role="img" makes screen readers announce its label, which
+      // they skip on a plain span; the title shows it on hover.
+      // The same words as the dot on the rail's Settings entry.
+      const label = tShell(updateImportant ? 'update_important' : 'update_available');
       return (
         <span
+          role="img"
+          aria-label={label}
+          title={label}
           className={cn('ms-auto h-2 w-2 rounded-full', updateImportant ? 'bg-red-500' : 'bg-amber-500')}
-          aria-label={updateImportant ? 'Important update available' : 'Update available'}
         />
       );
     }
@@ -288,7 +297,8 @@ export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly,
               <a
                 href={`${prefix}/`}
                 className="flex h-10 w-10 items-center justify-center rounded-md text-foreground transition-colors hover:bg-muted"
-                aria-label="Back to mail"
+                aria-label={tSettings('back_to_mail')}
+                title={tSettings('back_to_mail')}
               >
                 <ArrowLeft className="h-5 w-5" />
               </a>
@@ -390,7 +400,7 @@ export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly,
                 className="flex h-9 w-full items-center rounded-md px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
               >
                 <ArrowLeft className="me-2 h-4 w-4" />
-                Back to Mail
+                {tSettings('back_to_mail')}
               </a>
             </div>
           </div>

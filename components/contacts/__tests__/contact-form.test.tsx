@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ContactForm } from '../contact-form';
+import { ContactGroupForm } from '../contact-group-form';
 import type { ContactCard, ContactMedia } from '@/lib/jmap/types';
 import { useAuthStore } from '@/stores/auth-store';
 import { findContactPhotoEntry } from '@/stores/contact-store';
@@ -44,8 +45,24 @@ describe('ContactForm', () => {
     render(<ContactForm onSave={onSave} onCancel={vi.fn()} />);
     fireEvent.submit(screen.getByText('save').closest('form')!);
     await waitFor(() => {
-      expect(screen.getByText('name_required')).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toHaveTextContent('name_required');
     });
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  // The browser's own "Please include an '@'" bubble sat over the app's
+  // inline message: the form leaves checking to the app.
+  it('says an address is wrong itself, with no browser bubble in the way', async () => {
+    const onSave = vi.fn();
+    render(<ContactForm contact={existingContact} onSave={onSave} onCancel={vi.fn()} />);
+    const form = screen.getByText('save').closest('form')!;
+    expect(form.noValidate).toBe(true);
+
+    fireEvent.change(screen.getByDisplayValue('alice@example.com'), { target: { value: 'alice@' } });
+    // A click on Save, as the user does: the browser checks a form that
+    // has no noValidate before it lets the submit through.
+    fireEvent.click(screen.getByRole('button', { name: 'save' }));
+    expect(await screen.findByText('email_invalid')).toBeInTheDocument();
     expect(onSave).not.toHaveBeenCalled();
   });
 
@@ -84,6 +101,43 @@ describe('ContactForm', () => {
 
     const savedData = onSave.mock.calls[0][0];
     expect(savedData.media).toBeNull();
+  });
+
+  it('adds a category typed without Enter when the contact is saved, in the spelling of an existing one', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<ContactForm contact={existingContact} allKeywords={['Friends']} onSave={onSave} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByText('categories'));
+    fireEvent.change(screen.getByPlaceholderText('categories_placeholder'), { target: { value: 'friends, Gym ' } });
+    fireEvent.submit(screen.getByText('save').closest('form')!);
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    expect(onSave.mock.calls[0][0].keywords).toEqual({ Friends: true, Gym: true });
+  });
+
+  it('counts a typed category as a change, so leaving asks first', () => {
+    const onDirtyChange = vi.fn();
+    render(<ContactForm contact={existingContact} onSave={vi.fn()} onCancel={vi.fn()} onDirtyChange={onDirtyChange} />);
+    fireEvent.click(screen.getByText('categories'));
+    fireEvent.change(screen.getByPlaceholderText('categories_placeholder'), { target: { value: 'Gym' } });
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it.each([
+    ['contact form', () => <ContactForm onSave={vi.fn()} onCancel={vi.fn()} />],
+    ['group form', () => <ContactGroupForm individuals={[]} onSave={vi.fn()} onCancel={vi.fn()} />],
+  ])('keeps toasts off the %s footer by registering it as a bottom bar', (_name, form) => {
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      () => ({ left: 0, top: window.innerHeight - 72, width: 600, height: 72, right: 600, bottom: window.innerHeight, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect,
+    );
+    try {
+      const { unmount } = render(form());
+      expect(document.documentElement.style.getPropertyValue('--bottom-controls-height')).toBe('72px');
+      unmount();
+      expect(document.documentElement.style.getPropertyValue('--bottom-controls-height')).toBe('');
+    } finally {
+      rect.mockRestore();
+    }
   });
 
   describe('photos (P0-3)', () => {
@@ -460,7 +514,7 @@ describe('ContactForm', () => {
     fireEvent.submit(screen.getByText('save').closest('form')!);
 
     await waitFor(() => {
-      expect(screen.getByText('name_required')).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toHaveTextContent('name_required');
     });
     expect(onSave).not.toHaveBeenCalled();
   });
@@ -512,5 +566,16 @@ describe('ContactForm', () => {
       expect(onSave).toHaveBeenCalledOnce();
     });
     expect(onSave.mock.calls[0][0].kind).toBe('individual');
+  });
+
+  it("names the account of an address book once, not twice", () => {
+    const books = [
+      { id: 'b1', name: 'Stalwart Address Book (usera@example.org)', accountName: 'usera@example.org', isDefault: true },
+      { id: 'b2', name: 'Team', accountName: 'userb@example.org', isShared: true },
+    ] as never;
+    render(<ContactForm addressBooks={books} onSave={vi.fn()} onCancel={vi.fn()} />);
+    const options = screen.getAllByRole('option').map((o) => o.textContent);
+    expect(options).toContain('Stalwart Address Book (usera@example.org)');
+    expect(options).toContain('Team (userb@example.org)');
   });
 });

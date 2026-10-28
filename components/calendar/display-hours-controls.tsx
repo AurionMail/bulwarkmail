@@ -9,13 +9,15 @@ interface HiddenEventsIndicatorProps {
   count: number;
   direction: "before" | "after";
   onReveal: () => void;
+  /** False for a day scrolled out of view: Tab skips it. */
+  tabbable?: boolean;
 }
 
 /**
  * Marks a day column that has events above or below the visible hours
  * (#1164); clicking it shows the whole day at the first of them.
  */
-export function HiddenEventsIndicator({ count, direction, onReveal }: HiddenEventsIndicatorProps) {
+export function HiddenEventsIndicator({ count, direction, onReveal, tabbable = true }: HiddenEventsIndicatorProps) {
   const t = useTranslations("calendar.events");
   const label = direction === "before" ? t("hidden_before", { count }) : t("hidden_after", { count });
   const Icon = direction === "before" ? ChevronUp : ChevronDown;
@@ -23,6 +25,7 @@ export function HiddenEventsIndicator({ count, direction, onReveal }: HiddenEven
     <button
       type="button"
       data-hidden-events={direction}
+      tabIndex={tabbable ? undefined : -1}
       title={label}
       aria-label={label}
       // The column starts drag-to-create on pointer down.
