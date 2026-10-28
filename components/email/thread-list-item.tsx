@@ -115,7 +115,7 @@ function RowChips({ email, loadAttachments, onOpenAttachment, mountainView, mvRo
   const code = useListVerificationCode(email);
   const leading = code ? <VerificationCodeChip code={code} variant={variant} /> : undefined;
   // The sender column is w-32 (lg:w-40) and the row line has gap-3 after it.
-  const className = cn(variant === "mountain-view" ? "mt-2" : "mt-1.5", mvRow && "mt-1 pb-2.5 ps-[8.75rem] lg:ps-[10.75rem]");
+  const className = cn(variant === "mountain-view" ? "mt-2" : "mt-1.5", mvRow && "-mt-0.5 pb-2.5 ps-[8.75rem] lg:ps-[10.75rem]");
   // Most rows have no attachment: no loader for them, nor an empty chip row.
   const mayHaveAttachments = email.hasAttachment || (email.attachments?.length ?? 0) > 0;
   if (onOpenAttachment && mayHaveAttachments) {
@@ -155,7 +155,7 @@ function MvRowLead({
   starLabel: string;
 }) {
   return (
-    <div className="flex items-center gap-0.5 flex-shrink-0 self-center">
+    <div className="flex h-10 items-center gap-0.5 flex-shrink-0 self-start">
       <button
         type="button"
         role="checkbox"
@@ -664,7 +664,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
           <div className="flex-1 min-w-0">
             {oneLineRow ? (
               <>
-              <div className="flex items-center justify-between gap-3">
+              <div className={cn("flex items-center justify-between gap-3", mvRow && "min-h-10")}>
                 <div className="flex min-w-0 flex-1 items-center gap-3">
                   {/* In columns the dot sits inside the From cell, so a row
                       with it starts its columns where the header does. */}
@@ -904,6 +904,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
             isInJunk={currentMailboxRole === 'junk'}
             spamApplicable={!['sent', 'drafts', 'scheduled'].includes(currentMailboxRole || '')}
             mailboxRole={currentMailboxRole ?? null}
+            pinToFirstLine={mvRow}
           />
         )}
       </div>
@@ -1339,7 +1340,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
             <div className="flex-1 min-w-0">
               {oneLineRow ? (
                 <>
-                <div className="flex items-center justify-between gap-3">
+                <div className={cn("flex items-center justify-between gap-3", mvRow && "min-h-10")}>
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     {!columns && isUnifiedView && latestEmail.accountId && threadAccountColor && showAccountDot && (
                       <span
@@ -1632,6 +1633,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
               isInJunk={currentMailboxRole === 'junk'}
               spamApplicable={!['sent', 'drafts', 'scheduled'].includes(currentMailboxRole || '')}
               mailboxRole={currentMailboxRole ?? null}
+              pinToFirstLine={mvRow}
             />
           )}
         </div>
