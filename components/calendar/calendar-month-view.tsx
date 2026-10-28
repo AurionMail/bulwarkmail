@@ -21,6 +21,7 @@ import { useScrollWindow } from "@/hooks/use-scroll-window";
 import { dayKey, parseDayKey, type ScrollWindowViewProps } from "@/lib/calendar-scroll-window";
 import { useCalendarErrorMessage } from "@/hooks/use-calendar-error-message";
 import { PluginDayLabel } from "./plugin-day-label";
+import { useDisplayDateFormatter } from "@/hooks/use-display-date-formatter";
 import type { MoveEventHandler } from "@/hooks/use-time-grid-interactions";
 
 interface CalendarMonthViewProps extends ScrollWindowViewProps {
@@ -149,6 +150,14 @@ export function CalendarMonthView({
   }, [events]);
 
   const tasksByDate = useMemo(() => groupTasksByDueDay(tasks), [tasks]);
+
+  // Phones have room for one letter per weekday: the language's own short
+  // form, not the first letters of the name ("اث" for Monday in Arabic).
+  const intlFormatter = useDisplayDateFormatter();
+  const narrowDayNames = useMemo(
+    () => (weeks[0] ?? []).map((day) => intlFormatter.dateTime(day, { weekday: "narrow" })),
+    [weeks, intlFormatter],
+  );
 
   const weekSegments = useMemo(() => {
     return weeks.map((week) => {
@@ -317,12 +326,12 @@ export function CalendarMonthView({
           className="sticky top-0 z-50 bg-background grid grid-cols-7 border-b border-border"
           role="row"
         >
-          {dayHeaderKeys.map((d) => (
-            <div key={d} role="columnheader" className={cn(
+          {dayHeaderKeys.map((d, index) => (
+            <div key={d} role="columnheader" aria-label={isMobile ? t(`days.${d}`) : undefined} className={cn(
               "text-center text-xs font-medium text-muted-foreground py-2 border-e border-border last:border-e-0",
               isMobile && "py-1.5 text-[11px]"
             )}>
-              {isMobile ? t(`days.${d}`).slice(0, 2) : t(`days.${d}`)}
+              {isMobile ? narrowDayNames[index] ?? t(`days.${d}`) : t(`days.${d}`)}
             </div>
           ))}
         </div>
@@ -470,7 +479,7 @@ export function CalendarMonthView({
                   <div
                     className="absolute px-0.5"
                     style={{
-                      left: `calc(${(previewDayIdx / 7) * 100}% + 1px)`,
+                      insetInlineStart: `calc(${(previewDayIdx / 7) * 100}% + 1px)`,
                       width: `calc(${(1 / 7) * 100}% - 2px)`,
                       top: previewRow * rowHeight,
                       height: chipHeight,
@@ -500,7 +509,7 @@ export function CalendarMonthView({
                       key={`${segment.event.id}-${segment.startIndex}-${segment.row}`}
                       className="absolute px-0.5 pointer-events-auto"
                       style={{
-                        left: `calc(${(segment.startIndex / 7) * 100}% + 1px)`,
+                        insetInlineStart: `calc(${(segment.startIndex / 7) * 100}% + 1px)`,
                         width: `calc(${(segment.span / 7) * 100}% - 2px)`,
                         top: segment.row * rowHeight,
                         height: chipHeight,
@@ -536,7 +545,7 @@ export function CalendarMonthView({
                       key={`task-${task.id}`}
                       className="absolute px-0.5 pointer-events-auto"
                       style={{
-                        left: `calc(${(dayIndex / 7) * 100}% + 1px)`,
+                        insetInlineStart: `calc(${(dayIndex / 7) * 100}% + 1px)`,
                         width: `calc(${(1 / 7) * 100}% - 2px)`,
                         top: (dayEventRows[dayIndex] + taskIndex) * rowHeight,
                         height: chipHeight,
@@ -561,7 +570,7 @@ export function CalendarMonthView({
                     key={`more-${dayIndex}`}
                     className="absolute px-0.5 pointer-events-auto"
                     style={{
-                      left: `calc(${(dayIndex / 7) * 100}% + 1px)`,
+                      insetInlineStart: `calc(${(dayIndex / 7) * 100}% + 1px)`,
                       width: `calc(${(1 / 7) * 100}% - 2px)`,
                       top: rowLimit * rowHeight,
                       height: chipHeight,

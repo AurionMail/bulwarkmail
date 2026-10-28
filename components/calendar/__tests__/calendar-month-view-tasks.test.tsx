@@ -97,10 +97,10 @@ describe('CalendarMonthView tasks', () => {
     // already has an event in row 0; Friday has no events.
     // (jsdom rounds the calc() percentage.)
     const thu = chipSlot('thu');
-    expect(thu.style.left).toMatch(/^calc\(42\.857\d*% \+ 1px\)$/);
+    expect(thu.style.insetInlineStart).toMatch(/^calc\(42\.857\d*% \+ 1px\)$/);
     expect(thu.style.top).toBe('22px');
     const fri = chipSlot('fri');
-    expect(fri.style.left).toMatch(/^calc\(57\.142\d*% \+ 1px\)$/);
+    expect(fri.style.insetInlineStart).toMatch(/^calc\(57\.142\d*% \+ 1px\)$/);
     expect(fri.style.top).toBe('0px');
   });
 

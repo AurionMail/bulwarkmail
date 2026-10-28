@@ -1961,9 +1961,9 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               "border-e border-border bg-secondary flex flex-col overflow-hidden flex-shrink-0",
               !isResizing && "transition-[width] duration-300",
               isNarrow && cn(
-                "absolute inset-y-0 left-0 z-50 w-72 pt-[env(safe-area-inset-top)]",
+                "absolute inset-y-0 start-0 z-50 w-72 pt-[env(safe-area-inset-top)]",
                 "transform transition-transform duration-300 ease-in-out",
-                !narrowSidebarOpen && "-translate-x-full"
+                !narrowSidebarOpen && "-translate-x-full rtl:translate-x-full"
               )
             )}
             style={isNarrow ? undefined : { width: `${calSidebarWidth}px` }}
@@ -2137,7 +2137,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
           {isMobile && (
             <Button
               onClick={openCreateForView}
-              className="absolute bottom-4 right-4 z-40 h-14 w-14 rounded-full shadow-lg"
+              className="absolute bottom-4 end-4 z-40 h-14 w-14 rounded-full shadow-lg"
               aria-label={createLabel}
             >
               <Plus className="h-6 w-6" />

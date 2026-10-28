@@ -512,7 +512,7 @@ export function CalendarWeekView({
                     key={`${segment.event.id}-${segment.startIndex}-${segment.row}`}
                     className="absolute px-0.5 pointer-events-auto"
                     style={{
-                      left: `calc(${(segment.startIndex / colCount) * 100}% + 1px)`,
+                      insetInlineStart: `calc(${(segment.startIndex / colCount) * 100}% + 1px)`,
                       width: `calc(${(segment.span / colCount) * 100}% - 2px)`,
                       top: segment.row * 24 + 2,
                       height: 20,
@@ -571,7 +571,7 @@ export function CalendarWeekView({
                     key={`task-${task.id}`}
                     className="absolute px-0.5 pointer-events-auto"
                     style={{
-                      left: `calc(${(dayIndex / colCount) * 100}% + 1px)`,
+                      insetInlineStart: `calc(${(dayIndex / colCount) * 100}% + 1px)`,
                       width: `calc(${(1 / colCount) * 100}% - 2px)`,
                       top: (baseRow + taskIndex) * 24 + 2,
                       height: 20,
@@ -607,7 +607,7 @@ export function CalendarWeekView({
                     inside its row, where the header cannot cover it. */}
                 {(h > firstHour || firstHour > 0) && (
                   <span className={cn(
-                    "absolute right-2 leading-none",
+                    "absolute end-2 leading-none",
                     h > firstHour ? "top-0 -translate-y-1/2" : "top-1",
                     isMobile ? "text-[9px]" : "text-[10px]",
                   )}>
@@ -688,7 +688,7 @@ export function CalendarWeekView({
                         key={ev.id}
                         className="absolute z-10 group/event"
                         data-calendar-event
-                        style={{ top, height, left: `${leftPct}%`, width: `${widthPct}%`, paddingLeft: 1, paddingRight: 1 }}
+                        style={{ top, height, insetInlineStart: `${leftPct}%`, width: `${widthPct}%`, paddingInline: 1 }}
                       >
                         <EventCard
                           event={ev}
@@ -773,7 +773,7 @@ export function CalendarWeekView({
                         <div className="w-2 h-2 rounded-full bg-primary -ms-1" />
                         <div className="flex-1 h-0.5 bg-primary rounded-full" />
                       </div>
-                      <div className="absolute -top-4 left-2 text-[10px] font-medium text-primary bg-background/90 px-1 rounded shadow-sm">
+                      <div className="absolute -top-4 start-2 text-[10px] font-medium text-primary bg-background/90 px-1 rounded shadow-sm">
                         {formatSnapTime(dropTarget.minutes, timeFormat)}
                       </div>
                     </div>

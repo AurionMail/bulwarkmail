@@ -410,7 +410,7 @@ export function CalendarToolbar({
             onClick={onPrev}
             aria-label={t("nav_prev")}
           >
-            <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
+            <ChevronLeft className="w-4 h-4" />
           </Button>
           <Button
             variant="ghost"
@@ -419,7 +419,7 @@ export function CalendarToolbar({
             onClick={onNext}
             aria-label={t("nav_next")}
           >
-            <ChevronRight className="w-4 h-4 rtl:rotate-180" />
+            <ChevronRight className="w-4 h-4" />
           </Button>
         </>
       )}

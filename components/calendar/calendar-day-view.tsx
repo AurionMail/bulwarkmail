@@ -445,7 +445,7 @@ export function CalendarDayView({
                       inside its row, where the header cannot cover it. */}
                   {(h > firstHour || firstHour > 0) && (
                     <span className={cn(
-                      "absolute right-2 leading-none",
+                      "absolute end-2 leading-none",
                       h > firstHour ? "top-0 -translate-y-1/2" : "top-1",
                       isMobile ? "text-[10px]" : "text-xs",
                     )}>
@@ -526,7 +526,7 @@ export function CalendarDayView({
                           key={ev.id}
                           className="absolute z-10 group/event"
                           data-calendar-event
-                          style={{ top, height, left: `${leftPct}%`, width: `${widthPct}%`, paddingLeft: 2, paddingRight: 2 }}
+                          style={{ top, height, insetInlineStart: `${leftPct}%`, width: `${widthPct}%`, paddingInline: 2 }}
                         >
                           <EventCard
                             event={ev}
@@ -611,7 +611,7 @@ export function CalendarDayView({
                           <div className="w-2.5 h-2.5 rounded-full bg-primary -ms-1" />
                           <div className="flex-1 h-0.5 bg-primary rounded-full" />
                         </div>
-                        <div className="absolute -top-4 left-2 text-[10px] font-medium text-primary bg-background/90 px-1 rounded shadow-sm">
+                        <div className="absolute -top-4 start-2 text-[10px] font-medium text-primary bg-background/90 px-1 rounded shadow-sm">
                           {formatSnapTime(dropTarget.minutes, timeFormat)}
                         </div>
                       </div>
