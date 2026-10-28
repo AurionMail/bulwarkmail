@@ -2183,61 +2183,67 @@ export class JMAPClient implements IJMAPClient {
 
       let fetchFailed = false;
 
-      for (const accountId of accountIds) {
-        const account = this.accounts[accountId];
-        const isPrimary = accountId === this.accountId;
+      // One Mailbox/get per account, packed maxCallsInRequest to a request and
+      // a few requests in flight at once. One request per account, one after
+      // the other, made the folder tree wait N round trips: ~14 s for 300
+      // shared accounts behind a proxy (#1409). Half of maxConcurrentRequests
+      // leaves room for the message list and push requests that run at login.
+      const batches = batched(accountIds, itemsPerRequest(this.getMaxCallsInRequest(), 1));
+      const perAccount: Mailbox[][] = accountIds.map(() => []);
+      const maxObjects = this.getMaxObjectsInGet();
 
+      const fetchBatch = async (batch: string[], offset: number) => {
         try {
-          const response = await this.request([
-            ["Mailbox/get", {
-              accountId: accountId,
-              properties: MAILBOX_PROPERTIES,
-            }, "0"]
-          ]);
+          const response = await this.request(batch.map((accountId, i): JMAPMethodCall => [
+            "Mailbox/get",
+            { accountId, properties: MAILBOX_PROPERTIES },
+            String(i),
+          ]));
 
-          if (response.methodResponses?.[0]?.[0] === "Mailbox/get") {
-            const rawMailboxes = (response.methodResponses[0][1].list || []) as JMAPMailbox[];
-            const mailboxState = (response.methodResponses[0][1] as { state?: unknown }).state;
+          batch.forEach((accountId, i) => {
+            const match = response.methodResponses?.find((r) => r[2] === String(i));
+            if (match?.[0] !== "Mailbox/get") {
+              if (match) debug.warn('jmap', `[JMAP Mailbox] getAllMailboxes: account ${accountId} answered ${match[0]}`, match[1]);
+              return;
+            }
+            const rawMailboxes = (match[1].list || []) as JMAPMailbox[];
+            const mailboxState = (match[1] as { state?: unknown }).state;
             if (typeof mailboxState === 'string') {
               states[accountId] = mailboxState;
             }
 
-            debug.log('jmap', `[JMAP Mailbox] getAllMailboxes: account ${accountId} returned ${rawMailboxes.length} mailboxes (isPrimary: ${isPrimary})`);
+            debug.log('jmap', `[JMAP Mailbox] getAllMailboxes: account ${accountId} returned ${rawMailboxes.length} mailboxes (isPrimary: ${accountId === this.accountId})`);
 
             // Warn if response might be truncated
-            const maxObjects = this.getMaxObjectsInGet();
             if (rawMailboxes.length >= maxObjects) {
-              debug.warn('jmap', 
+              debug.warn('jmap',
                 `[JMAP Mailbox] Account ${accountId}: response contains ${rawMailboxes.length} mailboxes which equals maxObjectsInGet (${maxObjects}). ` +
                 `Some mailboxes may be missing.`
               );
             }
 
-            const mailboxes = rawMailboxes.map((mb) => ({
-              id: isPrimary ? mb.id : `${accountId}:${mb.id}`,
-              originalId: mb.id,
-              name: mb.name,
-              parentId: mb.parentId ? (isPrimary ? mb.parentId : `${accountId}:${mb.parentId}`) : undefined,
-              role: mb.role || undefined,
-              sortOrder: mb.sortOrder ?? 0,
-              totalEmails: mb.totalEmails ?? 0,
-              unreadEmails: mb.unreadEmails ?? 0,
-              totalThreads: mb.totalThreads ?? 0,
-              unreadThreads: mb.unreadThreads ?? 0,
-              myRights: mb.myRights || DEFAULT_MAILBOX_RIGHTS,
-              isSubscribed: mb.isSubscribed ?? true,
-              accountId,
-              accountName: account?.name || (isPrimary ? this.username : accountId),
-              isShared: !isPrimary,
-            }) as Mailbox);
-
-            allMailboxes.push(...mailboxes);
-          }
+            perAccount[offset + i] = rawMailboxes.map((mb) => this.mapRawMailbox(mb, accountId));
+          });
         } catch (error) {
           fetchFailed = true;
-          console.error(`Failed to fetch mailboxes for account ${accountId}:`, error);
+          console.error(`Failed to fetch mailboxes for accounts ${batch.join(', ')}:`, error);
         }
-      }
+      };
+
+      let next = 0;
+      const workers = Array.from(
+        { length: Math.min(batches.length, Math.max(1, Math.floor(this.getMaxConcurrentRequests() / 2))) },
+        async () => {
+          while (next < batches.length) {
+            const index = next++;
+            await fetchBatch(batches[index], index * batches[0].length);
+          }
+        },
+      );
+      await Promise.all(workers);
+
+      // Accounts keep the session's order, whichever batch answered first.
+      for (const mailboxes of perAccount) allMailboxes.push(...mailboxes);
 
       // If every account fetch failed (e.g. a transient maxConcurrentRequests
       // limit during a burst of deletes) we have an empty list that is NOT a
