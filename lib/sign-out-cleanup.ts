@@ -24,6 +24,8 @@ const SIGNED_OUT_STORAGE_KEYS = [
   'files-recent-files',
   'files-last-parent-id',
   'files-path-stack',
+  // Names of the people the user gave access to (Settings > Sharing).
+  'bulwark-delegate-names',
 ];
 
 const SIGNED_OUT_SIGNAL = 'bulwark:signed-out';
