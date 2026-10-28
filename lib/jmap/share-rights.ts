@@ -1,7 +1,17 @@
 /**
  * The rights Bulwark grants when it shares a folder, calendar, address book
- * or file (`shareWith/<principalId>`), as named presets, and the preset a
- * stored grant amounts to.
+ * or file (`shareWith/<principalId>`), as named presets. The share dialog of
+ * a single item and the Delegates page both build their patches from here.
+ *
+ * What Stalwart stores differs from what it was sent in places:
+ * - 1.0 keeps `maySetSeen` and `maySetKeywords` of a mailbox as one right, so
+ *   a "read" grant (seen yes, keywords no) reads back with both true.
+ * - v1.0.0 adds `maySetMetadata` to every type. Bulwark never sends it (0.16
+ *   would refuse the property), and the server stores false.
+ * - Stalwart before 0.16.6 names file rights mayRead / mayWrite / mayShare;
+ *   JMAPClient.setFileNodeShare converts on the way out.
+ * So presets are compared on the rights they define, and the mailbox
+ * keyword right is allowed to follow the seen right.
  */
 
 import type { AddressBookRights, CalendarRights, FileNodeRights, MailboxRights } from './types';
@@ -79,11 +89,13 @@ function presetsFor(kind: ShareKind): Partial<Record<RolePreset, AnyRights>> {
   return ADDRESS_BOOK_PRESETS;
 }
 
-function matches(preset: AnyRights, rights: AnyRights): boolean {
+function matches(kind: ShareKind, preset: AnyRights, rights: AnyRights): boolean {
   const have = rights as unknown as Record<string, boolean | undefined>;
   return Object.entries(preset).every(([key, want]) => {
     const got = have[key] ?? false;
-    return got === want;
+    if (got === want) return true;
+    // Stalwart 1.0 stores the two as one right (see the top of this file).
+    return kind === 'mailbox' && key === 'maySetKeywords' && got === true && have.maySetSeen === true;
   });
 }
 
@@ -96,7 +108,7 @@ export function presetRights(kind: ShareKind, preset: RolePreset): AnyRights | u
 /** The preset a stored grant amounts to, or "custom". */
 export function detectPreset(kind: ShareKind, rights: AnyRights): RolePreset {
   for (const [name, preset] of Object.entries(presetsFor(kind)) as [RolePreset, AnyRights][]) {
-    if (matches(preset, rights)) return name;
+    if (matches(kind, preset, rights)) return name;
   }
   return 'custom';
 }
