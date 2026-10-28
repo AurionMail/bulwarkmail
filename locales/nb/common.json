@@ -442,6 +442,10 @@
     "remove_tag": "Fjern etiketten",
     "tag_filter_placeholder": "Filtrer etiketter",
     "tag_no_matches": "Ingen etiketter passer med søket",
+    "new_tag": "Ny etikett",
+    "new_tag_placeholder": "Navn på etikett",
+    "tag_exists": "Det finnes allerede en etikett med dette navnet",
+    "tag_name_invalid": "Velg et kortere navn",
     "more_count": "+{count} til",
     "characters_count": "{count} tegn",
     "quick_reply_placeholder": "Skriv et kort svar...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Velg en mal",
+    "manage": "Administrer maler",
     "search_placeholder": "Søk etter maler...",
     "section_favorites": "Favoritter",
     "section_recent": "Nylige",

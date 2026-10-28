@@ -442,6 +442,10 @@
     "remove_tag": "Eemalda silt",
     "tag_filter_placeholder": "Filtreeri silte",
     "tag_no_matches": "Sobivaid silte ei leitud",
+    "new_tag": "Uus silt",
+    "new_tag_placeholder": "Sildi nimi",
+    "tag_exists": "Sellise nimega silt on juba olemas",
+    "tag_name_invalid": "Valige lühem nimi",
     "more_count": "+{count} veel",
     "characters_count": "{count} tähemärki",
     "quick_reply_placeholder": "Kirjuta kiirvastus...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Vali mall",
+    "manage": "Halda malle",
     "search_placeholder": "Otsi malle...",
     "section_favorites": "Lemmikud",
     "section_recent": "Hiljutised",

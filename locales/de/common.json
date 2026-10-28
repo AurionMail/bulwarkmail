@@ -440,6 +440,10 @@
     "remove_tag": "Label entfernen",
     "tag_filter_placeholder": "Labels filtern",
     "tag_no_matches": "Keine passenden Labels",
+    "new_tag": "Neues Schlagwort",
+    "new_tag_placeholder": "Name des Schlagworts",
+    "tag_exists": "Ein Schlagwort mit diesem Namen gibt es bereits",
+    "tag_name_invalid": "Wählen Sie einen kürzeren Namen",
     "more_count": "+{count} weitere",
     "characters_count": "{count} Zeichen",
     "quick_reply_placeholder": "Eine kurze Antwort schreiben...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Vorlage wählen",
+    "manage": "Vorlagen verwalten",
     "search_placeholder": "Vorlagen suchen...",
     "section_favorites": "Favoriten",
     "section_recent": "Zuletzt verwendet",

@@ -442,6 +442,10 @@
     "remove_tag": "Usuń etykietę",
     "tag_filter_placeholder": "Filtruj etykiety",
     "tag_no_matches": "Brak pasujących etykiet",
+    "new_tag": "Nowy tag",
+    "new_tag_placeholder": "Nazwa tagu",
+    "tag_exists": "Tag o tej nazwie już istnieje",
+    "tag_name_invalid": "Wybierz krótszą nazwę",
     "more_count": "+{count} więcej",
     "characters_count": "{count} znaków",
     "quick_reply_placeholder": "Napisz szybką odpowiedź...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Wybierz szablon",
+    "manage": "Zarządzaj szablonami",
     "search_placeholder": "Szukaj szablonów...",
     "section_favorites": "Ulubione",
     "section_recent": "Ostatnie",

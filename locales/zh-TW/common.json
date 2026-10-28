@@ -442,6 +442,10 @@
     "remove_tag": "移除標籤",
     "tag_filter_placeholder": "篩選標籤",
     "tag_no_matches": "沒有相符的標籤",
+    "new_tag": "新增標籤",
+    "new_tag_placeholder": "標籤名稱",
+    "tag_exists": "已有同名標籤",
+    "tag_name_invalid": "請選擇較短的名稱",
     "more_count": "另有 {count} 個",
     "characters_count": "{count} 個字元",
     "quick_reply_placeholder": "撰寫快速回覆…",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "選擇範本",
+    "manage": "管理範本",
     "search_placeholder": "搜尋範本…",
     "section_favorites": "我的最愛",
     "section_recent": "最近使用",

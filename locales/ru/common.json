@@ -442,6 +442,10 @@
     "remove_tag": "Удалить тег",
     "tag_filter_placeholder": "Фильтр тегов",
     "tag_no_matches": "Подходящих тегов нет",
+    "new_tag": "Новая метка",
+    "new_tag_placeholder": "Название метки",
+    "tag_exists": "Метка с таким названием уже есть",
+    "tag_name_invalid": "Выберите название покороче",
     "more_count": "+{count} ещё",
     "characters_count": "{count} символов",
     "quick_reply_placeholder": "Написать быстрый ответ...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Выбрать шаблон",
+    "manage": "Управление шаблонами",
     "search_placeholder": "Поиск шаблонов...",
     "section_favorites": "Избранное",
     "section_recent": "Недавние",

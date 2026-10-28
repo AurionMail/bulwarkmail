@@ -442,6 +442,10 @@
     "remove_tag": "Etiketi kaldır",
     "tag_filter_placeholder": "Etiketleri filtrele",
     "tag_no_matches": "Eşleşen etiket yok",
+    "new_tag": "Yeni etiket",
+    "new_tag_placeholder": "Etiket adı",
+    "tag_exists": "Bu adda bir etiket zaten var",
+    "tag_name_invalid": "Daha kısa bir ad seçin",
     "more_count": "+{count} daha",
     "characters_count": "{count} karakter",
     "quick_reply_placeholder": "Hızlı yanıt yazın...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Şablon Seçin",
+    "manage": "Şablonları yönet",
     "search_placeholder": "Şablonlarda ara...",
     "section_favorites": "Favoriler",
     "section_recent": "Son Kullanılan",

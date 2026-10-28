@@ -442,6 +442,10 @@
     "remove_tag": "Remove tag",
     "tag_filter_placeholder": "Filter tags",
     "tag_no_matches": "No matching tags",
+    "new_tag": "New tag",
+    "new_tag_placeholder": "Tag name",
+    "tag_exists": "A tag with this name already exists",
+    "tag_name_invalid": "Choose a shorter name",
     "more_count": "+{count} more",
     "characters_count": "{count} characters",
     "quick_reply_placeholder": "Write a quick reply...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Choose a Template",
+    "manage": "Manage templates",
     "search_placeholder": "Search templates...",
     "section_favorites": "Favorites",
     "section_recent": "Recent",

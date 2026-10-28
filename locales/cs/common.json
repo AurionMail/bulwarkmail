@@ -442,6 +442,10 @@
     "remove_tag": "Odebrat štítek",
     "tag_filter_placeholder": "Filtrovat štítky",
     "tag_no_matches": "Žádné odpovídající štítky",
+    "new_tag": "Nový štítek",
+    "new_tag_placeholder": "Název štítku",
+    "tag_exists": "Štítek s tímto názvem už existuje",
+    "tag_name_invalid": "Zvolte kratší název",
     "more_count": "+{count} dalších",
     "characters_count": "{count} znaků",
     "quick_reply_placeholder": "Napsat rychlou odpověď...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Vyberte šablonu",
+    "manage": "Spravovat šablony",
     "search_placeholder": "Hledat šablony...",
     "section_favorites": "Oblíbené",
     "section_recent": "Nedávné",

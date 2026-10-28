@@ -442,6 +442,10 @@
     "remove_tag": "删除标签",
     "tag_filter_placeholder": "筛选标签",
     "tag_no_matches": "没有匹配的标签",
+    "new_tag": "新建标签",
+    "new_tag_placeholder": "标签名称",
+    "tag_exists": "已有同名标签",
+    "tag_name_invalid": "请选择更短的名称",
     "more_count": "+{count} 更多",
     "characters_count": "{count} 个字符",
     "quick_reply_placeholder": "快速回复...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "选择一个模板",
+    "manage": "管理模板",
     "search_placeholder": "搜索模板...",
     "section_favorites": "收藏夹",
     "section_recent": "最近使用",

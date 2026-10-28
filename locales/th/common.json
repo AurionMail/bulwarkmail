@@ -769,6 +769,7 @@
   },
   "templates": {
     "picker_title": "เลือกแม่แบบข้อความ",
+    "manage": "จัดการเทมเพลต",
     "search_placeholder": "ค้นหาแม่แบบ...",
     "section_favorites": "รายการโปรด",
     "section_recent": "ใช้ล่าสุด",
@@ -1198,6 +1199,10 @@
     "remove_tag": "ลบป้ายกำกับ",
     "tag_filter_placeholder": "กรองป้ายกำกับ",
     "tag_no_matches": "ไม่พบป้ายกำกับที่ตรงกัน",
+    "new_tag": "แท็กใหม่",
+    "new_tag_placeholder": "ชื่อแท็ก",
+    "tag_exists": "มีแท็กชื่อนี้อยู่แล้ว",
+    "tag_name_invalid": "เลือกชื่อที่สั้นกว่านี้",
     "more_count": "+{count} เพิ่มเติม",
     "characters_count": "{count} ตัวอักษร",
     "quick_reply_placeholder": "เขียนตอบกลับอย่างรวดเร็ว...",

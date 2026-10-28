@@ -442,6 +442,10 @@
     "remove_tag": "إزالة الوسم",
     "tag_filter_placeholder": "تصفية الوسوم",
     "tag_no_matches": "لا توجد وسوم مطابقة",
+    "new_tag": "وسم جديد",
+    "new_tag_placeholder": "اسم الوسم",
+    "tag_exists": "يوجد وسم بهذا الاسم بالفعل",
+    "tag_name_invalid": "اختر اسمًا أقصر",
     "more_count": "+{count} أخرى",
     "characters_count": "{count} حرفًا",
     "quick_reply_placeholder": "اكتب ردًا سريعًا...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "اختر قالبًا",
+    "manage": "إدارة القوالب",
     "search_placeholder": "بحث في القوالب...",
     "section_favorites": "المفضّلة",
     "section_recent": "الأخيرة",

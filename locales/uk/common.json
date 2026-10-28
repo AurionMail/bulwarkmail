@@ -442,6 +442,10 @@
     "remove_tag": "Видалити тег",
     "tag_filter_placeholder": "Фільтр тегів",
     "tag_no_matches": "Немає відповідних тегів",
+    "new_tag": "Нова мітка",
+    "new_tag_placeholder": "Назва мітки",
+    "tag_exists": "Мітка з такою назвою вже є",
+    "tag_name_invalid": "Виберіть коротшу назву",
     "more_count": "+ ще {count}",
     "characters_count": "{count} символів",
     "quick_reply_placeholder": "Напишіть швидку відповідь...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Виберіть шаблон",
+    "manage": "Керувати шаблонами",
     "search_placeholder": "Пошук шаблонів...",
     "section_favorites": "Вибране",
     "section_recent": "Останні",

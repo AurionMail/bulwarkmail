@@ -442,6 +442,10 @@
     "remove_tag": "태그 제거",
     "tag_filter_placeholder": "태그 검색",
     "tag_no_matches": "일치하는 태그 없음",
+    "new_tag": "새 태그",
+    "new_tag_placeholder": "태그 이름",
+    "tag_exists": "같은 이름의 태그가 이미 있어요",
+    "tag_name_invalid": "더 짧은 이름을 정하세요",
     "more_count": "+{count}개 더보기",
     "characters_count": "{count}자",
     "quick_reply_placeholder": "간단하게 답장을 작성해 보세요...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "템플릿 선택",
+    "manage": "템플릿 관리",
     "search_placeholder": "템플릿 검색...",
     "section_favorites": "즐겨찾기",
     "section_recent": "최근",

@@ -440,6 +440,10 @@
     "remove_tag": "Remover etiqueta",
     "tag_filter_placeholder": "Filtrar etiquetas",
     "tag_no_matches": "Nenhuma etiqueta correspondente",
+    "new_tag": "Nova etiqueta",
+    "new_tag_placeholder": "Nome da etiqueta",
+    "tag_exists": "Já existe uma etiqueta com este nome",
+    "tag_name_invalid": "Escolha um nome mais curto",
     "more_count": "+{count} mais",
     "characters_count": "{count} caracteres",
     "quick_reply_placeholder": "Escreva uma resposta rápida...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Escolher um modelo",
+    "manage": "Gerir modelos",
     "search_placeholder": "Pesquisar modelos...",
     "section_favorites": "Favoritos",
     "section_recent": "Recentes",

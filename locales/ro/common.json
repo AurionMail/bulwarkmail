@@ -442,6 +442,10 @@
     "remove_tag": "Eliminați eticheta",
     "tag_filter_placeholder": "Filtrează etichetele",
     "tag_no_matches": "Nicio etichetă corespunzătoare",
+    "new_tag": "Etichetă nouă",
+    "new_tag_placeholder": "Numele etichetei",
+    "tag_exists": "Există deja o etichetă cu acest nume",
+    "tag_name_invalid": "Alege un nume mai scurt",
     "more_count": "+{count} mai multe",
     "characters_count": "{count} caractere",
     "quick_reply_placeholder": "Scrie un răspuns rapid...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Alegeți un șablon",
+    "manage": "Gestionează șabloanele",
     "search_placeholder": "Căutați șabloane...",
     "section_favorites": "Favorite",
     "section_recent": "Recent",

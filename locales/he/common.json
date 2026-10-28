@@ -389,6 +389,10 @@
     "remove_tag": "הסר תג",
     "tag_filter_placeholder": "סינון תגים",
     "tag_no_matches": "אין תגים תואמים",
+    "new_tag": "תגית חדשה",
+    "new_tag_placeholder": "שם התגית",
+    "tag_exists": "כבר קיימת תגית בשם הזה",
+    "tag_name_invalid": "בחרו שם קצר יותר",
     "more_count": "+{count}נוספים",
     "characters_count": "{count} תווים",
     "quick_reply_placeholder": "תשובה מהירה",
@@ -3071,6 +3075,7 @@
   },
   "templates": {
     "picker_title": "בחר תבנית",
+    "manage": "ניהול תבניות",
     "search_placeholder": "חפש תבניות...",
     "section_favorites": "מועדפים",
     "section_recent": "לאחרונה",

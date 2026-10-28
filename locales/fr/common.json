@@ -440,6 +440,10 @@
     "remove_tag": "Retirer l'étiquette",
     "tag_filter_placeholder": "Filtrer les étiquettes",
     "tag_no_matches": "Aucune étiquette correspondante",
+    "new_tag": "Nouvelle étiquette",
+    "new_tag_placeholder": "Nom de l'étiquette",
+    "tag_exists": "Une étiquette porte déjà ce nom",
+    "tag_name_invalid": "Choisissez un nom plus court",
     "more_count": "+{count} de plus",
     "characters_count": "{count} caractères",
     "quick_reply_placeholder": "Écrivez une réponse rapide...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Choisir un modèle",
+    "manage": "Gérer les modèles",
     "search_placeholder": "Rechercher des modèles...",
     "section_favorites": "Favoris",
     "section_recent": "Récents",

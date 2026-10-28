@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Check, Minus, Search } from "@/components/icons";
+import { Check, Minus, Plus, Search } from "@/components/icons";
 import { cn } from "@/lib/utils";
-import { useSettingsStore } from "@/stores/settings-store";
-import { buildKeywordTree, type KeywordNode } from "@/lib/keyword-nesting";
+import { useSettingsStore, KEYWORD_PALETTE_ROWS } from "@/stores/settings-store";
+import { buildKeywordTree, composeKeywordId, MAX_KEYWORD_ID_LENGTH, type KeywordNode } from "@/lib/keyword-nesting";
 import { useKeywordFormat } from "@/hooks/use-keyword-format";
 
 /** Below this many tags a filter box costs more room than it saves. */
@@ -46,6 +46,24 @@ export function TagPicker({
   const nestedTags = useSettingsStore((state) => state.nestedTags);
   const { tagName, tagColor } = useKeywordFormat();
   const [query, setQuery] = useState("");
+  const addKeyword = useSettingsStore((state) => state.addKeyword);
+  // "New tag" right here (MAIL-31): a name field in the picker; the tag gets
+  // the next colour of the palette and goes straight onto the message.
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState("");
+  const newId = composeKeywordId(null, newName);
+  const newError = !newName.trim() ? null
+    : keywords.some((k) => k.id === newId) ? t("tag_exists")
+    : newId.length > MAX_KEYWORD_ID_LENGTH || !newId ? t("tag_name_invalid")
+    : null;
+  const createTag = () => {
+    if (!newName.trim() || newError) return;
+    const palette = KEYWORD_PALETTE_ROWS[1];
+    addKeyword({ id: newId, label: newName.trim(), color: palette[keywords.length % palette.length] });
+    setCreating(false);
+    setNewName("");
+    onToggle(newId);
+  };
 
   const trimmedQuery = query.trim().toLowerCase();
 
@@ -152,6 +170,33 @@ export function TagPicker({
           </>
         )}
       </div>
+      <div className="h-px bg-border my-1" />
+      {creating ? (
+        <div className={cn(touch ? "px-3 pb-2" : "px-2 pb-1")}>
+          <input
+            type="text"
+            autoFocus
+            value={newName}
+            onChange={(event) => setNewName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") { event.preventDefault(); createTag(); }
+            }}
+            placeholder={t("new_tag_placeholder")}
+            aria-label={t("new_tag_placeholder")}
+            aria-invalid={!!newError}
+            className={cn(
+              "w-full px-2 py-1 text-sm bg-background border rounded-md focus:outline-none focus:ring-2 focus:ring-ring",
+              newError ? "border-destructive" : "border-border",
+            )}
+          />
+          {newError && <p role="alert" className="mt-1 text-xs text-destructive">{newError}</p>}
+        </div>
+      ) : (
+        <button type="button" role="menuitem" onClick={() => setCreating(true)} className={cn(rowClass, "text-muted-foreground")} data-testid="tag-picker-new">
+          <Plus className={checkClass} />
+          <span className="flex-1">{t("new_tag")}</span>
+        </button>
+      )}
     </>
   );
 }

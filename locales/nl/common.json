@@ -440,6 +440,10 @@
     "remove_tag": "Label verwijderen",
     "tag_filter_placeholder": "Labels filteren",
     "tag_no_matches": "Geen overeenkomende labels",
+    "new_tag": "Nieuw label",
+    "new_tag_placeholder": "Labelnaam",
+    "tag_exists": "Er bestaat al een label met deze naam",
+    "tag_name_invalid": "Kies een kortere naam",
     "more_count": "+{count} meer",
     "characters_count": "{count} tekens",
     "quick_reply_placeholder": "Schrijf een snel antwoord...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Kies een sjabloon",
+    "manage": "Sjablonen beheren",
     "search_placeholder": "Sjablonen zoeken...",
     "section_favorites": "Favorieten",
     "section_recent": "Recent",

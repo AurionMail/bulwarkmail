@@ -442,6 +442,10 @@
     "remove_tag": "Elimina l'etiqueta",
     "tag_filter_placeholder": "Filtra les etiquetes",
     "tag_no_matches": "Cap etiqueta coincident",
+    "new_tag": "Etiqueta nova",
+    "new_tag_placeholder": "Nom de l'etiqueta",
+    "tag_exists": "Ja hi ha una etiqueta amb aquest nom",
+    "tag_name_invalid": "Tria un nom més curt",
     "more_count": "+{count} més",
     "characters_count": "{count} caràcters",
     "quick_reply_placeholder": "Escriviu una resposta ràpida...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Trieu una plantilla",
+    "manage": "Gestiona les plantilles",
     "search_placeholder": "Cerca plantilles...",
     "section_favorites": "Preferides",
     "section_recent": "Recents",

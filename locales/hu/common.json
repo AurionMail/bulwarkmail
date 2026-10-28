@@ -442,6 +442,10 @@
     "remove_tag": "Címke eltávolítása",
     "tag_filter_placeholder": "Címkék szűrése",
     "tag_no_matches": "Nincs találat a címkék közt",
+    "new_tag": "Új címke",
+    "new_tag_placeholder": "Címke neve",
+    "tag_exists": "Már van ilyen nevű címke",
+    "tag_name_invalid": "Válasszon rövidebb nevet",
     "more_count": "+{count} további",
     "characters_count": "{count} karakter",
     "quick_reply_placeholder": "Gyors válasz írása...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Sablon kiválasztása",
+    "manage": "Sablonok kezelése",
     "search_placeholder": "Sablonok keresése...",
     "section_favorites": "Kedvencek",
     "section_recent": "Legutóbbi",

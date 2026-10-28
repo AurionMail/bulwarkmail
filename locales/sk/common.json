@@ -442,6 +442,10 @@
     "remove_tag": "Odstrániť štítok",
     "tag_filter_placeholder": "Filtrovať štítky",
     "tag_no_matches": "Žiadne zodpovedajúce štítky",
+    "new_tag": "Nový štítok",
+    "new_tag_placeholder": "Názov štítka",
+    "tag_exists": "Štítok s týmto názvom už existuje",
+    "tag_name_invalid": "Zvoľte kratší názov",
     "more_count": "+{count} ďalších",
     "characters_count": "{count} znakov",
     "quick_reply_placeholder": "Napísať rýchlu odpoveď...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Vyberte šablónu",
+    "manage": "Spravovať šablóny",
     "search_placeholder": "Hľadať šablóny...",
     "section_favorites": "Obľúbené",
     "section_recent": "Nedávne",

@@ -442,6 +442,10 @@
     "remove_tag": "Noņemt tagu",
     "tag_filter_placeholder": "Filtrēt tagus",
     "tag_no_matches": "Nav atbilstošu tagu",
+    "new_tag": "Jauna birka",
+    "new_tag_placeholder": "Birkas nosaukums",
+    "tag_exists": "Birka ar šādu nosaukumu jau pastāv",
+    "tag_name_invalid": "Izvēlieties īsāku nosaukumu",
     "more_count": "+vairāk {count}",
     "characters_count": "{count} rakstzīmes",
     "quick_reply_placeholder": "Rakstīt ātru atbildi...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Izvēlēties veidni",
+    "manage": "Pārvaldīt veidnes",
     "search_placeholder": "Meklēt veidnes...",
     "section_favorites": "Izlase",
     "section_recent": "Nesenie",

@@ -440,6 +440,10 @@
     "remove_tag": "ラベルを削除",
     "tag_filter_placeholder": "ラベルを絞り込む",
     "tag_no_matches": "一致するラベルがありません",
+    "new_tag": "新しいタグ",
+    "new_tag_placeholder": "タグ名",
+    "tag_exists": "この名前のタグはすでにあります",
+    "tag_name_invalid": "もっと短い名前にしてください",
     "more_count": "他{count}件",
     "characters_count": "{count}文字",
     "quick_reply_placeholder": "クイック返信を入力...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "テンプレートを選択",
+    "manage": "テンプレートを管理",
     "search_placeholder": "テンプレートを検索...",
     "section_favorites": "お気に入り",
     "section_recent": "最近使用",

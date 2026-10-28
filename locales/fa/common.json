@@ -442,6 +442,10 @@
     "remove_tag": "حذف برچسب",
     "tag_filter_placeholder": "فیلتر برچسب‌ها",
     "tag_no_matches": "برچسب مطابقی یافت نشد",
+    "new_tag": "برچسب جدید",
+    "new_tag_placeholder": "نام برچسب",
+    "tag_exists": "برچسبی با این نام از قبل وجود دارد",
+    "tag_name_invalid": "نام کوتاه‌تری انتخاب کنید",
     "more_count": "+{count} بیشتر",
     "characters_count": "{count} کاراکتر",
     "quick_reply_placeholder": "پاسخ سریع بنویسید...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "انتخاب قالب",
+    "manage": "مدیریت الگوها",
     "search_placeholder": "جستجوی قالب‌ها...",
     "section_favorites": "مورد علاقه‌ها",
     "section_recent": "اخیر",

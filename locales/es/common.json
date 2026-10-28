@@ -440,6 +440,10 @@
     "remove_tag": "Eliminar etiqueta",
     "tag_filter_placeholder": "Filtrar etiquetas",
     "tag_no_matches": "No hay etiquetas coincidentes",
+    "new_tag": "Etiqueta nueva",
+    "new_tag_placeholder": "Nombre de la etiqueta",
+    "tag_exists": "Ya hay una etiqueta con este nombre",
+    "tag_name_invalid": "Elige un nombre más corto",
     "more_count": "+{count} más",
     "characters_count": "{count} caracteres",
     "quick_reply_placeholder": "Escriba una respuesta rápida...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Elegir una plantilla",
+    "manage": "Gestionar plantillas",
     "search_placeholder": "Buscar plantillas...",
     "section_favorites": "Favoritos",
     "section_recent": "Recientes",

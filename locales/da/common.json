@@ -442,6 +442,10 @@
     "remove_tag": "Fjern tag",
     "tag_filter_placeholder": "Filtrer tags",
     "tag_no_matches": "Ingen matchende tags",
+    "new_tag": "Nyt mærke",
+    "new_tag_placeholder": "Mærkets navn",
+    "tag_exists": "Der findes allerede et mærke med det navn",
+    "tag_name_invalid": "Vælg et kortere navn",
     "more_count": "+{count} mere",
     "characters_count": "{count} tegn",
     "quick_reply_placeholder": "Skriv et hurtigt svar...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Vælg en skabelon",
+    "manage": "Administrer skabeloner",
     "search_placeholder": "Søg efter skabeloner...",
     "section_favorites": "Favoritter",
     "section_recent": "Seneste",

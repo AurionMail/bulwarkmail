@@ -442,6 +442,10 @@
     "remove_tag": "Ташгыг арилгах",
     "tag_filter_placeholder": "Шүүлтүүрийн шошго",
     "tag_no_matches": "Тохирох шошго байхгүй",
+    "new_tag": "Шинэ шошго",
+    "new_tag_placeholder": "Шошгоны нэр",
+    "tag_exists": "Ийм нэртэй шошго аль хэдийн байна",
+    "tag_name_invalid": "Богинохон нэр сонгоно уу",
     "more_count": "+{count} дэлгэрэнгүй",
     "characters_count": "{count} тэмдэгт",
     "quick_reply_placeholder": "Шуурхай хариу бичнэ үү...",
@@ -3153,6 +3157,7 @@
   },
   "templates": {
     "picker_title": "Загвар сонгох",
+    "manage": "Загваруудыг удирдах",
     "search_placeholder": "Загвар хайх...",
     "section_favorites": "Дуртай зүйлс",
     "section_recent": "Саяхан",
