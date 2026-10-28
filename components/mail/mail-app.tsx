@@ -3050,25 +3050,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const handleMarkAsSpam = async (emailToMark: Email | null = selectedEmail) => {
     if (!client || !emailToMark) return;
 
-    const emailId = emailToMark.id;
-
+    // Undo puts it back in its own folders, read state included, as every
+    // other Undo does.
+    const restore = restoreBatchesFor([emailToMark], client);
     try {
-      if (!(await markAsSpam(client, emailId, emailKeyFor(emailToMark)))) return;
-
-      toast.success(t('email_viewer.spam.toast_success'), {
-        action: {
-          label: t('email_viewer.spam.toast_undo'),
-          onClick: async () => {
-            try {
-              if (await undoSpam(client, emailId, emailKeyFor(emailToMark))) toast.success(t('notifications.email_moved'));
-            } catch (_error) {
-              console.error("Failed to undo spam:", _error);
-              toast.error(t('email_viewer.spam.error'));
-            }
-          },
-        },
-        duration: 5000,
-      });
+      if (!(await markAsSpam(client, emailToMark.id, emailKeyFor(emailToMark)))) return;
+      toastWithUndo(t('email_viewer.spam.toast_success'), undoMoveAction(client, restore, undo));
     } catch (_error) {
       console.error("Failed to mark as spam:", _error);
       toast.error(t('email_viewer.spam.error'));
@@ -3078,10 +3065,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const handleUndoSpam = async (emailToRestore: Email | null = selectedEmail) => {
     if (!client || !emailToRestore) return;
 
+    const restore = restoreBatchesFor([emailToRestore], client);
     try {
       if (!(await undoSpam(client, emailToRestore.id, emailKeyFor(emailToRestore)))) return;
-
-      toast.success(t('email_viewer.spam.toast_not_spam_success'));
+      toastWithUndo(t('email_viewer.spam.toast_not_spam_success'), undoMoveAction(client, restore, undo));
     } catch (_error) {
       console.error("Failed to restore email:", _error);
       toast.error(t('email_viewer.spam.error_not_spam'));

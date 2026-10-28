@@ -555,8 +555,8 @@
     "spam": {
       "button_title": "Denuncia com a brossa",
       "not_spam_title": "Marca com a legítim",
-      "toast_success": "S'ha mogut a la brossa",
-      "toast_batch": "{count} correus moguts a la brossa",
+      "toast_success": "S'ha mogut a Correu brossa",
+      "toast_batch": "{count} correus moguts a Correu brossa",
       "toast_undo": "Desfés",
       "toast_not_spam_success": "S'ha mogut a la safata d'entrada",
       "toast_not_spam_batch": "{count} correus moguts a la safata d'entrada",

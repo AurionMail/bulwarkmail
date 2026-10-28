@@ -477,8 +477,8 @@
     "spam": {
       "button_title": "דווח על ספאם",
       "not_spam_title": "סמן כלגיטימי",
-      "toast_success": "עבר לזבל",
-      "toast_batch": "הודעות דוא\"ל{count}הועברו ל-Junk",
+      "toast_success": "הועבר לספאם",
+      "toast_batch": "{count} הודעות הועברו לספאם",
       "toast_undo": "בטל",
       "toast_not_spam_success": "הועבר לתיבת הדואר הנכנס",
       "toast_not_spam_batch": "הודעות דוא\"ל{count}הועברו ל-Inbox",

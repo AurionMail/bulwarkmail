@@ -528,8 +528,8 @@
     "spam": {
       "button_title": "Reportar spam",
       "not_spam_title": "Marcar como legítimo",
-      "toast_success": "Movido a Correo no deseado",
-      "toast_batch": "{count} correos movidos a Correo no deseado",
+      "toast_success": "Movido a Spam",
+      "toast_batch": "{count} correos movidos a Spam",
       "toast_undo": "Deshacer",
       "toast_not_spam_success": "Movido a Bandeja de entrada",
       "toast_not_spam_batch": "{count} correos movidos a Bandeja de entrada",

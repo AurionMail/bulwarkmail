@@ -555,8 +555,8 @@
     "spam": {
       "button_title": "Report spam",
       "not_spam_title": "Not spam",
-      "toast_success": "Moved to Junk",
-      "toast_batch": "{count} emails moved to Junk",
+      "toast_success": "Moved to Spam",
+      "toast_batch": "{count} emails moved to Spam",
       "toast_undo": "Undo",
       "toast_not_spam_success": "Moved to Inbox",
       "toast_not_spam_batch": "{count} emails moved to Inbox",

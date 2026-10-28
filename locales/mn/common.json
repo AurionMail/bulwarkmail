@@ -555,8 +555,8 @@
     "spam": {
       "button_title": "Спам мэдээлэх",
       "not_spam_title": "Хууль ёсны гэж тэмдэглэх",
-      "toast_success": "Хог хаяг руу шилжсэн",
-      "toast_batch": "{count} имэйлийг хог хаяг руу зөөсөн",
+      "toast_success": "Спам руу шилжсэн",
+      "toast_batch": "{count} имэйлийг Спам руу зөөсөн",
       "toast_undo": "Буцаах",
       "toast_not_spam_success": "Ирсэн имэйл рүү шилжсэн",
       "toast_not_spam_batch": "{count} имэйлийг Ирсэн имэйл рүү зөөсөн",

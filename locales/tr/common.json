@@ -530,8 +530,8 @@
     "spam": {
       "button_title": "Spam olarak bildir",
       "not_spam_title": "Meşru olarak işaretle",
-      "toast_success": "Önemsiz'e taşındı",
-      "toast_batch": "{count} e-posta Önemsiz'e taşındı",
+      "toast_success": "Spam'e taşındı",
+      "toast_batch": "{count} e-posta Spam'e taşındı",
       "toast_undo": "Geri al",
       "toast_not_spam_success": "Gelen Kutusu'na taşındı",
       "toast_not_spam_batch": "{count} e-posta Gelen Kutusu'na taşındı",

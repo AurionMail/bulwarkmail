@@ -530,7 +530,7 @@
     "spam": {
       "button_title": "Повідомити про спам",
       "not_spam_title": "Позначити як законне",
-      "toast_success": "Перенесено в сміття",
+      "toast_success": "Перенесено до спаму",
       "toast_batch": "{count} електронних листів переміщено до спаму",
       "toast_undo": "Скасувати",
       "toast_not_spam_success": "Переміщено до папки \"Вхідні\".",

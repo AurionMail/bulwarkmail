@@ -555,10 +555,10 @@
     "spam": {
       "button_title": "Raportează spamul",
       "not_spam_title": "Marcați ca legitim",
-      "toast_success": "Mutate în folderul „Junk”",
-      "toast_batch": "{count} e-mailuri mutate în folderul „Junk”",
+      "toast_success": "Mutat în Spam",
+      "toast_batch": "{count} e-mailuri mutate în Spam",
       "toast_undo": "Anulează",
-      "toast_not_spam_success": "Mutată în Inbox",
+      "toast_not_spam_success": "Mutat în Primite",
       "toast_not_spam_batch": "{count} e-mailuri mutate în Inbox",
       "error": "Nu s-a reușit raportarea spamului",
       "error_not_spam": "Nu s-a putut restaura e-mailul"

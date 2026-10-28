@@ -528,8 +528,8 @@
     "spam": {
       "button_title": "Segnala come spam",
       "not_spam_title": "Segna come legittimo",
-      "toast_success": "Spostato in Posta indesiderata",
-      "toast_batch": "{count} messaggi spostati in Posta indesiderata",
+      "toast_success": "Spostato in Spam",
+      "toast_batch": "{count} messaggi spostati in Spam",
       "toast_undo": "Annulla",
       "toast_not_spam_success": "Spostato in Posta in arrivo",
       "toast_not_spam_batch": "{count} messaggi spostati in Posta in arrivo",

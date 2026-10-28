@@ -528,8 +528,8 @@
     "spam": {
       "button_title": "Signaler comme spam",
       "not_spam_title": "Marquer comme légitime",
-      "toast_success": "Déplacé vers Indésirables",
-      "toast_batch": "{count} e-mails déplacés vers Indésirables",
+      "toast_success": "Déplacé vers Spam",
+      "toast_batch": "{count} e-mails déplacés vers Spam",
       "toast_undo": "Annuler",
       "toast_not_spam_success": "Déplacé vers Boîte de réception",
       "toast_not_spam_batch": "{count} e-mails déplacés vers Boîte de réception",

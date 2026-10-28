@@ -528,8 +528,8 @@
     "spam": {
       "button_title": "Spam melden",
       "not_spam_title": "Markeren als legitiem",
-      "toast_success": "Verplaatst naar Ongewenst",
-      "toast_batch": "{count} e-mails verplaatst naar Ongewenst",
+      "toast_success": "Verplaatst naar Spam",
+      "toast_batch": "{count} e-mails verplaatst naar Spam",
       "toast_undo": "Ongedaan maken",
       "toast_not_spam_success": "Verplaatst naar Postvak IN",
       "toast_not_spam_batch": "{count} e-mails verplaatst naar Postvak IN",
