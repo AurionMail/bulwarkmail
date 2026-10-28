@@ -256,14 +256,17 @@ export function ToggleSwitch({ checked, onChange, disabled, ariaLabel, testId }:
       onClick={() => onChange(!checked)}
       className={cn(
         'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-150',
-        checked ? 'bg-primary' : 'bg-muted',
+        // Off: an outlined track and a grey knob, 3:1 against the page in
+        // both schemes (a light track with a white knob was ~1.1:1). The
+        // ring is inset, so the on state keeps its size and look.
+        checked ? 'bg-primary' : 'bg-muted ring-1 ring-inset ring-muted-foreground',
         disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
       )}
     >
       <span
         className={cn(
-          'inline-block h-4 w-4 transform rounded-full bg-background transition-transform duration-150',
-          checked ? 'ltr:translate-x-6 rtl:-translate-x-6' : 'ltr:translate-x-1 rtl:-translate-x-1'
+          'inline-block h-4 w-4 transform rounded-full transition-transform duration-150',
+          checked ? 'bg-background ltr:translate-x-6 rtl:-translate-x-6' : 'bg-muted-foreground ltr:translate-x-1 rtl:-translate-x-1'
         )}
       />
     </button>
