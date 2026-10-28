@@ -148,3 +148,31 @@ describe('CalendarApp in the command palette', () => {
     expect(useCalendarStore.getState().viewMode).toBe('day');
   });
 });
+
+describe('CalendarApp in the Tasks view', () => {
+  beforeEach(() => setUp([makeEvent()], 'tasks'));
+
+  it('has no date navigation', () => {
+    renderApp();
+    // The one left is the mini calendar's month arrow.
+    expect(screen.queryAllByRole('button', { name: 'nav_prev' })).toHaveLength(1);
+    expect(screen.queryAllByRole('button', { name: 'nav_next' })).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'views.today' })).toBeNull();
+  });
+
+  it('creates a task with n, not an event', () => {
+    renderApp();
+    fireEvent.keyDown(document.body, { key: 'n', code: 'KeyN' });
+    expect(screen.getByRole('heading', { name: 'tasks.create' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'events.create' })).toBeNull();
+  });
+
+  it('creates a task with the phone create button', () => {
+    media.mobile = true;
+    media.desktop = false;
+    renderApp();
+    // The floating button, after the drawer's.
+    fireEvent.click(screen.getAllByRole('button', { name: 'events.new_task' }).at(-1)!);
+    expect(screen.getByRole('dialog', { name: 'tasks.create' })).toBeInTheDocument();
+  });
+});

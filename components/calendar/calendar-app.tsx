@@ -1071,6 +1071,14 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
 
   const closeQuickCreate = useCallback(() => setQuickDraft(null), []);
 
+  // The create button and `n` make what the view shows: a task in Tasks.
+  const inTasksView = normalizedViewMode === "tasks";
+  const openCreateForView = useCallback(() => {
+    if (inTasksView) openCreateTaskModal();
+    else openCreateModal();
+  }, [inTasksView, openCreateTaskModal, openCreateModal]);
+  const createLabel = inTasksView ? t("events.new_task") : t("events.create");
+
   const handleQuickCreateMoreOptions = useCallback(() => {
     if (!quickDraft) return;
     const draft = quickDraft;
@@ -1351,12 +1359,12 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
         case "day": setViewMode("day"); break;
         case "agenda": setViewMode("agenda"); break;
         case "tasks": if (enableCalendarTasks) setViewMode("tasks"); break;
-        case "new": openCreateModal(); break;
+        case "new": openCreateForView(); break;
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [navigatePrev, navigateNext, goToToday, setViewMode, openCreateModal, showEventModal, showTaskModal, detailPinned, enableCalendarTasks]);
+  }, [navigatePrev, navigateNext, goToToday, setViewMode, openCreateForView, showEventModal, showTaskModal, detailPinned, enableCalendarTasks]);
 
   // The command palette's Calendar group, while this calendar is the one in
   // front (in the Pro shell: its focused tab).
@@ -1695,7 +1703,8 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       onNext={navigateNext}
       onToday={goToToday}
       onViewModeChange={(mode) => { setMobileReturnToMonth(false); setViewMode(mode); }}
-      onCreateEvent={() => openCreateModal()}
+      onCreateEvent={openCreateForView}
+      createLabel={createLabel}
       onImport={() => setShowImportModal(true)}
       onSubscribe={() => setShowSubscriptionModal(true)}
       onRefresh={() => { void refreshCalendar(); }}
@@ -1775,7 +1784,8 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
             style={isNarrow ? undefined : { width: `${calSidebarWidth}px` }}
           >
             <CalendarSidebarHeader
-              onCreateEvent={() => { setNarrowSidebarOpen(false); openCreateModal(); }}
+              onCreateEvent={() => { setNarrowSidebarOpen(false); openCreateForView(); }}
+              createLabel={createLabel}
               tourTarget={!isNarrow}
             />
             <div className="flex-1 overflow-y-auto overflow-x-hidden py-3">
@@ -1939,9 +1949,9 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
           {/* Floating Create Event Button (mobile) */}
           {isMobile && (
             <Button
-              onClick={() => openCreateModal()}
+              onClick={openCreateForView}
               className="absolute bottom-4 right-4 z-40 h-14 w-14 rounded-full shadow-lg"
-              aria-label={t("events.create")}
+              aria-label={createLabel}
             >
               <Plus className="h-6 w-6" />
             </Button>

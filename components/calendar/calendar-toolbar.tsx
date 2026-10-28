@@ -23,6 +23,8 @@ interface CalendarToolbarProps {
   onToday: () => void;
   onViewModeChange: (mode: CalendarViewMode) => void;
   onCreateEvent: () => void;
+  /** The create button's name: what it makes in the current view. */
+  createLabel?: string;
   onImport?: () => void;
   onSubscribe?: () => void;
   /** Reload calendars, events and subscriptions. */
@@ -63,6 +65,7 @@ export function CalendarToolbar({
   onToday,
   onViewModeChange,
   onCreateEvent,
+  createLabel,
   onImport,
   onSubscribe,
   onRefresh,
@@ -139,6 +142,9 @@ export function CalendarToolbar({
         return t("views.tasks");
     }
   };
+
+  // Tasks have no dates to step through.
+  const hasDateNav = viewMode !== "tasks";
 
   // The ⋮ menu: what the calendar as a whole offers.
   const {
@@ -220,18 +226,24 @@ export function CalendarToolbar({
                   <ArrowLeft className="w-4 h-4" />
                 </button>
               )}
-              <button onClick={onPrev} className="p-1.5 rounded-md hover:bg-muted transition-colors touch-manipulation" aria-label={t("nav_prev")}>
-                <ChevronLeft className="w-4 h-4" />
-              </button>
+              {hasDateNav && (
+                <button onClick={onPrev} className="p-1.5 rounded-md hover:bg-muted transition-colors touch-manipulation" aria-label={t("nav_prev")}>
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              )}
               <span className="text-sm font-semibold text-center flex-1 select-none truncate">
                 {getDateLabel()}
               </span>
-              <button onClick={onNext} className="p-1.5 rounded-md hover:bg-muted transition-colors touch-manipulation" aria-label={t("nav_next")}>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-              <Button variant="ghost" size="sm" onClick={onToday} className="touch-manipulation text-xs h-7 px-2 ms-0.5">
-                {t("views.today")}
-              </Button>
+              {hasDateNav && (
+                <>
+                  <button onClick={onNext} className="p-1.5 rounded-md hover:bg-muted transition-colors touch-manipulation" aria-label={t("nav_next")}>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <Button variant="ghost" size="sm" onClick={onToday} className="touch-manipulation text-xs h-7 px-2 ms-0.5">
+                    {t("views.today")}
+                  </Button>
+                </>
+              )}
             </div>
 
             {/* Row 2: View switcher pills + calendar toggle */}
@@ -373,40 +385,44 @@ export function CalendarToolbar({
           size="icon"
           onClick={onCreateEvent}
           className="h-8 w-8"
-          aria-label={t("events.create")}
-          title={t("events.create")}
+          aria-label={createLabel ?? t("events.create")}
+          title={createLabel ?? t("events.create")}
           data-tour="create-event-button"
         >
           <Plus className="w-4 h-4" />
         </Button>
       )}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onToday}
-        className="h-8 me-1"
-        title={formatFullDate(displayNow())}
-      >
-        {t("views.today")}
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8"
-        onClick={onPrev}
-        aria-label={t("nav_prev")}
-      >
-        <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8"
-        onClick={onNext}
-        aria-label={t("nav_next")}
-      >
-        <ChevronRight className="w-4 h-4 rtl:rotate-180" />
-      </Button>
+      {hasDateNav && (
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onToday}
+            className="h-8 me-1"
+            title={formatFullDate(displayNow())}
+          >
+            {t("views.today")}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={onPrev}
+            aria-label={t("nav_prev")}
+          >
+            <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={onNext}
+            aria-label={t("nav_next")}
+          >
+            <ChevronRight className="w-4 h-4 rtl:rotate-180" />
+          </Button>
+        </>
+      )}
       <h1 className="ms-2 text-base font-semibold truncate select-none">
         {getDateLabel()}
       </h1>
