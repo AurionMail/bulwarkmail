@@ -52,7 +52,8 @@ export const LOCALE_LOADERS: Record<string, () => Promise<Messages>> = {
 
 interface IntlProviderProps {
   locale: string;
-  messages: Messages;
+  /** Omitted by the Lite export: the catalog is then loaded on the client. */
+  messages?: Messages;
   children: React.ReactNode;
 }
 
@@ -67,14 +68,16 @@ export function IntlProvider({ locale: initialLocale, messages: initialMessages,
   // The catalog currently in use. Seeded with the server-provided messages for
   // the SSR-resolved locale, so the first render needs no async work and
   // matches the server output. Locale and messages switch together once a
-  // lazily loaded catalog arrives, never out of sync.
-  const [catalog, setCatalog] = useState<{ locale: string; messages: Messages }>({
-    locale: initialLocale,
-    messages: initialMessages,
-  });
+  // lazily loaded catalog arrives, never out of sync. Without server messages
+  // (Lite) only English is at hand; any other locale renders nothing, on the
+  // server and on the client alike, until its chunk arrives.
+  const seed = initialMessages ?? (initialLocale === 'en' ? (enMessages as Messages) : undefined);
+  const [catalog, setCatalog] = useState<{ locale: string; messages: Messages } | null>(
+    seed ? { locale: initialLocale, messages: seed } : null,
+  );
   const loadedRef = useRef<Record<string, Messages>>({
     en: enMessages as Messages,
-    [initialLocale]: initialMessages,
+    ...(seed ? { [initialLocale]: seed } : {}),
   });
 
   // Detect the browser's timezone on mount (falls back to UTC internally)
@@ -94,7 +97,7 @@ export function IntlProvider({ locale: initialLocale, messages: initialMessages,
 
     const cached = loadedRef.current[target];
     if (cached) {
-      setCatalog((prev) => (prev.locale === target ? prev : { locale: target, messages: cached }));
+      setCatalog((prev) => (prev?.locale === target ? prev : { locale: target, messages: cached }));
       return;
     }
 
@@ -102,7 +105,9 @@ export function IntlProvider({ locale: initialLocale, messages: initialMessages,
     const load = LOCALE_LOADERS[target];
     // Unknown locale: render English strings under the requested tag, matching
     // the old `?? {}` fallback behavior.
-    (load ? load() : Promise.resolve({} as Messages)).then((messages) => {
+    // A chunk that fails to load falls back the same way, so a Lite page with
+    // no seeded catalog never stays blank.
+    (load ? load().catch(() => ({} as Messages)) : Promise.resolve({} as Messages)).then((messages) => {
       if (stale) return;
       loadedRef.current[target] = messages;
       setCatalog({ locale: target, messages });
@@ -112,20 +117,24 @@ export function IntlProvider({ locale: initialLocale, messages: initialMessages,
   }, [currentLocale]);
 
   // Keep <html> lang/dir in sync with the rendered locale (RTL for he/fa).
+  const activeLocale = catalog?.locale;
   useEffect(() => {
-    document.documentElement.lang = catalog.locale;
-    document.documentElement.dir = getLocaleDirection(catalog.locale);
-  }, [catalog.locale]);
+    if (!activeLocale) return;
+    document.documentElement.lang = activeLocale;
+    document.documentElement.dir = getLocaleDirection(activeLocale);
+  }, [activeLocale]);
 
   // Fall back to English for any key the active locale has not translated, so
   // untranslated strings show English text instead of a raw message key.
   const messages = useMemo(
     () =>
-      catalog.locale === 'en'
+      !catalog || catalog.locale === 'en'
         ? (enMessages as Messages)
         : mergeMessages(enMessages as Messages, catalog.messages),
     [catalog]
   );
+
+  if (!catalog) return null;
 
   return (
     <NextIntlClientProvider

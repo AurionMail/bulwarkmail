@@ -47,11 +47,16 @@ export default async function LocaleLayout({
   // the tree render without request headers (static export).
   setRequestLocale(locale);
 
+  // Lite leaves the catalog out: a prop here is baked into every exported page
+  // (the HTML and three RSC payloads per route and locale), which pushed the
+  // Stalwart zip past its size limit. IntlProvider loads it as a chunk instead.
   let messages;
-  try {
-    messages = (await import(`@/locales/${locale}/common.json`)).default;
-  } catch {
-    notFound();
+  if (!IS_LITE) {
+    try {
+      messages = (await import(`@/locales/${locale}/common.json`)).default;
+    } catch {
+      notFound();
+    }
   }
 
   return (
