@@ -3167,6 +3167,9 @@
     "insert_with_values": "الإدراج بالقيم",
     "insert_raw": "الإدراج كما هو",
     "copy_suffix": "(نسخة)",
+    "duplicate": "تكرار",
+    "delete_title": "حذف القالب؟",
+    "delete_message": "سيُحذف القالب \"{name}\" نهائيًا.",
     "placeholder": "متغيّر",
     "placeholders": {
       "recipient_name": "اسم المستلم",

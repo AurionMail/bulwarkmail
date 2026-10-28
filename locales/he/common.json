@@ -3085,6 +3085,9 @@
     "insert_with_values": "הוסף עם ערכים",
     "insert_raw": "הכנס Raw",
     "copy_suffix": "(העתק)",
+    "duplicate": "שכפול",
+    "delete_title": "למחוק את התבנית?",
+    "delete_message": "התבנית \"{name}\" תימחק לצמיתות.",
     "placeholder": "משתנה",
     "placeholders": {
       "recipient_name": "שם הנמען",

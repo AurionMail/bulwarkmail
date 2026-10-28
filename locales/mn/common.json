@@ -3167,6 +3167,9 @@
     "insert_with_values": "Утгатай оруулах",
     "insert_raw": "Түүхий оруулах",
     "copy_suffix": "(хуулбар)",
+    "duplicate": "Хуулбарлах",
+    "delete_title": "Загварыг устгах уу?",
+    "delete_message": "\"{name}\" загвар бүрмөсөн устгагдана.",
     "placeholder": "Хувьсагч",
     "placeholders": {
       "recipient_name": "Хүлээн авагчийн нэр",

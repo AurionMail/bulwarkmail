@@ -3167,6 +3167,9 @@
     "insert_with_values": "درج با مقادیر",
     "insert_raw": "درج خام",
     "copy_suffix": "(کپی)",
+    "duplicate": "تکثیر",
+    "delete_title": "الگو حذف شود؟",
+    "delete_message": "الگوی «{name}» برای همیشه حذف می‌شود.",
     "placeholder": "متغیر",
     "placeholders": {
       "recipient_name": "نام گیرنده",

@@ -3167,6 +3167,9 @@
     "insert_with_values": "Mit Werten einfügen",
     "insert_raw": "Unverändert einfügen",
     "copy_suffix": "(Kopie)",
+    "duplicate": "Duplizieren",
+    "delete_title": "Vorlage löschen?",
+    "delete_message": "Die Vorlage „{name}“ wird endgültig gelöscht.",
     "placeholder": "Variable",
     "placeholders": {
       "recipient_name": "Name des Empfängers",

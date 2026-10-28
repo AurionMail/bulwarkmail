@@ -3167,6 +3167,9 @@
     "insert_with_values": "Indsæt med værdier",
     "insert_raw": "Indsæt rå",
     "copy_suffix": "(kopi)",
+    "duplicate": "Duplikér",
+    "delete_title": "Slet skabelon?",
+    "delete_message": "Skabelonen \"{name}\" slettes permanent.",
     "placeholder": "Variabel",
     "placeholders": {
       "recipient_name": "Modtagers navn",

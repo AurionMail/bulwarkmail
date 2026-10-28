@@ -3167,6 +3167,9 @@
     "insert_with_values": "値を挿入",
     "insert_raw": "そのまま挿入",
     "copy_suffix": "(コピー)",
+    "duplicate": "複製",
+    "delete_title": "テンプレートを削除しますか?",
+    "delete_message": "テンプレート「{name}」は完全に削除されます。",
     "placeholder": "変数",
     "placeholders": {
       "recipient_name": "宛先の名前",

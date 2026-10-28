@@ -3167,6 +3167,9 @@
     "insert_with_values": "Ievietot ar vērtībām",
     "insert_raw": "Ievietot bez izmaiņām",
     "copy_suffix": "(kopija)",
+    "duplicate": "Dublēt",
+    "delete_title": "Vai dzēst veidni?",
+    "delete_message": "Veidne “{name}” tiks neatgriezeniski dzēsta.",
     "placeholder": "Mainīgais",
     "placeholders": {
       "recipient_name": "Saņēmēja vārds",

@@ -3167,6 +3167,9 @@
     "insert_with_values": "Değerlerle Ekle",
     "insert_raw": "Ham Ekle",
     "copy_suffix": "(kopya)",
+    "duplicate": "Çoğalt",
+    "delete_title": "Şablon silinsin mi?",
+    "delete_message": "\"{name}\" şablonu kalıcı olarak silinecek.",
     "placeholder": "Değişken",
     "placeholders": {
       "recipient_name": "Alıcı adı",

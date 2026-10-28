@@ -3167,6 +3167,9 @@
     "insert_with_values": "插入并填充",
     "insert_raw": "插入原始模板",
     "copy_suffix": "（复制）",
+    "duplicate": "创建副本",
+    "delete_title": "删除模板?",
+    "delete_message": "模板“{name}”将被永久删除。",
     "placeholder": "变量",
     "placeholders": {
       "recipient_name": "收件人姓名",

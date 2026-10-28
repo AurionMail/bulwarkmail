@@ -3167,6 +3167,9 @@
     "insert_with_values": "Lisa väärtustega",
     "insert_raw": "Lisa täitmata kujul",
     "copy_suffix": "(koopia)",
+    "duplicate": "Dubleeri",
+    "delete_title": "Kas kustutada mall?",
+    "delete_message": "Mall „{name}“ kustutatakse jäädavalt.",
     "placeholder": "Muutuja",
     "placeholders": {
       "recipient_name": "Saaja nimi",

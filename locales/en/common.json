@@ -3153,7 +3153,7 @@
     "delete_confirm_title": "Delete identity?"
   },
   "templates": {
-    "picker_title": "Choose a Template",
+    "picker_title": "Choose a template",
     "manage": "Manage templates",
     "search_placeholder": "Search templates...",
     "section_favorites": "Favorites",
@@ -3161,12 +3161,15 @@
     "section_uncategorized": "Other",
     "no_templates": "No templates yet",
     "no_results": "No templates found",
-    "fill_placeholders": "Fill Placeholder Values",
+    "fill_placeholders": "Fill placeholder values",
     "enter_value": "Enter a value...",
     "preview": "Preview",
-    "insert_with_values": "Insert with Values",
-    "insert_raw": "Insert Raw",
+    "insert_with_values": "Insert with values",
+    "insert_raw": "Insert raw",
     "copy_suffix": "(copy)",
+    "duplicate": "Duplicate",
+    "delete_title": "Delete template?",
+    "delete_message": "The template \"{name}\" is deleted for good.",
     "placeholder": "Variable",
     "placeholders": {
       "recipient_name": "Recipient name",

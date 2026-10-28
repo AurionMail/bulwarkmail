@@ -3167,6 +3167,9 @@
     "insert_with_values": "Insereix amb els valors",
     "insert_raw": "Insereix sense processar",
     "copy_suffix": "(còpia)",
+    "duplicate": "Duplica",
+    "delete_title": "Voleu suprimir la plantilla?",
+    "delete_message": "La plantilla \"{name}\" se suprimirà definitivament.",
     "placeholder": "Variable",
     "placeholders": {
       "recipient_name": "Nom del destinatari",

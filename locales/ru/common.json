@@ -3167,6 +3167,9 @@
     "insert_with_values": "Вставить со значениями",
     "insert_raw": "Вставить без изменений",
     "copy_suffix": "(копия)",
+    "duplicate": "Дублировать",
+    "delete_title": "Удалить шаблон?",
+    "delete_message": "Шаблон «{name}» будет удалён без возможности восстановления.",
     "placeholder": "Переменная",
     "placeholders": {
       "recipient_name": "Имя получателя",

@@ -3167,6 +3167,9 @@
     "insert_with_values": "Sett inn ferdig utfylt",
     "insert_raw": "Sett inn uten å fylle ut",
     "copy_suffix": "(kopi)",
+    "duplicate": "Dupliser",
+    "delete_title": "Slette malen?",
+    "delete_message": "Malen «{name}» slettes for godt.",
     "placeholder": "Variabel",
     "placeholders": {
       "recipient_name": "Mottakerens navn",

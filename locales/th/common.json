@@ -782,6 +782,9 @@
     "insert_with_values": "แทรกพร้อมแทนที่ค่า",
     "insert_raw": "แทรกข้อความต้นฉบับ",
     "copy_suffix": "(สำเนา)",
+    "duplicate": "สร้างสำเนา",
+    "delete_title": "ลบเทมเพลตหรือไม่",
+    "delete_message": "เทมเพลต \"{name}\" จะถูกลบอย่างถาวร",
     "placeholder": "ตัวแปร",
     "placeholders": {
       "recipient_name": "ชื่อผู้รับ",

@@ -3167,6 +3167,9 @@
     "insert_with_values": "Inserați cu valori",
     "insert_raw": "Inserați Raw",
     "copy_suffix": "(copiere)",
+    "duplicate": "Duplicare",
+    "delete_title": "Ștergeți șablonul?",
+    "delete_message": "Șablonul „{name}” va fi șters definitiv.",
     "placeholder": "Variabilă",
     "placeholders": {
       "recipient_name": "Numele destinatarului",

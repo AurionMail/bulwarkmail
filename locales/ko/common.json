@@ -3167,6 +3167,9 @@
     "insert_with_values": "값과 함께 삽입",
     "insert_raw": "원본 삽입",
     "copy_suffix": "(복사본)",
+    "duplicate": "복제",
+    "delete_title": "템플릿을 삭제할까요?",
+    "delete_message": "템플릿 \"{name}\"이(가) 영구적으로 삭제됩니다.",
     "placeholder": "변수",
     "placeholders": {
       "recipient_name": "받는 사람 이름",

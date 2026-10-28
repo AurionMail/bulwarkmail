@@ -3167,6 +3167,9 @@
     "insert_with_values": "Vložit s hodnotami",
     "insert_raw": "Vložit beze změn",
     "copy_suffix": "(kopie)",
+    "duplicate": "Duplikovat",
+    "delete_title": "Smazat šablonu?",
+    "delete_message": "Šablona „{name}“ bude trvale smazána.",
     "placeholder": "Proměnná",
     "placeholders": {
       "recipient_name": "Jméno příjemce",

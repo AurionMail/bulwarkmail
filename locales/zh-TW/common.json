@@ -3167,6 +3167,9 @@
     "insert_with_values": "填入值後插入",
     "insert_raw": "直接插入範本",
     "copy_suffix": "（複製）",
+    "duplicate": "建立副本",
+    "delete_title": "刪除範本?",
+    "delete_message": "範本「{name}」將被永久刪除。",
     "placeholder": "變數",
     "placeholders": {
       "recipient_name": "收件者姓名",

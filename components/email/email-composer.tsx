@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useMvComposeWindow } from "@/components/email/mv-compose-context";
-import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useTranslations } from "next-intl";
 import { Button, TOUCH_HIT_AREA } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Dialog } from "@/components/ui/dialog";
+import { IconButton } from "@/components/ui/icon-button";
+import { useDiscardChanges } from "@/components/settings/use-discard-changes";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { Input } from "@/components/ui/input";
 import {
@@ -970,35 +972,14 @@ export function EmailComposer({
   const sendMenuRef = useRef<HTMLDivElement>(null);
   const mobileSendMenuRef = useRef<HTMLDivElement>(null);
 
-  const saveTemplateModalRef = useFocusTrap({
-    isActive: showSaveAsTemplate,
-    onEscape: () => setShowSaveAsTemplate(false),
-    restoreFocus: true,
-  });
-
-  const closeDialogRef = useFocusTrap({
-    isActive: showCloseDialog,
-    onEscape: () => dismissCloseDialog(),
-    restoreFocus: true,
-  });
-
-  const attachmentWarningRef = useFocusTrap({
-    isActive: showAttachmentWarning,
-    onEscape: () => setShowAttachmentWarning(false),
-    restoreFocus: true,
-  });
-
-  const emptySubjectWarningRef = useFocusTrap({
-    isActive: showEmptySubjectWarning,
-    onEscape: () => setShowEmptySubjectWarning(false),
-    restoreFocus: true,
-  });
-
-  const placeholderWarningRef = useFocusTrap({
-    isActive: showPlaceholderWarning,
-    onEscape: () => setShowPlaceholderWarning(false),
-    restoreFocus: true,
-  });
+  // Save as template: changes made in its form are asked about before it closes (R5).
+  const [saveTemplateDirty, setSaveTemplateDirty] = useState(false);
+  const { confirmDiscard: confirmDiscardTemplate, discardDialog: discardTemplateDialog } = useDiscardChanges();
+  const closeSaveAsTemplate = async () => {
+    if (!(await confirmDiscardTemplate(saveTemplateDirty))) return;
+    setSaveTemplateDirty(false);
+    setShowSaveAsTemplate(false);
+  };
 
   const { client: activeClient } = useAuthStore();
   const composerOwnClientRef = useRef(activeClient);
@@ -3861,11 +3842,8 @@ export function EmailComposer({
           </button>
         </div>
       ) : (
-      <div className="flex items-center justify-between px-4 py-2 md:py-3 border-b bg-background">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => handleClose()} className="h-11 w-11 -ms-2 md:ms-0 md:h-8 md:w-8" aria-label={tCommon('close')} title={tCommon('close')}>
-            <X className="w-5 h-5 md:w-4 md:h-4" />
-          </Button>
+      <div className="flex items-center gap-3 px-4 py-2 md:py-3 border-b bg-background">
+        <div className="flex-1 min-w-0 flex items-center gap-3">
           <div className="flex items-center gap-2" data-testid="composer-save-status" data-status={saveStatus}>
             <h3 className="font-semibold text-base">
               {mode === 'reply' ? t('reply') : mode === 'replyAll' ? t('reply_all') : mode === 'forward' ? t('forward') : t('new_message')}
@@ -3952,6 +3930,16 @@ export function EmailComposer({
             {t('send')}
           </Button>
         )}
+        {/* Close at the top end (R4). On a phone it moves to the start, as
+            the phone's mail apps have it, with Send at the end. */}
+        <IconButton
+          onClick={() => handleClose()}
+          className="-me-2 max-md:order-first max-md:me-0 max-md:-ms-2 max-md:h-11 max-md:w-11"
+          label={tCommon('close')}
+          data-testid="composer-close"
+        >
+          <X className="w-5 h-5 md:w-4 md:h-4" />
+        </IconButton>
       </div>
       )}
 
@@ -4709,14 +4697,15 @@ export function EmailComposer({
       )}
 
       {showSaveAsTemplate && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
-          <div
-            ref={saveTemplateModalRef}
-            role="dialog"
-            aria-modal="true"
-            className="bg-background border border-border rounded-lg shadow-xl w-full max-w-lg p-6 animate-in zoom-in-95 duration-200"
-          >
-            <h3 className="text-lg font-semibold text-foreground mb-4">{t('save_as_template')}</h3>
+        <Dialog
+          isOpen
+          onClose={() => void closeSaveAsTemplate()}
+          title={t('save_as_template')}
+          size="lg"
+          dirty={saveTemplateDirty}
+          testId="save-as-template"
+        >
+          <div className="pt-4">
             <TemplateForm
               initialData={{
                 subject,
@@ -4727,13 +4716,16 @@ export function EmailComposer({
               }}
               onSave={(data) => {
                 addTemplate(data);
+                setSaveTemplateDirty(false);
                 setShowSaveAsTemplate(false);
               }}
-              onCancel={() => setShowSaveAsTemplate(false)}
+              onCancel={() => void closeSaveAsTemplate()}
+              onDirtyChange={setSaveTemplateDirty}
             />
           </div>
-        </div>
+        </Dialog>
       )}
+      {discardTemplateDialog}
 
       <ScheduleSendDialog
         isOpen={showScheduleDialog}
@@ -4744,62 +4736,34 @@ export function EmailComposer({
         disabled={!canSend || isSending}
       />
 
-      {showAttachmentWarning && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center z-[60] p-4 animate-in fade-in duration-150"
-          onClick={() => setShowAttachmentWarning(false)}
-        >
-          <div
-            ref={attachmentWarningRef}
-            role="alertdialog"
-            aria-modal="true"
-            onClick={(e) => e.stopPropagation()}
-            className="bg-background border border-border rounded-lg shadow-xl w-full max-w-md animate-in zoom-in-95 duration-200"
-          >
-            <div className="p-6">
-              <h2 className="text-lg font-semibold text-foreground">{t('forgot_attachment.title')}</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {t('forgot_attachment.message', { keyword: attachmentWarningKeyword })}
-              </p>
-            </div>
-            <div className="flex items-center justify-end gap-3 px-6 pb-6">
-              <Button variant="outline" onClick={() => setShowAttachmentWarning(false)}>
-                {t('forgot_attachment.back')}
-              </Button>
-              <Button onClick={() => { setShowAttachmentWarning(false); handleSend({ skipAttachmentCheck: true, skipSubjectCheck: true, delayedUntil: attachmentWarningDelayedUntil }); setAttachmentWarningDelayedUntil(undefined); }}>
-                {t('forgot_attachment.send_anyway')}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog
+        isOpen={showAttachmentWarning}
+        onClose={() => setShowAttachmentWarning(false)}
+        role="alertdialog"
+        showClose={false}
+        title={t('forgot_attachment.title')}
+        description={t('forgot_attachment.message', { keyword: attachmentWarningKeyword })}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setShowAttachmentWarning(false)}>
+              {t('forgot_attachment.back')}
+            </Button>
+            <Button onClick={() => { setShowAttachmentWarning(false); handleSend({ skipAttachmentCheck: true, skipSubjectCheck: true, delayedUntil: attachmentWarningDelayedUntil }); setAttachmentWarningDelayedUntil(undefined); }}>
+              {t('forgot_attachment.send_anyway')}
+            </Button>
+          </>
+        }
+      />
 
-      {showEmptySubjectWarning && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center z-[60] p-4 animate-in fade-in duration-150"
-          onClick={() => setShowEmptySubjectWarning(false)}
-        >
-          <div
-            ref={emptySubjectWarningRef}
-            role="alertdialog"
-            aria-modal="true"
-            onClick={(e) => e.stopPropagation()}
-            className="bg-background border border-border rounded-lg shadow-xl w-full max-w-md animate-in zoom-in-95 duration-200"
-          >
-            <div className="p-6">
-              <h2 className="text-lg font-semibold text-foreground">{t('empty_subject.title')}</h2>
-              <p className="mt-2 text-sm text-muted-foreground">{t('empty_subject.message')}</p>
-              <label className="mt-4 flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={emptySubjectDontAskAgain}
-                  onChange={(e) => setEmptySubjectDontAskAgain(e.target.checked)}
-                  className="rounded border-input"
-                />
-                {t('empty_subject.dont_ask_again')}
-              </label>
-            </div>
-            <div className="flex items-center justify-end gap-3 px-6 pb-6">
+      <Dialog
+        isOpen={showEmptySubjectWarning}
+        onClose={() => setShowEmptySubjectWarning(false)}
+        role="alertdialog"
+        showClose={false}
+        title={t('empty_subject.title')}
+        description={t('empty_subject.message')}
+        footer={
+            <>
               <Button
                 variant="outline"
                 onClick={() => {
@@ -4823,50 +4787,31 @@ export function EmailComposer({
               >
                 {t('empty_subject.send_anyway')}
               </Button>
-            </div>
-          </div>
-        </div>
-      )}
+            </>
+        }
+      >
+        <label className="mt-4 flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+          <input
+            type="checkbox"
+            checked={emptySubjectDontAskAgain}
+            onChange={(e) => setEmptySubjectDontAskAgain(e.target.checked)}
+            className="rounded border-input"
+          />
+          {t('empty_subject.dont_ask_again')}
+        </label>
+      </Dialog>
 
       <ConfirmDialog {...noDelayDialogProps} />
 
-      {showPlaceholderWarning && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center z-[60] p-4 animate-in fade-in duration-150"
-          onClick={() => setShowPlaceholderWarning(false)}
-        >
-          <div
-            ref={placeholderWarningRef}
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="placeholder-warning-title"
-            onClick={(e) => e.stopPropagation()}
-            className="bg-background border border-border rounded-lg shadow-xl w-full max-w-md animate-in zoom-in-95 duration-200"
-          >
-            <div className="p-6">
-              <h2 id="placeholder-warning-title" className="text-lg font-semibold text-foreground">{t('placeholder_warning.title')}</h2>
-              <p className="mt-2 text-sm text-muted-foreground">{t('placeholder_warning.message')}</p>
-              <ul className="mt-3 flex flex-wrap items-center gap-1.5" aria-label={t('placeholder_warning.found')}>
-                {placeholderWarningMatches.slice(0, 5).map((p) => (
-                  <li key={p} className="max-w-full truncate rounded bg-muted px-2 py-0.5 font-mono text-xs text-foreground">{p}</li>
-                ))}
-                {placeholderWarningMatches.length > 5 && (
-                  <li className="text-xs text-muted-foreground">
-                    {t('placeholder_warning.more', { count: placeholderWarningMatches.length - 5 })}
-                  </li>
-                )}
-              </ul>
-              <label className="mt-4 flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={placeholderDontAskAgain}
-                  onChange={(e) => setPlaceholderDontAskAgain(e.target.checked)}
-                  className="rounded border-input"
-                />
-                {t('placeholder_warning.dont_ask_again')}
-              </label>
-            </div>
-            <div className="flex items-center justify-end gap-3 px-6 pb-6">
+      <Dialog
+        isOpen={showPlaceholderWarning}
+        onClose={() => setShowPlaceholderWarning(false)}
+        role="alertdialog"
+        showClose={false}
+        title={t('placeholder_warning.title')}
+        description={t('placeholder_warning.message')}
+        footer={
+            <>
               <Button
                 variant="outline"
                 onClick={() => {
@@ -4891,48 +4836,54 @@ export function EmailComposer({
               >
                 {t('placeholder_warning.send_anyway')}
               </Button>
-            </div>
-          </div>
-        </div>
-      )}
+            </>
+        }
+      >
+        <ul className="mt-3 flex flex-wrap items-center gap-1.5" aria-label={t('placeholder_warning.found')}>
+          {placeholderWarningMatches.slice(0, 5).map((p) => (
+            <li key={p} className="max-w-full truncate rounded bg-muted px-2 py-0.5 font-mono text-xs text-foreground">{p}</li>
+          ))}
+          {placeholderWarningMatches.length > 5 && (
+            <li className="text-xs text-muted-foreground">
+              {t('placeholder_warning.more', { count: placeholderWarningMatches.length - 5 })}
+            </li>
+          )}
+        </ul>
+        <label className="mt-4 flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+          <input
+            type="checkbox"
+            checked={placeholderDontAskAgain}
+            onChange={(e) => setPlaceholderDontAskAgain(e.target.checked)}
+            className="rounded border-input"
+          />
+          {t('placeholder_warning.dont_ask_again')}
+        </label>
+      </Dialog>
 
-      {showCloseDialog && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center z-[60] p-4 animate-in fade-in duration-150"
-          onClick={() => dismissCloseDialog()}
-        >
-          <div
-            ref={closeDialogRef}
-            role="alertdialog"
-            aria-modal="true"
-            onClick={(e) => e.stopPropagation()}
-            className="bg-background border border-border rounded-lg shadow-xl w-full max-w-md animate-in zoom-in-95 duration-200"
-          >
-            <div className="p-6">
-              <h2 className="text-lg font-semibold text-foreground">
-                {closeDialogKind === 'discard' ? t('discard_draft_title') : t('close_draft_title')}
-              </h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {closeDialogKind === 'discard' ? t('discard_draft_message') : t('close_draft_message')}
-              </p>
-            </div>
-            <div className="flex items-center justify-end gap-3 px-6 pb-6">
-              <Button variant="outline" onClick={() => dismissCloseDialog()}>
-                {t('cancel')}
+      <Dialog
+        isOpen={showCloseDialog}
+        onClose={() => dismissCloseDialog()}
+        role="alertdialog"
+        showClose={false}
+        title={closeDialogKind === 'discard' ? t('discard_draft_title') : t('close_draft_title')}
+        description={closeDialogKind === 'discard' ? t('discard_draft_message') : t('close_draft_message')}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => dismissCloseDialog()}>
+              {t('cancel')}
+            </Button>
+            <Button variant="destructive" onClick={handleDiscardAndClose}>
+              {t('discard')}
+            </Button>
+            {closeDialogKind === 'close' && (
+              <Button onClick={handleSaveDraftAndClose}>
+                <Save className="w-4 h-4 me-2" />
+                {tCommon('save')}
               </Button>
-              <Button variant="destructive" onClick={handleDiscardAndClose}>
-                {t('discard')}
-              </Button>
-              {closeDialogKind === 'close' && (
-                <Button onClick={handleSaveDraftAndClose}>
-                  <Save className="w-4 h-4 me-2" />
-                  {tCommon('save')}
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+            )}
+          </>
+        }
+      />
 
       {previewAttachment && (
         <FilePreviewModal

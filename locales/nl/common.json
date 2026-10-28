@@ -3167,6 +3167,9 @@
     "insert_with_values": "Invoegen met waarden",
     "insert_raw": "Onbewerkt invoegen",
     "copy_suffix": "(kopie)",
+    "duplicate": "Dupliceren",
+    "delete_title": "Sjabloon verwijderen?",
+    "delete_message": "Het sjabloon \"{name}\" wordt definitief verwijderd.",
     "placeholder": "Variabele",
     "placeholders": {
       "recipient_name": "Naam ontvanger",

@@ -3167,6 +3167,9 @@
     "insert_with_values": "Wstaw z wartościami",
     "insert_raw": "Wstaw bez zmian",
     "copy_suffix": "(kopia)",
+    "duplicate": "Duplikuj",
+    "delete_title": "Usunąć szablon?",
+    "delete_message": "Szablon „{name}” zostanie trwale usunięty.",
     "placeholder": "Zmienna",
     "placeholders": {
       "recipient_name": "Nazwa odbiorcy",

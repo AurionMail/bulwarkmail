@@ -3167,6 +3167,9 @@
     "insert_with_values": "Inserir com valores",
     "insert_raw": "Inserir bruto",
     "copy_suffix": "(cópia)",
+    "duplicate": "Duplicar",
+    "delete_title": "Eliminar o modelo?",
+    "delete_message": "O modelo \"{name}\" será eliminado definitivamente.",
     "placeholder": "Variável",
     "placeholders": {
       "recipient_name": "Nome do destinatário",

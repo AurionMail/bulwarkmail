@@ -3167,6 +3167,9 @@
     "insert_with_values": "Vložiť s hodnotami",
     "insert_raw": "Vložiť bez zmien",
     "copy_suffix": "(kópia)",
+    "duplicate": "Duplikovať",
+    "delete_title": "Odstrániť šablónu?",
+    "delete_message": "Šablóna „{name}“ bude natrvalo odstránená.",
     "placeholder": "Premenná",
     "placeholders": {
       "recipient_name": "Meno príjemcu",

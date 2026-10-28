@@ -3167,6 +3167,9 @@
     "insert_with_values": "Beszúrás értékekkel",
     "insert_raw": "Nyers beszúrás",
     "copy_suffix": "(másolat)",
+    "duplicate": "Duplikálás",
+    "delete_title": "Törli a sablont?",
+    "delete_message": "A(z) „{name}” sablon véglegesen törlődik.",
     "placeholder": "Változó",
     "placeholders": {
       "recipient_name": "Címzett neve",
