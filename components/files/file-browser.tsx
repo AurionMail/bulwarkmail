@@ -1040,19 +1040,22 @@ export function FileBrowser({
   } : null;
 
   return (
-    <div className="relative flex flex-1 min-h-0">
+    // Clips the closed drawer, so it never sits over the nav rail.
+    <div className="relative flex flex-1 min-h-0 overflow-hidden">
       {/* Folder sidebar: in flow on desktop, a drawer on narrow panes */}
       {sidebar && isNarrow && narrowSidebarOpen && (
         <div className="absolute inset-0 bg-black/50 z-40" onClick={() => setNarrowSidebarOpen(false)} />
       )}
       {sidebar && (isNarrow ? (
         <div
+          data-testid="files-sidebar-drawer"
           className={cn(
             "absolute inset-y-0 start-0 z-50 w-72 border-e border-border",
-            "transform transition-transform duration-300 ease-in-out",
-            !narrowSidebarOpen && "-translate-x-full rtl:translate-x-full",
+            "transform transition-[transform,visibility] duration-300 ease-in-out",
+            !narrowSidebarOpen && "invisible -translate-x-full rtl:translate-x-full",
           )}
-          aria-hidden={!narrowSidebarOpen}
+          // Closed, the drawer is out of reach: no clicks, no Tab stops.
+          inert={!narrowSidebarOpen}
         >
           {sidebar}
         </div>

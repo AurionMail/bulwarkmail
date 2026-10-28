@@ -334,4 +334,13 @@ describe('FileBrowser', () => {
     expect(within(bar).getByRole('button', { name: 'download' })).toBeInTheDocument();
     expect(within(bar).getByRole('button', { name: 'delete' })).toBeInTheDocument();
   });
+
+  it("takes the closed folder drawer out of reach, so it can't cover the nav rail or catch Tab", () => {
+    renderBrowser();
+    const drawer = screen.getByTestId('files-sidebar-drawer');
+    expect(drawer).toHaveAttribute('inert');
+    expect(drawer.className).toContain('invisible');
+    tree();
+    expect(drawer).not.toHaveAttribute('inert');
+  });
 });

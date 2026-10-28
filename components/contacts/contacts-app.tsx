@@ -975,7 +975,8 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
         {inlineApp && (
           <InlineAppView apps={loadedApps} activeAppId={inlineApp!.id} onClose={closeInlineApp} />
         )}
-        <div className={cn("relative flex flex-1 min-h-0", inlineApp && "hidden")}>
+        {/* Clips the closed drawer, so it never sits over the nav rail. */}
+        <div className={cn("relative flex flex-1 min-h-0 overflow-hidden", inlineApp && "hidden")}>
           {/* Narrow-pane backdrop for the overlay categories sidebar */}
           {isNarrow && narrowSidebarOpen && (
             <div
@@ -992,15 +993,18 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
               {(!isMobile || isNarrow) && (
                 <>
                   <div
+                    data-testid={isNarrow ? "contacts-sidebar-drawer" : undefined}
                     className={cn(
                       "border-e border-border flex flex-col flex-shrink-0 bg-background",
                       !isSidebarResizing && "transition-[width] duration-300",
                       isNarrow && cn(
-                        "absolute inset-y-0 left-0 z-50 w-72 pt-[env(safe-area-inset-top)]",
-                        "transform transition-transform duration-300 ease-in-out",
-                        !narrowSidebarOpen && "-translate-x-full"
+                        "absolute inset-y-0 start-0 z-50 w-72 pt-[env(safe-area-inset-top)]",
+                        "transform transition-[transform,visibility] duration-300 ease-in-out",
+                        !narrowSidebarOpen && "invisible -translate-x-full rtl:translate-x-full"
                       )
                     )}
+                    // Closed, the drawer is out of reach: no clicks, no Tab stops.
+                    inert={isNarrow && !narrowSidebarOpen}
                     style={isNarrow ? undefined : { width: `${sidebarWidth}px` }}
                   >
                     <ContactsSidebar
