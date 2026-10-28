@@ -31,6 +31,7 @@ import { getPathPrefix, withBasePath } from "@/lib/browser-navigation";
 import { useStalwartAdmin } from "@/hooks/use-stalwart-admin";
 import { useUpdateStore, selectHasUpdate } from "@/stores/update-store";
 import { cn } from "@/lib/utils";
+import { interceptLeave, leaveWhenAllowed } from "@/lib/leave-guard";
 import { openKeyboardShortcuts, parkAppCommand, requestAppCommand } from "@/lib/app-commands";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useAccountStore } from "@/stores/account-store";
@@ -127,8 +128,10 @@ export function MvTopBar({
   const selectAllInboxes = onSelectAllInboxes ?? (allInboxesReachable
     ? () => {
         if (requestAppCommand("all-inboxes")) return;
-        parkAppCommand("all-inboxes");
-        router.push("/");
+        leaveWhenAllowed(() => {
+          parkAppCommand("all-inboxes");
+          router.push("/");
+        });
       }
     : undefined);
   const { appName, appLogoLightUrl, appLogoDarkUrl } = useConfig();
@@ -213,7 +216,7 @@ export function MvTopBar({
             <Menu className="w-5 h-5" />
           </button>
         )}
-        <Link href="/" className="flex items-center gap-2 pe-4 min-w-0" aria-label={appName}>
+        <Link href="/" onClick={(e) => { interceptLeave(e); }} className="flex items-center gap-2 pe-4 min-w-0" aria-label={appName}>
           {logoUrl ? <img src={logoUrl} alt="" className="w-8 h-8 object-contain" /> : null}
           <span className="text-[22px] leading-none text-foreground/80 truncate">{appName}</span>
         </Link>
@@ -288,6 +291,7 @@ export function MvTopBar({
         {isStalwartAdmin && (
           <a
             href={`${getPathPrefix()}/admin`}
+            onClick={(e) => { interceptLeave(e); }}
             className="relative grid place-items-center w-12 h-12 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             title={t("admin")}
             aria-label={hasUpdate ? `${t("admin")}, ${tShell(updateImportant ? "update_important" : "update_available")}` : t("admin")}
@@ -306,6 +310,7 @@ export function MvTopBar({
         )}
         <Link
           href="/settings"
+          onClick={(e) => { interceptLeave(e); }}
           className="grid place-items-center w-12 h-12 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           title={t("settings")}
           aria-label={t("settings")}
@@ -347,8 +352,11 @@ export function MvTopBar({
                       key={app.id}
                       href={app.href}
                       role="menuitem"
-                      onClick={() => {
-                        if (activeAppId) onCloseInlineApp?.();
+                      onClick={(e) => {
+                        // The menu is gone by the time the user answers,
+                        // so the way out is replayed, not re-clicked.
+                        const leave = () => { if (activeAppId) onCloseInlineApp?.(); };
+                        if (!interceptLeave(e, () => { leave(); router.push(app.href); })) leave();
                         setAppsOpen(false);
                       }}
                       className={cn(
@@ -370,8 +378,9 @@ export function MvTopBar({
                       role="menuitem"
                       title={page.pluginName}
                       data-plugin-page-link={`${page.pluginId}/${page.id}`}
-                      onClick={() => {
-                        if (activeAppId) onCloseInlineApp?.();
+                      onClick={(e) => {
+                        const leave = () => { if (activeAppId) onCloseInlineApp?.(); };
+                        if (!interceptLeave(e, () => { leave(); router.push(pluginPageHref(page)); })) leave();
                         setAppsOpen(false);
                       }}
                       className={cn(
