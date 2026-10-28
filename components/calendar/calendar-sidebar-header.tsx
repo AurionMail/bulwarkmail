@@ -26,10 +26,10 @@ export function CalendarSidebarHeader({ onCreateEvent, createLabel, tourTarget =
     <div className="px-3 h-14 box-content border-b border-border flex items-center justify-between flex-shrink-0">
       <span className="text-sm font-semibold truncate">{t("title")}</span>
       <Button
-        size="icon"
+        size="icon-sm"
         variant="ghost"
         onClick={onCreateEvent}
-        className="h-8 w-8 flex-shrink-0"
+        className="flex-shrink-0"
         aria-label={label}
         title={label}
         data-tour={tourTarget ? "create-event-button" : undefined}

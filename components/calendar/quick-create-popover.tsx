@@ -194,10 +194,10 @@ export function QuickCreatePopover({
           )}
         </div>
         <div className="flex items-center justify-end gap-2 px-4 py-2.5 border-t border-border">
-          <Button type="button" variant="ghost" size="sm" className="h-8" onClick={onMoreOptions}>
+          <Button type="button" variant="ghost" size="xs" onClick={onMoreOptions}>
             {t("quick_create.more_options")}
           </Button>
-          <Button type="submit" size="sm" className="h-8" disabled={!canSave}>
+          <Button type="submit" size="xs" disabled={!canSave}>
             {t("form.save")}
           </Button>
         </div>

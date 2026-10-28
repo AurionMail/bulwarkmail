@@ -362,9 +362,9 @@ export function CalendarToolbar({
       {onMenuClick && (
         <Button
           variant="ghost"
-          size="icon"
+          size="icon-sm"
           onClick={onMenuClick}
-          className="h-8 w-8 -ms-1 me-1"
+          className="-ms-1 me-1"
           aria-label={menuTogglesSidebar ? t(sidebarOpen ? "nav_hide_sidebar" : "nav_show_sidebar") : t("nav_open_menu")}
           title={menuTogglesSidebar ? t(sidebarOpen ? "nav_hide_sidebar" : "nav_show_sidebar") : t("nav_open_menu")}
           aria-expanded={sidebarOpen}
@@ -375,9 +375,8 @@ export function CalendarToolbar({
       {showCreateButton && (
         <Button
           variant="ghost"
-          size="icon"
+          size="icon-sm"
           onClick={onCreateEvent}
-          className="h-8 w-8"
           aria-label={createLabel ?? t("events.create")}
           title={createLabel ?? t("events.create")}
           data-tour="create-event-button"
@@ -389,17 +388,16 @@ export function CalendarToolbar({
         <>
           <Button
             variant="outline"
-            size="sm"
+            size="xs"
             onClick={onToday}
-            className="h-8 me-1"
+            className="me-1"
             title={formatFullDate(displayNow())}
           >
             {t("views.today")}
           </Button>
           <Button
             variant="ghost"
-            size="icon"
-            className="h-8 w-8"
+            size="icon-sm"
             onClick={onPrev}
             aria-label={t("nav_prev")}
           >
@@ -407,8 +405,7 @@ export function CalendarToolbar({
           </Button>
           <Button
             variant="ghost"
-            size="icon"
-            className="h-8 w-8"
+            size="icon-sm"
             onClick={onNext}
             aria-label={t("nav_next")}
           >

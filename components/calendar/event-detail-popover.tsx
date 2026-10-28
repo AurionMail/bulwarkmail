@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect } fr
 import { useTranslations, useLocale } from "next-intl";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { LinkifiedText } from "@/components/ui/linkified-text";
 import {
   X, Clock, MapPin, Video, Users, Repeat, Bell, AlignLeft,
@@ -56,7 +57,7 @@ interface EventDetailPopoverProps {
 }
 
 const POPOVER_WIDTH = 360;
-const HEADER_BUTTON = "p-1.5 rounded-md hover:bg-muted transition-colors duration-150 text-muted-foreground hover:text-foreground";
+const HEADER_BUTTON = "text-muted-foreground hover:text-foreground";
 const POPOVER_GAP = 8;
 const VIEWPORT_MARGIN = 12;
 const MAX_HEIGHT = 480;
@@ -355,45 +356,37 @@ export function EventDetailPopover({
       {/* Actions sit at the top, the event's colour square beside its title. */}
       <div className="flex items-center justify-end gap-0.5 px-2 pt-2">
         {canEditBody && (
-          <button
-            type="button"
+          <IconButton
             onClick={onEdit}
             className={HEADER_BUTTON}
-            aria-label={t("events.edit")}
-            title={t("events.edit")}
+            label={t("events.edit")}
           >
             <Pencil className="w-4 h-4" />
-          </button>
+          </IconButton>
         )}
         {canEditBody && (
-          <button
-            type="button"
+          <IconButton
             onClick={onDelete}
             className={HEADER_BUTTON}
-            aria-label={t("events.delete")}
-            title={t("events.delete")}
+            label={t("events.delete")}
           >
             <Trash2 className="w-4 h-4" />
-          </button>
+          </IconButton>
         )}
-        <button
-          type="button"
+        <IconButton
           onClick={onMore ?? onDuplicate}
           className={HEADER_BUTTON}
-          aria-label={onMore ? t("toolbar.more") : t("events.duplicate")}
-          title={onMore ? t("toolbar.more") : t("events.duplicate")}
+          label={onMore ? t("toolbar.more") : t("events.duplicate")}
         >
           {onMore ? <MoreVertical className="w-4 h-4" /> : <CopyPlus className="w-4 h-4" />}
-        </button>
-        <button
-          type="button"
+        </IconButton>
+        <IconButton
           onClick={onClose}
           className={HEADER_BUTTON}
-          aria-label={tCommon("close")}
-          title={tCommon("close")}
+          label={tCommon("close")}
         >
           <X className="w-4 h-4" />
-        </button>
+        </IconButton>
       </div>
 
       <div className="flex items-start gap-2.5 px-4 pb-1">
@@ -617,20 +610,18 @@ export function EventDetailPopover({
               <div className="flex justify-end gap-1.5">
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="xs"
                   onClick={() => {
                     setNoteText("");
                     setNoteExpanded(false);
                   }}
-                  className="h-7 text-xs"
                 >
                   {t("form.cancel")}
                 </Button>
                 <Button
-                  size="sm"
+                  size="xs"
                   onClick={handleSaveNote}
                   disabled={!noteText.trim() || isSavingNote}
-                  className="h-7 text-xs"
                 >
                   <Send className="w-3 h-3 me-1" />
                   {t("detail.save_note")}
