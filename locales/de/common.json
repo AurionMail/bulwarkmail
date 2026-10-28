@@ -4714,7 +4714,7 @@
     "search_unavailable": "Die Suche ist in der vereinheitlichten Ansicht nicht verfügbar"
   },
   "recover_deleted": {
-    "tab": "Gelöschte Elemente wiederherstellen",
+    "tab": "Gelöschte E-Mails",
     "title": "Gelöschte Elemente wiederherstellen",
     "description": "E-Mails, die Sie endgültig gelöscht haben, zum Beispiel durch Leeren des Papierkorbs, und die der Server noch aufbewahrt. Wählen Sie Nachrichten aus und stellen Sie sie wieder her.",
     "range_days": "Angezeigt werden E-Mails, die {days, plural, one {am letzten Tag} other {in den letzten # Tagen}} gelöscht wurden.",
