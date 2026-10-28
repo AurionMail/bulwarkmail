@@ -618,7 +618,6 @@
     "reschedule_send": "Reprogramare",
     "cancel_and_edit": "Anulează și editează",
     "cancel_and_compose_again": "Anulează și redactează din nou",
-    "reschedule_prompt": "Introduceți o nouă dată/oră, de exemplu 2026-05-04T15:30",
     "scheduled_actions_only": "Vizualizarea programată acceptă numai acțiuni programate",
     "undo_send_scheduled": "Mesaj programat pentru trimitere",
     "undo_send": "Anulează trimiterea",

@@ -618,7 +618,6 @@
     "reschedule_send": "باززمان‌بندی",
     "cancel_and_edit": "لغو و ویرایش",
     "cancel_and_compose_again": "لغو و نوشتن مجدد",
-    "reschedule_prompt": "تاریخ/زمان جدید را وارد کنید",
     "scheduled_actions_only": "نمای زمان‌بندی فقط عملیات زمان‌بندی را پشتیبانی می‌کند",
     "undo_send_scheduled": "پیام برای ارسال زمان‌بندی شد",
     "undo_send": "بازگردانی ارسال",

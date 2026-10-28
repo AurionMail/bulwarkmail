@@ -618,7 +618,6 @@
     "reschedule_send": "Yeniden zamanla",
     "cancel_and_edit": "İptal et ve düzenle",
     "cancel_and_compose_again": "İptal et ve yeniden yaz",
-    "reschedule_prompt": "Yeni tarih/saat girin, ör. 2026-05-04T15:30",
     "scheduled_actions_only": "Zamanlandı görünümü yalnızca zamanlama işlemlerini destekler",
     "undo_send_scheduled": "İleti gönderim için zamanlandı",
     "undo_send": "Göndermeyi geri al",

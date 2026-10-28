@@ -618,7 +618,6 @@
     "reschedule_send": "Reschedule",
     "cancel_and_edit": "Cancel and edit",
     "cancel_and_compose_again": "Cancel and compose again",
-    "reschedule_prompt": "Enter a new date/time, e.g. 2026-05-04T15:30",
     "scheduled_actions_only": "Scheduled view supports scheduled actions only",
     "undo_send_scheduled": "Message scheduled for sending",
     "undo_send": "Undo send",

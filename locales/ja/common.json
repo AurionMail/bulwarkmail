@@ -618,7 +618,6 @@
     "reschedule_send": "再予約",
     "cancel_and_edit": "キャンセルして編集",
     "cancel_and_compose_again": "キャンセルして新規作成",
-    "reschedule_prompt": "新しい日時を入力してください。例: 2026-05-04T15:30",
     "scheduled_actions_only": "予約済みビューでは予約アクションのみ利用できます",
     "undo_send_scheduled": "メッセージは送信予約されています",
     "undo_send": "送信を取り消す",

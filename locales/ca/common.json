@@ -618,7 +618,6 @@
     "reschedule_send": "Reprograma",
     "cancel_and_edit": "Cancel·la i edita",
     "cancel_and_compose_again": "Cancel·la i torna a redactar",
-    "reschedule_prompt": "Introduïu una data i hora noves, p. ex. 2026-05-04T15:30",
     "scheduled_actions_only": "La vista de programats només admet accions de programació",
     "undo_send_scheduled": "Missatge programat per enviar-se",
     "undo_send": "Desfés l'enviament",

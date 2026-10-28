@@ -618,7 +618,6 @@
     "reschedule_send": "Przełóż",
     "cancel_and_edit": "Anuluj i edytuj",
     "cancel_and_compose_again": "Anuluj i napisz ponownie",
-    "reschedule_prompt": "Wprowadź nową datę/godzinę, np. 2026-05-04T15:30",
     "scheduled_actions_only": "Widok Zaplanowane obsługuje tylko akcje planowania",
     "undo_send_scheduled": "Wiadomość zaplanowana do wysłania",
     "undo_send": "Cofnij wysyłkę",

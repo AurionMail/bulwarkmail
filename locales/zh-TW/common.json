@@ -618,7 +618,6 @@
     "reschedule_send": "重新排程",
     "cancel_and_edit": "取消並編輯",
     "cancel_and_compose_again": "取消並重新撰寫",
-    "reschedule_prompt": "輸入新的日期與時間，例如 2026-05-04T15:30",
     "scheduled_actions_only": "此檢視僅支援排程寄送動作",
     "undo_send_scheduled": "郵件已排程寄送",
     "undo_send": "取消傳送",

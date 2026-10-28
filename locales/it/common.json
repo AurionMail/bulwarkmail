@@ -618,7 +618,6 @@
     "reschedule_send": "Riprogramma",
     "cancel_and_edit": "Annulla e modifica",
     "cancel_and_compose_again": "Annulla e componi di nuovo",
-    "reschedule_prompt": "Inserisci una nuova data/ora, ad es. 2026-05-04T15:30",
     "scheduled_actions_only": "La vista Programmate supporta solo azioni di programmazione",
     "undo_send_scheduled": "Messaggio programmato per l’invio",
     "undo_send": "Annulla invio",

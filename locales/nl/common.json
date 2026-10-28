@@ -618,7 +618,6 @@
     "reschedule_send": "Opnieuw plannen",
     "cancel_and_edit": "Annuleren en bewerken",
     "cancel_and_compose_again": "Annuleren en opnieuw opstellen",
-    "reschedule_prompt": "Voer een nieuwe datum/tijd in, bijv. 2026-05-04T15:30",
     "scheduled_actions_only": "De geplande weergave ondersteunt alleen geplande acties",
     "undo_send_scheduled": "Bericht gepland voor verzending",
     "undo_send": "Verzenden ongedaan maken",

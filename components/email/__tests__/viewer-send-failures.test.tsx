@@ -138,6 +138,28 @@ describe('viewer send failures', () => {
     expect(onRescheduleScheduled).toHaveBeenCalledTimes(1);
   });
 
+  it('reschedules through the schedule dialog, not a browser prompt', async () => {
+    const prompt = vi.spyOn(window, 'prompt');
+    const onRescheduleScheduled = vi.fn().mockResolvedValue(undefined);
+    useAuthStore.setState({ client: { hasDelayedSend: () => true, getMaxDelayedSend: () => 0 } as never });
+    render(
+      <EmailViewer
+        email={scheduled()}
+        mailboxes={mailboxes}
+        selectedMailbox="inbox"
+        currentMailboxRole="inbox"
+        onRescheduleScheduled={onRescheduleScheduled}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByText('reschedule_send').at(-1)!);
+    expect(prompt).not.toHaveBeenCalled();
+    fireEvent.click(await screen.findByText('schedule_preset.tomorrow_afternoon'));
+
+    await waitFor(() => expect(onRescheduleScheduled).toHaveBeenCalledTimes(1));
+    expect(new Date(onRescheduleScheduled.mock.calls[0][0]).getHours()).toBe(13);
+  });
+
   it('says the message was already sent when it went out while room was made on Stalwart 1.0', async () => {
     const onRescheduleScheduled = vi.fn().mockRejectedValue(new NoLongerScheduledError(true));
     render(

@@ -618,7 +618,6 @@
     "reschedule_send": "Átütemezés",
     "cancel_and_edit": "Mégse és szerkesztés",
     "cancel_and_compose_again": "Mégse és újraírás",
-    "reschedule_prompt": "Adj meg egy új dátumot/időpontot, pl. 2026-05-04T15:30",
     "scheduled_actions_only": "Az ütemezett nézet csak ütemezett műveleteket támogat",
     "undo_send_scheduled": "Üzenet ütemezve a küldéshez",
     "undo_send": "Küldés visszavonása",

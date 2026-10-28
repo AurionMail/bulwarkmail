@@ -618,7 +618,6 @@
     "reschedule_send": "Ajasta uuesti",
     "cancel_and_edit": "Tühista ja muuda",
     "cancel_and_compose_again": "Tühista ja koosta uuesti",
-    "reschedule_prompt": "Sisesta uus kuupäev/kellaaeg, nt 2026-05-04T15:30",
     "scheduled_actions_only": "Ajastatud vaade toetab ainult ajastatud toiminguid",
     "undo_send_scheduled": "Kiri ajastatud saatmiseks",
     "undo_send": "Võta saatmine tagasi",

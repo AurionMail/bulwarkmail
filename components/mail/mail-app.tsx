@@ -80,6 +80,7 @@ import {
   ComposerErrorFallback,
 } from "@/components/error";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ScheduleSendDialog } from "@/components/email/schedule-send-dialog";
 import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { TotpReauthDialog } from "@/components/totp-reauth-dialog";
 import { DragDropProvider } from "@/contexts/drag-drop-context";
@@ -249,6 +250,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const { showAppsModal, inlineApp, loadedApps, handleManageApps, handleInlineApp, closeInlineApp, closeAppsModal } = useSidebarApps();
   const [initialCheckDone, setInitialCheckDone] = useState(() => useAuthStore.getState().isAuthenticated && !!useAuthStore.getState().client);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  // The scheduled message Reschedule was picked for in the list's menu.
+  const [rescheduleTarget, setRescheduleTarget] = useState<Email | null>(null);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   // Column resize state (disable transitions during drag)
   const [isResizing, setIsResizing] = useState(false);
@@ -311,30 +314,6 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const trustedSendersAddressBook = useSettingsStore((state) => state.trustedSendersAddressBook);
   const sendDelaySeconds = useSettingsStore((state) => state.sendDelaySeconds);
   const { loadTrustedSendersBook, trustedSendersLoaded, loadRecentRecipients } = useContactStore(useShallow((state) => ({ loadTrustedSendersBook: state.loadTrustedSendersBook, trustedSendersLoaded: state.trustedSendersLoaded, loadRecentRecipients: state.loadRecentRecipients })));
-
-  const promptForRescheduleDelayedUntil = useCallback((): string | null => {
-    const value = window.prompt(t('email_viewer.reschedule_prompt'));
-    if (!value) return null;
-    const time = new Date(value).getTime();
-    if (!Number.isFinite(time)) {
-      toast.error(t('email_composer.schedule_send_invalid'));
-      return null;
-    }
-    if (time <= Date.now()) {
-      toast.error(t('email_composer.schedule_send_future'));
-      return null;
-    }
-    if (!client?.hasDelayedSend()) {
-      toast.error(t('email_composer.schedule_send_unsupported'));
-      return null;
-    }
-    const maxDelayedSend = client.getMaxDelayedSend();
-    if (maxDelayedSend > 0 && time > Date.now() + maxDelayedSend * 1000) {
-      toast.error(t('email_composer.schedule_send_too_late'));
-      return null;
-    }
-    return new Date(time).toISOString();
-  }, [client, t]);
 
   // Load trusted senders address book when feature is enabled
   useEffect(() => {
@@ -2414,6 +2393,20 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   };
 
   /** When a scheduled message goes out, as the user reads times, if known. */
+  // Reschedule from the list's menu, which does not wait for it: report here.
+  const rescheduleListEmail = async (email: Email, delayedUntil: string) => {
+    if (!client || !email.emailSubmissionId || !email.scheduledIdentityId) return;
+    try {
+      const result = await rescheduleScheduledEmail(client, email.emailSubmissionId, email.id, email.scheduledIdentityId, delayedUntil, email.scheduledAccountId);
+      const refused = partlyRefusedWarning(result, tComposer);
+      if (refused) toast.warning(refused);
+    } catch (error) {
+      console.error('Failed to reschedule the scheduled send:', error);
+      const { title, message } = rescheduleFailureToast(error, tViewer, tComposer, scheduledTime(email.scheduledSendAt));
+      toast.error(title, message ? { message } : undefined);
+    }
+  };
+
   const scheduledTime = (sendAt: string | undefined) =>
     sendAt ? formatDateTime(sendAt, useSettingsStore.getState().timeFormat) : undefined;
 
@@ -5160,21 +5153,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   setShowComposer(true);
                   if (isMobile) setActiveView('viewer');
                 }}
-                onRescheduleScheduled={async (email) => {
-                  const delayedUntil = promptForRescheduleDelayedUntil();
-                  if (delayedUntil && client && email.emailSubmissionId && email.scheduledIdentityId) {
-                    // The context menu does not wait for this; report here.
-                    try {
-                      const result = await rescheduleScheduledEmail(client, email.emailSubmissionId, email.id, email.scheduledIdentityId, delayedUntil, email.scheduledAccountId);
-                      const refused = partlyRefusedWarning(result, tComposer);
-                      if (refused) toast.warning(refused);
-                    } catch (error) {
-                      console.error('Failed to reschedule the scheduled send:', error);
-                      const { title, message } = rescheduleFailureToast(error, tViewer, tComposer, scheduledTime(email.scheduledSendAt));
-                      toast.error(title, message ? { message } : undefined);
-                    }
-                  }
-                }}
+                onRescheduleScheduled={(email) => setRescheduleTarget(email)}
                 onEmailSelect={handleEmailSelect}
                 onOpenSearchResult={handleEmailSelect}
                 onEmailPrefetch={handleEmailPrefetch}
@@ -5576,6 +5555,21 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           />
         )}
         <ConfirmDialog {...confirmDialogProps} />
+        {rescheduleTarget && (
+          <ScheduleSendDialog
+            isOpen
+            onClose={() => setRescheduleTarget(null)}
+            title={t('email_viewer.reschedule_send')}
+            supported={!!client?.hasDelayedSend()}
+            maxDelayedSend={client?.getMaxDelayedSend() ?? 0}
+            initialDate={rescheduleTarget.scheduledSendAt ? new Date(rescheduleTarget.scheduledSendAt) : undefined}
+            onSchedule={(delayedUntil) => {
+              const email = rescheduleTarget;
+              setRescheduleTarget(null);
+              void rescheduleListEmail(email, delayedUntil);
+            }}
+          />
+        )}
         <PromptDialog {...promptDialogProps} />
         {client && sharingMailbox && (
           <MailboxShareDialog

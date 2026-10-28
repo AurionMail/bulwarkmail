@@ -36,6 +36,7 @@ import { getSecurityStatus, extractListHeaders, getSenderVerification } from "@/
 import { emailToReadView } from "@/lib/plugin-projection";
 import type { EmailReadView, ExternalLinkContext } from "@/lib/plugin-types";
 import { generateEmailSource } from "@/lib/email-source";
+import { ScheduleSendDialog } from "./schedule-send-dialog";
 import {
   Reply,
   ReplyAll,
@@ -1293,29 +1294,6 @@ export function EmailViewer({
       throw error;
     }
   };
-  const promptForRescheduleDelayedUntil = useCallback((): string | null => {
-    const value = window.prompt(t('reschedule_prompt'));
-    if (!value) return null;
-    const time = new Date(value).getTime();
-    if (!Number.isFinite(time)) {
-      toast.error(tComposer('schedule_send_invalid'));
-      return null;
-    }
-    if (time <= Date.now()) {
-      toast.error(tComposer('schedule_send_future'));
-      return null;
-    }
-    if (!client?.hasDelayedSend()) {
-      toast.error(tComposer('schedule_send_unsupported'));
-      return null;
-    }
-    const maxDelayedSend = client.getMaxDelayedSend();
-    if (maxDelayedSend > 0 && time > Date.now() + maxDelayedSend * 1000) {
-      toast.error(tComposer('schedule_send_too_late'));
-      return null;
-    }
-    return new Date(time).toISOString();
-  }, [client, t, tComposer]);
   // "Send now" and "Reschedule" submit a replacement and cancel the original;
   // either can fail (a full submission quota, the mail already gone), and the
   // failure used to end up as an unhandled rejection nobody saw.
@@ -1389,6 +1367,8 @@ export function EmailViewer({
   };
   const [showSourceModal, setShowSourceModal] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  // Reschedule picks the new time in the composer's Schedule send dialog.
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
   // The mobile More panel sits off-canvas with a slide transition. Until
   // the user opens it once, that transition must stay off: on the first
   // paint after the viewer mounts WebKit transitions `translate` from its
@@ -3886,8 +3866,7 @@ export function EmailViewer({
               variant="ghost"
               size="sm"
               onClick={() => {
-                const delayedUntil = promptForRescheduleDelayedUntil();
-                if (delayedUntil) void rescheduleScheduled(delayedUntil);
+                setRescheduleOpen(true);
               }}
               className="hidden sm:flex sm:h-8 sm:gap-1.5 sm:py-0"
               title={t('reschedule_send')}
@@ -5797,8 +5776,7 @@ export function EmailViewer({
                       size="sm"
                       variant="outline"
                       onClick={() => {
-                        const delayedUntil = promptForRescheduleDelayedUntil();
-                        if (delayedUntil) void rescheduleScheduled(delayedUntil);
+                        setRescheduleOpen(true);
                       }}
                       className="gap-1.5"
                     >
@@ -6475,6 +6453,21 @@ export function EmailViewer({
         </div>
       </div>
       </div>
+
+      {isScheduled && (
+        <ScheduleSendDialog
+          isOpen={rescheduleOpen}
+          onClose={() => setRescheduleOpen(false)}
+          title={t('reschedule_send')}
+          supported={!!client?.hasDelayedSend()}
+          maxDelayedSend={client?.getMaxDelayedSend() ?? 0}
+          initialDate={email?.scheduledSendAt ? new Date(email.scheduledSendAt) : undefined}
+          onSchedule={(delayedUntil) => {
+            setRescheduleOpen(false);
+            void rescheduleScheduled(delayedUntil);
+          }}
+        />
+      )}
 
       {/* Email Source Modal - pane-scoped inside a Pro pane so it never
           covers the neighbouring split pane. */}
