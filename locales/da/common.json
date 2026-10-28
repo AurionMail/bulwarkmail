@@ -2316,7 +2316,7 @@
       "validate": "Valider",
       "validation_success": "Scriptet er gyldigt",
       "validation_error": "Scriptet har fejl",
-      "save": "Gem regler",
+      "save": "Gem",
       "saving": "Gemmer...",
       "saved": "Filtre gemt succesfuldt",
       "save_failed": "Kunne ikke gemme filtre",

@@ -2313,7 +2313,7 @@
       "validate": "验证",
       "validation_success": "脚本有效",
       "validation_error": "脚本有错误",
-      "save": "保存规则",
+      "save": "保存",
       "saving": "保存中...",
       "saved": "过滤器保存成功",
       "save_failed": "无法保存过滤器",

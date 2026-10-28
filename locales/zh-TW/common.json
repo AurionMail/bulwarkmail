@@ -2320,7 +2320,7 @@
       "validate": "驗證",
       "validation_success": "指令碼有效",
       "validation_error": "指令碼有錯誤",
-      "save": "儲存規則",
+      "save": "儲存",
       "saving": "正在儲存…",
       "saved": "篩選規則已成功儲存",
       "save_failed": "無法儲存篩選規則",

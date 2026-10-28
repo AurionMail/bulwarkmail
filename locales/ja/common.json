@@ -2313,7 +2313,7 @@
       "validate": "検証",
       "validation_success": "スクリプトは有効です",
       "validation_error": "スクリプトにエラーがあります",
-      "save": "ルールを保存",
+      "save": "保存",
       "saving": "保存中...",
       "saved": "フィルターを保存しました",
       "save_failed": "フィルターの保存に失敗しました",

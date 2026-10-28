@@ -2313,7 +2313,7 @@
       "validate": "Ověřit",
       "validation_success": "Skript je platný",
       "validation_error": "Skript obsahuje chyby",
-      "save": "Uložit pravidla",
+      "save": "Uložit",
       "saving": "Ukládání...",
       "saved": "Filtry byly uloženy",
       "save_failed": "Uložení filtrů selhalo",

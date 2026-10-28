@@ -102,7 +102,7 @@ describe('filter rule period (dialog)', () => {
     fireEvent.click(toggle());
     save();
     expect(onSave).not.toHaveBeenCalled();
-    expect(toastError).toHaveBeenCalledWith('validation_period_empty');
+    expect(screen.getByRole('alert').textContent).toBe('validation_period_empty');
   });
 
   it('will not take a date without its time for an open end', () => {
@@ -114,7 +114,7 @@ describe('filter rule period (dialog)', () => {
     Object.defineProperty(endInput(), 'validity', { value: { badInput: true }, configurable: true });
     save();
     expect(onSave).not.toHaveBeenCalled();
-    expect(toastError).toHaveBeenCalledWith('validation_period_invalid');
+    expect(screen.getByRole('alert').textContent).toBe('validation_period_invalid');
   });
 
   it('refuses a year it cannot store, rather than leave that end open', () => {
@@ -124,15 +124,14 @@ describe('filter rule period (dialog)', () => {
     fireEvent.change(endInput(), { target: { value: '20266-10-16T18:00' } });
     save();
     expect(onSave).not.toHaveBeenCalled();
-    expect(toastError).toHaveBeenCalledWith('validation_period_invalid');
+    expect(screen.getByRole('alert').textContent).toBe('validation_period_invalid');
 
     // The last minute of 9999 in New York is year 10000 in UTC already.
-    toastError.mockClear();
     useSettingsStore.setState({ timeZone: 'America/New_York' });
     fireEvent.change(endInput(), { target: { value: '9999-12-31T23:59' } });
     save();
     expect(onSave).not.toHaveBeenCalled();
-    expect(toastError).toHaveBeenCalledWith('validation_period_invalid');
+    expect(screen.getByRole('alert').textContent).toBe('validation_period_invalid');
   });
 
   it('offers no year past 9999', () => {
@@ -149,7 +148,7 @@ describe('filter rule period (dialog)', () => {
     fireEvent.change(endInput(), { target: { value: '2026-10-16T18:00' } });
     save();
     expect(onSave).not.toHaveBeenCalled();
-    expect(toastError).toHaveBeenCalledWith('validation_period_order');
+    expect(screen.getByRole('alert').textContent).toBe('validation_period_order');
   });
 
   it('shows a saved period in the user time zone', () => {

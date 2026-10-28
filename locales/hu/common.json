@@ -2316,7 +2316,7 @@
       "validate": "Ellenőrzés",
       "validation_success": "A szkript érvényes",
       "validation_error": "A szkript hibákat tartalmaz",
-      "save": "Szabályok mentése",
+      "save": "Mentés",
       "saving": "Mentés...",
       "saved": "Szűrők sikeresen elmentve",
       "save_failed": "Nem sikerült menteni a szűrőket",

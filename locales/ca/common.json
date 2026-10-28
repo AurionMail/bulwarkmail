@@ -2320,7 +2320,7 @@
       "validate": "Valida",
       "validation_success": "L'script és vàlid",
       "validation_error": "L'script té errors",
-      "save": "Desa les regles",
+      "save": "Desa",
       "saving": "Desant...",
       "saved": "Filtres desats correctament",
       "save_failed": "No s'han pogut desar els filtres",

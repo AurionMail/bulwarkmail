@@ -2313,7 +2313,7 @@
       "validate": "Doğrula",
       "validation_success": "Betik geçerli",
       "validation_error": "Betikte hatalar var",
-      "save": "Kuralları Kaydet",
+      "save": "Kaydet",
       "saving": "Kaydediliyor...",
       "saved": "Filtreler başarıyla kaydedildi",
       "save_failed": "Filtreler kaydedilemedi",

@@ -2313,7 +2313,7 @@
       "validate": "Validar",
       "validation_success": "O script é válido",
       "validation_error": "O script contém erros",
-      "save": "Salvar regras",
+      "save": "Salvar",
       "saving": "Salvando...",
       "saved": "Filtros salvos com sucesso",
       "save_failed": "Falha ao salvar os filtros",

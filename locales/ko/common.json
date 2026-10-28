@@ -2313,7 +2313,7 @@
       "validate": "검증",
       "validation_success": "스크립트가 유효해요",
       "validation_error": "스크립트에 오류가 있어요",
-      "save": "규칙 저장",
+      "save": "저장",
       "saving": "저장 중...",
       "saved": "필터가 성공적으로 저장되었어요",
       "save_failed": "필터를 저장하지 못했어요",

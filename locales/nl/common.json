@@ -2313,7 +2313,7 @@
       "validate": "Valideren",
       "validation_success": "Het script is geldig",
       "validation_error": "Het script bevat fouten",
-      "save": "Regels opslaan",
+      "save": "Opslaan",
       "saving": "Opslaan...",
       "saved": "Filters succesvol opgeslagen",
       "save_failed": "Filters opslaan mislukt",

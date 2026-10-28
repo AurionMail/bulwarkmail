@@ -2320,7 +2320,7 @@
       "validate": "Validate",
       "validation_success": "Script is valid",
       "validation_error": "Script has errors",
-      "save": "Save Rules",
+      "save": "Save",
       "saving": "Saving...",
       "saved": "Filters saved successfully",
       "save_failed": "Failed to save filters",

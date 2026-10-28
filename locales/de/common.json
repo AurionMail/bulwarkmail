@@ -2313,7 +2313,7 @@
       "validate": "Validieren",
       "validation_success": "Das Skript ist gültig",
       "validation_error": "Das Skript enthält Fehler",
-      "save": "Regeln speichern",
+      "save": "Speichern",
       "saving": "Wird gespeichert...",
       "saved": "Filter erfolgreich gespeichert",
       "save_failed": "Fehler beim Speichern der Filter",

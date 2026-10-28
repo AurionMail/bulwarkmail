@@ -2313,7 +2313,7 @@
       "validate": "Waliduj",
       "validation_success": "Skrypt jest poprawny",
       "validation_error": "Skrypt zawiera błędy",
-      "save": "Zapisz reguły",
+      "save": "Zapisz",
       "saving": "Zapisywanie...",
       "saved": "Filtry zostały zapisane",
       "save_failed": "Nie udało się zapisać filtrów",
