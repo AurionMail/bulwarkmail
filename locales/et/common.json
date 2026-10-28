@@ -3774,6 +3774,10 @@
     "recurrence_scope": {
       "edit_title": "Korduva sündmuse muutmine",
       "delete_title": "Korduva sündmuse kustutamine",
+      "delete_question": "Kas kustutada korduv sündmus?",
+      "delete_this_message": "Kustutatakse ainult see \"{title}\" kordus. Seda ei saa tagasi võtta.",
+      "delete_following_message": "Kustutatakse see ja kõik järgmised \"{title}\" kordused. Seda ei saa tagasi võtta.",
+      "delete_all_message": "Kustutatakse kõik \"{title}\" kordused. Seda ei saa tagasi võtta.",
       "description": "See on korduv sündmus. Milliseid sündmusi soovid muuta?",
       "this_event": "Ainult see sündmus",
       "this_and_future": "See ja järgnevad sündmused",

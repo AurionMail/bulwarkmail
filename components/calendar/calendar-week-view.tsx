@@ -394,6 +394,17 @@ export function CalendarWeekView({
     onMoveEvent,
   });
 
+  // The days in view. Tab stays in them: events of the weeks loaded on
+  // either side are out of the tab order, or Tab walked into them and
+  // scrolled the grid off its week.
+  const inViewKeys = useMemo(
+    () => new Set(days.slice(visibleStartIndex, visibleStartIndex + visibleColumns).map(dayKey)),
+    [days, visibleStartIndex, visibleColumns],
+  );
+  const isInView = useCallback((key: string) => inViewKeys.has(key), [inViewKeys]);
+  const spanInView = (startIndex: number, span: number) =>
+    startIndex < visibleStartIndex + visibleColumns && startIndex + span > visibleStartIndex;
+
   const { slotProps, tabStopDayKey } = useTimeGridFocus({
     rootRef,
     headerRef,
@@ -402,6 +413,7 @@ export function CalendarWeekView({
     hours,
     selectedDate,
     onCreate: onCreateAtTime,
+    isInView,
   });
 
   const formatHour = (h: number): string => {
@@ -553,6 +565,7 @@ export function CalendarWeekView({
                       onMouseLeave={onHoverLeave}
                       onContextMenu={onContextMenuEvent}
                       currentUserEmails={currentUserEmails}
+                      tabbable={spanInView(segment.startIndex, segment.span)}
                     />
                   </div>
                 );
@@ -606,6 +619,7 @@ export function CalendarWeekView({
                       calendar={calendars.find(c => task.calendarIds[c.id])}
                       onToggleComplete={onToggleTaskComplete}
                       onSelect={onSelectTask}
+                      tabbable={inViewKeys.has(key)}
                     />
                   </div>
                 ));
@@ -671,7 +685,7 @@ export function CalendarWeekView({
                       onClick={() => handleSlotClick(day, h)}
                       onDoubleClick={() => handleSlotDoubleClick(day, h)}
                       onContextMenu={onContextMenuEmpty ? (e) => onContextMenuEmpty(e, day, h, false) : undefined}
-                      className="border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                      className="relative border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors outline-none focus-visible:after:absolute focus-visible:after:inset-0 focus-visible:after:z-[15] focus-visible:after:pointer-events-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-primary"
                       style={{ height: hourHeight }}
                     />
                   ))}
@@ -681,6 +695,7 @@ export function CalendarWeekView({
                       count={dayLayout.before}
                       direction="before"
                       onReveal={() => revealMinutes(dayLayout.firstBeforeMinutes ?? 0)}
+                      tabbable={inViewKeys.has(key)}
                     />
                   )}
                   {dayLayout && dayLayout.after > 0 && (
@@ -688,6 +703,7 @@ export function CalendarWeekView({
                       count={dayLayout.after}
                       direction="after"
                       onReveal={() => revealMinutes(dayLayout.firstAfterMinutes ?? hours.endMinutes)}
+                      tabbable={inViewKeys.has(key)}
                     />
                   )}
 
@@ -728,6 +744,7 @@ export function CalendarWeekView({
                           draggable={editable}
                           continuesBefore={clip.clippedStart}
                           continuesAfter={clip.clippedEnd}
+                          tabbable={inViewKeys.has(key)}
                         />
                         {/* An edge beyond the visible hours has nothing to grab. */}
                         {editable && !clip.clippedStart && (
@@ -787,7 +804,7 @@ export function CalendarWeekView({
                       }}
                     >
                       <div className="text-[10px] font-medium text-primary px-1.5 py-0.5">
-                        {formatSnapTime(dragCreate.startMinutes, timeFormat)} – {formatSnapTime(dragCreate.endMinutes, timeFormat)}
+                        <bdi dir="ltr">{formatSnapTime(dragCreate.startMinutes, timeFormat)} – {formatSnapTime(dragCreate.endMinutes, timeFormat)}</bdi>
                       </div>
                     </div>
                   )}
@@ -834,7 +851,7 @@ export function CalendarWeekView({
                             {pendingPreview.title}
                           </div>
                           <div className="text-[10.5px] opacity-85 truncate">
-                            {formatSnapTime(startMin, timeFormat)} – {formatSnapTime(startMin + durationMin, timeFormat)}
+                            <bdi dir="ltr">{formatSnapTime(startMin, timeFormat)} – {formatSnapTime(startMin + durationMin, timeFormat)}</bdi>
                           </div>
                         </div>
                       );

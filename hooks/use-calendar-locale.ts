@@ -200,6 +200,21 @@ export function useCalendarLocale() {
     });
   };
 
+  /**
+   * Short day label for a phone's title ("Oct 28", "28. Okt."). The weekday
+   * is in the day's header right under it, and with it German no longer fit.
+   */
+  const formatDayShort = (date: Date): string => {
+    if (isJalali) {
+      const { jm, jd } = toJalali(date);
+      return `${jd} ${JALALI_MONTHS[jm - 1]}`;
+    }
+    return date.toLocaleString(locale === "en" ? "en-US" : locale, {
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   // ------------------------------------------------------------------
   // Calendar-system-aware month/year getters (for navigation, etc.)
   // All return values use **0-based** months to stay compatible with
@@ -244,6 +259,7 @@ export function useCalendarLocale() {
     formatWeekRange,
     formatWeekRangeShort,
     formatFullDate,
+    formatDayShort,
     getMonth,
     getYear,
     monthLabelKeys,

@@ -15,7 +15,15 @@ interface RecurrenceScopeDialogProps {
   onClose: () => void;
   /** A line under the question, e.g. that the participants get a cancellation. */
   note?: string;
+  /** The series' title: a delete says which of its events go (R3). */
+  eventTitle?: string;
 }
+
+const DELETE_MESSAGES: Record<RecurrenceEditScope, string> = {
+  this: "delete_this_message",
+  this_and_future: "delete_following_message",
+  all: "delete_all_message",
+};
 
 export function RecurrenceScopeDialog({
   isOpen,
@@ -23,6 +31,7 @@ export function RecurrenceScopeDialog({
   onSelect,
   onClose,
   note,
+  eventTitle = "",
 }: RecurrenceScopeDialogProps) {
   const t = useTranslations("calendar.recurrence_scope");
   const id = useId();
@@ -72,10 +81,13 @@ export function RecurrenceScopeDialog({
             </div>
             <div>
               <h2 id={`${id}-title`} className="text-lg font-semibold">
-                {isDelete ? t("delete_title") : isRsvp ? t("rsvp_title") : t("edit_title")}
+                {isDelete ? t("delete_question") : isRsvp ? t("rsvp_title") : t("edit_title")}
               </h2>
-              <p id={`${id}-desc`} className="text-sm text-muted-foreground mt-1">
-                {isRsvp ? t("rsvp_description") : t("description")}
+              {/* A delete says what goes with the chosen scope, and that it is for good. */}
+              <p id={`${id}-desc`} className="text-sm text-muted-foreground mt-1" aria-live="polite">
+                {isDelete
+                  ? t(DELETE_MESSAGES[choice], { title: eventTitle })
+                  : isRsvp ? t("rsvp_description") : t("description")}
               </p>
               {note && <p className="text-sm text-muted-foreground mt-1">{note}</p>}
             </div>

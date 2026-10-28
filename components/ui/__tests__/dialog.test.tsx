@@ -59,6 +59,17 @@ describe('Dialog', () => {
     expect(document.activeElement).toBe(opener);
   });
 
+  it('skips fields out of the tab order, like the hidden input behind a drop zone', () => {
+    render(
+      <Dialog isOpen onClose={() => {}} title="T">
+        <button type="button">drop zone</button>
+        <input type="file" tabIndex={-1} className="hidden" aria-label="file" />
+        <input aria-label="name" />
+      </Dialog>,
+    );
+    expect(document.activeElement).toBe(screen.getByLabelText('name'));
+  });
+
   it('honours initialFocus', () => {
     function Host() {
       const target = useRef<HTMLButtonElement>(null);

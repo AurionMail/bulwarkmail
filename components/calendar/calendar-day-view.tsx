@@ -197,14 +197,6 @@ export function CalendarDayView({
     return map;
   }, [days, eventsByDay, hours]);
 
-  const hasAllDayArea = useMemo(
-    () => days.some((day) => {
-      const key = format(day, "yyyy-MM-dd");
-      return (eventsByDay.get(key)?.allDay.length ?? 0) > 0 || (tasksByDay.get(key)?.length ?? 0) > 0;
-    }),
-    [days, eventsByDay, tasksByDay],
-  );
-
   const scrollToFocus = useCallback(() => {
     const root = rootRef.current;
     if (!root) return;
@@ -232,6 +224,10 @@ export function CalendarDayView({
   // not used: browsers re-snap on their own when columns are prepended,
   // which would double the scroll correction.)
   const visibleKeyRef = useRef<string | null>(null);
+  // The day in view: its all-day events and tasks size the row under the
+  // dates, so a busy neighbour doesn't leave an empty block above the hours.
+  const [visibleKey, setVisibleKey] = useState(() => dayKey(focus.date));
+  useEffect(() => { setVisibleKey(dayKey(focus.date)); }, [focus.date, focus.nonce]);
   const scrollFrameRef = useRef<number | null>(null);
   const snapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleStripScroll = useCallback(() => {
@@ -255,6 +251,7 @@ export function CalendarDayView({
       const key = dayKey(day);
       if (key === visibleKeyRef.current) return;
       visibleKeyRef.current = key;
+      setVisibleKey(key);
       onVisibleDateChange?.(day);
     });
   }, [colWidth, colCount, days, onVisibleDateChange]);
@@ -298,6 +295,10 @@ export function CalendarDayView({
     onMoveEvent,
   });
 
+  // Tab stays in the day in view: the loaded days on either side are out of
+  // the tab order, or Tab walked into them and scrolled the strip.
+  const isInView = useCallback((key: string) => key === visibleKey, [visibleKey]);
+
   const { slotProps } = useTimeGridFocus({
     rootRef,
     headerRef,
@@ -306,6 +307,7 @@ export function CalendarDayView({
     hours,
     selectedDate,
     onCreate: onCreateAtTime,
+    isInView,
   });
 
   const formatHour = (h: number): string => {
@@ -352,7 +354,16 @@ export function CalendarDayView({
               const allDayEvents = eventsByDay.get(key)?.allDay ?? [];
               const dayTasks = tasksByDay.get(key) ?? [];
               return (
-                <div key={key} data-day={key} className="min-w-0 border-e border-border last:border-e-0">
+                <div
+                  key={key}
+                  data-day={key}
+                  className={cn(
+                    "min-w-0 border-e border-border last:border-e-0",
+                    // Other days take no height of their own: they fill the
+                    // row the day in view sets, clipped while swiping past.
+                    key !== visibleKey && "h-0 min-h-full overflow-hidden",
+                  )}
+                >
                   <div
                     className={cn("flex flex-col items-start gap-0.5 px-3 pt-2 pb-1.5", isMobile && "px-2")}
                     role="columnheader"
@@ -376,7 +387,7 @@ export function CalendarDayView({
                     <PluginDayLabel surface="calendar-day-header" date={key} className="w-full" />
                   </div>
 
-                  {hasAllDayArea && (
+                  {(allDayEvents.length > 0 || dayTasks.length > 0) && (
                     <div
                       className="px-4 py-2 border-t border-border"
                       onContextMenu={onContextMenuEmpty ? (e) => {
@@ -402,6 +413,7 @@ export function CalendarDayView({
                                   onMouseLeave={onHoverLeave}
                                   onContextMenu={onContextMenuEvent}
                                   currentUserEmails={currentUserEmails}
+                                  tabbable={key === visibleKey}
                                 />
                               );
                             })}
@@ -414,12 +426,14 @@ export function CalendarDayView({
                           <div className="space-y-0.5">
                             {/* The same chip as the month and week grids. */}
                             {dayTasks.map((task) => (
-                              <div key={task.id} className="h-5">
+                              <div key={task.id} className={isMobile ? undefined : "h-5"}>
                                 <CalendarTaskChip
                                   task={task}
                                   calendar={calendars.find((c) => task.calendarIds[c.id])}
                                   onToggleComplete={onToggleTaskComplete}
                                   onSelect={onSelectTask}
+                                  touch={isMobile}
+                                  tabbable={key === visibleKey}
                                 />
                               </div>
                             ))}
@@ -487,7 +501,7 @@ export function CalendarDayView({
                         onClick={() => handleSlotClick(day, h)}
                         onDoubleClick={() => handleSlotDoubleClick(day, h)}
                         onContextMenu={onContextMenuEmpty ? (e) => onContextMenuEmpty(e, day, h, false) : undefined}
-                        className="border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                        className="relative border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors outline-none focus-visible:after:absolute focus-visible:after:inset-0 focus-visible:after:z-[15] focus-visible:after:pointer-events-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-primary"
                         style={{ height: hourHeight }}
                       />
                     ))}
@@ -497,6 +511,7 @@ export function CalendarDayView({
                         count={dayLayout.before}
                         direction="before"
                         onReveal={() => revealMinutes(dayLayout.firstBeforeMinutes ?? 0)}
+                        tabbable={key === visibleKey}
                       />
                     )}
                     {dayLayout && dayLayout.after > 0 && (
@@ -504,6 +519,7 @@ export function CalendarDayView({
                         count={dayLayout.after}
                         direction="after"
                         onReveal={() => revealMinutes(dayLayout.firstAfterMinutes ?? hours.endMinutes)}
+                        tabbable={key === visibleKey}
                       />
                     )}
 
@@ -541,6 +557,7 @@ export function CalendarDayView({
                             onMouseLeave={onHoverLeave}
                             onContextMenu={onContextMenuEvent}
                             currentUserEmails={currentUserEmails}
+                            tabbable={key === visibleKey}
                             draggable={editable}
                             continuesBefore={clip.clippedStart}
                             continuesAfter={clip.clippedEnd}
@@ -603,7 +620,7 @@ export function CalendarDayView({
                         }}
                       >
                         <div className="text-[10px] font-medium text-primary px-1.5 py-0.5">
-                          {formatSnapTime(dragCreate.startMinutes, timeFormat)} – {formatSnapTime(dragCreate.endMinutes, timeFormat)}
+                          <bdi dir="ltr">{formatSnapTime(dragCreate.startMinutes, timeFormat)} – {formatSnapTime(dragCreate.endMinutes, timeFormat)}</bdi>
                         </div>
                       </div>
                     )}
@@ -649,7 +666,7 @@ export function CalendarDayView({
                               {pendingPreview.title}
                             </div>
                             <div className="text-[10.5px] opacity-85 truncate">
-                              {formatSnapTime(startMin, timeFormat)} – {formatSnapTime(startMin + durationMin, timeFormat)}
+                              <bdi dir="ltr">{formatSnapTime(startMin, timeFormat)} – {formatSnapTime(startMin + durationMin, timeFormat)}</bdi>
                             </div>
                           </div>
                         );

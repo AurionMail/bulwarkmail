@@ -3774,6 +3774,10 @@
     "recurrence_scope": {
       "edit_title": "Ismétlődő esemény szerkesztése",
       "delete_title": "Ismétlődő esemény törlése",
+      "delete_question": "Törli az ismétlődő eseményt?",
+      "delete_this_message": "Csak a(z) \"{title}\" esemény ezen alkalma törlődik. Ez nem vonható vissza.",
+      "delete_following_message": "A(z) \"{title}\" esemény ezen és minden későbbi alkalma törlődik. Ez nem vonható vissza.",
+      "delete_all_message": "A(z) \"{title}\" esemény minden alkalma törlődik. Ez nem vonható vissza.",
       "description": "Ez egy ismétlődő esemény. Mely eseményeket szeretnéd módosítani?",
       "this_event": "Csak ez az esemény",
       "this_and_future": "Ez és a következő események",

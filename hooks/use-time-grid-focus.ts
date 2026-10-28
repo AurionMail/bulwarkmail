@@ -17,6 +17,11 @@ interface UseTimeGridFocusOptions {
   selectedDate: Date;
   /** Creates an event at the slot (Enter, `n` or `c`). */
   onCreate: (start: Date) => void;
+  /**
+   * Whether a day is scrolled into view. The tab stop stays on a day in
+   * view: one in a hidden week made Tab scroll the grid off its week.
+   */
+  isInView?: (key: string) => boolean;
 }
 
 export interface TimeGridSlotProps {
@@ -27,6 +32,7 @@ export interface TimeGridSlotProps {
 }
 
 const slotId = (key: string, hour: number) => `${key}T${hour}`;
+const everyDay = () => true;
 
 /**
  * Keyboard access to the empty slots of the week and day grids (CAL-13,
@@ -35,7 +41,7 @@ const slotId = (key: string, hour: number) => `${key}T${hour}`;
  * event there. The month grid works the same way with days.
  */
 export function useTimeGridFocus({
-  rootRef, headerRef, gutterWidth, days, hours, selectedDate, onCreate,
+  rootRef, headerRef, gutterWidth, days, hours, selectedDate, onCreate, isInView = everyDay,
 }: UseTimeGridFocusOptions) {
   const firstHour = hours.startMinutes / 60;
   const lastHour = hours.endMinutes / 60 - 1;
@@ -43,17 +49,23 @@ export function useTimeGridFocus({
 
   const dayIndexByKey = useMemo(() => new Map(days.map((day, index) => [dayKey(day), index])), [days]);
 
-  // The slot that takes Tab: the last one focused while it is still drawn,
-  // else the selected day (or the first loaded one) at the current hour.
+  // The slot that takes Tab: the last one focused while it is still drawn
+  // and in view, else the selected day (or the first day in view, else the
+  // first loaded one) at the current hour.
   const tabStop = useMemo(() => {
-    if (focused && dayIndexByKey.has(focused.key) && focused.hour >= firstHour && focused.hour <= lastHour) {
+    if (focused && dayIndexByKey.has(focused.key) && isInView(focused.key) && focused.hour >= firstHour && focused.hour <= lastHour) {
       return focused;
     }
     const selectedKey = dayKey(selectedDate);
-    const key = dayIndexByKey.has(selectedKey) ? selectedKey : days[0] ? dayKey(days[0]) : selectedKey;
-    const hour = Math.min(lastHour, Math.max(firstHour, displayNow().getHours()));
+    const firstInView = days.map(dayKey).find(isInView);
+    const key = dayIndexByKey.has(selectedKey) && isInView(selectedKey)
+      ? selectedKey
+      : firstInView ?? (days[0] ? dayKey(days[0]) : selectedKey);
+    const hour = focused && focused.hour >= firstHour && focused.hour <= lastHour
+      ? focused.hour
+      : Math.min(lastHour, Math.max(firstHour, displayNow().getHours()));
     return { key, hour };
-  }, [focused, dayIndexByKey, firstHour, lastHour, selectedDate, days]);
+  }, [focused, dayIndexByKey, firstHour, lastHour, selectedDate, days, isInView]);
 
   const focusSlot = useCallback((key: string, hour: number) => {
     const root = rootRef.current;

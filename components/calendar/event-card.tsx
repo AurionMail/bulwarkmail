@@ -33,6 +33,8 @@ interface EventCardProps {
   style?: CSSProperties;
   /** The user's calendar addresses, to tell whether they declined the event. */
   currentUserEmails?: string[];
+  /** False for a day scrolled out of view: Tab skips it (arrows still reach it). */
+  tabbable?: boolean;
 }
 
 function sanitizeColor(color: string | null | undefined, fallback = "#3b82f6"): string {
@@ -98,7 +100,7 @@ function createEventDragPreview(title: string, timeRange: string, color: string)
   return el;
 }
 
-export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onMouseLeave, onContextMenu, isSelected, draggable: isDraggable, continuesBefore = false, continuesAfter = false, className, style, currentUserEmails }: EventCardProps) {
+export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onMouseLeave, onContextMenu, isSelected, draggable: isDraggable, continuesBefore = false, continuesAfter = false, className, style, currentUserEmails, tabbable = true }: EventCardProps) {
   const t = useTranslations("calendar");
   const [isBeingDragged, setIsBeingDragged] = useState(false);
   const color = getEventColor(event, calendar);
@@ -184,6 +186,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
         onContextMenu={handleContextMenu}
         {...touchProps}
         aria-label={ariaLabel}
+        tabIndex={tabbable ? undefined : -1}
         {...dragProps}
         className={cn(
           "flex items-center w-full text-start text-xs font-medium px-1.5 py-0.5 rounded-xs truncate",
@@ -194,7 +197,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
         )}
         style={{ ...eventFillStyle(color, { inactive: isInactive, selected: isSelected }), ...style }}
       >
-        <span className={cn("truncate", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
+        <span dir="auto" className={cn("truncate", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
       </button>
     );
   }
@@ -208,6 +211,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
         onContextMenu={handleContextMenu}
         {...touchProps}
         aria-label={ariaLabel}
+        tabIndex={tabbable ? undefined : -1}
         {...dragProps}
         className={cn(
           "w-full h-full text-start rounded-xs px-1.5 py-0.5 text-xs overflow-hidden",
@@ -223,7 +227,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
           {showTimeInMonthView && !event.showWithoutTime && (
             <span className="flex-shrink-0 font-normal opacity-85">{format(startDate, timeFmt)}</span>
           )}
-          <span className={cn("truncate font-medium", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
+          <span dir="auto" className={cn("truncate font-medium", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
         </div>
       </button>
     );
@@ -237,6 +241,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
       onContextMenu={handleContextMenu}
       {...touchProps}
       aria-label={ariaLabel}
+      tabIndex={tabbable ? undefined : -1}
       {...dragProps}
       data-calendar-event
       data-continues-before={continuesBefore || undefined}
@@ -263,7 +268,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
           block is wide enough to keep the title readable. */}
       <div className="@container">
         <div className="flex items-baseline gap-1 min-w-0">
-          <span className={cn("font-medium truncate", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
+          <span dir="auto" className={cn("font-medium truncate", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
           {!event.showWithoutTime && durationMinutes < 45 && (
             <span className="hidden @min-[120px]:inline flex-shrink-0 opacity-85 text-[10.5px]">{safeFormat(startDate, timeFmt)}</span>
           )}
@@ -271,7 +276,8 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
       </div>
       {!event.showWithoutTime && durationMinutes >= 45 && (
         <div className="opacity-85 text-[10.5px]">
-          {timeString}
+          {/* Start before end in a right-to-left layout too. */}
+          <bdi dir="ltr">{timeString}</bdi>
         </div>
       )}
       {getParticipantCount(event) > 0 && (

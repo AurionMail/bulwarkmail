@@ -3774,6 +3774,10 @@
     "recurrence_scope": {
       "edit_title": "Redigér tilbagevendende begivenhed",
       "delete_title": "Slet tilbagevendende begivenhed",
+      "delete_question": "Slet tilbagevendende begivenhed?",
+      "delete_this_message": "Kun denne forekomst af \"{title}\" bliver slettet. Det kan ikke fortrydes.",
+      "delete_following_message": "Denne og alle senere forekomster af \"{title}\" bliver slettet. Det kan ikke fortrydes.",
+      "delete_all_message": "Alle forekomster af \"{title}\" bliver slettet. Det kan ikke fortrydes.",
       "description": "Dette er en tilbagevendende begivenhed. Hvilke begivenheder vil du ændre?",
       "this_event": "Kun denne begivenhed",
       "this_and_future": "Denne og fremtidige begivenheder",

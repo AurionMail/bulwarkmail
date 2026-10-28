@@ -106,6 +106,7 @@ export function CalendarToolbar({
     formatWeekRange,
     formatWeekRangeShort,
     formatFullDate,
+    formatDayShort,
   } = useCalendarLocale();
   const views: CalendarViewMode[] = enableCalendarTasks
     ? ["month", "week", "day", "agenda", "tasks"]
@@ -152,8 +153,9 @@ export function CalendarToolbar({
           : formatWeekRange(ws);
       }
       case "day":
+        // A phone's row has room for "Oct 28"; the full date is the tooltip.
         return isMobile
-          ? formatFullDate(titleDate)
+          ? formatDayShort(titleDate)
           : formatFullDate(titleDate);
       case "agenda":
         return isMobile
@@ -227,7 +229,8 @@ export function CalendarToolbar({
             ) : (
             /* Row 1: Back / Date nav / Today */
             <div className="flex items-center gap-1">
-              {onMenuClick && (
+              {/* The way back to the month takes the menu's place: both left the date no room. */}
+              {onMenuClick && !onNavigateBack && (
                 <IconButton size="icon-lg" label={t("nav_open_menu")} onClick={onMenuClick} className="-ms-1 touch-manipulation">
                   <Menu />
                 </IconButton>
@@ -242,7 +245,10 @@ export function CalendarToolbar({
                   <ChevronLeft />
                 </IconButton>
               )}
-              <span className="text-sm font-semibold text-center flex-1 select-none truncate" title={getDateLabel()}>
+              <span
+                className="text-sm font-semibold text-center flex-1 select-none truncate"
+                title={viewMode === "day" ? formatFullDate(titleDate) : getDateLabel()}
+              >
                 {getDateLabel()}
               </span>
               {hasDateNav && (
@@ -261,6 +267,8 @@ export function CalendarToolbar({
             )}
 
             {/* Row 2: View switcher pills + calendar toggle */}
+            {/* Each pill is as wide as its label plus an even share of the rest, so a
+                long label ("جدول الأعمال", "Aufgaben") neither wraps nor touches the edge. */}
             <div className="flex items-center gap-1.5">
               <div className="flex flex-1 border border-border rounded-md overflow-hidden">
                 {views.map((v) => (
@@ -268,7 +276,7 @@ export function CalendarToolbar({
                     key={v}
                     onClick={() => onViewModeChange(v)}
                     className={cn(
-                      "flex-1 min-h-11 text-[11px] font-medium transition-colors touch-manipulation",
+                      "flex-auto min-h-11 px-1.5 text-[11px] font-medium transition-colors touch-manipulation",
                       v === viewMode
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground active:bg-muted"

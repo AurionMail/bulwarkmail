@@ -3774,6 +3774,10 @@
     "recurrence_scope": {
       "edit_title": "Edytuj wydarzenie cykliczne",
       "delete_title": "Usuń wydarzenie cykliczne",
+      "delete_question": "Usunąć wydarzenie cykliczne?",
+      "delete_this_message": "Zostanie usunięte tylko to wystąpienie \"{title}\". Tej operacji nie można cofnąć.",
+      "delete_following_message": "Zostaną usunięte to i wszystkie następne wystąpienia \"{title}\". Tej operacji nie można cofnąć.",
+      "delete_all_message": "Zostaną usunięte wszystkie wystąpienia \"{title}\". Tej operacji nie można cofnąć.",
       "description": "To jest wydarzenie cykliczne. Które wydarzenia chcesz zmodyfikować?",
       "this_event": "Tylko to wydarzenie",
       "this_and_future": "To i następne wydarzenia",

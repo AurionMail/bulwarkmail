@@ -3774,6 +3774,10 @@
     "recurrence_scope": {
       "edit_title": "Rediger gjentakende hendelse",
       "delete_title": "Slett gjentakende hendelse",
+      "delete_question": "Vil du slette den gjentakende hendelsen?",
+      "delete_this_message": "Bare denne forekomsten av «{title}» blir slettet. Dette kan ikke angres.",
+      "delete_following_message": "Denne og alle senere forekomster av «{title}» blir slettet. Dette kan ikke angres.",
+      "delete_all_message": "Alle forekomster av «{title}» blir slettet. Dette kan ikke angres.",
       "description": "Dette er en gjentakende hendelse. Hvilke hendelser vil du endre?",
       "this_event": "Bare denne hendelsen",
       "this_and_future": "Dette og følgende hendelser",

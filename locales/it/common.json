@@ -3774,6 +3774,10 @@
     "recurrence_scope": {
       "edit_title": "Modifica evento ricorrente",
       "delete_title": "Elimina evento ricorrente",
+      "delete_question": "Eliminare l'evento ricorrente?",
+      "delete_this_message": "Verrà eliminata solo questa occorrenza di \"{title}\". L'operazione non può essere annullata.",
+      "delete_following_message": "Verranno eliminate questa occorrenza e tutte le successive di \"{title}\". L'operazione non può essere annullata.",
+      "delete_all_message": "Verranno eliminate tutte le occorrenze di \"{title}\". L'operazione non può essere annullata.",
       "description": "Questo è un evento ricorrente. Quali eventi desideri modificare?",
       "this_event": "Solo questo evento",
       "this_and_future": "Questo evento e i seguenti",

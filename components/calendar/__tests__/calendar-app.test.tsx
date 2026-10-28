@@ -126,6 +126,18 @@ describe('CalendarApp keyboard shortcuts', () => {
     fireEvent.keyDown(document.body, { key: 'm', code: 'KeyM' });
     expect(useCalendarStore.getState().viewMode).toBe('month');
   });
+
+  // New 6: the preview opened on top of the open editor.
+  it('opens no hover preview while an editor is open', async () => {
+    setUp([makeEvent(), makeEvent({ id: 'e2', uid: 'u2', title: 'Retro', start: '2026-10-13T14:00:00' })]);
+    renderApp();
+    fireEvent.click(screen.getAllByRole('button', { name: /Standup/ })[0]);
+    fireEvent.click(await screen.findByRole('button', { name: 'events.edit' }));
+    await screen.findByRole('dialog', { name: 'events.edit' });
+    fireEvent.mouseEnter(screen.getAllByRole('button', { name: /Retro/ })[0]);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByRole('dialog', { name: 'Retro' })).toBeNull();
+  });
 });
 
 
@@ -340,6 +352,18 @@ describe('CalendarApp event search (CAL-16)', () => {
     expect(await screen.findByText('search.no_results', {}, { timeout: 3000 })).toBeInTheDocument();
   });
 
+  it('offers Clear search when nothing matches, back to the calendar with the cursor in the box', async () => {
+    renderApp();
+    const box = screen.getByRole('searchbox', { name: 'search.title' });
+    fireEvent.change(box, { target: { value: 'zzz' } });
+    await screen.findByText('search.no_results', {}, { timeout: 3000 });
+    const results = screen.getByTestId('calendar-search-results');
+    fireEvent.click(within(results).getByRole('button', { name: 'search.clear' }));
+    expect(box).toHaveValue('');
+    expect(document.activeElement).toBe(box);
+    await waitFor(() => expect(screen.queryByTestId('calendar-search-results')).toBeNull());
+  });
+
   it('is in the command palette', () => {
     render(<><CalendarApp /><PaletteGroups /></>);
     const items = screen.getByTestId('palette').textContent ?? '';
@@ -378,7 +402,7 @@ describe('CalendarApp deleting', () => {
     renderApp();
     fireEvent.click(screen.getAllByRole('button', { name: /Standup/ })[0]);
     fireEvent.click(within(screen.getByRole('dialog', { name: 'Standup' })).getByRole('button', { name: 'events.delete' }));
-    expect(await screen.findByRole('dialog', { name: 'delete_title' })).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: 'delete_question' })).toBeInTheDocument();
     expect(screen.queryByRole('alertdialog')).toBeNull();
   });
 

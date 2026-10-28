@@ -3774,6 +3774,10 @@
     "recurrence_scope": {
       "edit_title": "Terugkerend evenement bewerken",
       "delete_title": "Terugkerend evenement verwijderen",
+      "delete_question": "Terugkerende afspraak verwijderen?",
+      "delete_this_message": "Alleen deze keer van \"{title}\" wordt verwijderd. Dit kan niet ongedaan worden gemaakt.",
+      "delete_following_message": "Deze en alle volgende keren van \"{title}\" worden verwijderd. Dit kan niet ongedaan worden gemaakt.",
+      "delete_all_message": "Alle keren van \"{title}\" worden verwijderd. Dit kan niet ongedaan worden gemaakt.",
       "description": "Dit is een terugkerend evenement. Welke evenementen wilt u wijzigen?",
       "this_event": "Alleen dit evenement",
       "this_and_future": "Dit en volgende evenementen",
