@@ -10,6 +10,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { findContactPhotoEntry, getContactPhotoRef, type ContactPhotoRef } from "@/stores/contact-store";
 import type { ContactSaveOptions } from "@/lib/contact-media";
 import { cn } from "@/lib/utils";
+import { useBottomControls } from "@/hooks/use-bottom-controls";
 import type { ContactCard, ContactOnlineService, ContactAnniversary, ContactPersonalInfo, AddressBook, AnniversaryDate, PartialDate, ContactAddress, ContactMedia } from "@/lib/jmap/types";
 
 interface EmailEntry {
@@ -463,6 +464,7 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
   const [initialFields] = useState(fields);
   const dirty = fields !== initialFields || photoEdit.kind !== "unchanged";
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
+  const footerRef = useBottomControls();
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1194,7 +1196,8 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border flex-shrink-0">
+      {/* Toasts sit above Save and Cancel, not on them. */}
+      <div ref={footerRef} className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border flex-shrink-0">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isSaving}>
           {t("cancel")}
         </Button>

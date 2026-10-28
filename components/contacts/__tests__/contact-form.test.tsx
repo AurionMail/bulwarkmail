@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ContactForm } from '../contact-form';
+import { ContactGroupForm } from '../contact-group-form';
 import type { ContactCard, ContactMedia } from '@/lib/jmap/types';
 import { useAuthStore } from '@/stores/auth-store';
 import { findContactPhotoEntry } from '@/stores/contact-store';
@@ -104,6 +105,23 @@ describe('ContactForm', () => {
     fireEvent.click(screen.getByText('categories'));
     fireEvent.change(screen.getByPlaceholderText('categories_placeholder'), { target: { value: 'Gym' } });
     expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it.each([
+    ['contact form', () => <ContactForm onSave={vi.fn()} onCancel={vi.fn()} />],
+    ['group form', () => <ContactGroupForm individuals={[]} onSave={vi.fn()} onCancel={vi.fn()} />],
+  ])('keeps toasts off the %s footer by registering it as a bottom bar', (_name, form) => {
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      () => ({ left: 0, top: window.innerHeight - 72, width: 600, height: 72, right: 600, bottom: window.innerHeight, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect,
+    );
+    try {
+      const { unmount } = render(form());
+      expect(document.documentElement.style.getPropertyValue('--bottom-controls-height')).toBe('72px');
+      unmount();
+      expect(document.documentElement.style.getPropertyValue('--bottom-controls-height')).toBe('');
+    } finally {
+      rect.mockRestore();
+    }
   });
 
   describe('photos (P0-3)', () => {

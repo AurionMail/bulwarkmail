@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { useBottomControls } from "@/hooks/use-bottom-controls";
 import type { ContactCard } from "@/lib/jmap/types";
 import { getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
 
@@ -44,6 +45,7 @@ export function ContactGroupForm({
   const [initial] = useState(() => ({ name, members: [...selectedIds].sort().join(",") }));
   const dirty = name !== initial.name || [...selectedIds].sort().join(",") !== initial.members;
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
+  const footerRef = useBottomControls();
 
   const filteredIndividuals = useMemo(() => {
     if (!memberSearch) return individuals;
@@ -195,7 +197,8 @@ export function ContactGroupForm({
         )}
       </div>
 
-      <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border">
+      {/* Toasts sit above Save and Cancel, not on them. */}
+      <div ref={footerRef} className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isSaving}>
           {t("form.cancel")}
         </Button>
