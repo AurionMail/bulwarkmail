@@ -10,6 +10,7 @@ import type {
 } from '../plugin-types';
 import type { EmailAddress, Identity } from '../jmap/types';
 import { personalTemplatesFor } from '@/lib/templates/personal-templates';
+import { usePolicyStore } from '@/stores/policy-store';
 import { updateIdentityWithHooks, useIdentityStore } from '@/stores/identity-store';
 import { useVacationStore } from '@/stores/vacation-store';
 import { identityToView, templateToView, vacationToView } from '../plugin-projection';
@@ -34,12 +35,22 @@ const TEMPLATE_FIELDS = ['name', 'subject', 'body', 'isHTML', 'category'] as con
 // in the browser's list otherwise (lib/templates/personal-templates.ts).
 const personal = () => personalTemplatesFor();
 
+// The admin hid personal templates for the active account
+// (`personalTemplates`): plugins see none and can't make any either.
+const personalHidden = () => usePolicyStore.getState().policy.restrictions?.personalTemplates?.hidden === true;
+
+function refuseIfHidden(method: string): void {
+  if (personalHidden()) throw new Error(`${method}: the administrator turned personal templates off`);
+}
+
 export function doTemplatesList(): TemplateView[] {
+  if (personalHidden()) return [];
   return personal().templates().map(templateToView);
 }
 
 export function doTemplatesGet(id: unknown): TemplateView | null {
   const templateId = readId(id, 'templates.get');
+  if (personalHidden()) return null;
   const template = personal().templates().find((t) => t.id === templateId);
   return template ? templateToView(template) : null;
 }
@@ -64,6 +75,7 @@ export function doTemplatesCreate(input: unknown): TemplateView {
   const method = 'templates.create';
   const data = readObject(input, method, 'template', TEMPLATE_FIELDS) as TemplateInput & Record<string, unknown>;
   if (data.name === undefined) throw new Error(`${method}: name is required`);
+  refuseIfHidden(method);
   const store = personal();
   if (store.templates().length >= MAX_PLUGIN_TEMPLATES) {
     throw new Error(`${method}: there are already ${MAX_PLUGIN_TEMPLATES} templates`);
@@ -86,6 +98,7 @@ export function doTemplatesUpdate(id: unknown, patch: unknown): TemplateView {
   const templateId = readId(id, method);
   const data = readObject(patch, method, 'patch', TEMPLATE_FIELDS);
   if (Object.keys(data).length === 0) throw new Error(`${method}: patch is empty`);
+  refuseIfHidden(method);
   const store = personal();
   const existing = store.templates().find((t) => t.id === templateId);
   if (!existing) throw new Error(`${method}: no template with id "${templateId}"`);
@@ -100,6 +113,7 @@ export function doTemplatesUpdate(id: unknown, patch: unknown): TemplateView {
 export function doTemplatesDelete(id: unknown): void {
   const method = 'templates.delete';
   const templateId = readId(id, method);
+  refuseIfHidden(method);
   const store = personal();
   if (!store.templates().some((t) => t.id === templateId)) {
     throw new Error(`${method}: no template with id "${templateId}"`);
