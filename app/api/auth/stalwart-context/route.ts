@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { JmapAuthVerificationError, resolveJmapIdentity } from '@/lib/auth/verify-jmap-auth';
-import { setStalwartAuthContext } from '@/lib/stalwart/auth-context';
+import { cookies } from 'next/headers';
+import { readStalwartAuthContextFromStore, setStalwartAuthContext } from '@/lib/stalwart/auth-context';
+import { readSignInStamp, writeSignInStamp } from '@/lib/auth/session-age';
 import { configManager } from '@/lib/admin/config-manager';
 import { isPublicHttpUrl } from '@/lib/security/url-guard';
 import { recordLogin } from '@/lib/telemetry/login-tracker';
@@ -101,11 +103,24 @@ export async function POST(request: NextRequest) {
     // Just signed in: an older refusal of this credential no longer applies.
     recordStoredCredentialStatus(authHeader, 200);
 
+    // The context is written again on every renewed token and restore, so
+    // the sign-in time is carried over: from this slot's context for the
+    // same account, else from the token sign-in's stamp, else it is now.
+    const cookieStore = await cookies();
+    const previous = readStalwartAuthContextFromStore(cookieStore, slot);
+    const stamp = readSignInStamp(cookieStore, slot);
+    const ownStamp = stamp && (!stamp.account || stamp.account === accountName) ? stamp : null;
+    const samePrevious = previous && previous.serverUrl === normalizedServerUrl && previous.username === username ? previous : null;
+    const signedInAt = samePrevious?.signedInAt ?? ownStamp?.signedInAt ?? Date.now();
+    // The token routes know no account; the first verified one is the stamp's.
+    if (ownStamp && !ownStamp.account) writeSignInStamp(cookieStore, slot, { ...ownStamp, account: accountName });
+
     await setStalwartAuthContext(slot, {
       serverUrl: normalizedServerUrl,
       username,
       authHeader,
       ...(accountName !== username ? { accountName } : {}),
+      signedInAt,
     });
 
     void recordLogin(username, normalizedServerUrl);

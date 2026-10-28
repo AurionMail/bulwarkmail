@@ -14,6 +14,7 @@ import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 import { stalwartPasswordLogin } from '@/lib/auth/stalwart-password-login';
 import { loginClientAddress } from '@/lib/auth/client-address';
 import { LOGIN_BUDGET_RETRY_AFTER_SECONDS, reserveLoginAttempt } from '@/lib/auth/verify-budget';
+import { writeSignInStamp } from '@/lib/auth/session-age';
 
 /**
  * Exchange a password + (optional) TOTP code for OAuth tokens.
@@ -213,6 +214,8 @@ async function storeAndRespond(
     // Without "Remember me" the sign-in ends with the browser session.
     const { maxAge: _maxAge, ...sessionOptions } = getCookieOptions();
     cookieStore.set(cookieName, tokens.refresh_token, rememberMe ? getCookieOptions() : sessionOptions);
+    // A sign-in: the maximum session length counts from here (lib/auth/session-age.ts).
+    writeSignInStamp(cookieStore, slot, { signedInAt: Date.now() });
   }
   const serverCookieName = refreshTokenServerCookieName(slot);
   if (serverId) {

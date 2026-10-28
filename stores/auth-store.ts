@@ -24,6 +24,7 @@ import { useSearchHistoryStore } from './search-history-store';
 import { useCalendarNotificationStore } from './calendar-notification-store';
 import { usePolicyStore } from './policy-store';
 import { policySubjectForClient } from '@/lib/admin/policy-subject';
+import { rememberSessionEnd } from '@/lib/session-policy/sign-out-reason';
 import type { Identity } from '@/lib/jmap/types';
 import { authHooks } from '@/lib/plugin-hooks';
 import { IS_LITE, IS_LITE_STALWART } from '@/lib/lite';
@@ -536,12 +537,31 @@ async function persistSession(slot: number, session: RememberedSession): Promise
   }
 }
 
+/**
+ * A restore or renewal the server refused because the session reached the
+ * organisation's maximum length (lib/auth/session-age.ts): the login page
+ * says so.
+ */
+async function noteSessionTooOld(res: Response): Promise<Response> {
+  if (res.status !== 401 || typeof res.clone !== 'function') return res;
+  try {
+    const data = await res.clone().json() as { error?: unknown; maxHours?: unknown };
+    if (data?.error === 'session_expired' && typeof data.maxHours === 'number') {
+      rememberSessionEnd({ kind: 'max', hours: data.maxHours });
+    }
+  } catch {
+    /* not JSON */
+  }
+  return res;
+}
+
 /** PUT /api/auth/token?slot=N - renew (or, unless `force`, reuse) the slot's access token. */
 async function fetchSlotAccessToken(slot: number, opts: { force?: boolean } = {}): Promise<Response> {
   // Renewing would write the tokens of a slot being signed out back.
   if (closingSlots.has(slot)) return jsonResponse({ error: 'signed_out' }, 401);
   if (!IS_LITE) {
-    return trackSessionWrite(slot, (signal) => apiFetch(`/api/auth/token?slot=${slot}${opts.force ? '&force=true' : ''}`, { method: 'PUT', signal }));
+    return trackSessionWrite(slot, (signal) => apiFetch(`/api/auth/token?slot=${slot}${opts.force ? '&force=true' : ''}`, { method: 'PUT', signal }))
+      .then(noteSessionTooOld);
   }
   // Like the route's cookie cache: a restore resumes with the token it had,
   // since a renewal before the refresh token's `nbf` is refused (#552).
@@ -563,7 +583,8 @@ async function fetchSlotAccessToken(slot: number, opts: { force?: boolean } = {}
 /** PUT /api/auth/session[?slot=N] - the slot's remembered password or access token. */
 async function fetchSlotSession(slot?: number): Promise<Response> {
   if (!IS_LITE) {
-    return apiFetch(slot === undefined ? '/api/auth/session' : `/api/auth/session?slot=${slot}`, { method: 'PUT' });
+    return apiFetch(slot === undefined ? '/api/auth/session' : `/api/auth/session?slot=${slot}`, { method: 'PUT' })
+      .then(noteSessionTooOld);
   }
   const stored = readLiteBasicSession(slot ?? 0);
   return stored ? jsonResponse(stored) : jsonResponse({ error: 'no_session' }, 401);

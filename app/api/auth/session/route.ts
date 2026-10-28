@@ -23,6 +23,7 @@ import { revokeWopiTokens } from '@/lib/wopi/revocation';
 import { clearPairReauthInStore } from '@/lib/auth/pair-reauth';
 import { loginClientAddress } from '@/lib/auth/client-address';
 import { LOGIN_BUDGET_RETRY_AFTER_SECONDS, reserveLoginAttempt } from '@/lib/auth/verify-budget';
+import { isPastMaxAge, maxSessionHoursFor, SESSION_TOO_OLD } from '@/lib/auth/session-age';
 
 function sessionCookieOptions() {
   return {
@@ -71,6 +72,42 @@ function getSlot(request: NextRequest): number {
   const slot = parseInt(raw, 10);
   if (isNaN(slot) || slot < 0 || slot >= MAX_ACCOUNT_SLOTS) return 0;
   return slot;
+}
+
+/**
+ * The organisation's maximum session length for a remembered session
+ * (lib/auth/session-age.ts). A cookie from before sign-in times were
+ * recorded counts as signed in now and gets the time written into it.
+ * Returns the sign-in time, or null when the session is too old: its
+ * cookies are cleared then.
+ */
+async function checkSessionAge(
+  cookieStore: Awaited<ReturnType<typeof cookies>>,
+  slot: number,
+  credentials: SessionCredentials,
+): Promise<{ signedInAt: number } | { maxHours: number }> {
+  const cookieName = sessionCookieName(slot);
+  if (credentials.signedInAt === undefined) {
+    const signedInAt = Date.now();
+    const secret = credentials.token !== undefined ? { token: credentials.token } : credentials.password;
+    cookieStore.set(cookieName, encryptSession(credentials.serverUrl, credentials.username, secret, signedInAt), sessionCookieOptions());
+    return { signedInAt };
+  }
+  // An impersonation login is `target%master`; the policy is the target's.
+  const maxHours = await maxSessionHoursFor(credentials.username.split('%', 1)[0]);
+  if (isPastMaxAge(credentials.signedInAt, maxHours)) {
+    cookieStore.delete(cookieName);
+    clearStalwartAuthContextInStore(cookieStore, slot);
+    return { maxHours };
+  }
+  return { signedInAt: credentials.signedInAt };
+}
+
+function sessionTooOld(maxHours: number) {
+  return NextResponse.json(
+    { error: SESSION_TOO_OLD, maxHours },
+    { status: 401, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } },
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -162,7 +199,9 @@ export async function POST(request: NextRequest) {
       throw error;
     }
     refund();
-    const token = encryptSession(normalizedServerUrl, username, accessToken ? { token: accessToken } : password);
+    // A remembered sign-in starts the maximum session length.
+    const signedInAt = Date.now();
+    const token = encryptSession(normalizedServerUrl, username, accessToken ? { token: accessToken } : password, signedInAt);
     const cookieStore = await cookies();
     cookieStore.set(cookieName, token, sessionCookieOptions());
     setStalwartAuthContextInStore(cookieStore, slot, {
@@ -170,6 +209,7 @@ export async function POST(request: NextRequest) {
       username,
       authHeader,
       ...(accountName !== username ? { accountName } : {}),
+      signedInAt,
     });
 
     void recordLogin(username, normalizedServerUrl);
@@ -208,10 +248,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
 
+    const age = await checkSessionAge(cookieStore, slot, credentials);
+    if ('maxHours' in age) return sessionTooOld(age.maxHours);
+
     setStalwartAuthContextInStore(cookieStore, slot, {
       serverUrl: credentials.serverUrl,
       username: credentials.username,
       authHeader: sessionAuthHeader(credentials),
+      signedInAt: age.signedInAt,
     });
 
     // Only return non-sensitive fields. Use PUT to retrieve full credentials.
@@ -258,13 +302,19 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
 
+    const age = await checkSessionAge(cookieStore, slot, credentials);
+    if ('maxHours' in age) return sessionTooOld(age.maxHours);
+
     setStalwartAuthContextInStore(cookieStore, slot, {
       serverUrl: credentials.serverUrl,
       username: credentials.username,
       authHeader: sessionAuthHeader(credentials),
+      signedInAt: age.signedInAt,
     });
 
-    return NextResponse.json(credentials, {
+    // The credentials as they were stored, without the bookkeeping.
+    const { signedInAt: _signedInAt, ...restored } = credentials;
+    return NextResponse.json(restored, {
       headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
     });
   } catch (error) {

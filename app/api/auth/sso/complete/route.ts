@@ -14,6 +14,7 @@ import { getCookieOptions } from '@/lib/oauth/cookie-config';
 import { storeIdToken } from '@/lib/oauth/end-session';
 import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 import { MAX_ACCOUNT_SLOTS } from '@/lib/account-utils';
+import { writeSignInStamp } from '@/lib/auth/session-age';
 
 const SSO_PENDING_COOKIE = 'sso_pending';
 const SSO_PENDING_MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes
@@ -115,6 +116,8 @@ export async function POST(request: NextRequest) {
       if (tokens.refresh_token) {
         const cookieName = refreshTokenCookieName(slot);
         cookieStore.set(cookieName, tokens.refresh_token, getCookieOptions());
+        // A sign-in: the maximum session length counts from here (lib/auth/session-age.ts).
+        writeSignInStamp(cookieStore, slot, { signedInAt: Date.now() });
       }
       const serverCookieName = refreshTokenServerCookieName(slot);
       if (pendingServerId) {

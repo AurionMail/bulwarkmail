@@ -30,6 +30,15 @@ import {
 } from '@/lib/oauth/end-session';
 import { MAX_ACCOUNT_SLOTS } from '@/lib/account-utils';
 import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
+import {
+  clearSignInStamp,
+  isPastMaxAge,
+  maxSessionHoursFor,
+  readSignInStamp,
+  SESSION_TOO_OLD,
+  writeSignInStamp,
+} from '@/lib/auth/session-age';
+import { clearStalwartAuthContextInStore, readStalwartAuthContextFromStore } from '@/lib/stalwart/auth-context';
 
 function parseSlot(raw: string | null): number | null {
   if (raw === null) return null;
@@ -152,6 +161,8 @@ export async function POST(request: NextRequest) {
     if (tokens.refresh_token) {
       const cookieName = refreshTokenCookieName(slot);
       cookieStore.set(cookieName, tokens.refresh_token, getCookieOptions());
+      // A sign-in: the maximum session length counts from here.
+      writeSignInStamp(cookieStore, slot, { signedInAt: Date.now() });
     }
     const cachedAccessToken = cacheAccessToken(cookieStore, slot, tokens.access_token, tokens.expires_in || 3600, [tokens.refresh_token, serverId]);
     storeIdToken(cookieStore, slot, tokens.id_token, request.nextUrl.basePath, [tokens.refresh_token, cachedAccessToken, serverId]);
@@ -187,6 +198,22 @@ export async function PUT(request: NextRequest) {
     if (!refreshToken) {
       cookieStore.delete(accessTokenCookieName(slot));
       return NextResponse.json({ error: 'No refresh token' }, { status: 401 });
+    }
+
+    // The organisation's maximum session length (lib/auth/session-age.ts).
+    // A refresh token from before sign-in times were recorded counts as
+    // signed in now.
+    const stamp = readSignInStamp(cookieStore, slot);
+    if (!stamp) {
+      writeSignInStamp(cookieStore, slot, { signedInAt: Date.now() });
+    } else {
+      const context = readStalwartAuthContextFromStore(cookieStore, slot);
+      const maxHours = await maxSessionHoursFor(stamp.account ?? context?.accountName ?? context?.username ?? null);
+      if (isPastMaxAge(stamp.signedInAt, maxHours)) {
+        await signOutSlot(cookieStore, slot, request.nextUrl.basePath, false);
+        clearStalwartAuthContextInStore(cookieStore, slot);
+        return NextResponse.json({ error: SESSION_TOO_OLD, maxHours }, { status: 401 });
+      }
     }
 
     // A session restore calls this to get its token back, not because the
@@ -307,6 +334,7 @@ async function signOutSlot(
   for (const name of [cookieName, refreshTokenServerCookieName(slot), accessTokenCookieName(slot)]) {
     if (cookieStore.get(name)) cookieStore.delete(name);
   }
+  clearSignInStamp(cookieStore, slot);
   if (idToken !== undefined) clearIdToken(cookieStore, slot, basePath);
   return endSessionUrl;
 }

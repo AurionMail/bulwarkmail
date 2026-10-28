@@ -31,6 +31,7 @@ describe('encryptSession / decryptSession', () => {
       serverUrl: 'https://mail.example.com',
       username: 'alice',
       password: 's3cret',
+      signedInAt: expect.any(Number),
     });
   });
 
