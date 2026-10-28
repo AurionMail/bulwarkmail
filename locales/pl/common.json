@@ -3809,7 +3809,8 @@
       "actions": "Akcje",
       "previous": "Poprzedni dzień, tydzień lub miesiąc",
       "next": "Następny dzień, tydzień lub miesiąc",
-      "new_item": "Nowe wydarzenie lub, w Zadaniach, nowe zadanie"
+      "new_item": "Nowe wydarzenie lub, w Zadaniach, nowe zadanie",
+      "move_in_grid": "Przechodzenie między dniami i godzinami w siatce"
     },
     "other_calendars": "Inne kalendarze",
     "calendar_options": "Opcje dla {name}"

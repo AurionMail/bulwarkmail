@@ -3809,7 +3809,8 @@
       "actions": "操作",
       "previous": "前の日・週・月",
       "next": "次の日・週・月",
-      "new_item": "新しいイベント（タスク画面では新しいタスク）"
+      "new_item": "新しいイベント（タスク画面では新しいタスク）",
+      "move_in_grid": "グリッド内で日と時間を移動"
     },
     "other_calendars": "他のカレンダー",
     "calendar_options": "{name} のオプション"

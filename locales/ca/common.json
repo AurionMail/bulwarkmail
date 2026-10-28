@@ -3809,7 +3809,8 @@
       "actions": "Accions",
       "previous": "Dia, setmana o mes anterior",
       "next": "Dia, setmana o mes següent",
-      "new_item": "Esdeveniment nou, o una tasca nova a Tasques"
+      "new_item": "Esdeveniment nou, o una tasca nova a Tasques",
+      "move_in_grid": "Moure's entre dies i hores a la quadrícula"
     },
     "other_calendars": "Altres calendaris",
     "calendar_options": "Opcions de {name}"

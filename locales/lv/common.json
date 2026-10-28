@@ -3809,7 +3809,8 @@
       "actions": "Darbības",
       "previous": "Iepriekšējā diena, nedēļa vai mēnesis",
       "next": "Nākamā diena, nedēļa vai mēnesis",
-      "new_item": "Jauns notikums vai, sadaļā Uzdevumi, jauns uzdevums"
+      "new_item": "Jauns notikums vai, sadaļā Uzdevumi, jauns uzdevums",
+      "move_in_grid": "Pārvietoties starp dienām un stundām režģī"
     },
     "other_calendars": "Citi kalendāri",
     "calendar_options": "{name} opcijas"

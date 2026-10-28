@@ -3809,7 +3809,8 @@
       "actions": "Akcie",
       "previous": "Predchádzajúci deň, týždeň alebo mesiac",
       "next": "Nasledujúci deň, týždeň alebo mesiac",
-      "new_item": "Nová udalosť, v Úlohách nová úloha"
+      "new_item": "Nová udalosť, v Úlohách nová úloha",
+      "move_in_grid": "Presun medzi dňami a hodinami v mriežke"
     },
     "other_calendars": "Ďalšie kalendáre",
     "calendar_options": "Možnosti pre {name}"

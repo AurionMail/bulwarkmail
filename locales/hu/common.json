@@ -3809,7 +3809,8 @@
       "actions": "Műveletek",
       "previous": "Előző nap, hét vagy hónap",
       "next": "Következő nap, hét vagy hónap",
-      "new_item": "Új esemény, a Feladatokban új feladat"
+      "new_item": "Új esemény, a Feladatokban új feladat",
+      "move_in_grid": "Mozgás a napok és órák között a rácsban"
     },
     "other_calendars": "Egyéb naptárak",
     "calendar_options": "{name} beállításai"

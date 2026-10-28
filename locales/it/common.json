@@ -3809,7 +3809,8 @@
       "actions": "Azioni",
       "previous": "Giorno, settimana o mese precedente",
       "next": "Giorno, settimana o mese successivo",
-      "new_item": "Nuovo evento, o una nuova attività in Attività"
+      "new_item": "Nuovo evento, o una nuova attività in Attività",
+      "move_in_grid": "Spostarsi tra giorni e ore nella griglia"
     },
     "other_calendars": "Altri calendari",
     "calendar_options": "Opzioni per {name}"

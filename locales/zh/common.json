@@ -3809,7 +3809,8 @@
       "actions": "操作",
       "previous": "上一天、周或月",
       "next": "下一天、周或月",
-      "new_item": "新建事件（在任务中新建任务）"
+      "new_item": "新建事件（在任务中新建任务）",
+      "move_in_grid": "在网格中按天和小时移动"
     },
     "other_calendars": "其他日历",
     "calendar_options": "{name} 的选项"

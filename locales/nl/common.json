@@ -3809,7 +3809,8 @@
       "actions": "Acties",
       "previous": "Vorige dag, week of maand",
       "next": "Volgende dag, week of maand",
-      "new_item": "Nieuwe afspraak, of een nieuwe taak in Taken"
+      "new_item": "Nieuwe afspraak, of een nieuwe taak in Taken",
+      "move_in_grid": "Tussen dagen en uren in het raster bewegen"
     },
     "other_calendars": "Andere agenda's",
     "calendar_options": "Opties voor {name}"

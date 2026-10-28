@@ -3809,7 +3809,8 @@
       "actions": "Eylemler",
       "previous": "Önceki gün, hafta veya ay",
       "next": "Sonraki gün, hafta veya ay",
-      "new_item": "Yeni etkinlik, Görevler'de yeni görev"
+      "new_item": "Yeni etkinlik, Görevler'de yeni görev",
+      "move_in_grid": "Izgarada günler ve saatler arasında gezin"
     },
     "other_calendars": "Diğer takvimler",
     "calendar_options": "{name} seçenekleri"

@@ -18,6 +18,7 @@ import { displayNow, isDisplayToday } from "@/lib/timezone";
 import type { CalendarEvent, Calendar, CalendarTask } from "@/lib/jmap/types";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useDisplayHours, type RevealTime } from "@/hooks/use-display-hours";
+import { useTimeGridFocus } from "@/hooks/use-time-grid-focus";
 import { useTimeGridInteractions, type MoveEventHandler } from "@/hooks/use-time-grid-interactions";
 import { useScrollWindow, getScrollStart, setScrollStart, scrollToStart } from "@/hooks/use-scroll-window";
 import { dayKey, type ScrollWindowViewProps } from "@/lib/calendar-scroll-window";
@@ -393,6 +394,16 @@ export function CalendarWeekView({
     onMoveEvent,
   });
 
+  const { slotProps, tabStopDayKey } = useTimeGridFocus({
+    rootRef,
+    headerRef,
+    gutterWidth,
+    days,
+    hours,
+    selectedDate,
+    onCreate: onCreateAtTime,
+  });
+
   const formatHour = (h: number): string => {
     if (timeFormat === "12h") {
       const d = new Date(2000, 0, 1, h);
@@ -400,6 +411,8 @@ export function CalendarWeekView({
     }
     return format(new Date(2000, 0, 1, h), "HH:mm");
   };
+  // A slot is read out with its whole date: "Wednesday, October 28, 10:00".
+  const slotDateLabel = (day: Date) => intlFormatter.dateTime(day, { weekday: "long", month: "long", day: "numeric" });
 
   // Above every in-column overlay (events z-10, handles z-20, drag z-30) so
   // columns scrolled past the start do not show through the gutter.
@@ -451,6 +464,8 @@ export function CalendarWeekView({
                 <button
                   type="button"
                   onClick={() => (onOpenDay ?? onSelectDate)(day)}
+                  // One date in the tab order, not every loaded day's.
+                  tabIndex={dayKey(day) === tabStopDayKey ? 0 : -1}
                   aria-label={fullLabel}
                   aria-current={todayCol ? "date" : undefined}
                   className={cn(
@@ -651,11 +666,12 @@ export function CalendarWeekView({
                     <div
                       key={h}
                       role="gridcell"
-                      aria-label={`${intlFormatter.dateTime(day, { weekday: "short" })} ${formatHour(h)}`}
+                      aria-label={`${slotDateLabel(day)}, ${formatHour(h)}`}
+                      {...slotProps(day, h, !isMobile)}
                       onClick={() => handleSlotClick(day, h)}
                       onDoubleClick={() => handleSlotDoubleClick(day, h)}
                       onContextMenu={onContextMenuEmpty ? (e) => onContextMenuEmpty(e, day, h, false) : undefined}
-                      className="border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors"
+                      className="border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
                       style={{ height: hourHeight }}
                     />
                   ))}

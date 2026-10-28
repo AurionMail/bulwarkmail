@@ -3809,7 +3809,8 @@
       "actions": "작업",
       "previous": "이전 일/주/월",
       "next": "다음 일/주/월",
-      "new_item": "새 이벤트 (할 일 보기에서는 새 작업)"
+      "new_item": "새 이벤트 (할 일 보기에서는 새 작업)",
+      "move_in_grid": "그리드에서 날짜와 시간 사이 이동"
     },
     "other_calendars": "다른 캘린더",
     "calendar_options": "{name} 옵션"

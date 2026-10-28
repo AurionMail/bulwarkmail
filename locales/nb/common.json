@@ -3809,7 +3809,8 @@
       "actions": "Handlinger",
       "previous": "Forrige dag, uke eller måned",
       "next": "Neste dag, uke eller måned",
-      "new_item": "Ny hendelse, eller en ny oppgave i Oppgaver"
+      "new_item": "Ny hendelse, eller en ny oppgave i Oppgaver",
+      "move_in_grid": "Gå mellom dager og timer i rutenettet"
     },
     "other_calendars": "Andre kalendere",
     "calendar_options": "Alternativer for {name}"

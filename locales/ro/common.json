@@ -3809,7 +3809,8 @@
       "actions": "Acțiuni",
       "previous": "Ziua, săptămâna sau luna anterioară",
       "next": "Ziua, săptămâna sau luna următoare",
-      "new_item": "Eveniment nou sau, în Sarcini, o sarcină nouă"
+      "new_item": "Eveniment nou sau, în Sarcini, o sarcină nouă",
+      "move_in_grid": "Deplasare între zile și ore în grilă"
     },
     "other_calendars": "Alte calendare",
     "calendar_options": "Opțiuni pentru {name}"

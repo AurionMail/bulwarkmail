@@ -3809,7 +3809,8 @@
       "actions": "Handlinger",
       "previous": "Forrige dag, uge eller måned",
       "next": "Næste dag, uge eller måned",
-      "new_item": "Ny begivenhed, eller en ny opgave i Opgaver"
+      "new_item": "Ny begivenhed, eller en ny opgave i Opgaver",
+      "move_in_grid": "Gå mellem dage og timer i gitteret"
     },
     "other_calendars": "Andre kalendere",
     "calendar_options": "Indstillinger for {name}"

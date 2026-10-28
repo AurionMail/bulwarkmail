@@ -3809,7 +3809,8 @@
       "actions": "Actions",
       "previous": "Jour, semaine ou mois précédent",
       "next": "Jour, semaine ou mois suivant",
-      "new_item": "Nouvel événement, ou une nouvelle tâche dans Tâches"
+      "new_item": "Nouvel événement, ou une nouvelle tâche dans Tâches",
+      "move_in_grid": "Se déplacer entre les jours et les heures dans la grille"
     },
     "other_calendars": "Autres agendas",
     "calendar_options": "Options de {name}"
