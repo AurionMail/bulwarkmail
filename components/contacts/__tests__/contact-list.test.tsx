@@ -183,4 +183,14 @@ describe('ContactList', () => {
     });
   });
 
+
+  it("writes to a contact from the right-click menu in the app's composer, not through mailto:", () => {
+    const onComposeContact = vi.fn();
+    const href = window.location.href;
+    render(<ContactList {...defaultProps} onComposeContact={onComposeContact} />);
+    fireEvent.contextMenu(screen.getByText('Alice Smith'));
+    fireEvent.click(screen.getByText('context_menu.send_email'));
+    expect(onComposeContact).toHaveBeenCalledWith(alice);
+    expect(window.location.href).toBe(href);
+  });
 });

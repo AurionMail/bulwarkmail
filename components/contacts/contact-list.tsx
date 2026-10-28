@@ -114,6 +114,8 @@ interface ContactListProps {
   onEditContact: (id: string) => void;
   onDeleteContact: (contact: ContactCard) => void;
   onAddContactToGroup: (id: string) => void;
+  /** Opens the app's composer to the contact. */
+  onComposeContact?: (contact: ContactCard) => void;
   /** Show a burger button at the start that opens the (overlay) categories sidebar. */
   onMenuClick?: () => void;
   /** The first fetch is still running: show placeholders, not "No contacts yet". */
@@ -139,6 +141,7 @@ export function ContactList({
   onEditContact,
   onDeleteContact,
   onAddContactToGroup,
+  onComposeContact,
   onMenuClick,
   isLoading = false,
 }: ContactListProps) {
@@ -650,6 +653,7 @@ export function ContactList({
           onEdit={() => onEditContact(contextMenu.data!.id)}
           onDelete={() => onDeleteContact(contextMenu.data!)}
           onAddToGroup={() => onAddContactToGroup(contextMenu.data!.id)}
+          onCompose={onComposeContact ? () => onComposeContact(contextMenu.data!) : undefined}
           onBatchExport={onBulkExport}
           onBatchAddToGroup={onBulkAddToGroup}
           onBatchDelete={onBulkDelete}

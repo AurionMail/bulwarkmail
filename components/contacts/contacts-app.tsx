@@ -1199,6 +1199,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                   onEditContact={guard(handleEditContact)}
                   onDeleteContact={handleDeleteContact}
                   onAddContactToGroup={guard(handleAddContactToGroup)}
+                  onComposeContact={handleComposeContact}
                   onMenuClick={isNarrow ? () => setNarrowSidebarOpen(true) : undefined}
                   isLoading={supportsSync && !contactsLoaded}
                 />

@@ -47,6 +47,8 @@ interface ContactContextMenuProps {
   onEdit: () => void;
   onDelete: () => void;
   onAddToGroup: () => void;
+  /** Writes to the contact in the app's composer. */
+  onCompose?: () => void;
   onDuplicate?: () => void;
   onBatchExport?: () => void;
   onBatchAddToGroup?: () => void;
@@ -65,6 +67,7 @@ export function ContactContextMenu({
   onEdit,
   onDelete,
   onAddToGroup,
+  onCompose,
   onDuplicate,
   onBatchExport,
   onBatchAddToGroup,
@@ -79,11 +82,6 @@ export function ContactContextMenu({
   const handle = (fn: () => void) => () => {
     fn();
     onClose();
-  };
-
-  const handleSendEmail = () => {
-    if (!email) return;
-    window.location.href = `mailto:${email}`;
   };
 
   const handleCall = () => {
@@ -146,11 +144,11 @@ export function ContactContextMenu({
       <ContextMenuItem icon={Eye} label={t("context_menu.open")} onClick={handle(onOpen)} />
       <ContextMenuItem icon={Pencil} label={t("context_menu.edit")} onClick={handle(onEdit)} />
       {(email || phone) && <ContextMenuSeparator />}
-      {email && (
+      {email && onCompose && (
         <ContextMenuItem
           icon={Mail}
           label={t("context_menu.send_email")}
-          onClick={handle(handleSendEmail)}
+          onClick={handle(onCompose)}
         />
       )}
       {phone && (
