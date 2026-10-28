@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import { SettingItem, ToggleSwitch, RadioGroup, Select } from '../settings-section';
+import { SettingItem, ToggleSwitch, RadioGroup, Select, SectionNav, SettingsSection } from '../settings-section';
 
 describe('SettingItem controls', () => {
   it('names a toggle after the row label and reports its state', () => {
@@ -101,5 +101,21 @@ describe('ToggleSwitch off state (finding 56)', () => {
       const ratio = contrast(token(block, '--color-muted-foreground'), token(block, '--color-background'));
       expect(ratio, block).toBeGreaterThanOrEqual(3);
     }
+  });
+});
+
+// SET-17: the jump row read the heading's text, which holds the Advanced
+// badge too ("Loading & searchAdvanced").
+describe('SectionNav', () => {
+  it('names each chip after its section, without the Advanced badge', () => {
+    render(
+      <div>
+        <SectionNav />
+        <SettingsSection id="list" title="Message list"><span /></SettingsSection>
+        <SettingsSection id="loading" title="Loading & search" advanced><span /></SettingsSection>
+      </div>
+    );
+    const nav = screen.getByTestId('settings-section-nav');
+    expect(Array.from(nav.querySelectorAll('button')).map((b) => b.textContent)).toEqual(['Message list', 'Loading & search']);
   });
 });

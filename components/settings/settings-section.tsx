@@ -117,7 +117,9 @@ export function SectionNav() {
     if (!host) return;
     const collect = () => {
       const list = Array.from(host.querySelectorAll<HTMLElement>('[data-settings-section]'))
-        .map((el) => ({ id: el.dataset.settingsSection ?? '', title: el.querySelector('h3')?.textContent?.trim() ?? '' }))
+        // The section's own title, not the heading's text, which also holds
+        // the Advanced badge ("Loading & searchAdvanced").
+        .map((el) => ({ id: el.dataset.settingsSection ?? '', title: (el.dataset.searchLabel ?? el.querySelector('h3')?.textContent ?? '').trim() }))
         .filter((entry) => entry.id && entry.title);
       setSections((prev) => (
         prev.length === list.length && prev.every((p, i) => p.id === list[i].id && p.title === list[i].title) ? prev : list
