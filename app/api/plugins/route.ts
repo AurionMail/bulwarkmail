@@ -4,6 +4,8 @@ import { getPluginRegistry, getThemeRegistry } from '@/lib/admin/plugin-registry
 import { listDevPlugins } from '@/lib/admin/plugin-dev';
 import { configManager } from '@/lib/admin/config-manager';
 import { logger } from '@/lib/logger';
+import { isNoThirdPartyTrafficOn } from '@/lib/admin/third-party-mode';
+import { pluginDeclaresNetwork } from '@/lib/outgoing-hosts';
 
 /**
  * GET /api/plugins - Public endpoint for clients to discover server-managed plugins & themes
@@ -32,11 +34,14 @@ export async function GET(request: NextRequest) {
     // plugin without uninstalling it first.
     const devIds = new Set(devEntries.map(e => e.plugin.id));
     const installedEnabled = pluginRegistry.plugins.filter(p => p.enabled && !devIds.has(p.id));
+    // Plugins that declare network access never reach a browser while the
+    // server must stay off outside hosts (#903); the rest run as usual.
+    const noThirdParty = await isNoThirdPartyTrafficOn();
 
     const plugins = [
       ...devEntries.map(e => ({ ...e.plugin, dev: true })),
       ...installedEnabled.map(p => ({ ...p, dev: false })),
-    ].map(p => ({
+    ].filter(p => !(noThirdParty && pluginDeclaresNetwork(p))).map(p => ({
       id: p.id,
       name: p.name,
       version: p.version,

@@ -30,8 +30,8 @@ describe('favicon route upstream concurrency', () => {
     const inFlight = Array.from({ length: 16 }, (_, i) =>
       GET(new NextRequest(`https://webmail.example/api/favicon?domain=site${i}.example`)),
     );
-    await new Promise((r) => setTimeout(r, 0));
-    expect(fetchMock).toHaveBeenCalledTimes(16);
+    // The route reads the no-third-party switch from config first (#903).
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(16));
 
     const over = await GET(new NextRequest('https://webmail.example/api/favicon?domain=site99.example'));
     expect(fetchMock).toHaveBeenCalledTimes(16);
@@ -42,7 +42,7 @@ describe('favicon route upstream concurrency', () => {
     for (const release of pending.splice(0)) release();
     await Promise.all(inFlight);
     const later = GET(new NextRequest('https://webmail.example/api/favicon?domain=site100.example'));
-    expect(fetchMock).toHaveBeenCalledTimes(17);
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(17));
     for (const release of pending.splice(0)) release();
     expect((await later).status).toBe(200);
   });

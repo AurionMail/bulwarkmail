@@ -64,6 +64,7 @@ const configValidators = {
   embeddedMode: isBoolean,
   parentOrigin: isString,
   sourceCodeUrl: isString,
+  noThirdPartyTraffic: isBoolean,
 } satisfies Validators<ConfigData>;
 
 /**

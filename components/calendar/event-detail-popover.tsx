@@ -25,6 +25,7 @@ import { canUserRsvp, getEventEditability, type EditabilityContext } from "@/lib
 import { useFormatEventDate } from "@/hooks/use-format-event-date";
 import { useContactNameResolver } from "@/hooks/use-contact-name-resolver";
 import { findMeetingLink, locationAction, mapsUrl, primaryLocationName } from "@/lib/event-links";
+import { useNoThirdPartyTraffic } from "@/hooks/use-third-party-mode";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { eventToView } from "@/lib/plugin-projection";
 
@@ -148,6 +149,8 @@ export function EventDetailPopover({
   const isMultiDay = !isSameDay(startDate, displayEndDate);
 
   const locationName = useMemo(() => primaryLocationName(event) ?? null, [event]);
+  // Re-computes the location link once the config is known (#903).
+  const noThirdParty = useNoThirdPartyTraffic();
 
   // Invitations (Teams above all) leave virtualLocations empty and bury the
   // join URL in the description; surface it as the meeting link anyway.
@@ -160,8 +163,10 @@ export function EventDetailPopover({
   const locationHref = useMemo(() => {
     if (!locationName) return null;
     const action = locationAction(locationName, meeting);
-    return action.kind === "url" ? action.uri : mapsUrl(action.query);
-  }, [locationName, meeting]);
+    if (action.kind === "url") return action.uri;
+    // No Google Maps link while third-party traffic is off (#903).
+    return noThirdParty ? null : mapsUrl(action.query);
+  }, [locationName, meeting, noThirdParty]);
   const [locationCopied, setLocationCopied] = useState(false);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => {
@@ -493,7 +498,7 @@ export function EventDetailPopover({
               href={locationHref ?? undefined}
               target="_blank"
               rel="noreferrer"
-              className="text-sm text-primary hover:underline min-w-0 break-words"
+              className={cn("text-sm min-w-0 break-words", locationHref ? "text-primary hover:underline" : "text-foreground")}
               title={locationName}
             >
               {/^https?:\/\//i.test(locationName)

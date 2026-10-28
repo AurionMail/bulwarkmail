@@ -194,6 +194,19 @@ describe('lite build helpers', () => {
     expect(withScriptHashCsp('<html><script>1</script></html>')).toMatch(/^<html><meta http-equiv="Content-Security-Policy"[^>]*><script>/);
   });
 
+  it('fences a page built with no third-party traffic to its own origin and the JMAP server (#903)', () => {
+    const strict = buildScriptHashCsp([], { noThirdParty: true, connectSrc: 'https://mail.example.com' });
+    expect(strict).toContain("connect-src 'self' https://mail.example.com");
+    expect(strict).toContain("img-src 'self' data: blob: https://mail.example.com");
+    expect(strict).toContain("font-src 'self' data:");
+    expect(strict).not.toMatch(/ https:( |;|$)/);
+    expect(buildScriptHashCsp([], { noThirdParty: true })).toContain("connect-src 'self' *");
+    const header = buildHeaders({ basePath: '', connectSrc: 'https://mail.example.com', noThirdParty: true });
+    expect(header).toContain("img-src 'self' data: blob: https://mail.example.com");
+    expect(header).not.toMatch(/img-src[^;]* https:( |;)/);
+    expect(buildHeaders({ basePath: '', connectSrc: '*' })).toContain("img-src 'self' data: blob: https:");
+  });
+
   it('writes a 404 shim that parks deep links for known locale/surface pairs only', () => {
     const html = buildNotFoundShim({ basePath: '/webmail', locales: ['de', 'en'] });
     expect(html).toContain('var base = "/webmail"');

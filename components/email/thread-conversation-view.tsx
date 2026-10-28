@@ -57,6 +57,7 @@ import { useDeviceDetection } from "@/hooks/use-media-query";
 import { usePluginRenderedBody } from "@/hooks/use-plugin-rendered-body";
 import { emailToReadView } from "@/lib/plugin-projection";
 import { AttachmentPluginMenu, ReaderAboveQuoteSlot } from "./reader-plugin-surfaces";
+import { useNoThirdPartyTraffic } from "@/hooks/use-third-party-mode";
 
 export type ConversationAttachmentHandler = (
   blobId: string, name: string, type: string | undefined, source: EmailBlobContext,
@@ -114,6 +115,8 @@ export function useConversationExternalContent() {
   const addToTrustedSendersBook = useContactStore((state) => state.addToTrustedSendersBook);
   const { client } = useAuthStore(useShallow((state) => ({ client: state.client })));
   const [allowedIds, setAllowedIds] = useState<Set<string>>(new Set());
+  // No third-party traffic (#903): nothing remote loads and nothing offers to.
+  const remoteBlockedByOrg = useNoThirdPartyTraffic();
 
   const allow = useCallback((emailId: string) => {
     setAllowedIds(prev => new Set(prev).add(emailId));
@@ -124,12 +127,13 @@ export function useConversationExternalContent() {
     const senderIsTrusted = senderEmail
       ? isSenderTrusted(senderEmail) || (trustedSendersAddressBook && isTrustedAddressBookSender(senderEmail))
       : false;
+    if (remoteBlockedByOrg) return false;
     return externalContentPolicy === 'allow' || !!senderIsTrusted || allowedIds.has(email.id);
   };
 
   const trustSender = (email: Email) => {
     const senderEmail = email.from?.[0]?.email?.toLowerCase();
-    if (!senderEmail) return undefined;
+    if (!senderEmail || remoteBlockedByOrg) return undefined;
     return () => {
       if (trustedSendersAddressBook && client) {
         addToTrustedSendersBook(client, senderEmail).catch(console.error);
@@ -525,6 +529,7 @@ export function ConversationEmailBody({
   bodyStyle,
   className,
 }: ConversationEmailBodyProps) {
+  const remoteBlockedByOrg = useNoThirdPartyTraffic();
   const t = useTranslations();
   const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
   const mailAttachmentAction = useSettingsStore((state) => state.mailAttachmentAction);
@@ -834,10 +839,11 @@ export function ConversationEmailBody({
     <div className={className}>
       {/* External content warning */}
       {hasBlockedContent && !allowExternal && (
-        <div className="px-4 py-2 bg-muted/50 flex items-center justify-between text-sm">
+        <div className="px-4 py-2 bg-muted/50 flex items-center justify-between text-sm" data-testid="external-content-notice">
           <span className="text-muted-foreground">
-            {t("email_viewer.external_content_warning")}
+            {remoteBlockedByOrg ? t("third_party.remote_content_blocked") : t("email_viewer.external_content_warning")}
           </span>
+          {!remoteBlockedByOrg && (
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -862,6 +868,7 @@ export function ConversationEmailBody({
               </Button>
             )}
           </div>
+          )}
         </div>
       )}
 

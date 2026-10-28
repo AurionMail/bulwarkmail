@@ -356,6 +356,13 @@ export const CONFIG_ENV_MAP: Record<string, { envVar: string; fileEnvVar?: strin
   // white-label or self-hosted deployment at its own connector.
   connectorEnabled: { envVar: 'CONNECTOR_ENABLED', type: 'boolean', defaultValue: true },
   connectorUrl: { envVar: 'CONNECTOR_URL', type: 'url', defaultValue: 'https://connector.bulwarkmail.org' },
+  // Fail-closed "no third-party traffic" mode (#903): every built-in outside
+  // host in lib/outgoing-hosts.ts is off (telemetry, version check, the
+  // built-in push relay, the official extension directory, the connector,
+  // sender favicons, MyMemory, maps links, WKD) and plugins that declare
+  // network access don't run. Instance-wide on purpose. An env "on" can't be
+  // switched off in the admin panel (lib/admin/third-party-mode.ts).
+  noThirdPartyTraffic: { envVar: 'NO_THIRD_PARTY_TRAFFIC', type: 'boolean', defaultValue: false },
   // WOPI document editing (#425). `wopiClientUrl` is the editor's base URL
   // (Collabora Online / OnlyOffice / EuroOffice, ...); discovery is fetched
   // from `<url>/hosting/discovery` unless the URL already carries a path.
