@@ -603,7 +603,7 @@ function getNextSelectedEmailAfterRemovingRow(
   return null;
 }
 
-function annotateScheduledEmails(
+export function annotateScheduledEmails(
   emails: Email[],
   scheduledSubmissionByEmailId: Map<string, ScheduledSubmissionMetadata>
 ): Email[] {
@@ -634,14 +634,27 @@ function scheduledSubmissionMap(client: IJMAPClient, emails: ScheduledEmail[]): 
   }]));
 }
 
-function annotateScheduledEmail(
+export function annotateScheduledEmail(
   email: Email,
   scheduledSubmissionByEmailId: Map<string, ScheduledSubmissionMetadata>
 ): Email {
   // The row's login and account: its stamps, else the folder on screen.
   const { client, clientAccountId, accountId } = resolveEmailBlobContext(email, useAuthStore.getState().client);
-  const scheduled = scheduledSubmissionByEmailId.get(scheduledEmailKey(clientAccountId, accountId ?? client?.getAccountId(), email.id));
-  if (!scheduled) return email;
+  const scheduled = scheduledSubmissionByEmailId.get(scheduledEmailKey(clientAccountId, accountId ?? client?.getAccountId(), email.id))
+    ?? scheduledSubmissionByEmailId.get(email.id);
+  if (!scheduled) {
+    if (email.isScheduled) {
+      const copy = { ...email };
+      delete copy.isScheduled;
+      delete copy.scheduledSendAt;
+      delete copy.emailSubmissionId;
+      delete copy.scheduledIdentityId;
+      delete copy.scheduledUndoStatus;
+      delete copy.scheduledAccountId;
+      return copy;
+    }
+    return email;
+  }
   return {
     ...email,
     scheduledSendAt: scheduled.sendAt,
@@ -7629,6 +7642,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         scheduledEmails: result.emails,
         scheduledEmailIds,
         scheduledSubmissionByEmailId,
+        emails: annotateScheduledEmails(get().emails, scheduledSubmissionByEmailId),
         scheduledTotal: result.total,
         scheduledTotalByAccount: result.totalByAccount ?? {},
         scheduledHasMore: result.hasMore,

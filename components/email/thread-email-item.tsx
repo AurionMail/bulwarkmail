@@ -7,7 +7,7 @@ import { cleanPreview, formatDate } from "@/lib/utils";
 import { Email } from "@/lib/jmap/types";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
-import { Paperclip, Star, Circle, CheckSquare, Square, Reply, Forward } from "@/components/icons";
+import { Paperclip, Star, Circle, CheckSquare, Square, Reply, Forward, CalendarClock } from "@/components/icons";
 import { useEmailDrag } from "@/hooks/use-email-drag";
 import { useLongPress } from "@/hooks/use-long-press";
 import { useEmailStore } from "@/stores/email-store";
@@ -172,6 +172,7 @@ export function ThreadEmailItem({
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2.5">
+              {email.isScheduled && <CalendarClock className="w-3.5 h-3.5 text-primary" />}
               {isStarred && <Star className="w-3 h-3 fill-amber-400 text-amber-400" />}
               {isAnswered && <Reply className="w-3 h-3 text-muted-foreground" />}
               {isForwarded && <Forward className="w-3 h-3 text-muted-foreground" />}
@@ -276,6 +277,9 @@ export function ThreadEmailItem({
 
             {/* Indicators */}
             <div className="flex items-center gap-1 flex-shrink-0">
+              {email.isScheduled && (
+                <CalendarClock className="w-3 h-3 text-primary" />
+              )}
               {isStarred && (
                 <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
               )}
