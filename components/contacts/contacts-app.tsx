@@ -202,7 +202,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   // Set when the app itself goes Back (to the email it came from): the
   // guard's history entry is in the way then, and is stepped over.
   const leavingRef = useRef(false);
-  const backGuard = useCloseOnBack(() => {
+  const backGuard = useCloseOnBack({ active: editorDirty, onBack: () => {
     if (leavingRef.current) {
       leavingRef.current = false;
       window.history.back();
@@ -212,7 +212,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
       if (discard) handleCancelRef.current();
       else backGuard.rearm();
     });
-  }, editorDirty);
+  } });
   const routerBack = useCallback(() => {
     if (backGuard.armed()) leavingRef.current = true;
     router.back();

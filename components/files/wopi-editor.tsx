@@ -41,7 +41,7 @@ interface LaunchData {
  */
 export function WopiEditor({ target, accountId, slot, onClose, closeOnBack = false }: WopiEditorProps) {
   const t = useTranslations("files");
-  useCloseOnBack(onClose, closeOnBack);
+  useCloseOnBack({ onBack: onClose, active: closeOnBack });
   const locale = useLocale();
   const [launch, setLaunch] = useState<LaunchData | null>(null);
   const [error, setError] = useState<string | null>(null);
