@@ -3544,6 +3544,7 @@
       "choose_group": "Vælg en gruppe",
       "new_group": "Ny gruppe…",
       "adding_contacts": "Tilføjer {count, plural, one {1 kontakt} other {# kontakter}}",
+      "moving_contacts": "Flytter {count, plural, one {1 kontakt} other {# kontakter}}",
       "added_to_group": "Kontakter tilføjet til gruppe",
       "export": "Eksportér",
       "clear": "Ryd markering"

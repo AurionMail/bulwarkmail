@@ -3544,6 +3544,7 @@
       "choose_group": "Wybierz grupę",
       "new_group": "Nowa grupa…",
       "adding_contacts": "Dodawanie {count, plural, one {1 kontaktu} other {# kontaktów}}",
+      "moving_contacts": "Przenoszenie {count, plural, one {1 kontaktu} other {# kontaktów}}",
       "added_to_group": "Kontakty dodano do grupy",
       "export": "Eksportuj",
       "clear": "Wyczyść zaznaczenie"

@@ -2670,6 +2670,7 @@
       "choose_group": "เลือกกลุ่ม",
       "new_group": "กลุ่มใหม่…",
       "adding_contacts": "กำลังเพิ่มผู้ติดต่อ {count, plural, one {1 รายการ} other {# รายการ}}",
+      "moving_contacts": "กำลังย้ายผู้ติดต่อ {count, plural, one {1 รายการ} other {# รายการ}}",
       "added_to_group": "เพิ่มผู้ติดต่อในกลุ่มแล้ว",
       "export": "ส่งออก",
       "clear": "ล้างการเลือก"

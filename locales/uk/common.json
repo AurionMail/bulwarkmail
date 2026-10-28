@@ -3544,6 +3544,7 @@
       "choose_group": "Виберіть групу",
       "new_group": "Нова група…",
       "adding_contacts": "Додавання {count, plural, one {1 contact} other {# contacts}}",
+      "moving_contacts": "Переміщення {count, plural, one {# контакту} other {# контактів}}",
       "added_to_group": "Контакти додано до групи",
       "export": "Експорт",
       "clear": "Очистити вибір"

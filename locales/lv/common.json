@@ -3536,6 +3536,7 @@
       "choose_group": "Izvēlēties grupu",
       "new_group": "Jauna grupa…",
       "adding_contacts": "Pievieno {count, plural, one {1 kontaktu} other {# kontaktus}}",
+      "moving_contacts": "Pārvieto {count, plural, one {1 kontaktu} other {# kontaktus}}",
       "added_to_group": "Kontakti pievienoti grupai",
       "export": "Eksportēt",
       "clear": "Notīrīt atlasi"

@@ -3546,6 +3546,7 @@
       "choose_group": "Бүлэг сонгох",
       "new_group": "Шинэ бүлэг…",
       "adding_contacts": "{count, plural, one {1 контакт} other {# контакт}} нэмэж байна",
+      "moving_contacts": "{count, plural, one {1 контакт} other {# контакт}} зөөж байна",
       "added_to_group": "Харилцагчдыг группт нэмсэн",
       "export": "Экспорт хийх",
       "clear": "Сонголтыг арилгах"

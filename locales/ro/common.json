@@ -3546,6 +3546,7 @@
       "choose_group": "Alegeți un grup",
       "new_group": "Grup nou…",
       "adding_contacts": "Adăugare {count, plural, one {1 contact} few {# contacte} other {# de contacte}}",
+      "moving_contacts": "Mutare {count, plural, one {1 contact} few {# contacte} other {# de contacte}}",
       "added_to_group": "Contacte adăugate la grup",
       "export": "Export",
       "clear": "Șterge selecția"

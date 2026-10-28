@@ -3544,6 +3544,7 @@
       "choose_group": "Kies een groep",
       "new_group": "Nieuwe groep…",
       "adding_contacts": "{count, plural, one {1 contact} other {# contacten}} toevoegen",
+      "moving_contacts": "{count, plural, one {1 contact} other {# contacten}} verplaatsen",
       "added_to_group": "Contacten aan groep toegevoegd",
       "export": "Exporteren",
       "clear": "Selectie wissen"

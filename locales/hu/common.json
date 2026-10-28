@@ -3546,6 +3546,7 @@
       "choose_group": "Csoport kiválasztása",
       "new_group": "Új csoport…",
       "adding_contacts": "{count, plural, one {1 névjegy} other {# névjegy}} hozzáadása",
+      "moving_contacts": "{count, plural, one {1 névjegy} other {# névjegy}} áthelyezése",
       "added_to_group": "Névjegyek hozzáadva a csoporthoz",
       "export": "Exportálás",
       "clear": "Kijelölés megszüntetése"

@@ -3546,6 +3546,7 @@
       "choose_group": "Vali grupp",
       "new_group": "Uus rühm…",
       "adding_contacts": "Lisamine: {count, plural, one {1 kontakt} other {# kontakti}}",
+      "moving_contacts": "Teisaldamine: {count, plural, one {1 kontakt} other {# kontakti}}",
       "added_to_group": "Kontaktid lisati gruppi",
       "export": "Eksport",
       "clear": "Tühista valik"

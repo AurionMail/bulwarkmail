@@ -3544,6 +3544,7 @@
       "choose_group": "グループを選択",
       "new_group": "新しいグループ…",
       "adding_contacts": "{count, plural, other {#件の連絡先}}を追加",
+      "moving_contacts": "{count, plural, other {#件の連絡先}}を移動",
       "added_to_group": "連絡先をグループに追加しました",
       "export": "エクスポート",
       "clear": "選択を解除"

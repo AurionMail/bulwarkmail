@@ -3546,6 +3546,7 @@
       "choose_group": "انتخاب گروه",
       "new_group": "گروه جدید…",
       "adding_contacts": "افزودن {count, plural, one {۱ مخاطب} other {# مخاطب}}",
+      "moving_contacts": "انتقال {count, plural, one {۱ مخاطب} other {# مخاطب}}",
       "added_to_group": "مخاطبین به گروه اضافه شدند",
       "export": "خروجی",
       "clear": "پاک کردن انتخاب"

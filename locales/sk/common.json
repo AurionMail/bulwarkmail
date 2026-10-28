@@ -3546,6 +3546,7 @@
       "choose_group": "Vyberte skupinu",
       "new_group": "Nová skupina…",
       "adding_contacts": "Pridávanie {count, plural, one {1 kontaktu} other {# kontaktov}}",
+      "moving_contacts": "Presúvanie {count, plural, one {1 kontaktu} other {# kontaktov}}",
       "added_to_group": "Kontakty boli pridané do skupiny",
       "export": "Exportovať",
       "clear": "Zrušiť výber"

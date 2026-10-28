@@ -3544,6 +3544,7 @@
       "choose_group": "Grup seçin",
       "new_group": "Yeni grup…",
       "adding_contacts": "{count, plural, one {1 kişi} other {# kişi}} ekleniyor",
+      "moving_contacts": "{count, plural, one {1 kişi} other {# kişi}} taşınıyor",
       "added_to_group": "Kişiler gruba eklendi",
       "export": "Dışa Aktar",
       "clear": "Seçimi temizle"

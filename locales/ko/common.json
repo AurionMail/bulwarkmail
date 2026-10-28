@@ -3544,6 +3544,7 @@
       "choose_group": "그룹 선택",
       "new_group": "새 그룹…",
       "adding_contacts": "{count}개의 연락처를 추가하는 중...",
+      "moving_contacts": "연락처 {count}개 이동",
       "added_to_group": "연락처가 그룹에 추가되었어요",
       "export": "내보내기",
       "clear": "선택 취소"
