@@ -453,3 +453,35 @@ describe('CalendarApp creating in the month view', () => {
     expect(useCalendarStore.getState().viewMode).toBe('day');
   });
 });
+
+describe('CalendarApp on touch screens', () => {
+  it('has a ⋮ with Import, Subscribe and Refresh in the phone toolbar', async () => {
+    media.mobile = true;
+    media.desktop = false;
+    renderApp();
+    fireEvent.click(screen.getByRole('button', { name: 'toolbar.more' }));
+    expect(await screen.findByRole('menuitem', { name: 'toolbar.import' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'toolbar.subscribe' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'refresh' })).toBeInTheDocument();
+  });
+
+  it('offers the event menu from a ⋮ in the phone event view', async () => {
+    media.mobile = true;
+    media.desktop = false;
+    setUp([makeEvent()], 'day');
+    renderApp();
+    fireEvent.click(screen.getAllByRole('button', { name: /Standup/ })[0]);
+    const view = await screen.findByRole('dialog', { name: 'Standup' });
+    fireEvent.click(within(view).getByRole('button', { name: 'toolbar.more' }));
+    expect(await screen.findByRole('menuitem', { name: 'events.export_ics' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'events.copy_title' })).toBeInTheDocument();
+  });
+
+  it('opens the event menu on a long press', async () => {
+    renderApp();
+    const card = screen.getAllByRole('button', { name: /Standup/ })[0];
+    fireEvent.touchStart(card, { touches: [{ clientX: 40, clientY: 40 }] });
+    expect(await screen.findByRole('menuitem', { name: 'events.duplicate' }, { timeout: 2000 })).toBeInTheDocument();
+    fireEvent.touchEnd(card);
+  });
+});

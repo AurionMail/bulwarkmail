@@ -804,6 +804,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
   const {
     contextMenu: eventContextMenu,
     openContextMenu: openEventContextMenu,
+    openContextMenuFrom: openEventContextMenuFrom,
     closeContextMenu: closeEventContextMenu,
     menuRef: eventContextMenuRef,
   } = useContextMenu<CalendarEvent>();
@@ -2106,6 +2107,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
                 onDelete={handleDeleteEvent}
                 onDuplicate={handleDuplicateEvent}
                 onRsvp={handleRsvp}
+                onMore={editEvent ? (anchor) => openEventContextMenuFrom(anchor, editEvent, "end") : undefined}
                 onDirtyChange={setEventEditorDirty}
                 onClose={() => { setShowEventModal(false); setEditEvent(null); setPendingPreview(null); setDefaultCalendarIdForCreate(undefined); setDefaultModalAllDay(false); }}
                 onPreviewChange={setPendingPreview}
@@ -2261,6 +2263,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
           onDelete={handleDeleteEvent}
           onDuplicate={handleDuplicateEvent}
           onRsvp={handleRsvp}
+          onMore={editEvent ? (anchor) => openEventContextMenuFrom(anchor, editEvent, "end") : undefined}
           onDirtyChange={setEventEditorDirty}
           onClose={() => { setShowEventModal(false); setEditEvent(null); setDefaultCalendarIdForCreate(undefined); setDefaultModalAllDay(false); }}
           currentUserEmails={currentUserEmails}

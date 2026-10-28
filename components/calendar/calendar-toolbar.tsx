@@ -244,6 +244,7 @@ export function CalendarToolbar({
                   </Button>
                 </>
               )}
+              {moreButton}
             </div>
 
             {/* Row 2: View switcher pills + calendar toggle */}

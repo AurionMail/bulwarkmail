@@ -6,7 +6,8 @@ import { toast } from "@/stores/toast-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LinkifiedText } from "@/components/ui/linkified-text";
-import { X, Trash2, Check, Users, CalendarDays, Copy, Pencil, Clock, MapPin, Video, Repeat, Bell, AlignLeft, AlertTriangle } from "@/components/icons";
+import { X, Trash2, Check, Users, CalendarDays, Copy, Pencil, Clock, MapPin, Video, Repeat, Bell, AlignLeft, AlertTriangle, MoreVertical } from "@/components/icons";
+import { IconButton } from "@/components/ui/icon-button";
 import { format, parseISO, addHours, isSameDay } from "date-fns";
 import type { CalendarEvent, Calendar, CalendarParticipant, CalendarEventAlert, CalendarRecurrenceRule } from "@/lib/jmap/types";
 import { AlertListEditor, AlertSummary, formatEventAlertsLabel } from "./alert-list-editor";
@@ -75,6 +76,8 @@ interface EventModalProps {
   onRsvp?: (eventId: string, participantId: string, status: CalendarParticipant['participationStatus']) => void;
   onClose: () => void;
   onPreviewChange?: (preview: PendingEventPreview | null) => void;
+  /** Opens the event's action menu (export, copy, ...) under the ⋮ of the event view. */
+  onMore?: (anchor: HTMLElement) => void;
   /** Told whether the form holds changes that aren't saved, so the page can ask before it drops them. */
   onDirtyChange?: (dirty: boolean) => void;
   currentUserEmails?: string[];
@@ -252,6 +255,7 @@ export function EventModal({
   onRsvp,
   onClose,
   onPreviewChange,
+  onMore,
   onDirtyChange,
   currentUserEmails = [],
   isSubscriptionCalendar,
@@ -961,8 +965,13 @@ export function EventModal({
 
     return (
       <div ref={modalRef} role="dialog" aria-modal={isMobile || undefined} aria-label={event.title || t("events.no_title")} className={isMobile ? mobileRootClass : "flex flex-col h-full bg-background"}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
+        <div className="flex items-center justify-between gap-2 px-6 py-4 border-b border-border flex-shrink-0">
           <h2 className="text-lg font-semibold truncate">{event.title || t("events.no_title")}</h2>
+          {onMore && (
+            <IconButton label={t("toolbar.more")} aria-haspopup="menu" className="ms-auto flex-shrink-0" onClick={(e) => onMore(e.currentTarget)}>
+              <MoreVertical />
+            </IconButton>
+          )}
           <button onClick={onClose} className="p-1.5 rounded-md hover:bg-muted transition-colors duration-150 text-muted-foreground hover:text-foreground" aria-label={t("form.cancel")}>
             <X className="w-5 h-5" />
           </button>
@@ -1091,6 +1100,11 @@ export function EventModal({
               <p className="text-xs text-muted-foreground mt-0.5 ps-[18px]">{eventCalendar.name}</p>
             )}
           </div>
+          {onMore && (
+            <IconButton label={t("toolbar.more")} aria-haspopup="menu" className="flex-shrink-0 mt-0.5" onClick={(e) => onMore(e.currentTarget)}>
+              <MoreVertical />
+            </IconButton>
+          )}
           <button onClick={onClose} className="p-1.5 rounded-md hover:bg-muted transition-colors duration-150 flex-shrink-0 mt-0.5 text-muted-foreground hover:text-foreground" aria-label={t("form.cancel")}>
             <X className="w-5 h-5" />
           </button>

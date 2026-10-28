@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, type CSSProperties, type DragEvent } from "react";
+import { useCallback, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import type { CalendarEvent, Calendar } from "@/lib/jmap/types";
@@ -10,6 +10,7 @@ import { getParticipantCount, isDeclinedByUser } from "@/lib/calendar-participan
 import { getEventEndDate, getEventStartDate } from "@/lib/calendar-utils";
 import { useSettingsStore } from "@/stores/settings-store";
 import { readableTextOn } from "@/lib/color-transform";
+import { useLongPress } from "@/hooks/use-long-press";
 
 interface EventCardProps {
   event: CalendarEvent;
@@ -149,6 +150,24 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
 
   const handleContextMenu = onContextMenu ? (e: React.MouseEvent) => onContextMenu(e, event) : undefined;
 
+  // Touch screens have no right-click: a long press opens the same menu,
+  // at the finger (R7).
+  const pressedRef = useRef<HTMLElement | null>(null);
+  const longPress = useLongPress(({ clientX, clientY }) => {
+    const target = pressedRef.current;
+    if (!onContextMenu || !target) return;
+    onContextMenu({
+      type: "contextmenu", clientX, clientY, detail: 1, currentTarget: target, target,
+      preventDefault: () => {}, stopPropagation: () => {},
+    } as unknown as React.MouseEvent, event);
+  }, !!onContextMenu);
+  const touchProps = onContextMenu ? {
+    onTouchStart: (e: React.TouchEvent<HTMLElement>) => { pressedRef.current = e.currentTarget; longPress.onTouchStart(e); },
+    onTouchMove: longPress.onTouchMove,
+    onTouchEnd: longPress.onTouchEnd,
+    onTouchCancel: longPress.onTouchCancel,
+  } : {};
+
   if (variant === "chip") {
     return (
       <button
@@ -156,6 +175,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
         onMouseEnter={(e) => onMouseEnter?.(e.currentTarget.getBoundingClientRect())}
         onMouseLeave={() => onMouseLeave?.()}
         onContextMenu={handleContextMenu}
+        {...touchProps}
         aria-label={ariaLabel}
         {...dragProps}
         className={cn(
@@ -179,6 +199,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
         onMouseEnter={(e) => onMouseEnter?.(e.currentTarget.getBoundingClientRect())}
         onMouseLeave={() => onMouseLeave?.()}
         onContextMenu={handleContextMenu}
+        {...touchProps}
         aria-label={ariaLabel}
         {...dragProps}
         className={cn(
@@ -207,6 +228,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
       onMouseEnter={(e) => onMouseEnter?.(e.currentTarget.getBoundingClientRect())}
       onMouseLeave={() => onMouseLeave?.()}
       onContextMenu={handleContextMenu}
+      {...touchProps}
       aria-label={ariaLabel}
       {...dragProps}
       data-calendar-event

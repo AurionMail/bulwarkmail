@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { useLongPress } from "@/hooks/use-long-press";
 import { useTranslations } from "next-intl";
 import { Check, ChevronDown, ChevronRight, Globe, ListTodo, MoreVertical, Pencil, RefreshCw, Share2, Star, Trash2, Cake, User, Users, Plus, Eraser, Palette, Shuffle } from "@/components/icons";
 import { cn, formatDateTime } from "@/lib/utils";
@@ -114,7 +115,14 @@ export function CalendarSidebarPanel({
     return tasks.filter(t => t.progress !== 'completed' && t.progress !== 'cancelled' && t.due && new Date(t.due) < now).length;
   }, [tasks]);
 
-  const { contextMenu, openContextMenu, closeContextMenu, menuRef } = useContextMenu<Calendar>();
+  const { contextMenu, openContextMenu, openContextMenuFrom, closeContextMenu, menuRef } = useContextMenu<Calendar>();
+
+  // A long press on a calendar opens its menu, as a right-click does (R7).
+  const pressedRef = useRef<{ calendar: Calendar; element: HTMLElement } | null>(null);
+  const longPress = useLongPress(() => {
+    const pressed = pressedRef.current;
+    if (pressed) openContextMenuFrom(pressed.element, pressed.calendar);
+  });
   const [refreshingSubId, setRefreshingSubId] = useState<string | null>(null);
 
   // Persisted across mounts so toggle state survives tab switches in the
@@ -276,6 +284,12 @@ export function CalendarSidebarPanel({
         <button
           onClick={() => onToggleVisibility(cal.id)}
           onContextMenu={hasMenu ? (e) => openContextMenu(e, cal) : undefined}
+          {...(hasMenu ? {
+            onTouchStart: (e: React.TouchEvent<HTMLButtonElement>) => { pressedRef.current = { calendar: cal, element: e.currentTarget }; longPress.onTouchStart(e); },
+            onTouchMove: longPress.onTouchMove,
+            onTouchEnd: longPress.onTouchEnd,
+            onTouchCancel: longPress.onTouchCancel,
+          } : {})}
           role="checkbox"
           aria-checked={isVisible}
           data-testid="calendar-item"
@@ -327,10 +341,12 @@ export function CalendarSidebarPanel({
         {hasMenu && (
           <button
             type="button"
-            onClick={(e) => openContextMenu(e, cal)}
+            onClick={(e) => openContextMenuFrom(e.currentTarget, cal, "end")}
+            aria-haspopup="menu"
             className={cn(
               "absolute end-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-opacity",
-              "opacity-0 group-hover/cal:opacity-100 focus-visible:opacity-100",
+              // Hover shows it; keyboard focus and touch screens always do (R7).
+              "opacity-0 group-hover/cal:opacity-100 group-focus-within/cal:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100",
               contextMenu.isOpen && contextMenu.data?.id === cal.id && "opacity-100"
             )}
             aria-label={t('calendar_options', { name: cal.name })}
@@ -474,7 +490,7 @@ export function CalendarSidebarPanel({
           <button
             type="button"
             onClick={onAdd}
-            className="p-0.5 rounded text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-foreground hover:bg-muted transition-opacity"
+            className="p-0.5 rounded text-muted-foreground opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 hover:text-foreground hover:bg-muted transition-opacity"
             title={tMgmt('add_calendar')}
             aria-label={tMgmt('add_calendar')}
           >
@@ -547,7 +563,7 @@ export function CalendarSidebarPanel({
                           onCreateCalendar();
                         }
                       }}
-                      className="ms-auto p-0.5 rounded text-muted-foreground/70 opacity-0 group-hover:opacity-100 hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                      className="ms-auto p-0.5 rounded text-muted-foreground/70 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
                       title={tMgmt('add_calendar')}
                     >
                       <Plus className="w-3 h-3" />
