@@ -248,7 +248,7 @@ export function FilesSidebar({
         ? <ChevronRight className="w-3 h-3 text-muted-foreground" />
         : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
       {icon}
-      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">{label}</span>
+      <span className="text-xs font-medium text-muted-foreground truncate">{label}</span>
     </button>
   );
 

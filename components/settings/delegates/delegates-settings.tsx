@@ -189,7 +189,7 @@ export function DelegatesSettings() {
                       <div className="flex items-center gap-2 truncate text-sm font-medium">
                         <span className="truncate">{display.name}</span>
                         {principal?.type === "group" && (
-                          <span className="rounded bg-muted px-1 py-0.5 text-[10px] font-normal uppercase text-muted-foreground">{t("group")}</span>
+                          <span className="rounded bg-muted px-1 py-0.5 text-[11px] font-normal text-muted-foreground">{t("group")}</span>
                         )}
                       </div>
                       {display.detail && <div className="truncate text-xs text-muted-foreground">{display.detail}</div>}

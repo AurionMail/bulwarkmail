@@ -498,7 +498,7 @@ function formatContexts(contexts: Record<string, boolean> | undefined, label: (k
 export function Section({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
   return (
     <section className={cn("py-6", className)}>
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">{title}</h3>
+      <h3 className="text-xs font-semibold text-muted-foreground mb-3">{title}</h3>
       {children}
     </section>
   );

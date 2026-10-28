@@ -226,8 +226,6 @@
   color: var(--pr-muted);
   font-size: 7.5pt;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .pr-month-week {
@@ -332,8 +330,6 @@
   color: var(--pr-muted);
   font-size: 7.5pt;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .pr-tg-date {
@@ -558,8 +554,6 @@
   color: var(--pr-muted);
   font-size: 7.5pt;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   break-after: avoid;
 }
 
@@ -655,8 +649,6 @@
   color: var(--pr-muted);
   font-size: 8.5pt;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   break-after: avoid;
 }
 

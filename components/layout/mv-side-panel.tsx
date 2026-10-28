@@ -111,7 +111,7 @@ function PanelHeader({ title, subtitle, href, onClose, children }: {
   return (
     <div className="flex items-start gap-1 px-4 pt-4 pb-2">
       <div className="min-w-0 flex-1">
-        <div className={cn(subtitle ? "text-[11px] font-medium uppercase tracking-wider text-muted-foreground" : "text-[22px] leading-7")}>{title}</div>
+        <div className={cn(subtitle ? "text-[11px] font-medium text-muted-foreground" : "text-[22px] leading-7")}>{title}</div>
         {subtitle && <div className="text-sm font-medium text-primary">{subtitle}</div>}
       </div>
       {children}

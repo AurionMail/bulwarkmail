@@ -893,7 +893,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
         {/* Eyebrow + title + collapse */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="text-[11px] font-semibold text-muted-foreground">
               {bannerTitle}
             </div>
             {summary?.title && (

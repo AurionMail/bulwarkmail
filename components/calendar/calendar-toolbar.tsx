@@ -310,7 +310,7 @@ export function CalendarToolbar({
                   </IconButton>
                   {showCalendarDropdown && (
                     <div className="absolute top-full end-0 mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg p-2 min-w-[180px]">
-                      <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                      <h3 className="text-xs font-medium text-muted-foreground mb-2 px-1">
                         {t("my_calendars")}
                       </h3>
                       <div className="space-y-0.5">
@@ -350,7 +350,7 @@ export function CalendarToolbar({
                         }
                         return Array.from(groups.values()).map((group) => (
                           <div key={group.accountName} className="mt-2">
-                            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 px-1">
+                            <h3 className="text-xs font-medium text-muted-foreground mb-1 px-1">
                               {group.accountName}
                             </h3>
                             <div className="space-y-0.5">

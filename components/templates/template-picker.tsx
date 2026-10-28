@@ -128,7 +128,7 @@ export function TemplatePicker({ isOpen, onClose, onSelect, accountId }: Templat
     if (items.length === 0) return null;
     return (
       <div className="mb-4" key={`${source.key}:${title}`}>
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-3">
+        <h3 className="text-xs font-semibold text-muted-foreground mb-1 px-3">
           {title}
         </h3>
         <div className="space-y-0.5">{items.map((item) => renderTemplateItem(item, source))}</div>

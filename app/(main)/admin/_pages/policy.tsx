@@ -61,7 +61,7 @@ const PAGE = adminPageDef('policy');
 
 const fieldLabelClass = 'mb-1 block text-[11px] font-medium text-muted-foreground';
 const cardClass = 'rounded-md border border-border bg-muted/30 p-3';
-const subLabelClass = 'mt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground';
+const subLabelClass = 'mt-2 text-xs font-semibold text-muted-foreground';
 
 /** Mirrors the sanitizer's URL rule so the admin sees the drop before saving. */
 function isValidDefaultAppUrl(raw: string): boolean {

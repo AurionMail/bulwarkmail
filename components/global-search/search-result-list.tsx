@@ -68,7 +68,7 @@ export function SearchResultList({ outcome, kinds, flat, selectedKey, onSelect, 
         if (hits.length === 0 && status.errors.length === 0 && status.status !== 'loading') return null;
         return (
           <section key={kind} className="pb-2">
-            <h3 className="flex items-center gap-2 px-3 pt-3 pb-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider sticky top-0 z-10 bg-background">
+            <h3 className="flex items-center gap-2 px-3 pt-3 pb-1.5 text-xs font-semibold text-muted-foreground sticky top-0 z-10 bg-background">
               {t(`scope_${kind}`)}
               <span className="inline-flex min-w-[18px] h-[18px] items-center justify-center rounded-full bg-muted px-1.5 text-[10px] font-semibold tabular-nums normal-case">
                 {hits.length}{status.hasMore ? '+' : ''}

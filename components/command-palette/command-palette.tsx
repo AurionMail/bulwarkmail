@@ -367,7 +367,7 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
             return (
               <li key={command.id} role="presentation">
                 {showGroup && (
-                  <div aria-hidden="true" className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <div aria-hidden="true" className="px-3 pt-2 pb-1 text-[11px] font-semibold text-muted-foreground">
                     {command.group}
                   </div>
                 )}

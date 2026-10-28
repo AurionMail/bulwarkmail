@@ -81,7 +81,7 @@ export function ProtocolAccountPicker({
             <dl className="space-y-1.5 text-sm">
               {details.map((detail) => (
                 <div key={detail.label} className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3">
-                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{detail.label}</dt>
+                  <dt className="text-xs font-medium text-muted-foreground">{detail.label}</dt>
                   <dd className="truncate text-foreground" title={detail.value}>{detail.value}</dd>
                 </div>
               ))}

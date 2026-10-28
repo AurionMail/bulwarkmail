@@ -978,7 +978,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
                 {groupIndex > 0 && <div className="mx-5 my-2 border-t border-border" />}
                 {group.label && (
                   <div className="px-5 pt-3 pb-1.5">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <span className="text-xs font-semibold text-muted-foreground">
                       {group.label}
                     </span>
                   </div>
@@ -1128,7 +1128,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
                 {groupIndex > 0 && <div className="mx-1 my-2 border-t border-border" />}
                 {group.label && (
                   <div className="px-3 pt-2.5 pb-1">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <span className="text-[11px] font-semibold text-muted-foreground">
                       {group.label}
                     </span>
                   </div>

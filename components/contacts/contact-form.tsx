@@ -145,7 +145,7 @@ function FormSection({ icon: Icon, title, children, collapsible, defaultOpen = t
         tabIndex={collapsible ? 0 : -1}
       >
         <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
-        <h3 className="flex-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
+        <h3 className="flex-1 text-xs font-semibold text-muted-foreground">{title}</h3>
         {collapsible && (
           open ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
         )}

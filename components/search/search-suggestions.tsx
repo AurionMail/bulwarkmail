@@ -84,14 +84,14 @@ export function SearchSuggestions({
 
         const heading =
           (i === 0 && hasRecent && suggestion.kind === "recent" && (
-            <div className="px-3 pt-1 pb-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="px-3 pt-1 pb-0.5 text-[11px] font-medium text-muted-foreground">
               {t("suggestions_recent")}
             </div>
           )) ||
           (i === firstContactIndex && (
             <div
               className={cn(
-                "px-3 pt-1 pb-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground",
+                "px-3 pt-1 pb-0.5 text-[11px] font-medium text-muted-foreground",
                 hasRecent && "mt-1 border-t border-border pt-2",
               )}
             >

@@ -1610,7 +1610,7 @@ function SummaryGroup({ icon, title, children }: { icon: ReactNode; title: strin
     <div className="bg-card/50">
       <div className="flex items-center gap-2 px-3 py-2 bg-muted/40">
         <span className="text-muted-foreground">{icon}</span>
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</span>
+        <span className="text-xs font-semibold text-muted-foreground">{title}</span>
       </div>
       <div className="px-3 py-2 space-y-1.5">{children}</div>
     </div>

@@ -110,7 +110,7 @@ export function GlobalSearchPalette({ proShell = true }: { proShell?: boolean })
     if (hits.length === 0 && status.errors.length === 0 && status.status !== 'loading') return null;
     return (
       <div key={kind} className="py-1">
-        <div className="flex items-center gap-2 px-3 pt-2 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        <div className="flex items-center gap-2 px-3 pt-2 pb-1 text-xs font-semibold text-muted-foreground">
           {t(`scope_${kind}`)}
           <span className="inline-flex min-w-[18px] h-[18px] items-center justify-center rounded-full bg-muted px-1.5 text-[10px] font-semibold tabular-nums normal-case">
             {hits.length}
@@ -171,7 +171,7 @@ export function GlobalSearchPalette({ proShell = true }: { proShell?: boolean })
         <div className="flex-1 min-h-0 overflow-y-auto py-1">
           {showRecent && (
             <div className="py-1">
-              <div className="px-3 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('recent_searches')}</div>
+              <div className="px-3 py-1 text-xs font-medium text-muted-foreground">{t('recent_searches')}</div>
               {recentSearches.map((term) => (
                 <button
                   key={term}

@@ -169,7 +169,7 @@ export function CalendarSearchResults({
 
   const section = (id: string, label: string, events: CalendarEvent[]) => events.length > 0 && (
     <section aria-labelledby={id} className="py-1">
-      <h2 id={id} className="px-2 sm:px-4 pt-3 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <h2 id={id} className="px-2 sm:px-4 pt-3 pb-1 text-xs font-medium text-muted-foreground">
         {label}
       </h2>
       <div className="px-1 sm:px-2">{events.map(renderRow)}</div>

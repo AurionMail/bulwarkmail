@@ -371,7 +371,7 @@ export function CalendarDayView({
                     aria-label={intlFormatter.dateTime(day, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                   >
                     <div className={cn(
-                      "w-10 text-center text-[11px] font-medium uppercase tracking-wide",
+                      "w-10 text-center text-[11px] font-medium first-letter:uppercase",
                       today ? "text-primary" : "text-muted-foreground",
                     )}>
                       {intlFormatter.dateTime(day, { weekday: "short" })}

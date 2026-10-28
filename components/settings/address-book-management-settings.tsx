@@ -331,7 +331,7 @@ export function AddressBookManagementSettings() {
           .filter(([accountId]) => !managedAccountId || accountId === managedAccountId)
           .map(([accountId, group]) => (
           <div key={accountId} className="mt-4 space-y-2">
-            <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <h4 className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
               <Share2 className="w-3 h-3" />
               {t("shared_prefix", { name: group.accountName })}
             </h4>

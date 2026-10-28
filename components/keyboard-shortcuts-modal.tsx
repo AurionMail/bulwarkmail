@@ -127,7 +127,7 @@ export function KeyboardShortcutsModal({ isOpen, onClose, app }: KeyboardShortcu
             if (rows.length === 0 && !extra?.length) return null;
             return (
               <section key={section.id} className={cn(section.wide && "md:col-span-2")}>
-                <h3 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wider">
+                <h3 className="text-sm font-semibold text-foreground mb-3">
                   {t(section.title)}
                 </h3>
                 {/* A wide section's two columns line up with the columns of the

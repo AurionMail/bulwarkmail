@@ -1064,7 +1064,7 @@ function SidebarSection({ icon: Icon, title, children }: { icon: React.Component
     <div>
       <div className="flex items-center gap-2 mb-1.5">
         <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-        <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{title}</h4>
+        <h4 className="text-xs font-medium text-muted-foreground">{title}</h4>
       </div>
       <div className="space-y-1 ps-5.5">{children}</div>
     </div>
@@ -5270,7 +5270,7 @@ export function EmailViewer({
           const totalAttachmentSize = effectiveAttachments.reduce((s, a) => s + (a.size || 0), 0);
           const topMimeType = email.bodyStructure?.type;
           const SectionHeader = ({ children }: { children: React.ReactNode }) => (
-            <div className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase mb-1.5">
+            <div className="text-[11px] font-semibold text-muted-foreground mb-1.5">
               {children}
             </div>
           );
@@ -5304,7 +5304,7 @@ export function EmailViewer({
               >
                 <Icon className={cn("w-3.5 h-3.5 flex-shrink-0", status.color)} />
                 <span className="font-medium text-foreground">{name}</span>
-                <span className={cn("text-[10px] uppercase tracking-wider", status.color)}>
+                <span className={cn("text-[11px]", status.color)}>
                   {translateAuthResult(result)}
                 </span>
                 {extra && (
@@ -5454,7 +5454,7 @@ export function EmailViewer({
                           )} />
                           <span className="font-medium text-foreground">{t('authentication.spam_score')}</span>
                           <span className={cn(
-                            "text-[10px] uppercase tracking-wider",
+                            "text-[11px]",
                             email.spamScore > 5 ? "text-red-700 dark:text-red-400" :
                             email.spamScore > 2 ? "text-amber-700 dark:text-amber-400" :
                             "text-green-700 dark:text-green-400",
@@ -5665,7 +5665,7 @@ export function EmailViewer({
                       <ShieldAlert className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <div className="text-[11px] font-semibold text-muted-foreground">
                         {senderVerificationLabel}
                       </div>
                       <div className="text-sm font-medium text-foreground break-words">
@@ -5686,7 +5686,7 @@ export function EmailViewer({
                     </div>
                     <div className="flex-1 min-w-0 space-y-2">
                       <div>
-                        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <div className="text-[11px] font-semibold text-muted-foreground">
                           External Content
                         </div>
                         <div className="text-sm font-medium text-foreground break-words">

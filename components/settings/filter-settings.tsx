@@ -126,7 +126,7 @@ export function VisualRuleSummary({ rule }: { rule: FilterRule }) {
   return (
     <div className="mt-1.5 space-y-1 text-xs">
       <div className="flex items-baseline gap-1.5 flex-wrap">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-500 dark:text-blue-400">
+        <span className="text-[11px] font-semibold text-blue-500 dark:text-blue-400">
           {t("if")}
         </span>
         {rule.conditions.map((c, i) => {
@@ -167,7 +167,7 @@ export function VisualRuleSummary({ rule }: { rule: FilterRule }) {
       </div>
 
       <div className="flex items-baseline gap-1.5 flex-wrap">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-500 dark:text-emerald-400">
+        <span className="text-[11px] font-semibold text-emerald-500 dark:text-emerald-400">
           {t("then")}
         </span>
         {rule.actions.map((a, i) => {
@@ -188,7 +188,7 @@ export function VisualRuleSummary({ rule }: { rule: FilterRule }) {
 
       {period && (
         <div className="flex items-baseline gap-1.5 flex-wrap">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-violet-500 dark:text-violet-400">
+          <span className="text-[11px] font-semibold text-violet-500 dark:text-violet-400">
             {t("period_title")}
           </span>
           <span className="min-w-0 max-w-full px-1.5 py-px rounded-sm bg-muted/60 text-foreground wrap-anywhere">

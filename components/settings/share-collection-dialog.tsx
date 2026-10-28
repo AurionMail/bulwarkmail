@@ -289,7 +289,7 @@ export function ShareCollectionDialog({
                         <div className="text-sm font-medium truncate flex items-center gap-2">
                           {p.name}
                           {p.type === "group" && (
-                            <span className="text-[10px] uppercase font-normal text-muted-foreground bg-muted rounded px-1 py-0.5">
+                            <span className="text-[11px] font-normal text-muted-foreground bg-muted rounded px-1 py-0.5">
                               {t("group")}
                             </span>
                           )}

@@ -364,7 +364,7 @@ export function ContactsSidebar({
                       <ChevronRight className="w-3 h-3 text-muted-foreground" />
                     )}
                     <User className="w-3 h-3 text-muted-foreground" />
-                    <span className="text-xs font-semibold text-foreground/90 uppercase tracking-wider truncate">
+                    <span className="text-xs font-semibold text-foreground/90 truncate">
                       {group.label}
                     </span>
                   </button>
@@ -373,7 +373,7 @@ export function ContactsSidebar({
                   <div className="ps-2">
                     {owned.length > 0 && (
                       <div className="mt-1">
-                        <div className="px-3 py-0.5 text-[10px] font-medium text-muted-foreground/80 uppercase tracking-wider">
+                        <div className="px-3 py-0.5 text-[11px] font-medium text-muted-foreground/80">
                           {t("address_books.title")}
                         </div>
                         {owned.map((book) => (
@@ -391,7 +391,7 @@ export function ContactsSidebar({
                     )}
                     {sharedGroups.map((sg) => (
                       <div key={`${group.key}-shared-${sg.label}`} className="mt-1">
-                        <div className="px-3 py-0.5 text-[10px] font-medium text-muted-foreground/80 uppercase tracking-wider flex items-center gap-1">
+                        <div className="px-3 py-0.5 text-[11px] font-medium text-muted-foreground/80 flex items-center gap-1">
                           <Share2 className="w-3 h-3" />
                           {sg.label}
                         </div>
@@ -426,7 +426,7 @@ export function ContactsSidebar({
                   ) : (
                     <ChevronDown className="w-3 h-3 text-muted-foreground" />
                   )}
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <span className="text-xs font-medium text-muted-foreground">
                     {t("address_books.title")}
                   </span>
                 </button>
@@ -468,7 +468,7 @@ export function ContactsSidebar({
               ) : (
                 <ChevronDown className="w-3 h-3 text-muted-foreground" />
               )}
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <span className="text-xs font-medium text-muted-foreground">
                 {t("tabs.groups")}
               </span>
             </button>
@@ -506,7 +506,7 @@ export function ContactsSidebar({
             ) : (
               <ChevronDown className="w-3 h-3 text-muted-foreground" />
             )}
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <span className="text-xs font-medium text-muted-foreground">
               {t("detail.categories")}
             </span>
           </button>
@@ -565,7 +565,7 @@ export function ContactsSidebar({
                   <ChevronDown className="w-3 h-3 text-muted-foreground" />
                 )}
                 <Share2 className="w-3 h-3 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
+                <span className="text-xs font-medium text-muted-foreground truncate">
                   {t("address_books.shared_prefix", { name: group.accountName })}
                 </span>
               </button>

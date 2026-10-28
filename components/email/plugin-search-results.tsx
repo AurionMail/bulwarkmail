@@ -130,7 +130,7 @@ export function PluginSearchResults({ surface, onOpenEmail }: PluginSearchResult
               onClick={() => toggle(group.id)}
               aria-expanded={open}
               aria-controls={listId}
-              className="flex w-full items-center gap-1.5 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground"
+              className="flex w-full items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
             >
               {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
               <span className="truncate">{group.heading}</span>

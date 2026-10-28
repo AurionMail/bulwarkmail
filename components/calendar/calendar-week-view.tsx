@@ -467,7 +467,7 @@ export function CalendarWeekView({
                 className="flex flex-col items-center gap-0.5 pt-2 pb-1.5 border-e border-border last:border-e-0"
               >
                 <div className={cn(
-                  "text-[11px] font-medium uppercase tracking-wide",
+                  "text-[11px] font-medium first-letter:uppercase",
                   todayCol ? "text-primary" : "text-muted-foreground",
                 )}>
                   {intlFormatter.dateTime(day, { weekday: "short" })}

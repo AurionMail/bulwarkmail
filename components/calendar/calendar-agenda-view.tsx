@@ -218,7 +218,7 @@ export function CalendarAgendaView({
             </span>
             <span className="min-w-0 leading-tight">
               <span className={cn(
-                "block text-[11px] font-medium uppercase tracking-wide truncate",
+                "block text-[11px] font-medium truncate first-letter:uppercase",
                 today ? "text-primary" : "text-muted-foreground",
               )}>
                 {intlFormatter.dateTime(group.date, { month: "short", weekday: "short" })}

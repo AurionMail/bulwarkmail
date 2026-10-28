@@ -388,7 +388,7 @@ export function ThemesPage() {
           ))}
           {themes.length > 0 && (
             <>
-              <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Installed</p>
+              <p className="mt-2 text-xs font-semibold text-muted-foreground">Installed</p>
               {themes.map(theme => (
                 <SettingItem key={theme.id} label={theme.name}>
                   <ToggleSwitch checked={!disabledInstalled.includes(theme.id)} onChange={() => toggleAdminTheme(theme.id)} />
