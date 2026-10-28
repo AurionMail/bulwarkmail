@@ -60,6 +60,17 @@ describe('useCalendarEventSearch (CAL-16)', () => {
     expect(result.current?.past.map((e) => e.id)).toEqual(['old', 'older']);
   });
 
+  it('shows a series under its own title when its next occurrence was renamed', () => {
+    const { client } = clientWith(() => new Promise(() => {}));
+    const series = [
+      makeEvent('sync-1', 'Sync edited', '2026-10-29T10:00:00', { uid: 'sync', recurrenceId: '2026-10-29T10:00:00' }),
+      makeEvent('sync-2', 'Sync', '2026-11-05T10:00:00', { uid: 'sync', recurrenceId: '2026-11-05T10:00:00' }),
+      makeEvent('sync-3', 'Sync', '2026-11-12T10:00:00', { uid: 'sync', recurrenceId: '2026-11-12T10:00:00' }),
+    ];
+    const { result } = renderHook(() => useCalendarEventSearch('sync', client, series));
+    expect(result.current?.upcoming.map((e) => e.id)).toEqual(['sync-1', 'sync-2']);
+  });
+
   it('keeps the loaded matches when the server can not search', async () => {
     const { client } = clientWith(async () => { throw new Error('unsupportedFilter'); });
     const { result } = renderHook(() => useCalendarEventSearch('review', client, loaded));
