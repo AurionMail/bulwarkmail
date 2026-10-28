@@ -99,7 +99,7 @@
     "close": "Закрыть",
     "compose": "Создать",
     "compose_hint": "Создать (c)",
-    "search_placeholder": "Поиск почты...",
+    "search_placeholder": "Поиск...",
     "search_placeholder_hint": "Поиск почты... (нажмите /)",
     "storage": "Хранилище",
     "storage_used": "Использовано",

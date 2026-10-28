@@ -201,3 +201,15 @@ describe('links in translations', () => {
     expect(relative).toEqual([]);
   });
 });
+
+describe('labels in narrow places', () => {
+  // The mail search field in the list column (167px at 1440, with the "/"
+  // key cap) cut "E-Mails durchsuchen..." to "E-Mails durchsu". The English
+  // text fits; a translation may not be longer.
+  const en = loadLocale(referenceLocale);
+  const max = (resolveKey(en, 'sidebar.search_placeholder') as string).length;
+  it.each(locales)('%s keeps the mail search placeholder as short as the English one', (locale) => {
+    const value = resolveKey(loadLocale(locale), 'sidebar.search_placeholder') as string;
+    expect(value.length).toBeLessThanOrEqual(max);
+  });
+});
