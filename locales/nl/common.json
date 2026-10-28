@@ -2911,6 +2911,10 @@
     "category_name_label": "Categorienaam",
     "category_renamed": "Categorie hernoemd",
     "category_rename_failed": "Categorie hernoemen mislukt",
+    "delete_category": "Categorie verwijderen",
+    "category_deleted": "Categorie '{name}' verwijderd",
+    "category_delete_failed": "Kan de categorie niet verwijderen",
+    "undo": "Ongedaan maken",
     "category_added": "Contact toegevoegd aan {name}",
     "category_added_plural": "{count} contacten toegevoegd aan {name}",
     "empty_state": "Geen contacten",
@@ -2959,7 +2963,10 @@
       "delete": "Adresboek verwijderen",
       "confirm_delete": "\"{name}\" verwijderen? Alle contacten in dit adresboek worden verwijderd.",
       "deleted": "Adresboek verwijderd",
-      "delete_failed": "Adresboek kon niet worden verwijderd"
+      "delete_failed": "Adresboek kon niet worden verwijderd",
+      "move_to": "Verplaatsen naar…",
+      "move_title": "Naar adresboek verplaatsen",
+      "move_here": "Hierheen verplaatsen"
     },
     "detail": {
       "emails": "E-mailadressen",
@@ -3248,7 +3255,8 @@
       "sort_first_name": "Voornaam",
       "sort_last_name": "Achternaam"
     },
-    "open_categories": "Categorieën openen"
+    "open_categories": "Categorieën openen",
+    "row_actions": "Acties voor {name}"
   },
   "calendar": {
     "title": "Agenda",

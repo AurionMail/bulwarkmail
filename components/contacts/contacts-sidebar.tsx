@@ -2,11 +2,13 @@
 
 import { useMemo, useState, useCallback, useEffect, useRef, type DragEvent } from "react";
 import { useTranslations } from "next-intl";
-import { BookUser, Building2, User, Users, Plus, Share2, Book, BookPlus, ChevronRight, ChevronDown, UserPlus, UsersRound, Upload, Tag, Pencil, Trash2, Settings, Mail, Star } from "@/components/icons";
+import { BookUser, Building2, User, Users, Plus, Share2, Book, BookPlus, ChevronRight, ChevronDown, UserPlus, UsersRound, Upload, Tag, Pencil, Trash2, Settings, Mail, Star, MoreVertical } from "@/components/icons";
 import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator, ContextMenuSubMenu } from "@/components/ui/context-menu";
-import { useContextMenu } from "@/hooks/use-context-menu";
+import { isContextMenuKey, useContextMenu } from "@/hooks/use-context-menu";
+import { useLongPress } from "@/hooks/use-long-press";
+import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
 import type { ContactCard, AddressBook } from "@/lib/jmap/types";
 import { getContactDisplayName } from "@/stores/contact-store";
@@ -35,6 +37,8 @@ interface ContactsSidebarProps {
   onCreateContactInBook?: (addressBook: AddressBook) => void;
   onDeleteAddressBook?: (addressBook: AddressBook) => void;
   onRenameKeyword?: (keyword: string) => void;
+  /** Take the category off every contact. */
+  onDeleteKeyword?: (keyword: string) => void;
   /** Entries in the company directory; the Directory entry shows only when set. */
   directoryCount?: number;
   className?: string;
@@ -108,16 +112,24 @@ export function ContactsSidebar({
   onCreateContactInBook,
   onDeleteAddressBook,
   onRenameKeyword,
+  onDeleteKeyword,
   directoryCount,
   className,
   multiAccountMode,
 }: ContactsSidebarProps) {
   const t = useTranslations("contacts");
   const router = useRouter();
-  const { contextMenu: groupContextMenu, openContextMenu: openGroupContextMenu, closeContextMenu: closeGroupContextMenu, menuRef: groupMenuRef } = useContextMenu<ContactCard>();
-  const { contextMenu: bookContextMenu, openContextMenu: openBookContextMenu, closeContextMenu: closeBookContextMenu, menuRef: bookMenuRef } = useContextMenu<AddressBook>();
+  const { contextMenu: groupContextMenu, openContextMenu: openGroupContextMenu, openContextMenuFrom: openGroupMenuFrom, closeContextMenu: closeGroupContextMenu, menuRef: groupMenuRef } = useContextMenu<ContactCard>();
+  const { contextMenu: bookContextMenu, openContextMenu: openBookContextMenu, openContextMenuFrom: openBookMenuFrom, closeContextMenu: closeBookContextMenu, menuRef: bookMenuRef } = useContextMenu<AddressBook>();
   const hasBookMenu = !!(onRenameAddressBook || onShareAddressBook || onSetDefaultAddressBook || onCreateContactInBook || onDeleteAddressBook);
-  const { contextMenu: keywordContextMenu, openContextMenu: openKeywordContextMenu, closeContextMenu: closeKeywordContextMenu, menuRef: keywordMenuRef } = useContextMenu<string>();
+  const { contextMenu: keywordContextMenu, openContextMenu: openKeywordContextMenu, openContextMenuFrom: openKeywordMenuFrom, closeContextMenu: closeKeywordContextMenu, menuRef: keywordMenuRef } = useContextMenu<string>();
+  const hasKeywordMenu = !!(onRenameKeyword || onDeleteKeyword);
+  // Every row with a menu opens it by right-click, its ⋮, long-press and the menu key.
+  const bookMenu = (book: AddressBook) => hasBookMenu ? {
+    onContextMenu: (e: React.MouseEvent) => openBookContextMenu(e, book),
+    onOpenMenu: (anchor: HTMLElement) => openBookMenuFrom(anchor, book, "end"),
+    menuLabel: t("row_actions", { name: book.name }),
+  } : {};
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(loadCollapsed);
   const [showMenu, setShowMenu] = useState(false);
@@ -413,7 +425,7 @@ export function ContactsSidebar({
                             contactCount={contactCountByBook[book.id] || 0}
                             onSelect={() => onSelectCategory({ addressBookId: book.id })}
                             onDropContacts={onDropContacts}
-                            onContextMenu={hasBookMenu ? (e) => openBookContextMenu(e, book) : undefined}
+                            {...bookMenu(book)}
                           />
                         ))}
                       </div>
@@ -432,7 +444,7 @@ export function ContactsSidebar({
                             contactCount={contactCountByBook[book.id] || 0}
                             onSelect={() => onSelectCategory({ addressBookId: book.id })}
                             onDropContacts={onDropContacts}
-                            onContextMenu={hasBookMenu ? (e) => openBookContextMenu(e, book) : undefined}
+                            {...bookMenu(book)}
                           />
                         ))}
                       </div>
@@ -479,7 +491,7 @@ export function ContactsSidebar({
                   contactCount={contactCountByBook[book.id] || 0}
                   onSelect={() => onSelectCategory({ addressBookId: book.id })}
                   onDropContacts={onDropContacts}
-                  onContextMenu={hasBookMenu ? (e) => openBookContextMenu(e, book) : undefined}
+                  {...bookMenu(book)}
                 />
               ))}
             </div>
@@ -507,25 +519,19 @@ export function ContactsSidebar({
               const isActive = typeof activeCategory === "object" && "groupId" in activeCategory && activeCategory.groupId === group.id;
               const memberCount = memberCountByGroup[group.id] || 0;
 
+              const groupName = getContactDisplayName(group);
               return (
-                <button
+                <SidebarRow
                   key={group.id}
-                  onClick={() => onSelectCategory({ groupId: group.id })}
+                  isActive={isActive}
+                  icon={<Users className="w-4 h-4 flex-shrink-0" />}
+                  label={groupName}
+                  count={memberCount}
+                  onSelect={() => onSelectCategory({ groupId: group.id })}
                   onContextMenu={(e) => openGroupContextMenu(e, group)}
-                  className={cn(
-                    "w-full flex items-center gap-2 ps-5 pe-3 text-sm transition-colors",
-                    isActive
-                      ? "bg-accent text-accent-foreground font-medium"
-                      : "text-foreground/80 hover:bg-muted"
-                  )}
-                  style={{ paddingBlock: 'var(--density-sidebar-py, 4px)', minHeight: '32px' }}
-                >
-                  <Users className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate">{getContactDisplayName(group)}</span>
-                  <span className="ms-auto text-xs text-muted-foreground tabular-nums">
-                    {memberCount}
-                  </span>
-                </button>
+                  onOpenMenu={(anchor) => openGroupMenuFrom(anchor, group, "end")}
+                  menuLabel={t("row_actions", { name: groupName })}
+                />
               );
             })}
           </div>
@@ -576,7 +582,9 @@ export function ContactsSidebar({
                     isActive={isActive}
                     onSelect={() => onSelectCategory({ keyword })}
                     onDropContacts={onDropContactsToCategory}
-                    onContextMenu={onRenameKeyword ? (e) => openKeywordContextMenu(e, keyword) : undefined}
+                    onContextMenu={hasKeywordMenu ? (e) => openKeywordContextMenu(e, keyword) : undefined}
+                    onOpenMenu={hasKeywordMenu ? (anchor) => openKeywordMenuFrom(anchor, keyword, "end") : undefined}
+                    menuLabel={t("row_actions", { name: keyword })}
                   />
                 );
               })}
@@ -623,7 +631,7 @@ export function ContactsSidebar({
                 contactCount={contactCountByBook[book.id] || 0}
                 onSelect={() => onSelectCategory({ addressBookId: book.id })}
                 onDropContacts={onDropContacts}
-                onContextMenu={hasBookMenu ? (e) => openBookContextMenu(e, book) : undefined}
+                {...bookMenu(book)}
               />
             ))}
           </div>
@@ -705,22 +713,37 @@ export function ContactsSidebar({
       })()}
 
       {/* Keyword (category) context menu */}
-      {keywordContextMenu.data && onRenameKeyword && (
+      {keywordContextMenu.data && hasKeywordMenu && (
         <ContextMenu
           ref={keywordMenuRef}
           isOpen={keywordContextMenu.isOpen}
           position={keywordContextMenu.position}
           onClose={closeKeywordContextMenu}
         >
-          <ContextMenuItem
-            icon={Pencil}
-            label={t("rename_category")}
-            onClick={() => {
-              const kw = keywordContextMenu.data!;
-              closeKeywordContextMenu();
-              onRenameKeyword(kw);
-            }}
-          />
+          {onRenameKeyword && (
+            <ContextMenuItem
+              icon={Pencil}
+              label={t("rename_category")}
+              onClick={() => {
+                const kw = keywordContextMenu.data!;
+                closeKeywordContextMenu();
+                onRenameKeyword(kw);
+              }}
+            />
+          )}
+          {onRenameKeyword && onDeleteKeyword && <ContextMenuSeparator />}
+          {onDeleteKeyword && (
+            <ContextMenuItem
+              icon={Trash2}
+              label={t("delete_category")}
+              destructive
+              onClick={() => {
+                const kw = keywordContextMenu.data!;
+                closeKeywordContextMenu();
+                onDeleteKeyword(kw);
+              }}
+            />
+          )}
         </ContextMenu>
       )}
 
@@ -771,6 +794,83 @@ export function ContactsSidebar({
   );
 }
 
+const ROW_STYLE = { paddingBlock: "var(--density-sidebar-py, 4px)", minHeight: "32px" } as const;
+
+interface RowMenuProps {
+  /** Right-click: the menu at the pointer. */
+  onContextMenu?: (e: React.MouseEvent) => void;
+  /** The ⋮, long-press and the menu key: the menu under the element. */
+  onOpenMenu?: (anchor: HTMLElement) => void;
+  menuLabel?: string;
+}
+
+/**
+ * A sidebar row: the row itself selects, a ⋮ at its end (shown on hover and
+ * focus, always on touch) opens its menu, as do right-click, long-press and
+ * Shift+F10 or the Menu key (R6, R7).
+ */
+function SidebarRow({
+  isActive, isDragOver, icon, label, count, extra, onSelect, onContextMenu, onOpenMenu, menuLabel, dropProps, rowProps,
+}: RowMenuProps & {
+  isActive: boolean;
+  isDragOver?: boolean;
+  icon: React.ReactNode;
+  label: string;
+  count: number;
+  extra?: React.ReactNode;
+  onSelect: () => void;
+  dropProps?: React.HTMLAttributes<HTMLDivElement>;
+  rowProps?: Record<string, string>;
+}) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const longPress = useLongPress(() => {
+    if (rowRef.current && onOpenMenu) onOpenMenu(rowRef.current);
+  }, !!onOpenMenu);
+  return (
+    <div
+      ref={rowRef}
+      {...rowProps}
+      {...dropProps}
+      {...(onOpenMenu ? longPress : {})}
+      onContextMenu={onContextMenu}
+      className={cn(
+        "group w-full flex items-center ps-5 pe-1 text-sm transition-colors select-none",
+        isActive ? "bg-accent text-accent-foreground font-medium" : "text-foreground/80 hover:bg-muted",
+        isDragOver && "bg-primary/20 ring-2 ring-primary/50",
+      )}
+      style={ROW_STYLE}
+    >
+      <button
+        type="button"
+        onClick={onSelect}
+        onKeyDown={(e) => {
+          if (onOpenMenu && isContextMenuKey(e)) {
+            e.preventDefault();
+            onOpenMenu(e.currentTarget);
+          }
+        }}
+        aria-current={isActive ? "true" : undefined}
+        className="flex flex-1 min-w-0 items-center gap-2 self-stretch text-start rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      >
+        {icon}
+        <span className="truncate" title={label}>{label}</span>
+        {extra}
+        <span className={cn("pe-2 text-xs text-muted-foreground tabular-nums", !extra && "ms-auto")}>{count}</span>
+      </button>
+      {onOpenMenu && menuLabel && (
+        <IconButton
+          label={menuLabel}
+          aria-haspopup="menu"
+          onClick={(e) => onOpenMenu(e.currentTarget)}
+          className="shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100"
+        >
+          <MoreVertical />
+        </IconButton>
+      )}
+    </div>
+  );
+}
+
 function CategoryItem({
   keyword,
   count,
@@ -778,17 +878,18 @@ function CategoryItem({
   onSelect,
   onDropContacts,
   onContextMenu,
-}: {
+  onOpenMenu,
+  menuLabel,
+}: RowMenuProps & {
   keyword: string;
   count: number;
   isActive: boolean;
   onSelect: () => void;
   onDropContacts?: (contactIds: string[], keyword: string) => void;
-  onContextMenu?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }) {
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const handleDragOver = useCallback((e: DragEvent<HTMLButtonElement>) => {
+  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     if (!e.dataTransfer.types.includes("application/x-contact-ids")) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "copy";
@@ -799,7 +900,7 @@ function CategoryItem({
     setIsDragOver(false);
   }, []);
 
-  const handleDrop = useCallback((e: DragEvent<HTMLButtonElement>) => {
+  const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragOver(false);
     const data = e.dataTransfer.getData("application/x-contact-ids");
@@ -815,27 +916,18 @@ function CategoryItem({
   }, [keyword, onDropContacts]);
 
   return (
-    <button
-      onClick={onSelect}
+    <SidebarRow
+      isActive={isActive}
+      isDragOver={isDragOver}
+      icon={<Tag className="w-3.5 h-3.5 flex-shrink-0" />}
+      label={keyword}
+      count={count}
+      onSelect={onSelect}
       onContextMenu={onContextMenu}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      className={cn(
-        "w-full flex items-center gap-2 ps-5 pe-3 text-sm transition-colors",
-        isActive
-          ? "bg-accent text-accent-foreground font-medium"
-          : "text-foreground/80 hover:bg-muted",
-        isDragOver && "bg-primary/20 ring-2 ring-primary/50"
-      )}
-      style={{ paddingBlock: 'var(--density-sidebar-py, 4px)', minHeight: '32px' }}
-    >
-      <Tag className="w-3.5 h-3.5 flex-shrink-0" />
-      <span className="truncate">{keyword}</span>
-      <span className="ms-auto text-xs text-muted-foreground tabular-nums">
-        {count}
-      </span>
-    </button>
+      onOpenMenu={onOpenMenu}
+      menuLabel={menuLabel}
+      dropProps={{ onDragOver: handleDragOver, onDragLeave: handleDragLeave, onDrop: handleDrop }}
+    />
   );
 }
 
@@ -846,17 +938,18 @@ function AddressBookItem({
   onSelect,
   onDropContacts,
   onContextMenu,
-}: {
+  onOpenMenu,
+  menuLabel,
+}: RowMenuProps & {
   book: AddressBook;
   isActive: boolean;
   contactCount: number;
   onSelect: () => void;
   onDropContacts?: (contactIds: string[], addressBook: AddressBook) => void;
-  onContextMenu?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }) {
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const handleDragOver = useCallback((e: DragEvent<HTMLButtonElement>) => {
+  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     if (!e.dataTransfer.types.includes("application/x-contact-ids")) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
@@ -867,7 +960,7 @@ function AddressBookItem({
     setIsDragOver(false);
   }, []);
 
-  const handleDrop = useCallback((e: DragEvent<HTMLButtonElement>) => {
+  const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragOver(false);
     const data = e.dataTransfer.getData("application/x-contact-ids");
@@ -882,36 +975,21 @@ function AddressBookItem({
     }
   }, [book, onDropContacts]);
 
+  const sharedOut = !book.isShared && Object.keys(book.shareWith || {}).length > 0;
   return (
-    <button
-      onClick={onSelect}
+    <SidebarRow
+      isActive={isActive}
+      isDragOver={isDragOver}
+      icon={<Book className="w-4 h-4 flex-shrink-0" />}
+      label={book.name}
+      count={contactCount}
+      extra={sharedOut ? <Users className="w-3 h-3 text-muted-foreground flex-shrink-0 ms-auto" /> : undefined}
+      onSelect={onSelect}
       onContextMenu={onContextMenu}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      data-testid="address-book-item"
-      data-book-name={book.name}
-      data-account={book.accountName ?? ''}
-      className={cn(
-        "w-full flex items-center gap-2 ps-5 pe-3 text-sm transition-colors",
-        isActive
-          ? "bg-accent text-accent-foreground font-medium"
-          : "text-foreground/80 hover:bg-muted",
-        isDragOver && "bg-primary/20 ring-2 ring-primary/50"
-      )}
-      style={{ paddingBlock: 'var(--density-sidebar-py, 4px)', minHeight: '32px' }}
-    >
-      <Book className="w-4 h-4 flex-shrink-0" />
-      <span className="truncate">{book.name}</span>
-      {!book.isShared && Object.keys(book.shareWith || {}).length > 0 && (
-        <Users className="w-3 h-3 text-muted-foreground flex-shrink-0 ms-auto" />
-      )}
-      <span className={cn(
-        "text-xs text-muted-foreground tabular-nums",
-        !(!book.isShared && Object.keys(book.shareWith || {}).length > 0) && "ms-auto"
-      )}>
-        {contactCount}
-      </span>
-    </button>
+      onOpenMenu={onOpenMenu}
+      menuLabel={menuLabel}
+      dropProps={{ onDragOver: handleDragOver, onDragLeave: handleDragLeave, onDrop: handleDrop }}
+      rowProps={{ "data-testid": "address-book-item", "data-book-name": book.name, "data-account": book.accountName ?? "" }}
+    />
   );
 }

@@ -463,6 +463,10 @@ interface ContactStore {
   removeAddressBook: (client: IJMAPClient, addressBook: AddressBook) => Promise<void>;
   shareAddressBook: (client: IJMAPClient, addressBook: AddressBook, principalId: string, rights: AddressBookRights | null) => Promise<void>;
   renameKeyword: (client: IJMAPClient | null, oldKeyword: string, newKeyword: string) => Promise<void>;
+  /** Take a category off every contact; returns the ids of the contacts that had it, for undo. */
+  removeKeyword: (client: IJMAPClient | null, keyword: string) => Promise<string[]>;
+  /** Put a category on contacts, e.g. to undo removing it. */
+  addKeyword: (client: IJMAPClient | null, keyword: string, contactIds: string[]) => Promise<void>;
 
   importContacts: (client: IJMAPClient | null, contacts: ContactCard[]) => Promise<number>;
 
@@ -1402,6 +1406,48 @@ export const useContactStore = create<ContactStore>()(
             set({ error: msg });
             throw error;
           }
+        }
+      },
+
+      removeKeyword: async (client, keyword) => {
+        set({ error: null });
+        const kw = keyword.trim();
+        const { contacts, supportsSync } = get();
+        const affected = contacts.filter(c => c.keywords?.[kw]);
+        const done: string[] = [];
+        for (const contact of affected) {
+          const { [kw]: _gone, ...rest } = contact.keywords || {};
+          void _gone;
+          if (supportsSync && client) {
+            const originalId = contact.originalId || contact.id;
+            const accountId = contact.isShared ? contact.accountId : undefined;
+            // JMAP patch: only this keyword goes; the card's others stay.
+            await client.updateContact(originalId, { keywords: rest }, accountId);
+          }
+          set((state) => ({
+            contacts: state.contacts.map(c => (c.id === contact.id ? { ...c, keywords: rest } : c)),
+          }));
+          done.push(contact.id);
+        }
+        return done;
+      },
+
+      addKeyword: async (client, keyword, contactIds) => {
+        set({ error: null });
+        const kw = keyword.trim();
+        const { contacts, supportsSync } = get();
+        for (const id of contactIds) {
+          const contact = contacts.find(c => c.id === id);
+          if (!contact || contact.keywords?.[kw]) continue;
+          const keywords = { ...(contact.keywords || {}), [kw]: true };
+          if (supportsSync && client) {
+            const originalId = contact.originalId || contact.id;
+            const accountId = contact.isShared ? contact.accountId : undefined;
+            await client.updateContact(originalId, { keywords }, accountId);
+          }
+          set((state) => ({
+            contacts: state.contacts.map(c => (c.id === id ? { ...c, keywords } : c)),
+          }));
         }
       },
 

@@ -193,4 +193,17 @@ describe('ContactList', () => {
     expect(onComposeContact).toHaveBeenCalledWith(alice);
     expect(window.location.href).toBe(href);
   });
+
+  it("moves a contact to another address book from its right-click menu, and the selection from the bulk bar", () => {
+    const onMoveContacts = vi.fn();
+    const { unmount } = render(<ContactList {...defaultProps} onMoveContacts={onMoveContacts} />);
+    fireEvent.contextMenu(screen.getByText('Alice Smith'));
+    fireEvent.click(screen.getByText('address_books.move_to'));
+    expect(onMoveContacts).toHaveBeenCalledWith(['1']);
+    unmount();
+
+    render(<ContactList {...defaultProps} onMoveContacts={onMoveContacts} selectedContactIds={new Set(['1', '2'])} />);
+    fireEvent.click(screen.getByRole('button', { name: /address_books.move_to/ }));
+    expect(onMoveContacts).toHaveBeenLastCalledWith(['1', '2']);
+  });
 });

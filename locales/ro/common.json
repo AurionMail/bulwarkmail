@@ -2911,6 +2911,10 @@
     "category_name_label": "Numele categoriei",
     "category_renamed": "Categorie redenumită",
     "category_rename_failed": "Nu s-a putut redenumi categoria",
+    "delete_category": "Ștergeți categoria",
+    "category_deleted": "Categoria „{name}” a fost ștearsă",
+    "category_delete_failed": "Nu s-a putut șterge categoria",
+    "undo": "Anulați",
     "category_added": "Contact adăugat la {name}",
     "category_added_plural": "{count} contacte adăugate la {name}",
     "empty_state": "Nu există încă contacte",
@@ -2928,6 +2932,7 @@
     "back_to_contacts": "Înapoi la contacte",
     "back_to_email": "Înapoi la e-mail",
     "open_categories": "Deschideți categoriile",
+    "row_actions": "Acțiuni pentru {name}",
     "tabs": {
       "all": "Toate",
       "groups": "Grupuri"
@@ -2960,7 +2965,10 @@
       "delete": "Șterge agenda de adrese",
       "confirm_delete": "Doriți să ștergeți „{name}”? Toate contactele din această agendă vor fi eliminate.",
       "deleted": "Agenda de adrese a fost ștersă",
-      "delete_failed": "Nu s-a putut șterge agenda de adrese"
+      "delete_failed": "Nu s-a putut șterge agenda de adrese",
+      "move_to": "Mutați în…",
+      "move_title": "Mutați în agendă",
+      "move_here": "Mutați aici"
     },
     "detail": {
       "emails": "Adrese de e-mail",

@@ -2911,6 +2911,10 @@
     "category_name_label": "اسم الفئة",
     "category_renamed": "تمت إعادة تسمية الفئة",
     "category_rename_failed": "فشلت إعادة تسمية الفئة",
+    "delete_category": "حذف الفئة",
+    "category_deleted": "حُذفت الفئة \"{name}\"",
+    "category_delete_failed": "تعذّر حذف الفئة",
+    "undo": "تراجع",
     "category_added": "تمت إضافة جهة الاتصال إلى {name}",
     "category_added_plural": "تمت إضافة {count} جهات اتصال إلى {name}",
     "empty_state": "لا توجد جهات اتصال بعد",
@@ -2928,6 +2932,7 @@
     "back_to_contacts": "العودة إلى جهات الاتصال",
     "back_to_email": "العودة إلى البريد",
     "open_categories": "فتح الفئات",
+    "row_actions": "إجراءات {name}",
     "tabs": {
       "all": "الكل",
       "groups": "المجموعات"
@@ -2960,7 +2965,10 @@
       "delete": "حذف دفتر العناوين",
       "confirm_delete": "حذف \"{name}\"؟ ستتم إزالة جميع جهات الاتصال في دفتر العناوين هذا.",
       "deleted": "تم حذف دفتر العناوين",
-      "delete_failed": "فشل حذف دفتر العناوين"
+      "delete_failed": "فشل حذف دفتر العناوين",
+      "move_to": "نقل إلى…",
+      "move_title": "نقل إلى دفتر عناوين",
+      "move_here": "نقل إلى هنا"
     },
     "detail": {
       "emails": "عناوين البريد الإلكتروني",

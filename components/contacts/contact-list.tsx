@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { Search, BookUser, Trash2, Users, Download, X, UserPlus, CheckSquare, Square, Filter, Mail, Phone, Image as ImageIcon, RotateCcw, Menu, ArrowDownAZ, Loader2 } from "@/components/icons";
+import { Search, BookUser, Trash2, Users, Download, X, UserPlus, CheckSquare, Square, Filter, Mail, Phone, Image as ImageIcon, RotateCcw, Menu, ArrowDownAZ, Loader2, FolderInput } from "@/components/icons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ContactListItem } from "./contact-list-item";
@@ -116,6 +116,8 @@ interface ContactListProps {
   onAddContactToGroup: (id: string) => void;
   /** Opens the app's composer to the contact. */
   onComposeContact?: (contact: ContactCard) => void;
+  /** Move contacts to another address book; undefined where there is none. */
+  onMoveContacts?: (ids: string[]) => void;
   /** Show a burger button at the start that opens the (overlay) categories sidebar. */
   onMenuClick?: () => void;
   /** The first fetch is still running: show placeholders, not "No contacts yet". */
@@ -142,6 +144,7 @@ export function ContactList({
   onDeleteContact,
   onAddContactToGroup,
   onComposeContact,
+  onMoveContacts,
   onMenuClick,
   isLoading = false,
 }: ContactListProps) {
@@ -515,6 +518,12 @@ export function ContactList({
             <Users className="w-3.5 h-3.5 me-1" />
             {t("bulk.add_to_group")}
           </Button>
+          {onMoveContacts && (
+            <Button variant="ghost" size="sm" onClick={() => onMoveContacts([...selectedContactIds])} className="h-7 text-xs">
+              <FolderInput className="w-3.5 h-3.5 me-1" />
+              {t("address_books.move_to")}
+            </Button>
+          )}
           <Button variant="ghost" size="sm" onClick={onBulkExport} disabled={exporting} aria-busy={exporting} className="h-7 text-xs">
             {exporting
               ? <Loader2 className="w-3.5 h-3.5 me-1 animate-spin" />
@@ -654,6 +663,8 @@ export function ContactList({
           onDelete={() => onDeleteContact(contextMenu.data!)}
           onAddToGroup={() => onAddContactToGroup(contextMenu.data!.id)}
           onCompose={onComposeContact ? () => onComposeContact(contextMenu.data!) : undefined}
+          onMoveTo={onMoveContacts ? () => onMoveContacts([contextMenu.data!.id]) : undefined}
+          onBatchMoveTo={onMoveContacts ? () => onMoveContacts([...selectedContactIds]) : undefined}
           onBatchExport={onBulkExport}
           onBatchAddToGroup={onBulkAddToGroup}
           onBatchDelete={onBulkDelete}

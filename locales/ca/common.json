@@ -2911,6 +2911,10 @@
     "category_name_label": "Nom de la categoria",
     "category_renamed": "Nom de la categoria canviat",
     "category_rename_failed": "No s'ha pogut canviar el nom de la categoria",
+    "delete_category": "Suprimeix la categoria",
+    "category_deleted": "S'ha suprimit la categoria «{name}»",
+    "category_delete_failed": "No s'ha pogut suprimir la categoria",
+    "undo": "Desfés",
     "category_added": "Contacte afegit a {name}",
     "category_added_plural": "{count} contactes afegits a {name}",
     "empty_state": "Encara no hi ha contactes",
@@ -2928,6 +2932,7 @@
     "back_to_contacts": "Torna als contactes",
     "back_to_email": "Torna al correu",
     "open_categories": "Obre les categories",
+    "row_actions": "Accions per a {name}",
     "tabs": {
       "all": "Tots",
       "groups": "Grups"
@@ -2960,7 +2965,10 @@
       "delete": "Suprimeix la llibreta d'adreces",
       "confirm_delete": "Voleu suprimir «{name}»? S'eliminaran tots els contactes d'aquesta llibreta d'adreces.",
       "deleted": "Llibreta d'adreces suprimida",
-      "delete_failed": "No s'ha pogut suprimir la llibreta d'adreces"
+      "delete_failed": "No s'ha pogut suprimir la llibreta d'adreces",
+      "move_to": "Mou a…",
+      "move_title": "Mou a una llibreta d'adreces",
+      "move_here": "Mou aquí"
     },
     "detail": {
       "emails": "Adreces electròniques",

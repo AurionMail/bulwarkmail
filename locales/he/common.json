@@ -2829,6 +2829,10 @@
     "category_name_label": "שם קטגוריה",
     "category_renamed": "שם קטגוריה שונה",
     "category_rename_failed": "שינוי שם הקטגוריה נכשל",
+    "delete_category": "מחק קטגוריה",
+    "category_deleted": "הקטגוריה \"{name}\" נמחקה",
+    "category_delete_failed": "לא ניתן היה למחוק את הקטגוריה",
+    "undo": "בטל",
     "category_added": "איש קשר נוסף ל-{name}",
     "category_added_plural": "אנשי הקשר{count}נוספו ל-{name}",
     "empty_state": "עדיין אין אנשי קשר",
@@ -2874,7 +2878,10 @@
       "delete": "מחק ספר כתובות",
       "confirm_delete": "מחק \"{name}\"? כל אנשי הקשר בספר כתובות זה יוסרו.",
       "deleted": "ספר כתובות נמחק",
-      "delete_failed": "נכשל במחיקת ספר כתובות"
+      "delete_failed": "נכשל במחיקת ספר כתובות",
+      "move_to": "העבר אל…",
+      "move_title": "העבר לפנקס כתובות",
+      "move_here": "העבר לכאן"
     },
     "detail": {
       "emails": "כתובות אימייל",
@@ -3122,6 +3129,7 @@
     "empty_filtered_hint": "נסה להתאים או להביא סננים",
     "back_to_email": "חזור לדוא״ל",
     "open_categories": "קטגוריות פתוחות",
+    "row_actions": "פעולות עבור {name}",
     "activity": {
       "recent_emails": "דוא״ל אחרונים",
       "upcoming_events": "אירועים קרובים",

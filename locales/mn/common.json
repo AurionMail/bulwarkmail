@@ -2911,6 +2911,10 @@
     "category_name_label": "Ангиллын нэр",
     "category_renamed": "Ангиллын нэрийг өөрчилсөн",
     "category_rename_failed": "Ангиллын нэрийг өөрчилж чадсангүй",
+    "delete_category": "Ангиллыг устгах",
+    "category_deleted": "\"{name}\" ангиллыг устгалаа",
+    "category_delete_failed": "Ангиллыг устгаж чадсангүй",
+    "undo": "Буцаах",
     "category_added": "Харилцагчийг {name}",
     "category_added_plural": "{count} харилцагчдыг {name}",
     "empty_state": "Харилцагч байхгүй",
@@ -2928,6 +2932,7 @@
     "back_to_contacts": "Харилцагч руу буцах",
     "back_to_email": "Имэйл рүү буцах",
     "open_categories": "Нээлттэй ангилалууд",
+    "row_actions": "{name}-н үйлдлүүд",
     "tabs": {
       "all": "Бүгд",
       "groups": "Бүлэг"
@@ -2960,7 +2965,10 @@
       "delete": "Хаягийн дэвтэр устгах",
       "confirm_delete": "\"{name}\"-г устгах уу? Энэ хаягийн дэвтэр дэх бүх харилцагчийг устгах болно.",
       "deleted": "Хаягийн дэвтэр устсан",
-      "delete_failed": "Хаягийн дэвтрийг устгаж чадсангүй"
+      "delete_failed": "Хаягийн дэвтрийг устгаж чадсангүй",
+      "move_to": "Зөөх…",
+      "move_title": "Хаягийн дэвтэр рүү зөөх",
+      "move_here": "Энд зөөх"
     },
     "detail": {
       "emails": "Имэйл хаягууд",

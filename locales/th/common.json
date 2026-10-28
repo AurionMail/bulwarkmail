@@ -2246,6 +2246,10 @@
     "category_name_label": "ชื่อหมวดหมู่",
     "category_renamed": "เปลี่ยนชื่อหมวดหมู่แล้ว",
     "category_rename_failed": "เปลี่ยนชื่อหมวดหมู่ไม่สำเร็จ",
+    "delete_category": "ลบหมวดหมู่",
+    "category_deleted": "ลบหมวดหมู่ \"{name}\" แล้ว",
+    "category_delete_failed": "ลบหมวดหมู่ไม่ได้",
+    "undo": "เลิกทำ",
     "category_added": "เพิ่มผู้ติดต่อใน {name} แล้ว",
     "category_added_plural": "เพิ่มผู้ติดต่อ {count} รายการใน {name} แล้ว",
     "empty_state": "ยังไม่มีผู้ติดต่อ",
@@ -2263,6 +2267,7 @@
     "back_to_contacts": "กลับไปยังผู้ติดต่อ",
     "back_to_email": "กลับไปยังอีเมล",
     "open_categories": "เปิดหมวดหมู่",
+    "row_actions": "การทำงานสำหรับ {name}",
     "tabs": {
       "all": "ทั้งหมด",
       "groups": "กลุ่มผู้ติดต่อ"
@@ -2295,7 +2300,10 @@
       "delete": "ลบสมุดที่อยู่",
       "confirm_delete": "ลบ “{name}” หรือไม่? ผู้ติดต่อทั้งหมดในสมุดที่อยู่นี้จะถูกลบ",
       "deleted": "ลบสมุดที่อยู่แล้ว",
-      "delete_failed": "ลบสมุดที่อยู่ไม่สำเร็จ"
+      "delete_failed": "ลบสมุดที่อยู่ไม่สำเร็จ",
+      "move_to": "ย้ายไปที่…",
+      "move_title": "ย้ายไปยังสมุดที่อยู่",
+      "move_here": "ย้ายมาที่นี่"
     },
     "detail": {
       "emails": "ที่อยู่อีเมล",

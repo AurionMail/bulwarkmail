@@ -2911,6 +2911,10 @@
     "category_name_label": "Kategória neve",
     "category_renamed": "Kategória átnevezve",
     "category_rename_failed": "Nem sikerült átnevezni a kategóriát",
+    "delete_category": "Kategória törlése",
+    "category_deleted": "A(z) „{name}” kategória törölve",
+    "category_delete_failed": "Nem sikerült törölni a kategóriát",
+    "undo": "Visszavonás",
     "category_added": "Névjegy hozzáadva ide: {name}",
     "category_added_plural": "{count} névjegy hozzáadva ide: {name}",
     "empty_state": "Még nincsenek névjegyek",
@@ -2928,6 +2932,7 @@
     "back_to_contacts": "Vissza a névjegyekhez",
     "back_to_email": "Vissza az e-mailekhez",
     "open_categories": "Kategóriák megnyitása",
+    "row_actions": "Műveletek: {name}",
     "tabs": {
       "all": "Összes",
       "groups": "Csoportok"
@@ -2960,7 +2965,10 @@
       "delete": "Címjegyzék törlése",
       "confirm_delete": "Törlöd a \"{name}\" címjegyzéket? Az összes névjegy eltávolításra kerül.",
       "deleted": "Címjegyzék törölve",
-      "delete_failed": "Nem sikerült törölni a címjegyzéket"
+      "delete_failed": "Nem sikerült törölni a címjegyzéket",
+      "move_to": "Áthelyezés ide…",
+      "move_title": "Áthelyezés címjegyzékbe",
+      "move_here": "Áthelyezés ide"
     },
     "detail": {
       "emails": "E-mail címek",

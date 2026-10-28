@@ -2911,6 +2911,10 @@
     "category_name_label": "카테고리 이름",
     "category_renamed": "카테고리 이름이 변경되었습니다",
     "category_rename_failed": "카테고리 이름 변경 실패",
+    "delete_category": "카테고리 삭제",
+    "category_deleted": "\"{name}\" 카테고리를 삭제했습니다",
+    "category_delete_failed": "카테고리를 삭제하지 못했습니다",
+    "undo": "실행 취소",
     "category_added": "{name}에 연락처가 추가되었어요",
     "category_added_plural": "{name}에 {count}개의 연락처가 추가되었어요",
     "empty_state": "아직 연락처가 없어요",
@@ -2959,7 +2963,10 @@
       "delete": "주소록 삭제",
       "confirm_delete": "\"{name}\"을(를) 삭제하시겠습니까? 이 주소록의 모든 연락처가 삭제됩니다.",
       "deleted": "주소록이 삭제되었습니다",
-      "delete_failed": "주소록 삭제에 실패했습니다"
+      "delete_failed": "주소록 삭제에 실패했습니다",
+      "move_to": "이동…",
+      "move_title": "주소록으로 이동",
+      "move_here": "여기로 이동"
     },
     "detail": {
       "emails": "이메일",
@@ -3248,7 +3255,8 @@
       "sort_first_name": "이름",
       "sort_last_name": "성"
     },
-    "open_categories": "카테고리 열기"
+    "open_categories": "카테고리 열기",
+    "row_actions": "{name} 작업"
   },
   "calendar": {
     "title": "캘린더",

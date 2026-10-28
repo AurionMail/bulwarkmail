@@ -2911,6 +2911,10 @@
     "category_name_label": "類別名稱",
     "category_renamed": "類別已重新命名",
     "category_rename_failed": "重新命名類別失敗",
+    "delete_category": "刪除類別",
+    "category_deleted": "已刪除類別「{name}」",
+    "category_delete_failed": "無法刪除類別",
+    "undo": "復原",
     "category_added": "聯絡人已新增至 {name}",
     "category_added_plural": "{count} 位聯絡人已新增至 {name}",
     "empty_state": "尚無聯絡人",
@@ -2928,6 +2932,7 @@
     "back_to_contacts": "回到聯絡人",
     "back_to_email": "回到郵件",
     "open_categories": "開啟類別",
+    "row_actions": "{name} 的動作",
     "tabs": {
       "all": "全部",
       "groups": "群組"
@@ -2960,7 +2965,10 @@
       "delete": "刪除通訊錄",
       "confirm_delete": "要刪除「{name}」嗎？此通訊錄中的所有聯絡人都會移除。",
       "deleted": "通訊錄已刪除",
-      "delete_failed": "刪除通訊錄失敗"
+      "delete_failed": "刪除通訊錄失敗",
+      "move_to": "移至…",
+      "move_title": "移至通訊錄",
+      "move_here": "移到這裡"
     },
     "detail": {
       "emails": "電子郵件地址",

@@ -2911,6 +2911,10 @@
     "category_name_label": "Názov kategórie",
     "category_renamed": "Kategória bola premenovaná",
     "category_rename_failed": "Premenovanie kategórie zlyhalo",
+    "delete_category": "Odstrániť kategóriu",
+    "category_deleted": "Kategória „{name}“ bola odstránená",
+    "category_delete_failed": "Kategóriu sa nepodarilo odstrániť",
+    "undo": "Späť",
     "category_added": "Kontakt pridaný do {name}",
     "category_added_plural": "{count} kontaktov bolo pridaných do {name}",
     "empty_state": "Žiadne kontakty",
@@ -2928,6 +2932,7 @@
     "back_to_contacts": "Späť na kontakty",
     "back_to_email": "Späť na e-mail",
     "open_categories": "Otvoriť kategórie",
+    "row_actions": "Akcie pre {name}",
     "tabs": {
       "all": "Všetky",
       "groups": "Skupiny"
@@ -2960,7 +2965,10 @@
       "delete": "Zmazať adresár",
       "confirm_delete": "Zmazať \"{name}\"? Všetky kontakty v tomto adresári budú odstránené.",
       "deleted": "Adresár zmazaný",
-      "delete_failed": "Adresár sa nepodarilo zmazať"
+      "delete_failed": "Adresár sa nepodarilo zmazať",
+      "move_to": "Presunúť do…",
+      "move_title": "Presunúť do adresára",
+      "move_here": "Presunúť sem"
     },
     "detail": {
       "emails": "E-mailové adresy",

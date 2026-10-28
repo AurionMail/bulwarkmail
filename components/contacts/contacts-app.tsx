@@ -15,6 +15,7 @@ import { ContactGroupForm } from "@/components/contacts/contact-group-form";
 import { ContactGroupDetail } from "@/components/contacts/contact-group-detail";
 import { ContactsSidebar, type ContactCategory } from "@/components/contacts/contacts-sidebar";
 import { ContactImportDialog } from "@/components/contacts/contact-import-dialog";
+import { AddressBookPickerDialog } from "@/components/contacts/address-book-picker-dialog";
 import { DirectoryBrowser, directoryKey } from "@/components/contacts/directory-browser";
 import { DirectoryEntryDetail } from "@/components/contacts/directory-entry-detail";
 import { PromptDialog } from "@/components/ui/prompt-dialog";
@@ -116,6 +117,8 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     shareAddressBook,
     setDefaultAddressBook,
     renameKeyword,
+    removeKeyword,
+    addKeyword,
     importContacts,
   } = useContactStore();
 
@@ -129,6 +132,8 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   const [createPrefill, setCreatePrefill] = useState<{ email?: string; name?: string } | undefined>(undefined);
   const [returnToEmail, setReturnToEmail] = useState(false);
   const [renamingKeyword, setRenamingKeyword] = useState<string | null>(null);
+  // "Move to…": the contacts waiting for an address book to be picked.
+  const [movingContactIds, setMovingContactIds] = useState<string[] | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   // Who a new group starts with: the selection when it came from "Add to group".
   const [newGroupMemberIds, setNewGroupMemberIds] = useState<string[]>([]);
@@ -414,6 +419,44 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
       toast.error(t("address_books.move_failed"));
     }
   }, [client, moveContactToAddressBook, t]);
+
+  // Address books contacts can be moved to; "Move to…" needs a second one.
+  const writableBooks = useMemo(() => addressBooks.filter((b) => b.myRights?.mayWrite !== false), [addressBooks]);
+  const canMoveContacts = !!client && supportsSync && writableBooks.length > 1;
+  const handleMoveContacts = useCallback((ids: string[]) => {
+    if (ids.length > 0) setMovingContactIds(ids);
+  }, []);
+  // The book the contacts are in, when they share one, so the picker can leave it out.
+  const movingFromBookId = useMemo(() => {
+    if (!movingContactIds) return null;
+    const books = new Set(movingContactIds.flatMap((id) => {
+      const c = contacts.find((x) => x.id === id);
+      return c?.addressBookIds ? Object.keys(c.addressBookIds).filter((k) => c.addressBookIds[k]) : [];
+    }));
+    return books.size === 1 ? [...books][0] : null;
+  }, [movingContactIds, contacts]);
+
+  // Deleting a category only takes a label off contacts: no question, an Undo (R3).
+  const handleDeleteKeyword = useCallback(async (keyword: string) => {
+    const jmapClient = supportsSync && client ? client : null;
+    try {
+      const ids = await removeKeyword(jmapClient, keyword);
+      if (typeof activeCategory === "object" && "keyword" in activeCategory && activeCategory.keyword === keyword) {
+        setActiveCategory("all");
+      }
+      toast.success(t("category_deleted", { name: keyword }), {
+        action: {
+          label: t("undo"),
+          onClick: () => {
+            void addKeyword(jmapClient, keyword, ids).catch(() => toast.error(t("toast.error_update")));
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Failed to delete category:", error);
+      toast.error(t("category_delete_failed"));
+    }
+  }, [supportsSync, client, removeKeyword, addKeyword, activeCategory, t]);
 
   const handleDropContactsToCategory = useCallback(async (contactIds: string[], keyword: string) => {
     if (!client && supportsSync) return;
@@ -1002,6 +1045,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                 ? () => void handleDuplicateContact(selectedContact)
                 : undefined
             }
+            onMoveTo={selectedContact && canMoveContacts ? () => handleMoveContacts([selectedContact.id]) : undefined}
             isMobile={isMobile}
           />
         );
@@ -1146,6 +1190,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                         }
                       }) : undefined}
                       onRenameKeyword={fromDrawer((kw: string) => setRenamingKeyword(kw))}
+                      onDeleteKeyword={fromDrawer((kw: string) => void handleDeleteKeyword(kw))}
                       directoryCount={showDirectory ? directoryPrincipals.length : undefined}
                       multiAccountMode={multiAccountEnabled && accountClients.length > 1}
                     />
@@ -1223,6 +1268,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                   onDeleteContact={handleDeleteContact}
                   onAddContactToGroup={guard(handleAddContactToGroup)}
                   onComposeContact={handleComposeContact}
+                  onMoveContacts={canMoveContacts ? handleMoveContacts : undefined}
                   onMenuClick={isNarrow ? () => setNarrowSidebarOpen(true) : undefined}
                   isLoading={supportsSync && !contactsLoaded}
                 />
@@ -1333,6 +1379,16 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
               toast.error(t("address_books.rename_failed"));
             }
           })();
+        }}
+      />
+      <AddressBookPickerDialog
+        isOpen={movingContactIds !== null}
+        onClose={() => setMovingContactIds(null)}
+        addressBooks={writableBooks}
+        currentId={movingFromBookId}
+        count={movingContactIds?.length ?? 0}
+        onPick={(book) => {
+          if (movingContactIds) void handleDropContacts(movingContactIds, book);
         }}
       />
       {showImportDialog && (

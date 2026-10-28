@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ContactsSidebar } from '../contacts-sidebar';
@@ -109,5 +109,57 @@ describe('ContactsSidebar - set default address book', () => {
     fireEvent.contextMenu(screen.getByText('Team'));
 
     expect(screen.queryByText('address_books.set_default')).not.toBeInTheDocument();
+  });
+});
+
+describe('ContactsSidebar — row menus without a right-click', () => {
+  const carol = {
+    id: 'c1',
+    addressBookIds: {},
+    name: { full: 'Carol' },
+    keywords: { Friends: true },
+  } as unknown as ContactCard;
+
+  function renderRows(onDeleteKeyword = vi.fn(), onRenameKeyword = vi.fn()) {
+    render(
+      <ContactsSidebar
+        groups={[group]}
+        individuals={[carol]}
+        addressBooks={[]}
+        activeCategory="all"
+        onSelectCategory={vi.fn()}
+        onCreateGroup={vi.fn()}
+        onCreateContact={vi.fn()}
+        onEditGroup={vi.fn()}
+        onDeleteGroup={vi.fn()}
+        onRenameKeyword={onRenameKeyword}
+        onDeleteKeyword={onDeleteKeyword}
+      />,
+    );
+    return { onDeleteKeyword, onRenameKeyword };
+  }
+
+  it('opens a category menu from its ⋮, with Delete category', () => {
+    const { onDeleteKeyword } = renderRows();
+    const row = screen.getByText('Friends').closest('div')!;
+    fireEvent.click(within(row).getByRole('button', { name: 'row_actions' }));
+    expect(screen.getByText('rename_category')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('delete_category'));
+    expect(onDeleteKeyword).toHaveBeenCalledWith('Friends');
+  });
+
+  it('opens a group menu on long-press', () => {
+    vi.useFakeTimers();
+    try {
+      renderRows();
+      const row = screen.getByText('Team').closest('div')!;
+      const touchStart = new Event('touchstart', { bubbles: true });
+      Object.defineProperty(touchStart, 'touches', { value: [{ clientX: 5, clientY: 5 }] });
+      act(() => { row.dispatchEvent(touchStart); });
+      act(() => { vi.advanceTimersByTime(600); });
+      expect(screen.getByText('groups.edit')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

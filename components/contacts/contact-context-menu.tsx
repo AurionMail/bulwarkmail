@@ -18,6 +18,7 @@ import {
   Trash2,
   Copy,
   Printer,
+  FolderInput,
 } from "@/components/icons";
 import type { ContactCard } from "@/lib/jmap/types";
 import { getContactPrimaryEmail } from "@/stores/contact-store";
@@ -50,6 +51,9 @@ interface ContactContextMenuProps {
   /** Writes to the contact in the app's composer. */
   onCompose?: () => void;
   onDuplicate?: () => void;
+  /** Move to another address book; undefined where there is none to move to. */
+  onMoveTo?: () => void;
+  onBatchMoveTo?: () => void;
   onBatchExport?: () => void;
   onBatchAddToGroup?: () => void;
   onBatchDelete?: () => void;
@@ -69,6 +73,8 @@ export function ContactContextMenu({
   onAddToGroup,
   onCompose,
   onDuplicate,
+  onMoveTo,
+  onBatchMoveTo,
   onBatchExport,
   onBatchAddToGroup,
   onBatchDelete,
@@ -121,6 +127,9 @@ export function ContactContextMenu({
           onClick={handle(() => onBatchAddToGroup?.())}
           disabled={!onBatchAddToGroup}
         />
+        {onBatchMoveTo && (
+          <ContextMenuItem icon={FolderInput} label={t("address_books.move_to")} onClick={handle(onBatchMoveTo)} />
+        )}
         <ContextMenuItem
           icon={Download}
           label={t("bulk.export")}
@@ -184,6 +193,9 @@ export function ContactContextMenu({
           label={t("context_menu.duplicate")}
           onClick={handle(onDuplicate)}
         />
+      )}
+      {onMoveTo && (
+        <ContextMenuItem icon={FolderInput} label={t("address_books.move_to")} onClick={handle(onMoveTo)} />
       )}
       <ContextMenuItem
         icon={Download}

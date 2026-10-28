@@ -2911,6 +2911,10 @@
     "category_name_label": "Kategorinavn",
     "category_renamed": "Kategori omdøbt",
     "category_rename_failed": "Kunne ikke omdøbe kategori",
+    "delete_category": "Slet kategori",
+    "category_deleted": "Kategorien \"{name}\" er slettet",
+    "category_delete_failed": "Kunne ikke slette kategorien",
+    "undo": "Fortryd",
     "category_added": "Kontakt tilføjet til {name}",
     "category_added_plural": "{count} kontakter tilføjet til {name}",
     "empty_state": "Ingen kontakter endnu",
@@ -2959,7 +2963,10 @@
       "delete": "Slet adressebog",
       "confirm_delete": "Slet \"{name}\"? Alle kontakter i denne adressebog fjernes.",
       "deleted": "Adressebog slettet",
-      "delete_failed": "Kunne ikke slette adressebog"
+      "delete_failed": "Kunne ikke slette adressebog",
+      "move_to": "Flyt til…",
+      "move_title": "Flyt til adressebog",
+      "move_here": "Flyt hertil"
     },
     "detail": {
       "emails": "E-mailadresser",
@@ -3248,7 +3255,8 @@
       "sort_first_name": "Fornavn",
       "sort_last_name": "Efternavn"
     },
-    "open_categories": "Åbn kategorier"
+    "open_categories": "Åbn kategorier",
+    "row_actions": "Handlinger for {name}"
   },
   "calendar": {
     "title": "Kalender",

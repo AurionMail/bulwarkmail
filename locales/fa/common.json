@@ -2911,6 +2911,10 @@
     "category_name_label": "نام دسته‌بندی",
     "category_renamed": "نام دسته‌بندی تغییر کرد",
     "category_rename_failed": "تغییر نام دسته‌بندی ناموفق بود",
+    "delete_category": "حذف دسته",
+    "category_deleted": "دسته «{name}» حذف شد",
+    "category_delete_failed": "دسته حذف نشد",
+    "undo": "واگرد",
     "category_added": "مخاطب به {name} اضافه شد",
     "category_added_plural": "{count} مخاطب به {name} اضافه شد",
     "empty_state": "هنوز مخاطبی نیست",
@@ -2928,6 +2932,7 @@
     "back_to_contacts": "بازگشت به مخاطبین",
     "back_to_email": "بازگشت به ایمیل",
     "open_categories": "باز کردن دسته‌بندی‌ها",
+    "row_actions": "کنش‌های {name}",
     "tabs": {
       "all": "همه",
       "groups": "گروه‌ها"
@@ -2960,7 +2965,10 @@
       "delete": "حذف دفترچه آدرس",
       "confirm_delete": "حذف \"{name}\"؟ همه مخاطبین این دفترچه آدرس حذف خواهند شد.",
       "deleted": "دفترچه آدرس حذف شد",
-      "delete_failed": "حذف دفترچه آدرس ناموفق بود"
+      "delete_failed": "حذف دفترچه آدرس ناموفق بود",
+      "move_to": "انتقال به…",
+      "move_title": "انتقال به دفترچه نشانی",
+      "move_here": "انتقال به اینجا"
     },
     "detail": {
       "emails": "آدرس‌های ایمیل",

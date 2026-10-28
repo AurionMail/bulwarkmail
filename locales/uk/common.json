@@ -2911,6 +2911,10 @@
     "category_name_label": "Назва категорії",
     "category_renamed": "Категорію перейменовано",
     "category_rename_failed": "Не вдалося перейменувати категорію",
+    "delete_category": "Видалити категорію",
+    "category_deleted": "Категорію «{name}» видалено",
+    "category_delete_failed": "Не вдалося видалити категорію",
+    "undo": "Скасувати",
     "category_added": "Контакт додано до {name}",
     "category_added_plural": "{count} контактів додано до {name}",
     "empty_state": "Контактів ще немає",
@@ -2959,7 +2963,10 @@
       "delete": "Видалити адресну книгу",
       "confirm_delete": "Видалити «{name}»? Усі контакти в цій адресній книзі будуть видалені.",
       "deleted": "Адресну книгу видалено",
-      "delete_failed": "Не вдалося видалити адресну книгу"
+      "delete_failed": "Не вдалося видалити адресну книгу",
+      "move_to": "Перемістити до…",
+      "move_title": "Перемістити до адресної книги",
+      "move_here": "Перемістити сюди"
     },
     "detail": {
       "emails": "Адреси електронної пошти",
@@ -3248,7 +3255,8 @@
       "sort_first_name": "Ім'я",
       "sort_last_name": "Прізвище"
     },
-    "open_categories": "Відкрити категорії"
+    "open_categories": "Відкрити категорії",
+    "row_actions": "Дії для {name}"
   },
   "calendar": {
     "title": "Календар",

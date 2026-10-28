@@ -2955,7 +2955,10 @@
       "delete": "Dzēst adrešu grāmatu",
       "confirm_delete": "Dzēst \"{name}\"? Visi kontakti šajā adrešu grāmatā tiks noņemti.",
       "deleted": "Adrešu grāmata dzēsta",
-      "delete_failed": "Neizdevās dzēst adrešu grāmatu"
+      "delete_failed": "Neizdevās dzēst adrešu grāmatu",
+      "move_to": "Pārvietot uz…",
+      "move_title": "Pārvietot uz adrešu grāmatu",
+      "move_here": "Pārvietot šeit"
     },
     "detail": {
       "emails": "E-pasta adreses",
@@ -3214,6 +3217,10 @@
     "category_name_label": "Kategorijas nosaukums",
     "category_renamed": "Kategorija pārdēvēta",
     "category_rename_failed": "Neizdevās pārdēvēt kategoriju",
+    "delete_category": "Dzēst kategoriju",
+    "category_deleted": "Kategorija “{name}” dzēsta",
+    "category_delete_failed": "Neizdevās dzēst kategoriju",
+    "undo": "Atsaukt",
     "context_menu": {
       "open": "Atvērt",
       "edit": "Rediģēt",
@@ -3248,7 +3255,8 @@
       "sort_first_name": "Vārds",
       "sort_last_name": "Uzvārds"
     },
-    "open_categories": "Atvērt kategorijas"
+    "open_categories": "Atvērt kategorijas",
+    "row_actions": "Darbības: {name}"
   },
   "calendar": {
     "title": "Kalendārs",

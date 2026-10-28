@@ -2911,6 +2911,10 @@
     "category_name_label": "Kategoriename",
     "category_renamed": "Kategorie umbenannt",
     "category_rename_failed": "Kategorie konnte nicht umbenannt werden",
+    "delete_category": "Kategorie löschen",
+    "category_deleted": "Kategorie „{name}“ gelöscht",
+    "category_delete_failed": "Kategorie konnte nicht gelöscht werden",
+    "undo": "Rückgängig",
     "category_added": "Kontakt zu {name} hinzugefügt",
     "category_added_plural": "{count} Kontakte zu {name} hinzugefügt",
     "empty_state": "Keine Kontakte",
@@ -2959,7 +2963,10 @@
       "delete": "Adressbuch löschen",
       "confirm_delete": "„{name}\" löschen? Alle Kontakte in diesem Adressbuch werden entfernt.",
       "deleted": "Adressbuch gelöscht",
-      "delete_failed": "Adressbuch konnte nicht gelöscht werden"
+      "delete_failed": "Adressbuch konnte nicht gelöscht werden",
+      "move_to": "Verschieben nach…",
+      "move_title": "In Adressbuch verschieben",
+      "move_here": "Hierher verschieben"
     },
     "detail": {
       "emails": "E-Mail-Adressen",
@@ -3248,7 +3255,8 @@
       "sort_first_name": "Vorname",
       "sort_last_name": "Nachname"
     },
-    "open_categories": "Kategorien öffnen"
+    "open_categories": "Kategorien öffnen",
+    "row_actions": "Aktionen für {name}"
   },
   "calendar": {
     "title": "Kalender",

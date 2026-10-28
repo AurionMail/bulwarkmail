@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { Mail, Phone, Building, MapPin, StickyNote, Pencil, Trash2, BookUser, Copy, Send, Globe, Cake, KeyRound, Users, Briefcase, Heart, Languages, Calendar, UserCircle, Download, MoreHorizontal, Printer } from "@/components/icons";
+import { Mail, Phone, Building, MapPin, StickyNote, Pencil, Trash2, BookUser, Copy, Send, Globe, Cake, KeyRound, Users, Briefcase, Heart, Languages, Calendar, UserCircle, Download, MoreHorizontal, Printer, FolderInput } from "@/components/icons";
 import { Avatar } from "@/components/ui/avatar";
 import { MailtoLink } from "@/components/ui/mailto-link";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,8 @@ interface ContactDetailProps {
   onDelete: () => void;
   onAddToGroup?: () => void;
   onDuplicate?: () => void;
+  /** Move to another address book; undefined where there is none to move to. */
+  onMoveTo?: () => void;
   /** Compose an email to this contact in the app (no OS mailto handoff). */
   onCompose?: () => void;
   isMobile?: boolean;
@@ -138,7 +140,7 @@ function formatDate(dateInput: AnniversaryDate): string {
   return dateStr;
 }
 
-export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDuplicate, onCompose, isMobile, className }: ContactDetailProps) {
+export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDuplicate, onMoveTo, onCompose, isMobile, className }: ContactDetailProps) {
   const t = useTranslations("contacts");
   const contextLabel = (key: string) => (CONTEXT_LABEL_KEYS[key] ? t(CONTEXT_LABEL_KEYS[key]) : key);
   const featureLabel = (key: string) => (PHONE_FEATURE_LABEL_KEYS[key] ? t(PHONE_FEATURE_LABEL_KEYS[key]) : key);
@@ -186,6 +188,9 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
   }
   if (onDuplicate) {
     moreItems.push({ icon: Copy, label: t("context_menu.duplicate"), onClick: onDuplicate });
+  }
+  if (onMoveTo) {
+    moreItems.push({ icon: FolderInput, label: t("address_books.move_to"), onClick: onMoveTo });
   }
   moreItems.push({ icon: Download, label: t("context_menu.export_vcard"), onClick: handleExport, disabled: exporting });
   moreItems.push({ icon: Printer, label: t("context_menu.print"), onClick: handlePrint });

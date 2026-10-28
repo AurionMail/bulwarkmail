@@ -28,6 +28,7 @@ vi.mock('@/hooks/use-sidebar-apps', () => ({
 import { ContactsApp } from '../contacts-app';
 import { useAuthStore } from '@/stores/auth-store';
 import { useContactStore } from '@/stores/contact-store';
+import { useToastStore } from '@/stores/toast-store';
 
 export const alice: ContactCard = {
   id: 'c-alice',
@@ -150,5 +151,20 @@ describe('ContactsApp', () => {
     const dialog = screen.getByRole('dialog', { name: 'import.title' });
     fireEvent.keyDown(dialog, { key: 'Escape' });
     expect(screen.queryByRole('dialog', { name: 'import.title' })).toBeNull();
+  });
+
+  it('deletes a category without asking and brings it back on Undo', async () => {
+    const tagged = { ...alice, keywords: { Friends: true } };
+    renderContacts([tagged, bob]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'open_categories' })[0]);
+    fireEvent.click(within(drawer()).getByRole('button', { name: 'row_actions' }));
+    fireEvent.click(screen.getByText('delete_category'));
+
+    await waitFor(() => expect(useContactStore.getState().contacts.find((c) => c.id === 'c-alice')?.keywords?.Friends).toBeUndefined());
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    const toastState = useToastStore.getState().toasts.at(-1)!;
+    expect(toastState.title).toBe('category_deleted');
+    await act(async () => { toastState.action!.onClick(); });
+    await waitFor(() => expect(useContactStore.getState().contacts.find((c) => c.id === 'c-alice')?.keywords?.Friends).toBe(true));
   });
 });

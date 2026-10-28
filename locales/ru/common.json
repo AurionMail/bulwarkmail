@@ -2911,6 +2911,10 @@
     "category_name_label": "Название категории",
     "category_renamed": "Категория переименована",
     "category_rename_failed": "Не удалось переименовать категорию",
+    "delete_category": "Удалить категорию",
+    "category_deleted": "Категория «{name}» удалена",
+    "category_delete_failed": "Не удалось удалить категорию",
+    "undo": "Отменить",
     "category_added": "Контакт добавлен в {name}",
     "category_added_plural": "{count} контактов добавлено в {name}",
     "empty_state": "Контактов пока нет",
@@ -2959,7 +2963,10 @@
       "delete": "Удалить адресную книгу",
       "confirm_delete": "Удалить «{name}»? Все контакты в этой адресной книге будут удалены.",
       "deleted": "Адресная книга удалена",
-      "delete_failed": "Не удалось удалить адресную книгу"
+      "delete_failed": "Не удалось удалить адресную книгу",
+      "move_to": "Переместить в…",
+      "move_title": "Переместить в адресную книгу",
+      "move_here": "Переместить сюда"
     },
     "detail": {
       "emails": "Адреса электронной почты",
@@ -3248,7 +3255,8 @@
       "sort_first_name": "Имя",
       "sort_last_name": "Фамилия"
     },
-    "open_categories": "Открыть категории"
+    "open_categories": "Открыть категории",
+    "row_actions": "Действия для {name}"
   },
   "calendar": {
     "title": "Календарь",

@@ -2911,6 +2911,10 @@
     "category_name_label": "Nome della categoria",
     "category_renamed": "Categoria rinominata",
     "category_rename_failed": "Impossibile rinominare la categoria",
+    "delete_category": "Elimina categoria",
+    "category_deleted": "Categoria «{name}» eliminata",
+    "category_delete_failed": "Impossibile eliminare la categoria",
+    "undo": "Annulla",
     "category_added": "Contatto aggiunto a {name}",
     "category_added_plural": "{count} contatti aggiunti a {name}",
     "empty_state": "Nessun contatto",
@@ -2959,7 +2963,10 @@
       "delete": "Elimina rubrica",
       "confirm_delete": "Eliminare \"{name}\"? Tutti i contatti in questa rubrica verranno rimossi.",
       "deleted": "Rubrica eliminata",
-      "delete_failed": "Impossibile eliminare la rubrica"
+      "delete_failed": "Impossibile eliminare la rubrica",
+      "move_to": "Sposta in…",
+      "move_title": "Sposta in una rubrica",
+      "move_here": "Sposta qui"
     },
     "detail": {
       "emails": "Indirizzi email",
@@ -3248,7 +3255,8 @@
       "sort_first_name": "Nome",
       "sort_last_name": "Cognome"
     },
-    "open_categories": "Apri categorie"
+    "open_categories": "Apri categorie",
+    "row_actions": "Azioni per {name}"
   },
   "calendar": {
     "title": "Calendario",

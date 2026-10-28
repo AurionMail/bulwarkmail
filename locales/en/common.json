@@ -2911,6 +2911,10 @@
     "category_name_label": "Category name",
     "category_renamed": "Category renamed",
     "category_rename_failed": "Failed to rename category",
+    "delete_category": "Delete category",
+    "category_deleted": "Category \"{name}\" deleted",
+    "category_delete_failed": "Couldn't delete the category",
+    "undo": "Undo",
     "category_added": "Contact added to {name}",
     "category_added_plural": "{count} contacts added to {name}",
     "empty_state": "No contacts yet",
@@ -2928,6 +2932,7 @@
     "back_to_contacts": "Back to contacts",
     "back_to_email": "Back to email",
     "open_categories": "Open categories",
+    "row_actions": "Actions for {name}",
     "tabs": {
       "all": "All",
       "groups": "Groups"
@@ -2960,7 +2965,10 @@
       "delete": "Delete address book",
       "confirm_delete": "Delete \"{name}\"? All contacts in this address book will be removed.",
       "deleted": "Address book deleted",
-      "delete_failed": "Failed to delete address book"
+      "delete_failed": "Failed to delete address book",
+      "move_to": "Move to…",
+      "move_title": "Move to address book",
+      "move_here": "Move here"
     },
     "detail": {
       "emails": "Email Addresses",

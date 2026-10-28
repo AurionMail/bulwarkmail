@@ -2911,6 +2911,10 @@
     "category_name_label": "Nom de la catégorie",
     "category_renamed": "Catégorie renommée",
     "category_rename_failed": "Échec du renommage de la catégorie",
+    "delete_category": "Supprimer la catégorie",
+    "category_deleted": "Catégorie « {name} » supprimée",
+    "category_delete_failed": "Impossible de supprimer la catégorie",
+    "undo": "Annuler",
     "category_added": "Contact ajouté à {name}",
     "category_added_plural": "{count} contacts ajoutés à {name}",
     "empty_state": "Aucun contact",
@@ -2959,7 +2963,10 @@
       "delete": "Supprimer le carnet d'adresses",
       "confirm_delete": "Supprimer « {name} » ? Tous les contacts de ce carnet d'adresses seront supprimés.",
       "deleted": "Carnet d'adresses supprimé",
-      "delete_failed": "Échec de la suppression du carnet d'adresses"
+      "delete_failed": "Échec de la suppression du carnet d'adresses",
+      "move_to": "Déplacer vers…",
+      "move_title": "Déplacer vers un carnet d'adresses",
+      "move_here": "Déplacer ici"
     },
     "detail": {
       "emails": "Adresses e-mail",
@@ -3248,7 +3255,8 @@
       "sort_first_name": "Prénom",
       "sort_last_name": "Nom de famille"
     },
-    "open_categories": "Ouvrir les catégories"
+    "open_categories": "Ouvrir les catégories",
+    "row_actions": "Actions pour {name}"
   },
   "calendar": {
     "title": "Calendrier",
