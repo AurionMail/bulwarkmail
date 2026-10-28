@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Search, BookUser, Trash2, Users, Download, X, UserPlus, CheckSquare, Square, Filter, Mail, Phone, Image as ImageIcon, RotateCcw, Menu, ArrowDownAZ, Loader2, FolderInput } from "@/components/icons";
 import { Input } from "@/components/ui/input";
@@ -280,6 +280,83 @@ export function ContactList({
   const pluginContext = useMemo(() => ({ contactIds: [...selectedContactIds] }), [selectedContactIds]);
   const allSelected = sorted.length > 0 && sorted.every(c => selectedContactIds.has(c.id));
 
+  // ---- Keyboard (R8): the list keys Mail and Files share --------------------
+  // One row takes Tab (roving focus): the open contact, else the first.
+  const listRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+  const cursorId = focusedId && sortedIds.includes(focusedId)
+    ? focusedId
+    : selectedContactId && sortedIds.includes(selectedContactId) ? selectedContactId : sortedIds[0] ?? null;
+  const focusRow = useCallback((id: string) => {
+    setFocusedId(id);
+    const row = listRef.current?.querySelector<HTMLElement>(`[data-contact-id="${CSS.escape(id)}"]`);
+    row?.focus();
+    row?.scrollIntoView?.({ block: "nearest" });
+  }, []);
+
+  const handleListKeyDown = (e: React.KeyboardEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("input, textarea, select, [contenteditable=true]")) return;
+    const mod = e.ctrlKey || e.metaKey;
+    const index = cursorId ? sortedIds.indexOf(cursorId) : -1;
+    const contact = cursorId ? sorted.find((c) => c.id === cursorId) : undefined;
+    const moveTo = (next: number, extend: boolean) => {
+      if (sortedIds.length === 0) return;
+      const id = sortedIds[Math.max(0, Math.min(sortedIds.length - 1, next))];
+      focusRow(id);
+      if (extend) onSelectRangeContacts(id, sortedIds);
+      else if (!hasSelection) onSelectContact(id);
+    };
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      moveTo(index + (e.key === "ArrowDown" ? 1 : -1), e.shiftKey);
+    } else if (e.key === "Home" || e.key === "End") {
+      e.preventDefault();
+      moveTo(e.key === "Home" ? 0 : sortedIds.length - 1, e.shiftKey);
+    } else if (e.key === "Enter" && contact) {
+      e.preventDefault();
+      onSelectContact(contact.id);
+    } else if (e.key === " " && contact) {
+      e.preventDefault();
+      onToggleSelection(contact.id);
+    } else if (mod && e.code === "KeyA") {
+      e.preventDefault();
+      onSelectAll(sortedIds);
+    } else if ((e.key === "Delete" || e.key === "Backspace") && !e.altKey) {
+      // Backspace deletes too (⌘⌫ on a Mac), as in Mail and Files.
+      if (hasSelection) {
+        e.preventDefault();
+        onBulkDelete();
+      } else if (contact) {
+        e.preventDefault();
+        onDeleteContact(contact);
+      }
+    } else if (e.key === "Escape") {
+      if (hasSelection) {
+        e.preventDefault();
+        onClearSelection();
+      } else if (searchQuery) {
+        e.preventDefault();
+        onSearchChange("");
+      }
+    }
+  };
+
+  // "/" goes to the search from anywhere in Contacts, as in Mail.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable=true]")) return;
+      if (document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]')) return;
+      e.preventDefault();
+      searchRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
     <div className={cn("flex flex-col h-full", className)}>
       {/* Toolbar: select / search / filter */}
@@ -322,6 +399,7 @@ export function ContactList({
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
+                ref={searchRef}
                 type="text"
                 placeholder={t("search_placeholder")}
                 value={searchQuery}
@@ -547,7 +625,14 @@ export function ContactList({
       )}
 
       {/* Contact list */}
-      <div className="flex-1 overflow-y-auto">
+      <div
+        ref={listRef}
+        role="listbox"
+        aria-label={t("title")}
+        aria-multiselectable
+        onKeyDown={handleListKeyDown}
+        className="flex-1 overflow-y-auto"
+      >
         {sorted.length === 0 && isLoading && !searchQuery && activeFilters === 0 ? (
           <div aria-hidden className="py-1" data-testid="contact-list-skeleton">
             {Array.from({ length: 8 }, (_, i) => (
@@ -610,6 +695,8 @@ export function ContactList({
                 isSelected={contact.id === selectedContactId}
                 isChecked={selectedContactIds.has(contact.id)}
                 hasSelection={hasSelection}
+                isFocused={contact.id === cursorId}
+                onFocus={() => setFocusedId(contact.id)}
                 density={density}
                 selectedContactIds={selectedContactIds}
                 onClick={(e) => {
@@ -634,8 +721,8 @@ export function ContactList({
             return groupByLetter ? (
               <div>
                 {groupedSections.map(({ letter, items }) => (
-                  <section key={letter}>
-                    <div className="sticky top-0 z-10 px-4 py-0.5 bg-background/90 backdrop-blur-sm text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wide">
+                  <section key={letter} role="group" aria-label={letter}>
+                    <div aria-hidden className="sticky top-0 z-10 px-4 py-0.5 bg-background/90 backdrop-blur-sm text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wide">
                       {letter}
                     </div>
                     {items.map(renderItem)}

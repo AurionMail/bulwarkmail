@@ -206,4 +206,35 @@ describe('ContactList', () => {
     fireEvent.click(screen.getByRole('button', { name: /address_books.move_to/ }));
     expect(onMoveContacts).toHaveBeenLastCalledWith(['1', '2']);
   });
+
+  it("moves through the list with the arrow keys and opens the contact, like Mail and Files", () => {
+    const onSelectContact = vi.fn();
+    render(<ContactList {...defaultProps} onSelectContact={onSelectContact} />);
+    const rows = screen.getAllByRole('option');
+    expect(rows[0]).toHaveAttribute('tabindex', '0');
+    expect(rows[1]).toHaveAttribute('tabindex', '-1');
+    rows[0].focus();
+    fireEvent.keyDown(rows[0], { key: 'ArrowDown' });
+    expect(onSelectContact).toHaveBeenLastCalledWith('2');
+    expect(document.activeElement).toBe(screen.getAllByRole('option')[1]);
+  });
+
+  it("selects all with Ctrl+A, deletes with Delete, clears with Escape, and searches with /", () => {
+    const onSelectAll = vi.fn();
+    const onBulkDelete = vi.fn();
+    const onClearSelection = vi.fn();
+    const { rerender } = render(<ContactList {...defaultProps} onSelectAll={onSelectAll} onBulkDelete={onBulkDelete} onClearSelection={onClearSelection} />);
+    const row = screen.getAllByRole('option')[0];
+    fireEvent.keyDown(row, { key: 'a', code: 'KeyA', ctrlKey: true });
+    expect(onSelectAll).toHaveBeenCalledWith(['1', '2']);
+
+    rerender(<ContactList {...defaultProps} selectedContactIds={new Set(['1'])} onSelectAll={onSelectAll} onBulkDelete={onBulkDelete} onClearSelection={onClearSelection} />);
+    fireEvent.keyDown(screen.getAllByRole('option')[0], { key: 'Delete' });
+    expect(onBulkDelete).toHaveBeenCalled();
+    fireEvent.keyDown(screen.getAllByRole('option')[0], { key: 'Escape' });
+    expect(onClearSelection).toHaveBeenCalled();
+
+    fireEvent.keyDown(document.body, { key: '/' });
+    expect(document.activeElement).toBe(screen.getByPlaceholderText('search_placeholder'));
+  });
 });

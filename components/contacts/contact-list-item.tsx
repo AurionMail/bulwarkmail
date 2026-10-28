@@ -18,9 +18,12 @@ interface ContactListItemProps {
   onClick: (e: React.MouseEvent) => void;
   onCheckboxClick: (e: React.MouseEvent) => void;
   onContextMenu?: (e: React.MouseEvent, contact: ContactCard) => void;
+  /** The keyboard cursor: the row that takes Tab and shows a focus ring. */
+  isFocused?: boolean;
+  onFocus?: () => void;
 }
 
-export function ContactListItem({ contact, isSelected, isChecked, hasSelection, density, selectedContactIds, onClick, onCheckboxClick, onContextMenu }: ContactListItemProps) {
+export function ContactListItem({ contact, isSelected, isChecked, hasSelection, density, selectedContactIds, onClick, onCheckboxClick, onContextMenu, isFocused = false, onFocus }: ContactListItemProps) {
   const name = getContactDisplayName(contact);
   const email = getContactPrimaryEmail(contact);
   const org = contact.organizations
@@ -54,12 +57,17 @@ export function ContactListItem({ contact, isSelected, isChecked, hasSelection, 
 
   return (
     <div
+      role="option"
+      aria-selected={isSelected || isChecked}
+      tabIndex={isFocused ? 0 : -1}
+      data-contact-id={contact.id}
+      onFocus={onFocus}
       draggable
       onDragStart={handleDragStart}
       onClick={onClick}
       onContextMenu={onContextMenu ? (e) => onContextMenu(e, contact) : undefined}
       className={cn(
-        "w-full flex items-center cursor-pointer select-none transition-all duration-200 border-b border-border",
+        "w-full flex items-center cursor-pointer select-none transition-all duration-200 border-b border-border outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
         isSelected
           ? "bg-selection shadow-sm"
           : "bg-background hover:bg-muted hover:shadow-sm",
