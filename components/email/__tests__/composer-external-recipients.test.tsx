@@ -8,6 +8,8 @@ import { useExternalRecipientConfirmStore } from '@/stores/external-recipient-co
 import { usePolicyStore } from '@/stores/policy-store';
 import { DEFAULT_ORGANISATION_POLICY } from '@/lib/admin/organisation-policy';
 import { DEFAULT_POLICY } from '@/lib/admin/types';
+import { useAuthStore } from '@/stores/auth-store';
+import { useIdentityStore } from '@/stores/identity-store';
 
 // ─── Heavy component mocks (mirrors composer-reopened-draft-signature.test.tsx) ─
 
@@ -232,8 +234,16 @@ function renderComposer(onSend: () => void) {
 describe('composer: confirm before sending outside the organisation', () => {
   beforeEach(() => {
     resetSendPipeline();
-    useExternalRecipientConfirmStore.setState({ pending: null });
+    useExternalRecipientConfirmStore.setState({ pending: null, queue: [] });
     setExternalMail({ recipientWarning: true });
+    // The user's identities, as the auth store holds them after sign-in:
+    // example.com is internal because of them.
+    const identities = [
+      { id: 'id-me', email: 'me@example.com', name: 'Me' },
+      { id: 'id-sales', email: 'sales@example.com', name: 'Sales' },
+    ];
+    useAuthStore.setState({ identities } as never);
+    useIdentityStore.setState({ identities } as never);
   });
   afterEach(() => {
     cleanup();
@@ -265,6 +275,24 @@ describe('composer: confirm before sending outside the organisation', () => {
     await waitFor(() => expect(container.querySelector('[data-external-recipient-send]')).not.toBeNull());
     fireEvent.click(container.querySelector('[data-external-recipient-send]')!);
     await waitFor(() => expect(onSend).toHaveBeenCalledTimes(1));
+  });
+
+  it('leaves the identity\'s automatic Bcc out of the question', async () => {
+    useIdentityStore.setState({
+      identities: [
+        { id: 'id-me', email: 'me@example.com', name: 'Me', bcc: [{ name: '', email: 'archive@archive-service.example' }] },
+        { id: 'id-sales', email: 'sales@example.com', name: 'Sales' },
+      ],
+    } as never);
+    const { container } = renderComposer(vi.fn());
+    clickSend();
+    const list = await waitFor(() => {
+      const el = container.querySelector('[data-external-recipients]');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    expect(list.textContent).toContain('dave@org-two.test');
+    expect(list.textContent).not.toContain('archive@archive-service.example');
   });
 
   it('sends without asking while the warning is off', async () => {

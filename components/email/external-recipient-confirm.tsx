@@ -23,7 +23,7 @@ export function ExternalRecipientConfirmHost() {
   useEffect(() => registerExternalRecipientCheck(), []);
 
   // A send can't be waiting on a dialog that is gone.
-  useEffect(() => () => useExternalRecipientConfirmStore.getState().answer(false), []);
+  useEffect(() => () => useExternalRecipientConfirmStore.getState().cancelAll(), []);
 
   const dialogRef = useFocusTrap({ isActive: !!pending, onEscape: () => answer(false), restoreFocus: true });
 

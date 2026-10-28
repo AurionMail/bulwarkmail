@@ -3286,9 +3286,12 @@ export function EmailComposer({
       surface: 'composer',
       to: toAddresses.map(r => r.email),
       cc: ccAddresses.map(r => r.email),
-      bcc: bccAddresses.map(r => r.email),
+      // The identity's automatic Bcc (Identity.bcc) is the user's own setup,
+      // not a recipient they picked: checks see only the typed Bcc.
+      bcc: expandRecipients(withInput(bcc, bccInput)).map(r => r.email),
       fromEmail: (fromOverrideEnabled && fromOverrideEmail.trim()) || currentIdentity?.email || undefined,
       identityId: currentIdentity?.id,
+      identityEmail: currentIdentity?.email || undefined,
       mode,
       plainText: plainTextMode,
     };

@@ -26,18 +26,26 @@ const ORDER = 40;
 /** Longest the send waits for the contacts to load the first time. */
 const CONTACTS_WAIT_MS = 3000;
 
-async function ensureContactsLoaded(): Promise<void> {
+/**
+ * Waits for the contacts the first time, at most CONTACTS_WAIT_MS: a send
+ * right after signing in shouldn't ask about every contact, nor hang on a
+ * slow address book.
+ */
+export async function ensureContactsLoaded(waitMs = CONTACTS_WAIT_MS): Promise<void> {
   const contacts = useContactStore.getState();
   if (contacts.contactsLoaded) return;
   const client = useAuthStore.getState().client;
   if (!client) return;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     await Promise.race([
       contacts.fetchContacts(client),
-      new Promise((resolve) => setTimeout(resolve, CONTACTS_WAIT_MS)),
+      new Promise((resolve) => { timer = setTimeout(resolve, waitMs); }),
     ]);
   } catch (error) {
     debug.error('Could not load contacts for the external-recipient check:', error);
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -45,10 +53,11 @@ async function ensureContactsLoaded(): Promise<void> {
 export async function recipientsToConfirm(context: OutgoingContext): Promise<ExternalRecipient[]> {
   const policy = currentExternalMailPolicy();
   if (!policy.recipientWarning) return [];
-  // The From address is one of the user's own, even an override typed in the composer.
-  const fromDomain = addressDomain(context.fromEmail);
+  // The chosen identity's own address is internal. A From typed over it in
+  // the composer is not: anyone can type any domain there.
+  const identityDomain = addressDomain(context.identityEmail);
   const internal = currentInternalDomains(policy);
-  if (fromDomain && !internal.includes(fromDomain)) internal.push(fromDomain);
+  if (identityDomain && !internal.includes(identityDomain)) internal.push(identityDomain);
   let trusted: ((address: string) => boolean) | undefined;
   if (policy.trustContacts) {
     await ensureContactsLoaded();

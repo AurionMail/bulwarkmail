@@ -22,8 +22,11 @@ export interface OutgoingContext {
   to: string[];
   cc: string[];
   bcc: string[];
+  /** The From address: the identity's, or one typed over it in the composer. */
   fromEmail?: string;
   identityId?: string;
+  /** The chosen identity's own address (never a typed From override). */
+  identityEmail?: string;
   /** compose, reply, replyAll or forward; quick reply is a reply. */
   mode: 'compose' | 'reply' | 'replyAll' | 'forward';
   /** Plain-text-only message (no HTML part). */
