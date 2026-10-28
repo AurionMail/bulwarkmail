@@ -26,6 +26,19 @@ vi.mock('@/hooks/use-sidebar-apps', () => ({
 }));
 
 import { ContactsApp } from '../contacts-app';
+import { useRegisteredCommandGroups, type CommandGroup } from '@/lib/command-registry';
+
+/** The palette's command groups as the palette would read them now. */
+function getRegisteredGroups(): CommandGroup[] {
+  let groups: CommandGroup[] = [];
+  function Probe() {
+    groups = useRegisteredCommandGroups();
+    return null;
+  }
+  const { unmount } = render(<Probe />);
+  unmount();
+  return groups;
+}
 import { useAuthStore } from '@/stores/auth-store';
 import { useContactStore } from '@/stores/contact-store';
 import { useToastStore } from '@/stores/toast-store';
@@ -188,5 +201,14 @@ describe('ContactsApp', () => {
     fireEvent.change(screen.getByPlaceholderText('given_name'), { target: { value: 'Zed' } });
     fireEvent.click(screen.getByRole('button', { name: 'save' }));
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Zed' })).toBeInTheDocument());
+  });
+
+  it('adds New contact, Import and New group to the command palette while open', () => {
+    renderContacts();
+    const groups = getRegisteredGroups();
+    const contacts = groups.find((g) => g.label === 'contacts');
+    expect(contacts?.commands.map((c) => c.label)).toEqual(expect.arrayContaining(['create_new', 'import.title', 'groups.create']));
+    act(() => { contacts!.commands.find((c) => c.id === 'new-contact')!.run(); });
+    expect(screen.getByPlaceholderText('middle_name')).toBeInTheDocument();
   });
 });

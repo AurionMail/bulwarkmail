@@ -3256,6 +3256,20 @@
       "sort_by": "Sortare după",
       "sort_first_name": "Prenume",
       "sort_last_name": "Nume de familie"
+    },
+    "shortcuts": {
+      "list": "Listă",
+      "actions": "Acțiuni",
+      "first_last": "Primul sau ultimul",
+      "extend": "Extindeți selecția",
+      "toggle": "Selectați sau deselectați",
+      "select_all": "Selectați tot",
+      "clear": "Ștergeți selecția sau căutarea",
+      "delete": "Ștergeți",
+      "search": "Căutați",
+      "move": "Contactul următor sau anterior",
+      "open": "Deschideți contactul",
+      "menu": "Deschideți meniul contactului"
     }
   },
   "calendar": {
@@ -3932,6 +3946,25 @@
     "trash_empty_hint": "Fișierele șterse rămân aici până când goliți coșul de gunoi.",
     "deleted": "Șters",
     "deleted_from": "Șters din {folder}",
+    "shortcuts": {
+      "list": "Listă",
+      "actions": "Acțiuni",
+      "first_last": "Primul sau ultimul",
+      "extend": "Extindeți selecția",
+      "toggle": "Selectați sau deselectați",
+      "select_all": "Selectați tot",
+      "clear": "Ștergeți selecția sau căutarea",
+      "delete": "Ștergeți",
+      "search": "Căutați",
+      "move": "Elementul următor sau anterior",
+      "move_grid": "Elementul alăturat din grilă",
+      "open": "Deschideți",
+      "up": "Un dosar mai sus",
+      "rename": "Redenumiți",
+      "copy": "Copiați",
+      "cut": "Decupați",
+      "paste": "Lipiți"
+    },
     "rename_success": "Redenumit cu succes",
     "rename_error": "Nu s-a putut redenumi",
     "download_error": "Descărcarea a eșuat",

@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useCallback, useRef, useMemo } from "rea
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
-import { ArrowLeft, Users, UsersRound, AlertTriangle, Plus } from "@/components/icons";
+import { ArrowLeft, Users, UsersRound, AlertTriangle, Plus, UserPlus, Upload, BookPlus } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
@@ -49,6 +49,7 @@ import { useDeepLinkUrl } from "@/hooks/use-deep-link-url";
 import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
 import { useLiteLinkSegments } from "@/hooks/use-lite-link-segments";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { useRegisterCommands } from "@/lib/command-registry";
 import { useCloseOnBack } from "@/hooks/use-close-on-back";
 import { MvTopBar } from "@/components/layout/mv-top-bar";
 import { useMountainViewShell } from "@/hooks/use-mountain-view-shell";
@@ -896,6 +897,14 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
       clearSelection();
     }
   };
+
+  // The command palette's Contacts group (Ctrl/⌘+K).
+  useRegisterCommands(tSidebar("contacts"), [
+    { id: "new-contact", label: t("create_new"), icon: UserPlus, run: () => guard(handleCreateNew)() },
+    { id: "import", label: t("import.title"), icon: Upload, run: () => setShowImportDialog(true) },
+    { id: "new-group", label: t("groups.create"), icon: UsersRound, run: () => guard(handleCreateGroup)() },
+    { id: "new-address-book", label: t("address_books.create"), icon: BookPlus, run: () => setCreatingAddressBook(true), when: () => !!client },
+  ], contactsEnabled);
 
   const handleBulkAddToGroupConfirm = async (groupId: string) => {
     try {

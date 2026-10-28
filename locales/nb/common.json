@@ -3256,6 +3256,20 @@
       "sort_by": "Sorter etter",
       "sort_first_name": "Fornavn",
       "sort_last_name": "Etternavn"
+    },
+    "shortcuts": {
+      "list": "Liste",
+      "actions": "Handlinger",
+      "first_last": "Første eller siste",
+      "extend": "Utvid markeringen",
+      "toggle": "Velg eller fjern valg",
+      "select_all": "Velg alle",
+      "clear": "Fjern markering eller søk",
+      "delete": "Slett",
+      "search": "Søk",
+      "move": "Neste eller forrige kontakt",
+      "open": "Åpne kontakten",
+      "menu": "Åpne kontaktens meny"
     }
   },
   "calendar": {
@@ -3932,6 +3946,25 @@
     "trash_empty_hint": "Slettede filer blir liggende her til du tømmer papirkurven.",
     "deleted": "Slettet",
     "deleted_from": "Slettet fra {folder}",
+    "shortcuts": {
+      "list": "Liste",
+      "actions": "Handlinger",
+      "first_last": "Første eller siste",
+      "extend": "Utvid markeringen",
+      "toggle": "Velg eller fjern valg",
+      "select_all": "Velg alle",
+      "clear": "Fjern markering eller søk",
+      "delete": "Slett",
+      "search": "Søk",
+      "move": "Neste eller forrige element",
+      "move_grid": "Elementet ved siden av i rutenettet",
+      "open": "Åpne",
+      "up": "En mappe opp",
+      "rename": "Gi nytt navn",
+      "copy": "Kopier",
+      "cut": "Klipp ut",
+      "paste": "Lim inn"
+    },
     "rename_success": "Navnet er endret",
     "rename_error": "Kunne ikke endre navnet",
     "download_error": "Kunne ikke laste ned",

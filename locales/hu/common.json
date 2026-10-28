@@ -3256,6 +3256,20 @@
       "sort_by": "Rendezés",
       "sort_first_name": "Keresztnév",
       "sort_last_name": "Vezetéknév"
+    },
+    "shortcuts": {
+      "list": "Lista",
+      "actions": "Műveletek",
+      "first_last": "Első vagy utolsó",
+      "extend": "Kijelölés bővítése",
+      "toggle": "Kijelölés vagy kijelölés megszüntetése",
+      "select_all": "Összes kijelölése",
+      "clear": "Kijelölés vagy keresés törlése",
+      "delete": "Törlés",
+      "search": "Keresés",
+      "move": "Következő vagy előző névjegy",
+      "open": "Névjegy megnyitása",
+      "menu": "Névjegy menüjének megnyitása"
     }
   },
   "calendar": {
@@ -3932,6 +3946,25 @@
     "trash_empty_hint": "A törölt fájlok itt maradnak, amíg ki nem üríti a kukát.",
     "deleted": "Törölve",
     "deleted_from": "Törölve innen: {folder}",
+    "shortcuts": {
+      "list": "Lista",
+      "actions": "Műveletek",
+      "first_last": "Első vagy utolsó",
+      "extend": "Kijelölés bővítése",
+      "toggle": "Kijelölés vagy kijelölés megszüntetése",
+      "select_all": "Összes kijelölése",
+      "clear": "Kijelölés vagy keresés törlése",
+      "delete": "Törlés",
+      "search": "Keresés",
+      "move": "Következő vagy előző elem",
+      "move_grid": "Szomszédos elem a rácsban",
+      "open": "Megnyitás",
+      "up": "Egy mappával feljebb",
+      "rename": "Átnevezés",
+      "copy": "Másolás",
+      "cut": "Kivágás",
+      "paste": "Beillesztés"
+    },
     "rename_success": "Sikeresen átnevezve",
     "rename_error": "Nem sikerült átnevezni",
     "download_error": "Nem sikerült letölteni",

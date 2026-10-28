@@ -9,7 +9,7 @@ import { ContactListItem } from "./contact-list-item";
 import { ContactContextMenu } from "./contact-context-menu";
 import { useContactExportBusy } from "./contact-export";
 import { PluginActions } from "@/components/plugins/plugin-actions";
-import { useContextMenu } from "@/hooks/use-context-menu";
+import { isContextMenuKey, useContextMenu } from "@/hooks/use-context-menu";
 import { cn } from "@/lib/utils";
 import type { AnniversaryDate, ContactCard } from "@/lib/jmap/types";
 import { getContactDisplayName, getContactSortName, hasContactPhoto } from "@/stores/contact-store";
@@ -310,7 +310,11 @@ export function ContactList({
       if (extend) onSelectRangeContacts(id, sortedIds);
       else if (!hasSelection) onSelectContact(id);
     };
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    if (isContextMenuKey(e) && contact) {
+      e.preventDefault();
+      const row = listRef.current?.querySelector<HTMLElement>(`[data-contact-id="${CSS.escape(contact.id)}"]`);
+      if (row) openContextMenuFrom(row, contact);
+    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
       moveTo(index + (e.key === "ArrowDown" ? 1 : -1), e.shiftKey);
     } else if (e.key === "Home" || e.key === "End") {

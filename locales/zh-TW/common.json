@@ -3256,6 +3256,20 @@
       "sort_by": "排序方式",
       "sort_first_name": "名",
       "sort_last_name": "姓"
+    },
+    "shortcuts": {
+      "list": "清單",
+      "actions": "動作",
+      "first_last": "第一個或最後一個",
+      "extend": "擴充選取範圍",
+      "toggle": "選取或取消選取",
+      "select_all": "全選",
+      "clear": "清除選取或搜尋",
+      "delete": "刪除",
+      "search": "搜尋",
+      "move": "下一個或上一個聯絡人",
+      "open": "開啟聯絡人",
+      "menu": "開啟聯絡人選單"
     }
   },
   "calendar": {
@@ -3932,6 +3946,25 @@
     "trash_empty_hint": "刪除的檔案會保留在這裡，直到您清空垃圾桶。",
     "deleted": "刪除時間",
     "deleted_from": "從 {folder} 刪除",
+    "shortcuts": {
+      "list": "清單",
+      "actions": "動作",
+      "first_last": "第一個或最後一個",
+      "extend": "擴充選取範圍",
+      "toggle": "選取或取消選取",
+      "select_all": "全選",
+      "clear": "清除選取或搜尋",
+      "delete": "刪除",
+      "search": "搜尋",
+      "move": "下一個或上一個項目",
+      "move_grid": "格狀檢視中的相鄰項目",
+      "open": "開啟",
+      "up": "上一層資料夾",
+      "rename": "重新命名",
+      "copy": "複製",
+      "cut": "剪下",
+      "paste": "貼上"
+    },
     "rename_success": "重新命名成功",
     "rename_error": "重新命名失敗",
     "download_error": "下載失敗",

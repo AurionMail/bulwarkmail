@@ -3256,6 +3256,20 @@
       "sort_by": "Sordi",
       "sort_first_name": "Eesnimi",
       "sort_last_name": "Perekonnanimi"
+    },
+    "shortcuts": {
+      "list": "Loend",
+      "actions": "Toimingud",
+      "first_last": "Esimene või viimane",
+      "extend": "Laienda valikut",
+      "toggle": "Vali või tühista valik",
+      "select_all": "Vali kõik",
+      "clear": "Tühjenda valik või otsing",
+      "delete": "Kustuta",
+      "search": "Otsi",
+      "move": "Järgmine või eelmine kontakt",
+      "open": "Ava kontakt",
+      "menu": "Ava kontakti menüü"
     }
   },
   "calendar": {
@@ -3932,6 +3946,25 @@
     "trash_empty_hint": "Kustutatud failid jäävad siia, kuni prügikasti tühjendate.",
     "deleted": "Kustutatud",
     "deleted_from": "Kustutatud kaustast {folder}",
+    "shortcuts": {
+      "list": "Loend",
+      "actions": "Toimingud",
+      "first_last": "Esimene või viimane",
+      "extend": "Laienda valikut",
+      "toggle": "Vali või tühista valik",
+      "select_all": "Vali kõik",
+      "clear": "Tühjenda valik või otsing",
+      "delete": "Kustuta",
+      "search": "Otsi",
+      "move": "Järgmine või eelmine üksus",
+      "move_grid": "Kõrvalolev üksus ruudustikus",
+      "open": "Ava",
+      "up": "Kaust üles",
+      "rename": "Nimeta ümber",
+      "copy": "Kopeeri",
+      "cut": "Lõika",
+      "paste": "Kleebi"
+    },
     "rename_success": "Edukalt ümber nimetatud",
     "rename_error": "Ümbernimetamine ebaõnnestus",
     "download_error": "Allalaadimine ebaõnnestus",

@@ -3256,6 +3256,20 @@
       "sort_by": "Sort by",
       "sort_first_name": "First name",
       "sort_last_name": "Last name"
+    },
+    "shortcuts": {
+      "list": "List",
+      "actions": "Actions",
+      "first_last": "First or last",
+      "extend": "Extend the selection",
+      "toggle": "Select or deselect",
+      "select_all": "Select all",
+      "clear": "Clear the selection or search",
+      "delete": "Delete",
+      "search": "Search",
+      "move": "Next or previous contact",
+      "open": "Open the contact",
+      "menu": "Open the contact's menu"
     }
   },
   "calendar": {
@@ -3932,6 +3946,25 @@
     "trash_empty_hint": "Deleted files stay here until you empty the trash.",
     "deleted": "Deleted",
     "deleted_from": "Deleted from {folder}",
+    "shortcuts": {
+      "list": "List",
+      "actions": "Actions",
+      "first_last": "First or last",
+      "extend": "Extend the selection",
+      "toggle": "Select or deselect",
+      "select_all": "Select all",
+      "clear": "Clear the selection or search",
+      "delete": "Delete",
+      "search": "Search",
+      "move": "Next or previous item",
+      "move_grid": "Item beside it in the grid",
+      "open": "Open",
+      "up": "Up a folder",
+      "rename": "Rename",
+      "copy": "Copy",
+      "cut": "Cut",
+      "paste": "Paste"
+    },
     "rename_success": "Renamed successfully",
     "rename_error": "Failed to rename",
     "download_error": "Failed to download",

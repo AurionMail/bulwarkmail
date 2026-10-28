@@ -9,6 +9,8 @@ import {
 } from "@/components/icons";
 import { useIsDesktop, useIsMobile, useMediaQuery } from "@/hooks/use-media-query";
 import { useContextMenu } from "@/hooks/use-context-menu";
+import { useRegisterCommands } from "@/lib/command-registry";
+import { formatShortcutCombo } from "@/lib/shortcut-keys";
 import { Button } from "@/components/ui/button";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { Avatar } from "@/components/ui/avatar";
@@ -714,7 +716,8 @@ export function FileBrowser({
       const mod = e.ctrlKey || e.metaKey;
       const selected = selectedList.map((r) => r.name);
 
-      if (mod && e.key.toLowerCase() === "f") {
+      // "/" as in Mail and Contacts; Ctrl/⌘+F as in a file manager.
+      if ((mod && e.key.toLowerCase() === "f") || (e.key === "/" && !mod && !e.altKey)) {
         e.preventDefault();
         searchInputRef.current?.focus();
         return;
@@ -859,9 +862,9 @@ export function FileBrowser({
           {canMove && (
             <ContextMenuItem icon={FolderInput} label={t("move_to")} onClick={() => { closeMenu(); setMoveTarget({ names }); }} />
           )}
-          <ContextMenuItem icon={Scissors} label={t("cut")} shortcut="Ctrl+X" onClick={() => { closeMenu(); onCut(names); }} />
+          <ContextMenuItem icon={Scissors} label={t("cut")} shortcut={formatShortcutCombo("Mod + X")} onClick={() => { closeMenu(); onCut(names); }} />
           {menuSelection.some((r) => !r.isSymlink) && (
-            <ContextMenuItem icon={Copy} label={t("copy")} shortcut="Ctrl+C" onClick={() => { closeMenu(); onCopy(names); }} />
+            <ContextMenuItem icon={Copy} label={t("copy")} shortcut={formatShortcutCombo("Mod + C")} onClick={() => { closeMenu(); onCopy(names); }} />
           )}
           <ContextMenuSeparator />
           <ContextMenuItem icon={Trash2} label={t("delete_count", { count: names.length })} destructive onClick={() => { closeMenu(); deleteNames(names); }} />
@@ -910,9 +913,9 @@ export function FileBrowser({
         {canMove && (
           <ContextMenuItem icon={FolderInput} label={t("move_to")} onClick={() => { closeMenu(); setMoveTarget({ names: [resource.name] }); }} />
         )}
-        <ContextMenuItem icon={Scissors} label={t("cut")} shortcut="Ctrl+X" onClick={() => { closeMenu(); onCut([resource.name]); }} />
+        <ContextMenuItem icon={Scissors} label={t("cut")} shortcut={formatShortcutCombo("Mod + X")} onClick={() => { closeMenu(); onCut([resource.name]); }} />
         {!resource.isSymlink && (
-          <ContextMenuItem icon={Copy} label={t("copy")} shortcut="Ctrl+C" onClick={() => { closeMenu(); onCopy([resource.name]); }} />
+          <ContextMenuItem icon={Copy} label={t("copy")} shortcut={formatShortcutCombo("Mod + C")} onClick={() => { closeMenu(); onCopy([resource.name]); }} />
         )}
         <ContextMenuItem icon={Info} label={t("details")} onClick={() => { closeMenu(); toggleDetails(true); }} />
         <ContextMenuSeparator />
@@ -963,6 +966,18 @@ export function FileBrowser({
     else if (kind === "files") fileInputRef.current?.click();
     else folderInputRef.current?.click();
   }, [currentParentId, onNavigate]);
+
+  // ---- Command palette ---------------------------------------------------------
+  const tSidebar = useTranslations("sidebar");
+  useRegisterCommands(tSidebar("files"), [
+    { id: "upload-files", label: t("upload_files"), icon: Upload, run: () => fileInputRef.current?.click(), when: () => canCreate },
+    { id: "upload-folder", label: t("upload_folder"), icon: FolderUp, run: () => folderInputRef.current?.click(), when: () => canCreate },
+    { id: "new-folder", label: t("new_folder"), icon: FolderPlus, run: () => setShowNewFolder(true), when: () => canCreate },
+    { id: "new-text-file", label: t("new_text_file"), icon: FilePlus, run: () => setShowNewTextFile(true), when: () => canCreate },
+    { id: "trash", label: t("trash"), icon: Trash2, run: () => onNavigate(TRASH_PATH, TRASH_LOCATION), when: () => !inTrash && !accountPickerMode },
+    { id: "empty-trash", label: t("empty_trash"), icon: Trash2, run: () => onEmptyTrash?.(), when: () => inTrash && trashCount > 0 && !!onEmptyTrash },
+    { id: "refresh", label: t("refresh"), icon: RefreshCw, run: () => void onRefresh() },
+  ]);
 
   // ---- Rendering -------------------------------------------------------------
   const sidebar = !accountPickerMode && (
@@ -1311,12 +1326,12 @@ export function FileBrowser({
             {clipboard && canCreate && (
               <>
                 <ContextMenuSeparator />
-                <ContextMenuItem icon={Clipboard} label={t("paste")} shortcut="Ctrl+V" onClick={() => { closeMenu(); void onPaste(); }} />
+                <ContextMenuItem icon={Clipboard} label={t("paste")} shortcut={formatShortcutCombo("Mod + V")} onClick={() => { closeMenu(); void onPaste(); }} />
               </>
             )}
             <ContextMenuSeparator />
             {displayResources.length > 0 && (
-              <ContextMenuItem icon={CheckSquare} label={t("select_all")} shortcut="Ctrl+A" onClick={() => { closeMenu(); selectAllVisible(); }} />
+              <ContextMenuItem icon={CheckSquare} label={t("select_all")} shortcut={formatShortcutCombo("Mod + A")} onClick={() => { closeMenu(); selectAllVisible(); }} />
             )}
             <ContextMenuItem icon={RefreshCw} label={t("refresh")} onClick={() => { closeMenu(); void onRefresh(); }} />
           </>

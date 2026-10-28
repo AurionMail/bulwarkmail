@@ -3256,6 +3256,20 @@
       "sort_by": "Ordena per",
       "sort_first_name": "Nom",
       "sort_last_name": "Cognom"
+    },
+    "shortcuts": {
+      "list": "Llista",
+      "actions": "Accions",
+      "first_last": "Primer o darrer",
+      "extend": "Amplia la selecció",
+      "toggle": "Selecciona o desselecciona",
+      "select_all": "Selecciona-ho tot",
+      "clear": "Esborra la selecció o la cerca",
+      "delete": "Suprimeix",
+      "search": "Cerca",
+      "move": "Contacte següent o anterior",
+      "open": "Obre el contacte",
+      "menu": "Obre el menú del contacte"
     }
   },
   "calendar": {
@@ -3932,6 +3946,25 @@
     "trash_empty_hint": "Els fitxers suprimits es queden aquí fins que buideu la paperera.",
     "deleted": "Suprimit",
     "deleted_from": "Suprimit de {folder}",
+    "shortcuts": {
+      "list": "Llista",
+      "actions": "Accions",
+      "first_last": "Primer o darrer",
+      "extend": "Amplia la selecció",
+      "toggle": "Selecciona o desselecciona",
+      "select_all": "Selecciona-ho tot",
+      "clear": "Esborra la selecció o la cerca",
+      "delete": "Suprimeix",
+      "search": "Cerca",
+      "move": "Element següent o anterior",
+      "move_grid": "Element del costat a la quadrícula",
+      "open": "Obre",
+      "up": "Una carpeta amunt",
+      "rename": "Canvia el nom",
+      "copy": "Copia",
+      "cut": "Retalla",
+      "paste": "Enganxa"
+    },
     "rename_success": "Nom canviat correctament",
     "rename_error": "No s'ha pogut canviar el nom",
     "download_error": "No s'ha pogut baixar",

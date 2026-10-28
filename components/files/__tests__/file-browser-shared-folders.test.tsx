@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { FileBrowser } from '../file-browser';
 import { useFileStore, type FileResource } from '@/stores/file-store';
 import { useSettingsStore } from '@/stores/settings-store';
+import { useRegisteredCommandGroups, type CommandGroup } from '@/lib/command-registry';
 import { DEFAULT_FILES_SETTINGS } from '@/lib/files-settings';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { FileNode } from '@/lib/jmap/types';
@@ -432,5 +433,20 @@ describe('FileBrowser', () => {
     fireEvent.contextMenu(within(list()).getByText('Documents'));
     fireEvent.click(screen.getByText('download_zip'));
     expect(onDownloadZip).toHaveBeenCalledWith(['f-docs'], 'Documents.zip');
+  });
+
+  it("adds Upload, New folder and Trash to the command palette, and focuses search with /", () => {
+    renderBrowser();
+    let groups: CommandGroup[] = [];
+    function Probe() {
+      groups = useRegisteredCommandGroups();
+      return null;
+    }
+    render(<Probe />);
+    const files = groups.find((g) => g.label === 'files');
+    expect(files?.commands.map((c) => c.label)).toEqual(expect.arrayContaining(['upload_files', 'new_folder', 'trash']));
+
+    fireEvent.keyDown(document.body, { key: '/' });
+    expect(document.activeElement).toHaveAttribute('role', 'searchbox');
   });
 });

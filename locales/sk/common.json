@@ -3256,6 +3256,20 @@
       "sort_by": "Zoradiť podľa",
       "sort_first_name": "Meno",
       "sort_last_name": "Priezvisko"
+    },
+    "shortcuts": {
+      "list": "Zoznam",
+      "actions": "Akcie",
+      "first_last": "Prvý alebo posledný",
+      "extend": "Rozšíriť výber",
+      "toggle": "Vybrať alebo zrušiť výber",
+      "select_all": "Vybrať všetko",
+      "clear": "Zrušiť výber alebo vyhľadávanie",
+      "delete": "Odstrániť",
+      "search": "Hľadať",
+      "move": "Ďalší alebo predchádzajúci kontakt",
+      "open": "Otvoriť kontakt",
+      "menu": "Otvoriť ponuku kontaktu"
     }
   },
   "calendar": {
@@ -3932,6 +3946,25 @@
     "trash_empty_hint": "Odstránené súbory tu zostanú, kým kôš nevyprázdnite.",
     "deleted": "Odstránené",
     "deleted_from": "Odstránené z {folder}",
+    "shortcuts": {
+      "list": "Zoznam",
+      "actions": "Akcie",
+      "first_last": "Prvý alebo posledný",
+      "extend": "Rozšíriť výber",
+      "toggle": "Vybrať alebo zrušiť výber",
+      "select_all": "Vybrať všetko",
+      "clear": "Zrušiť výber alebo vyhľadávanie",
+      "delete": "Odstrániť",
+      "search": "Hľadať",
+      "move": "Ďalšia alebo predchádzajúca položka",
+      "move_grid": "Susedná položka v mriežke",
+      "open": "Otvoriť",
+      "up": "O priečinok vyššie",
+      "rename": "Premenovať",
+      "copy": "Kopírovať",
+      "cut": "Vystrihnúť",
+      "paste": "Prilepiť"
+    },
     "rename_success": "Úspešne premenované",
     "rename_error": "Premenovanie zlyhalo",
     "download_error": "Sťahovanie zlyhalo",
