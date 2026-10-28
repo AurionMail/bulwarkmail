@@ -4,6 +4,8 @@
 
 ### Features
 
+- **Organisation**: Admins can set an organisation signature with placeholders for each user's name, address, company, job title, department and phone numbers, per domain or group, and lock it so it replaces everyone's own signature. Users fill in their details once under Settings > Account. Lines whose details are empty are left out (#908)
+- **Organisation**: Admins can add a legal disclaimer that goes below every message when it is sent, never into drafts, and is shown read-only in the composer
 - **Organisation**: Admins can sign users out after a time without activity or a fixed time after sign-in, per domain or group. A countdown with "Stay signed in" comes first, open and minimised messages and quick replies are saved as drafts, and the login page says why
 
 ## 1.18.0 (2026-10-26)
