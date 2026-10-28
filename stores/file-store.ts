@@ -501,6 +501,37 @@ function isUnder(path: string, base: string): boolean {
   return path === base || path.startsWith(base + '/');
 }
 
+type PathStep = { id: string | null; name: string };
+
+/**
+ * The breadcrumb trail of an own-drive folder from its real ancestors: Home,
+ * then each folder down to `id`. null when the chain can't be followed (a
+ * parent isn't in `folders`) or runs through the hidden trash folder, which
+ * never shows in the breadcrumb.
+ */
+function ancestorStack(
+  folders: readonly { id: string; name: string; parentId?: string | null }[],
+  id: string,
+  trashId?: string,
+): PathStep[] | null {
+  const byId = new Map(folders.map(f => [f.id, f]));
+  const trail: PathStep[] = [];
+  const seen = new Set<string>();
+  let at = byId.get(id);
+  while (at) {
+    if (seen.has(at.id) || at.id === trashId) return null;
+    seen.add(at.id);
+    trail.unshift({ id: at.id, name: at.name });
+    if (at.parentId == null) return [{ id: null, name: '' }, ...trail];
+    at = byId.get(at.parentId);
+  }
+  return null;
+}
+
+function sameStack(a: PathStep[], b: PathStep[]): boolean {
+  return a.length === b.length && a.every((s, i) => s.id === b[i].id && s.name === b[i].name);
+}
+
 function buildPathFromStack(stack: { id: string | null; name: string }[]): string {
   if (stack.length <= 1) return '/';
   return '/' + stack.slice(1).map(s => s.name).join('/');
@@ -842,7 +873,7 @@ export const useFileStore = create<FileState>((set, get) => ({
   },
 
   navigate: async (parentId: string | null, name?: string) => {
-    const { client, pathStack, currentParentId: previousParentId, hasListed } = get();
+    const { client, pathStack, currentParentId: previousParentId, hasListed, allFolders: knownFolders } = get();
     if (!client) return;
     // A refresh lists the same folder again; plugins only hear about a new one.
     const opensFolder = !hasListed || parentId !== previousParentId;
@@ -859,16 +890,23 @@ export const useFileStore = create<FileState>((set, get) => ({
     } else if (isTrashLocation(parentId)) {
       newStack = [{ id: null, name: '' }, { id: TRASH_LOCATION, name: TRASH_FOLDER_NAME }];
     } else {
-      // Check if navigating to a parent in the stack
+      // An own-drive folder: the trail is its real ancestors, wherever it was
+      // opened from (the tree, a favorite, the Trash). A folder of a shared
+      // drive builds on the trail openSharedNode set up.
+      const known = isCrossAccountId(parentId) ? null : ancestorStack(knownFolders, parentId);
       const existingIdx = pathStack.findIndex(s => s.id === parentId);
-      if (existingIdx >= 0) {
+      if (known) {
+        newStack = known;
+      } else if (existingIdx >= 0) {
         newStack = pathStack.slice(0, existingIdx + 1);
       } else {
-        newStack = [...pathStack, { id: parentId, name: name || parentId }];
+        // The Trash and shared-files pages are no folder to be inside of.
+        const base = pathStack.filter(s => s.id === null || (!isTrashLocation(s.id) && sharedFilesOwner(s.id) === null));
+        newStack = [...base, { id: parentId, name: name || parentId }];
       }
     }
 
-    const newPath = buildPathFromStack(newStack);
+    let newPath = buildPathFromStack(newStack);
     set({ pathStack: newStack, currentPath: newPath });
 
     try { localStorage.setItem('files-last-parent-id', parentId || ''); } catch { /* ignore */ }
@@ -906,6 +944,18 @@ export const useFileStore = create<FileState>((set, get) => ({
           : sortResources(childrenOf(allNodes, parentId).filter(n => !n.discoverableOnly && !inTrash.has(n.id)).map(nodeToResource));
       // The owner's folders above a shared one stay out of the tree as well.
       const allFolders = allNodes.filter(n => isFolder(n) && !n.discoverableOnly && !inTrash.has(n.id)).map(nodeToResource);
+
+      // The folder list was stale or empty (first visit, a link): set the
+      // trail again from the fresh one, unless another folder opened since.
+      if (parentId !== null && !isCrossAccountId(parentId) && !isTrashLocation(parentId)
+        && sharedFilesOwner(parentId) === null && get().currentParentId === parentId) {
+        const fresh = ancestorStack(allNodes.filter(n => isFolder(n)), parentId, trash?.id);
+        if (fresh && !sameStack(fresh, get().pathStack)) {
+          newPath = buildPathFromStack(fresh);
+          set({ pathStack: fresh, currentPath: newPath });
+          try { localStorage.setItem('files-path-stack', JSON.stringify(fresh)); } catch { /* ignore */ }
+        }
+      }
 
       // Prune recent files whose backing node no longer exists on the server
       // or is in the trash.
