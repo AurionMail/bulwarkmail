@@ -14,6 +14,7 @@ export type SettingsSearchTab =
   | 'filters'
   | 'organize'
   | 'security'
+  | 'sharing'
   | 'calendar'
   | 'contacts'
   | 'files'
@@ -122,6 +123,7 @@ export const tabSearchPaths: Record<Tab, string[]> = {
   filters: ['settings.filters'],
   organize: ['settings.folders', 'settings.keywords'],
   security: ['settings.security'],
+  sharing: ['delegates'],
   calendar: ['calendar.settings', 'calendar.management'],
   contacts: ['settings.contacts', 'contacts'],
   files: ['settings.files'],
@@ -146,6 +148,7 @@ export const tabKeywords: Record<Tab, string> = {
   filters: 'sieve rules block junk forward',
   organize: 'folders mailbox subscribe roles tags labels keywords colors nested',
   security: 'password 2fa two-factor passkey app password mfa api key token phone mobile app pair qr thunderbird outlook imap client encryption pgp smime',
+  sharing: 'delegate delegation share access assistant permissions revoke folders calendars contacts colleague',
   calendar: 'event schedule appointment meeting timezone invitation ics tasks birthday working hours',
   contacts: 'address book contact',
   files: 'attachments cloud drive storage upload',

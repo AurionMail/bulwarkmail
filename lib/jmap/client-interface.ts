@@ -1,3 +1,5 @@
+import type { ShareChange, ShareChangeResult, ShareTarget } from "./share-batch";
+import type { ShareKind } from "./share-rights";
 import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CreateCalendarOptions, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, FileNode, FileNodeRights, Principal, PrincipalAvailability, PrincipalListing, PushSubscription, EmailPushConfig, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
 import type { FileNameRules } from "@/lib/file-name-rules";
@@ -230,6 +232,10 @@ export interface IJMAPClient {
   supportsMailboxSharing?(accountId?: string): boolean;
   getMailboxShareWith?(mailboxId: string, accountId?: string): Promise<Record<string, MailboxRights> | null>;
   setMailboxShare?(mailboxId: string, principalId: string, rights: MailboxRights | null, accountId?: string): Promise<void>;
+  // Many items at once, for the Delegates page (lib/jmap/share-batch.ts). Optional (demo client).
+  getShareTargets?(): Promise<{ targets: ShareTarget[]; failed: ShareKind[] }>;
+  applyShareChanges?(changes: ShareChange[]): Promise<ShareChangeResult[]>;
+  findPrincipalByEmail?(email: string): Promise<{ principal: Principal | null; status: "ok" | "forbidden" | "error"; directoryQueriesOff?: boolean }>;
 
   // ── Emails ────────────────────────────────────────────────────
   // `pinnedFirst` sorts emails carrying the $pinned keyword to the top

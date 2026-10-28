@@ -24,6 +24,8 @@ import { SchedulingDeniedError } from "./scheduling-error";
 import { jmapError, jmapErrorFailedIds, jmapErrorType, jmapSetError, type JmapError, type JmapErrorInfo } from "./jmap-error";
 import { isServerSetKeyword } from "./server-keywords";
 import { PrincipalsRequestError } from "./principals-error";
+import { buildShareSetCalls, failAll, parseShareTargets, readShareSetResults, SET_METHOD, type ShareChange, type ShareChangeResult, type ShareTarget } from "./share-batch";
+import type { ShareKind } from "./share-rights";
 import { RescheduleRestoredError } from "./reschedule-error";
 
 export { SchedulingDeniedError, RescheduleRestoredError };
@@ -7375,6 +7377,129 @@ export class JMAPClient implements IJMAPClient {
     }
     if (!setResult.updated || !(mailboxId in setResult.updated)) {
       throw new Error("Server did not confirm the share update");
+    }
+  }
+
+  // ── Sharing many items at once (the Delegates page) ──────────────
+
+  /**
+   * Every folder, calendar and address book of the user's own account with
+   * its `shareWith`, and the files that are shared with someone. A type the
+   * account can't share is left out; one whose read failed is in `failed`,
+   * so the caller doesn't mistake it for "shared with nobody".
+   */
+  async getShareTargets(): Promise<{ targets: ShareTarget[]; failed: ShareKind[] }> {
+    const calls: JMAPMethodCall[] = [];
+    const using = new Set<string>(["urn:ietf:params:jmap:core"]);
+    const accounts: { mailbox?: string; calendar?: string; addressBook?: string } = {};
+    if (this.supportsMailboxSharing()) {
+      accounts.mailbox = this.accountId;
+      calls.push(["Mailbox/get", { accountId: this.accountId, ids: null, properties: ["id", "name", "role", "parentId", "shareWith"] }, "m"]);
+      for (const u of ["urn:ietf:params:jmap:mail", JMAPClient.MAIL_SHARE_CAPABILITY]) using.add(u);
+    }
+    const calendarsAccountId = this.getCalendarsAccountId();
+    if (this.supportsCalendars(calendarsAccountId)) {
+      accounts.calendar = calendarsAccountId;
+      calls.push(["Calendar/get", { accountId: calendarsAccountId, ids: null, properties: ["id", "name", "isDefault", "shareWith"] }, "c"]);
+      for (const u of this.calendarUsing()) using.add(u);
+    }
+    const contactsAccountId = this.getContactsAccountId();
+    if (this.supportsContacts(contactsAccountId)) {
+      accounts.addressBook = contactsAccountId;
+      calls.push(["AddressBook/get", { accountId: contactsAccountId, ids: null, properties: ["id", "name", "isDefault", "shareWith"] }, "a"]);
+      for (const u of this.contactUsing()) using.add(u);
+    }
+
+    let result: { targets: ShareTarget[]; failed: ShareKind[] } = { targets: [], failed: [] };
+    if (calls.length > 0) {
+      try {
+        const response = await this.request(calls, [...using]);
+        result = parseShareTargets(response.methodResponses as [string, Record<string, unknown>, string][], accounts);
+      } catch (error) {
+        console.error("Failed to read sharing:", error);
+        result.failed = (Object.keys(accounts) as ShareKind[]);
+      }
+    }
+
+    const filesAccountId = this.getFilesAccountId();
+    if (this.supportsFiles(filesAccountId)) {
+      try {
+        for (const node of await this.listAllFileNodes()) {
+          if (!node.shareWith || Object.keys(node.shareWith).length === 0) continue;
+          result.targets.push({ kind: "file", accountId: filesAccountId, id: node.id, name: node.name, parentId: node.parentId ?? null, shareWith: node.shareWith });
+        }
+      } catch (error) {
+        console.error("Failed to read file sharing:", error);
+        result.failed.push("file");
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Applies `shareWith` changes to many items in as few requests as the
+   * server's limits allow, and says for each one whether it worked. Never
+   * throws: a request that fails marks its items failed.
+   */
+  async applyShareChanges(changes: ShareChange[]): Promise<ShareChangeResult[]> {
+    if (changes.length === 0) return [];
+    const { calls, changesByCall } = buildShareSetCalls(changes, {
+      maxObjectsInSet: this.getMaxObjectsInSet(),
+      wireRights: (change) => change.kind === "file" && change.rights && this.isLegacyFileNodeServer(change.accountId)
+        ? toLegacyRights(change.rights as FileNodeRights)
+        : change.rights,
+    });
+    const usingFor: Record<string, string[]> = {
+      [SET_METHOD.mailbox]: ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:mail", JMAPClient.MAIL_SHARE_CAPABILITY],
+      [SET_METHOD.calendar]: this.calendarUsing(),
+      [SET_METHOD.addressBook]: this.contactUsing(),
+      [SET_METHOD.file]: this.fileUsing(),
+    };
+    const results: ShareChangeResult[] = [];
+    for (const group of batched(calls, this.getMaxCallsInRequest())) {
+      const using = [...new Set(group.flatMap(([method]) => usingFor[method] ?? []))];
+      try {
+        const response = await this.request(group, using);
+        results.push(...readShareSetResults(group, changesByCall, response.methodResponses as [string, Record<string, unknown>, string][]));
+      } catch (error) {
+        results.push(...failAll(group, changesByCall, error));
+      }
+    }
+    return results;
+  }
+
+  /**
+   * The principal with this address, through a directory query. `forbidden`
+   * when the server refuses queries (Stalwart 1.0 with directory queries off,
+   * the default), with `directoryQueriesOff` when that is the reason.
+   */
+  async findPrincipalByEmail(email: string): Promise<{ principal: Principal | null; status: "ok" | "forbidden" | "error"; directoryQueriesOff?: boolean }> {
+    if (!this.supportsPrincipals()) return { principal: null, status: "error" };
+    const wanted = email.trim().toLowerCase();
+    try {
+      const response = await this.request([
+        ["Principal/query", { accountId: this.accountId, filter: { email: wanted }, limit: 10 }, "0"],
+        ["Principal/get", {
+          accountId: this.accountId,
+          "#ids": { resultOf: "0", name: "Principal/query", path: "/ids" },
+          properties: PRINCIPAL_PROPERTIES,
+        }, "1"],
+      ], this.principalsUsing());
+      const responses = response.methodResponses ?? [];
+      const getResp = responses.find((r) => r[0] === "Principal/get");
+      if (!getResp) {
+        const error = responses.find((r) => r[0] === "error")?.[1] as JmapErrorInfo | undefined;
+        if (error?.type === "forbidden") {
+          return { principal: null, status: "forbidden", ...(error.description === DIRECTORY_QUERIES_OFF ? { directoryQueriesOff: true } : {}) };
+        }
+        return { principal: null, status: "error" };
+      }
+      const list = (getResp[1].list ?? []) as Principal[];
+      const principal = list.find((p) => p.email?.toLowerCase() === wanted || p.name?.toLowerCase() === wanted) ?? null;
+      return { principal: principal ? { ...principal, accountId: this.accountId } : null, status: "ok" };
+    } catch (error) {
+      console.error("Failed to look up principal:", error);
+      return { principal: null, status: "error" };
     }
   }
 

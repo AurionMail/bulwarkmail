@@ -112,3 +112,35 @@ export function detectPreset(kind: ShareKind, rights: AnyRights): RolePreset {
   }
   return 'custom';
 }
+
+/** Read or read and write, as the Delegates page offers them. */
+export type AccessLevel = 'read' | 'write';
+
+/** The rights Delegates grants for one level. */
+export function accessRights(kind: ShareKind, level: AccessLevel): AnyRights {
+  return presetRights(kind, level === 'write' ? 'readWrite' : 'read')!;
+}
+
+/**
+ * What a stored grant lets the grantee do, in the two words of the Delegates
+ * page: "write" when they may change anything inside, "read" when they may
+ * only read, null when they may not even read (free/busy only, or nothing).
+ */
+export function accessLevelOf(kind: ShareKind, rights: AnyRights | null | undefined): AccessLevel | null {
+  if (!rights) return null;
+  const r = rights as unknown as Record<string, boolean | undefined>;
+  switch (kind) {
+    case 'mailbox':
+      if (!r.mayReadItems) return null;
+      return r.mayAddItems || r.mayRemoveItems ? 'write' : 'read';
+    case 'calendar':
+      if (!r.mayReadItems) return null;
+      return r.mayWriteAll || r.mayWriteOwn ? 'write' : 'read';
+    case 'addressBook':
+      if (!r.mayRead) return null;
+      return r.mayWrite ? 'write' : 'read';
+    case 'file':
+      if (!r.mayRead) return null;
+      return r.mayModifyContent || r.mayAddChildren || r.mayRename || r.mayDelete || r.mayWrite ? 'write' : 'read';
+  }
+}
