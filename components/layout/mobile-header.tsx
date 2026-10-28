@@ -2,6 +2,7 @@
 
 import { Menu, ArrowLeft, Plus, Search, X } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { useUIStore } from "@/stores/ui-store";
 import { useShallow } from "zustand/react/shallow";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -131,14 +132,13 @@ export function MobileHeader({
             <span className="truncate text-sm">{searchPlaceholder || title}</span>
           </button>
           {searchActive && onClearSearch && (
-            <button
-              type="button"
+            <IconButton
               onClick={onClearSearch}
-              className="h-8 w-8 flex-shrink-0 grid place-items-center rounded-full text-muted-foreground hover:bg-background/60"
-              aria-label={t('clear_search')}
+              className="flex-shrink-0 rounded-full text-muted-foreground hover:bg-background/60"
+              label={t('clear_search')}
             >
-              <X className="h-4 w-4" />
-            </button>
+              <X />
+            </IconButton>
           )}
         </div>
       )}

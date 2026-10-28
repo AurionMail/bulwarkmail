@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useTour } from "./tour-provider";
 import { cn } from "@/lib/utils";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { Button } from "@/components/ui/button";
 import { isEditableEventTarget } from "@/lib/keyboard";
 import { isDocumentRTL } from "@/i18n/direction";
 
@@ -392,31 +393,16 @@ export function TourOverlay() {
 
           {/* Navigation buttons */}
           <div className="flex items-center justify-between mt-3">
-            <button
-              onClick={stopTour}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted"
-            >
+            <Button variant="ghost" size="xs" onClick={stopTour} className="text-xs text-muted-foreground -ms-2">
               {t("tour.skip")}
-            </button>
+            </Button>
             <div className="flex gap-2">
-              <button
-                onClick={goPrev}
-                disabled={isFirst}
-                className={cn(
-                  "text-xs px-3 py-1.5 rounded-md border border-border transition-colors",
-                  isFirst
-                    ? "opacity-40 cursor-not-allowed"
-                    : "hover:bg-muted"
-                )}
-              >
+              <Button variant="outline" size="xs" onClick={goPrev} disabled={isFirst} className="text-xs">
                 {t("tour.back")}
-              </button>
-              <button
-                onClick={goNext}
-                className="text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
+              </Button>
+              <Button size="xs" onClick={goNext} className="text-xs">
                 {isLast ? t("tour.finish") : t("tour.next")}
-              </button>
+              </Button>
             </div>
           </div>
 

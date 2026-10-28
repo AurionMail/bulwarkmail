@@ -284,7 +284,7 @@ export function AccountSwitcher({
           "flex items-center gap-2 transition-colors",
           mvPopover ? "rounded-full" : "rounded-md",
           variant !== "expanded"
-            ? "justify-center w-10 h-10 hover:bg-muted"
+            ? "justify-center w-10 h-10 pointer-coarse:w-11 pointer-coarse:h-11 hover:bg-muted"
             : "w-full px-2 py-1.5 hover:bg-muted text-start min-w-0",
           className
         )}
@@ -557,7 +557,7 @@ export function AccountSwitcher({
               <button
                 onClick={handleAddAccount}
                 data-testid="add-account"
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-start text-foreground hover:bg-muted transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2 pointer-coarse:min-h-11 text-sm text-start text-foreground hover:bg-muted transition-colors"
                 role="menuitem"
               >
                 <Plus className="w-4 h-4" />
@@ -572,7 +572,7 @@ export function AccountSwitcher({
             {activeAccount && !activeAccount.isDefault && accounts.length > 1 && (
               <button
                 onClick={() => handleSetDefault(activeAccount.id)}
-                className={cn("w-full flex items-center gap-2 py-2 text-sm text-foreground hover:bg-muted transition-colors", mvPopover ? "px-4" : "px-3")}
+                className={cn("w-full flex items-center gap-2 py-2 pointer-coarse:min-h-11 text-sm text-start text-foreground hover:bg-muted transition-colors", mvPopover ? "px-4" : "px-3")}
                 role="menuitem"
               >
                 <Star className="w-4 h-4" />
@@ -581,7 +581,7 @@ export function AccountSwitcher({
             )}
             <button
               onClick={handleLogout}
-              className={cn("w-full flex items-center gap-2 py-2 text-sm text-start text-foreground hover:bg-muted transition-colors", mvPopover ? "px-4" : "px-3")}
+              className={cn("w-full flex items-center gap-2 py-2 pointer-coarse:min-h-11 text-sm text-start text-foreground hover:bg-muted transition-colors", mvPopover ? "px-4" : "px-3")}
               role="menuitem"
             >
               <LogOut className="w-4 h-4" />
@@ -590,7 +590,7 @@ export function AccountSwitcher({
             {!mvPopover && accounts.length > 1 && (
               <button
                 onClick={handleLogoutAll}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-start text-foreground hover:bg-muted transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2 pointer-coarse:min-h-11 text-sm text-start text-foreground hover:bg-muted transition-colors"
                 role="menuitem"
               >
                 <LogOut className="w-4 h-4" />

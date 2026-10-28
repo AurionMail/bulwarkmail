@@ -9,6 +9,8 @@ import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { isDocumentRTL } from "@/i18n/direction";
 import { toastHooks } from "@/lib/plugin-hooks";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import {
   selectUnreadCount,
   useNotificationCenterStore,
@@ -60,33 +62,18 @@ export function NotificationPanel({ onClose, className, sheet = false }: { onClo
       <div className="flex items-center gap-1 px-3 h-12 border-b border-border shrink-0">
         {/* Full screen on a phone it is a dialog of its own, titled like one. */}
         <h2 className={cn("flex-1 min-w-0 truncate font-semibold", sheet ? "text-lg" : "text-sm")}>{t("title")}</h2>
-        <button
-          type="button"
-          onClick={markAllRead}
-          disabled={unread === 0}
-          className="inline-flex items-center gap-1 h-8 px-2 rounded-md text-xs text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50 disabled:pointer-events-none transition-colors"
-        >
+        <Button variant="ghost" size="xs" onClick={markAllRead} disabled={unread === 0} className="gap-1 px-2 text-xs text-muted-foreground">
           <CheckCheck className="w-4 h-4" />
           <span>{t("mark_all_read")}</span>
-        </button>
-        <button
-          type="button"
-          onClick={clear}
-          disabled={entries.length === 0}
-          className="inline-flex items-center gap-1 h-8 px-2 rounded-md text-xs text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50 disabled:pointer-events-none transition-colors"
-        >
+        </Button>
+        <Button variant="ghost" size="xs" onClick={clear} disabled={entries.length === 0} className="gap-1 px-2 text-xs text-muted-foreground">
           <Trash2 className="w-4 h-4" />
           <span>{t("clear")}</span>
-        </button>
+        </Button>
         {sheet && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="grid place-items-center h-10 w-10 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            aria-label={t("close")}
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <IconButton size="icon-lg" label={t("close")} title="" onClick={onClose} className="text-muted-foreground">
+            <X />
+          </IconButton>
         )}
       </div>
       {entries.length === 0 ? (

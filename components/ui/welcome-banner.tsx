@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { X, Lightbulb, Settings, PlayCircle } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { useRouter } from "@/i18n/navigation";
 import { useTour } from "@/components/tour/tour-provider";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -94,38 +95,34 @@ export function WelcomeBanner() {
               </ul>
             </div>
           </div>
-          <button
-            onClick={dismiss}
-            className="flex-shrink-0 p-1.5 rounded-md hover:bg-muted transition-colors duration-150 text-muted-foreground hover:text-foreground"
-            aria-label={t("dismiss")}
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <IconButton label={t("dismiss")} onClick={dismiss} className="flex-shrink-0 text-muted-foreground">
+            <X />
+          </IconButton>
         </div>
         <div className="mt-2.5 flex justify-end gap-2">
           <Button
             variant="outline"
-            size="sm"
+            size="xs"
             onClick={() => { dismiss(); startTour(); }}
-            className="text-xs h-7"
+            className="text-xs"
           >
             <PlayCircle className="w-3.5 h-3.5 me-1" />
             {t("start_tour")}
           </Button>
           <Button
             variant="outline"
-            size="sm"
+            size="xs"
             onClick={() => { dismiss(); router.push('/settings'); }}
-            className="text-xs h-7"
+            className="text-xs"
           >
             <Settings className="w-3.5 h-3.5 me-1" />
             {t("settings")}
           </Button>
           <Button
             variant="default"
-            size="sm"
+            size="xs"
             onClick={dismiss}
-            className="text-xs h-7"
+            className="text-xs"
           >
             {t("got_it")}
           </Button>
