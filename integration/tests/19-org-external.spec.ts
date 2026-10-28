@@ -152,6 +152,9 @@ test('mail from org-dave is labelled External, mail from org-bob is not', async 
   await expect(chip(alice).first()).toBeVisible();
   await expect(chip(alice).first()).toHaveAttribute('title', /org-two\.test/);
   await shot(alice, 'external-sender-chip');
+  // A click (a tap on phones) names the domain.
+  await chip(alice).first().click();
+  await expect(alice.locator('[data-external-sender-detail]')).toContainText('org-two.test');
 
   await openMessage(alice, FROM_BOB);
   await expect(chip(alice)).toHaveCount(0);
@@ -178,11 +181,22 @@ test('sending to org-dave asks first, sending to org-bob does not', async ({ bro
   await alice.context().close();
 });
 
-test('a quick reply to org-dave asks too, and Send anyway sends it', async ({ browser }) => {
+test('a quick reply to org-dave asks too: Back keeps the text, Send anyway sends it', async ({ browser }) => {
   const alice = await userPage(browser, ORG.alice);
   await openMessage(alice, FROM_DAVE);
   const box = alice.getByPlaceholder('Write a quick reply...');
   await box.fill(`Quick reply ${RUN}`);
+  await box.press('Control+Enter');
+  await expect(confirm(alice)).toBeVisible();
+  await confirm(alice).locator('[data-external-recipient-back]').click();
+  await expect(confirm(alice)).toHaveCount(0);
+  await expect(box).toHaveValue(`Quick reply ${RUN}`);
+  await box.press('Control+Enter');
+  await expect(confirm(alice)).toBeVisible();
+  // Keys stay in the dialog: Escape answers Back and leaves the message open.
+  await alice.keyboard.press('Escape');
+  await expect(confirm(alice)).toHaveCount(0);
+  await expect(box).toHaveValue(`Quick reply ${RUN}`);
   await box.press('Control+Enter');
   await expect(confirm(alice)).toBeVisible();
   await confirm(alice).locator('[data-external-recipient-send]').click();
@@ -269,7 +283,7 @@ test.describe('an installed External Mail Warning 1.5.1', () => {
     await admin.close();
   });
 
-  test('is skipped while core warnings are on, and its safe domains import', async ({ browser }) => {
+  test('steps back one switch at a time, and its safe domains import', async ({ browser }) => {
     const admin = await adminContext(browser);
     // next dev compiles the sandbox page on first use, which can outlast the plugin's init timeout.
     await admin.request.get('/plugin-sandbox', { timeout: 120000 });
@@ -310,13 +324,16 @@ test.describe('an installed External Mail Warning 1.5.1', () => {
     await expect(page.getByText('Saved.')).toBeVisible();
     expect(((await getPolicy(admin)).organisation as { externalMail: { domains: string[] } }).externalMail.domains)
       .toEqual(['partner.example', 'other-partner.example']);
-    await admin.close();
+    await page.close();
 
-    // Core on: one question, Bulwark's own, and no plugin banner.
+    // Only the recipient warning on: one question on send, Bulwark's own;
+    // the plugin keeps its banner.
+    await putPolicy(admin, { ...(await getPolicy(admin)), organisation: { externalMail: { senderLabel: false, recipientWarning: true } } });
     alice = await userPage(browser, ORG.alice);
+    await expect(alice.locator('iframe[src*="/plugin-sandbox"]').first()).toBeAttached({ timeout: 30000 });
     await openMessage(alice, FROM_DAVE_2);
-    await expect(chip(alice).first()).toBeVisible();
-    await expect(alice.locator('[data-plugin-slot="email-banner"]')).toHaveCount(0);
+    await expect(chip(alice)).toHaveCount(0);
+    await expect(alice.locator('[data-plugin-slot="email-banner"]')).toHaveCount(1);
     await composeTo(alice, ORG.dave, `Core asks ${RUN}`);
     await expect(confirm(alice)).toBeVisible();
     await confirm(alice).locator('[data-external-recipient-send]').click();
@@ -324,5 +341,20 @@ test.describe('an installed External Mail Warning 1.5.1', () => {
     await expect(alice.locator('[data-plugin-dialog="external-mail-warning"]')).toHaveCount(0);
     await waitForSubject(ORG.dave, `Core asks ${RUN}`);
     await alice.context().close();
+
+    // Only the label on: Bulwark's chip instead of the plugin's banner; the
+    // plugin still asks on send, Bulwark doesn't.
+    await putPolicy(admin, { ...(await getPolicy(admin)), organisation: { externalMail: { senderLabel: true, recipientWarning: false } } });
+    alice = await userPage(browser, ORG.alice);
+    await expect(alice.locator('iframe[src*="/plugin-sandbox"]').first()).toBeAttached({ timeout: 30000 });
+    await openMessage(alice, FROM_DAVE_2);
+    await expect(chip(alice).first()).toBeVisible();
+    await expect(alice.locator('[data-plugin-slot="email-banner"]')).toHaveCount(0);
+    await composeTo(alice, ORG.dave, `Plugin still asks ${RUN}`);
+    await expect(alice.locator('[data-plugin-dialog="external-mail-warning"]')).toBeVisible({ timeout: 30000 });
+    await expect(confirm(alice)).toHaveCount(0);
+    await alice.locator('[data-plugin-dialog="external-mail-warning"]').getByRole('button', { name: 'Cancel' }).click();
+    await alice.context().close();
+    await admin.close();
   });
 });
