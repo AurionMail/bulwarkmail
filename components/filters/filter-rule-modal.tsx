@@ -260,7 +260,7 @@ export function FilterRuleModal({
     })
     .map((c) => (c.field === "header" ? { ...c, headerName: (c.headerName ?? "").trim() } : c)), [conditions]);
 
-  const validActions = useMemo(() => actions
+  const resolvedActions = useMemo(() => actions
     .map((a) => {
       if (!ACTIONS_WITH_MAILBOX.has(a.type)) return a;
       // Store the folder id next to the path and refresh the path from it,
@@ -268,8 +268,17 @@ export function FilterRuleModal({
       const mailboxId = mailboxIdFor(a);
       const path = mailboxId ? mailboxPathMap.get(mailboxId) : undefined;
       return mailboxId ? { ...a, mailboxId, value: path ?? a.value } : a;
-    })
-    .filter((a) => !ACTIONS_WITH_VALUE.has(a.type) || a.value?.trim()), [actions, mailboxIdFor, mailboxPathMap]);
+    }), [actions, mailboxIdFor, mailboxPathMap]);
+  // A row still missing its folder, tag, address or message.
+  const actionIncomplete = useMemo(
+    () => resolvedActions.map((a) => ACTIONS_WITH_VALUE.has(a.type) && !a.value?.trim()),
+    [resolvedActions],
+  );
+  const validActions = useMemo(
+    () => resolvedActions.filter((_, i) => !actionIncomplete[i]),
+    [resolvedActions, actionIncomplete],
+  );
+  const firstIncompleteAction = resolvedActions.find((_, i) => actionIncomplete[i]);
 
   // Old mail can only be sorted by what the client can check the way Sieve
   // does. Until an action is complete (a Move still without its folder), only
@@ -298,7 +307,17 @@ export function FilterRuleModal({
       : validConditions.some((c) => c.field === "header" && !isValidSieveHeaderName(c.headerName ?? ""))
         ? t("validation_header_name")
         : null,
-    actions: validActions.length === 0 ? t("validation_empty_actions") : null,
+    // A row that is there but unfinished says what it misses; "at least one
+    // action" is left for when no row has a type at all.
+    actions: firstIncompleteAction
+      ? t(ACTIONS_WITH_MAILBOX.has(firstIncompleteAction.type)
+        ? "validation_action_folder"
+        : firstIncompleteAction.type === "add_label"
+          ? "validation_action_tag"
+          : firstIncompleteAction.type === "forward"
+            ? "validation_action_forward"
+            : "validation_action_reject")
+      : validActions.length === 0 ? t("validation_empty_actions") : null,
     period: !periodOn
       ? null
       // A field the browser holds half filled in (a date without its time)
@@ -313,6 +332,14 @@ export function FilterRuleModal({
   };
   const hasErrors = Object.values(errors).some(Boolean);
   const shown = (error: string | null) => (showErrors ? error : null);
+  // The fields the shown errors are about: every empty value while no
+  // condition has one, a header name Sieve refuses, an unfinished action.
+  const valueMissing = (c: FilterCondition) =>
+    !!shown(errors.conditions) && validConditions.length === 0 && !takesNoValue(c) && isConditionValueEmpty(c.value);
+  const headerInvalid = (c: FilterCondition) =>
+    !!shown(errors.conditions) && c.field === "header" && !isConditionValueEmpty(c.value) &&
+    !isValidSieveHeaderName((c.headerName ?? "").trim());
+  const actionInvalid = (index: number) => !!shown(errors.actions) && actionIncomplete[index];
 
   const handleSave = useCallback(() => {
     const halfFilled = periodOn &&
@@ -535,7 +562,10 @@ export function FilterRuleModal({
                         updateCondition(index, { headerName: e.target.value })
                       }
                       placeholder={t("header_name")}
-                      className="w-28"
+                      aria-label={t("header_name")}
+                      aria-invalid={headerInvalid(condition)}
+                      data-rule-error={headerInvalid(condition)}
+                      className={cn("w-28", headerInvalid(condition) && "border-destructive")}
                     />
                   )}
 
@@ -598,7 +628,11 @@ export function FilterRuleModal({
                             ? t("attachment_type_placeholder")
                             : t("value_placeholder_multi")
                       }
-                      className="flex-1 min-w-[120px]"
+                      aria-label={t("condition_value")}
+                      aria-invalid={valueMissing(condition)}
+                      aria-describedby={valueMissing(condition) ? "rule-conditions-error" : undefined}
+                      data-rule-error={valueMissing(condition)}
+                      className={cn("flex-1 min-w-[120px]", valueMissing(condition) && "border-destructive")}
                       type={condition.field === "size" ? "number" : "text"}
                     />
                   )}
@@ -622,7 +656,7 @@ export function FilterRuleModal({
               <Plus className="w-3.5 h-3.5" />
               {t("add_condition")}
             </button>
-            <FieldError text={shown(errors.conditions)} />
+            <FieldError id="rule-conditions-error" text={shown(errors.conditions)} />
           </div>
 
           <div>
@@ -656,6 +690,7 @@ export function FilterRuleModal({
 
                   {ACTIONS_WITH_MAILBOX.has(action.type) && (() => {
                     const selectedId = mailboxIdFor(action);
+                    const invalid = actionInvalid(index);
                     const missing = !!selectedId && !mailboxPathMap.has(selectedId);
                     return (
                       <select
@@ -667,10 +702,11 @@ export function FilterRuleModal({
                             value: id ? (mailboxPathMap.get(id) ?? "") : "",
                           });
                         }}
-                        className={cn(selectClass, "flex-1 min-w-[140px]", shown(errors.actions) && !selectedId && "border-destructive")}
+                        className={cn(selectClass, "flex-1 min-w-[140px]", invalid && "border-destructive")}
                         aria-label={t("move_to_folder")}
-                        aria-invalid={!!shown(errors.actions) && !selectedId}
-                        data-rule-error={!!shown(errors.actions) && !selectedId}
+                        aria-invalid={invalid}
+                        aria-describedby={invalid ? "rule-actions-error" : undefined}
+                        data-rule-error={invalid}
                       >
                         <option value="">{t("move_to_folder")}</option>
                         {missing && <option value={selectedId}>{action.value}</option>}
@@ -690,7 +726,11 @@ export function FilterRuleModal({
                         onChange={(e) => updateAction(index, { value: e.target.value })}
                         placeholder={t("forward_placeholder")}
                         type="email"
-                        className="flex-1 min-w-[180px]"
+                        aria-label={t("forward_to")}
+                        aria-invalid={actionInvalid(index)}
+                        aria-describedby={actionInvalid(index) ? "rule-actions-error" : undefined}
+                        data-rule-error={actionInvalid(index)}
+                        className={cn("flex-1 min-w-[180px]", actionInvalid(index) && "border-destructive")}
                       />
                       <label className="flex items-center gap-1.5 text-sm text-foreground cursor-pointer">
                         <input
@@ -709,7 +749,11 @@ export function FilterRuleModal({
                       value={action.value || ""}
                       onChange={(e) => updateAction(index, { value: e.target.value })}
                       placeholder={t("reject_placeholder")}
-                      className="flex-1 min-w-[180px]"
+                      aria-label={t("reject_message")}
+                      aria-invalid={actionInvalid(index)}
+                      aria-describedby={actionInvalid(index) ? "rule-actions-error" : undefined}
+                      data-rule-error={actionInvalid(index)}
+                      className={cn("flex-1 min-w-[180px]", actionInvalid(index) && "border-destructive")}
                     />
                   )}
 
@@ -717,8 +761,11 @@ export function FilterRuleModal({
                     <select
                       value={action.value || ""}
                       onChange={(e) => updateAction(index, { value: e.target.value })}
-                      className={`${selectClass} flex-1 min-w-[140px]`}
+                      className={cn(selectClass, "flex-1 min-w-[140px]", actionInvalid(index) && "border-destructive")}
                       aria-label={t("label_placeholder")}
+                      aria-invalid={actionInvalid(index)}
+                      aria-describedby={actionInvalid(index) ? "rule-actions-error" : undefined}
+                      data-rule-error={actionInvalid(index)}
                     >
                       <option value="">{t("label_placeholder")}</option>
                       {emailKeywords.map((kw) => (
@@ -756,7 +803,7 @@ export function FilterRuleModal({
               <Plus className="w-3.5 h-3.5" />
               {t("add_action")}
             </button>
-            <FieldError text={shown(errors.actions)} />
+            <FieldError id="rule-actions-error" text={shown(errors.actions)} />
           </div>
 
           <div className="flex items-center gap-2">
