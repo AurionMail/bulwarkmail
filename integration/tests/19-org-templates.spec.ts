@@ -1,10 +1,12 @@
 import { test, expect, type Page } from '@playwright/test';
 import { JmapClient } from './helpers/jmap';
+import { accountSwitcher, neutralizeDevOverlay } from './helpers/app';
 import {
   ORG,
   ORG_PASSWORD,
   ORG_SERVER,
   adminContext,
+  contextOptions,
   getPolicy,
   putPolicy,
   requireOrgEnv,
@@ -337,7 +339,20 @@ test.describe('without metadata (0.16, 1.0 test build)', () => {
   test.skip(METADATA, 'this server keeps templates in the account');
 
   test('no team section, personal templates stay in the browser, and the app stays online', async ({ browser }) => {
-    const alice = await userPage(browser, ORG.alice);
+    // The 1.0 test build advertises metadata and drops the connection on
+    // it: count the metadata requests that went out and failed.
+    const metadataRequests: string[] = [];
+    const context = await browser.newContext(contextOptions());
+    context.on('requestfailed', (request) => {
+      if ((request.postData() ?? '').includes('"properties":["id","metadata"]')) metadataRequests.push(request.failure()?.errorText ?? 'failed');
+    });
+    const alice = await context.newPage();
+    await neutralizeDevOverlay(alice);
+    await alice.goto('/');
+    await alice.fill('#username', ORG.alice);
+    await alice.fill('#password', ORG_PASSWORD);
+    await alice.click('button[type="submit"]');
+    await accountSwitcher(alice).waitFor({ state: 'visible', timeout: 60000 });
     const manager = await openManager(alice);
     await expect(manager.getByTestId('template-source-tab-team')).toHaveCount(0);
     await expect(manager.getByTestId('template-storage-note')).toHaveCount(0);
@@ -359,6 +374,8 @@ test.describe('without metadata (0.16, 1.0 test build)', () => {
     // Long enough for the keep-alive ping after the metadata request failed.
     await alice.waitForTimeout(35000);
     await expectOnline(alice);
+    if (ORG_SERVER === '1.0') expect(metadataRequests.length).toBeGreaterThan(0);
+    else expect(metadataRequests).toEqual([]);
     await alice.context().close();
   });
 });
