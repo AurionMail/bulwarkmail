@@ -192,6 +192,10 @@ function migrateTarget(raw: string, section: string | null = null): { tab: strin
   return { tab, section: section ?? (raw in LEGACY_SECTION_MAP ? LEGACY_SECTION_MAP[raw] : null) };
 }
 
+function hasOneShotDeepLink(): boolean {
+  try { return !!sessionStorage.getItem('settings-deep-link-tab'); } catch { return false; }
+}
+
 function readPersistedTab(): SettingsTabId {
   try {
     // One-shot deep link from the sidebar section gears (Folders / Tags).
@@ -275,9 +279,15 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     const target = targetFromDeepLink(linkSegments);
     return target?.section ? { tab: target.tab, id: target.section } : null;
   });
+  // On the phone the tab list is a screen of its own: a link or event that
+  // names a page opens that page, with the list one Back below it.
+  const [mobileShowContent, setMobileShowContent] = useState(
+    () => targetFromDeepLink(linkSegments) !== null || hasOneShotDeepLink(),
+  );
   const goTo = useCallback((target: SettingsTarget) => {
     setActiveTab(target.tab);
     setPendingSection(target.section ? { tab: target.tab, id: target.section } : null);
+    setMobileShowContent(true);
   }, []);
   // Active plugins that expose a `settings-section` slot — each becomes its own
   // Settings menu entry. Referentially stable per registry mutation, so it is
@@ -317,7 +327,6 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       if (target) goTo(target);
     });
   }, [isEmbedded, goTo]);
-  const [mobileShowContent, setMobileShowContent] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [pendingHighlight, setPendingHighlight] = useState<{ tab: SettingsTabId; label: string; pluginId?: string } | null>(null);
   const isDesktop = useIsDesktop();
@@ -489,7 +498,19 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     if (isDesktop) return;
     if (typeof window === 'undefined') return;
     if (!mobileShowContent) return;
+    // The first hydration pass reports a phone layout on every screen.
+    if (!isEmbedded && window.matchMedia('(min-width: 1024px)').matches) return;
 
+    // A page opened straight from a link has no list below it yet: turn the
+    // entry it arrived on into the list, then push the page on top. Inside
+    // the Pro shell /pro owns the address bar, so its URL stays.
+    if (!isEmbedded) {
+      const listPath = appPath(buildSettingsPath(null));
+      const here = window.location.pathname;
+      if (here !== listPath && here.startsWith(`${listPath}/`)) {
+        window.history.replaceState(window.history.state, '', listPath);
+      }
+    }
     window.history.pushState({ __settingsSubmenu: true }, '');
 
     const handlePop = () => {
@@ -497,7 +518,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     };
     window.addEventListener('popstate', handlePop);
     return () => window.removeEventListener('popstate', handlePop);
-  }, [isDesktop, mobileShowContent]);
+  }, [isDesktop, isEmbedded, mobileShowContent]);
 
   // After clicking a search sub-result, scroll the matching setting into view
   // and add a temporary highlight class. Some tabs fetch data and render
