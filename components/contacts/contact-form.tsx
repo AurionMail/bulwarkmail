@@ -704,7 +704,7 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="px-6 py-4 max-w-3xl">
+        <div className="@container px-6 py-4 max-w-3xl">
           {error && (
             <div role="alert" className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md mb-4">
               {error}
@@ -824,10 +824,12 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-2">
+                {/* Two columns in a narrow pane (title and first name, last name and
+                    suffix), one row once there is room, so no name gets cut. */}
+                <div className="grid grid-cols-2 @lg:grid-cols-[auto_1fr_1fr_auto] gap-2">
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">{t("prefix")}</label>
-                    <Input value={prefix} onChange={(e) => setPrefix(e.target.value)} placeholder={t("prefix_placeholder")} className="w-20" />
+                    <Input value={prefix} onChange={(e) => setPrefix(e.target.value)} placeholder={t("prefix_placeholder")} className="@lg:w-20" />
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">{t("given_name")}</label>
@@ -839,7 +841,7 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">{t("suffix")}</label>
-                    <Input value={suffix} onChange={(e) => setSuffix(e.target.value)} placeholder={t("suffix_placeholder")} className="w-20" />
+                    <Input value={suffix} onChange={(e) => setSuffix(e.target.value)} placeholder={t("suffix_placeholder")} className="@lg:w-20" />
                   </div>
                 </div>
                 {/* Either name is enough (or an organization), so neither is starred. */}
