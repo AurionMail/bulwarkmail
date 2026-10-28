@@ -210,8 +210,13 @@ async function answerArchiveCalls(page: Page, mode: () => ArchiveMode): Promise<
     const methodResponses = request.methodCalls.map(([method, args, id]) => {
       const accountId = args.accountId;
       if (method === 'x:ArchivedItem/query') {
-        const ids = mode() === 'empty' ? [] : Object.keys(items);
-        return [method, { accountId, ids, total: ids.length, position: 0, queryState: 's0', canCalculateChanges: false }, id];
+        // A user without Impersonate is refused the accountId filter.
+        if (args.filter) return ['error', { type: 'unsupportedFilter', description: 'Filter on property accountId is not supported or invalid' }, id];
+        // Newest first, as Stalwart's growing registry ids give it.
+        const all = mode() === 'empty' ? [] : Object.keys(items).sort((x, y) => Date.parse(items[y].archivedAt as string) - Date.parse(items[x].archivedAt as string));
+        const position = (args.position as number | undefined) ?? 0;
+        const ids = all.slice(position, position + ((args.limit as number | undefined) ?? 5000));
+        return [method, { accountId, ids, position, ...(args.calculateTotal ? { total: all.length } : {}), queryState: 's0', canCalculateChanges: false }, id];
       }
       if (method === 'x:ArchivedItem/get') {
         if (mode() === 'getFails') return ['error', { type: 'serverFail', description: 'Synthetic failure' }, id];
@@ -228,7 +233,7 @@ async function answerArchiveCalls(page: Page, mode: () => ArchiveMode): Promise<
         for (const i of ok) delete items[i];
         return [method, {
           accountId, updated: Object.fromEntries(ok.map((i) => [i, null])),
-          notUpdated: ids.includes('b') ? { b: { type: 'notFound', description: 'Synthetic refusal' } } : {},
+          notUpdated: ids.includes('b') ? { b: { type: 'serverFail', description: 'Synthetic refusal' } } : {},
         }, id];
       }
       return ['error', { type: 'unknownMethod' }, id];
@@ -275,8 +280,15 @@ test.describe('the page with derived archive answers (no server has a license ye
     await shot(page, 'recovery-error');
     mode = 'empty';
     await page.getByTestId('recover-deleted-error').getByRole('button', { name: 'Try again' }).click();
-    await expect(page.getByTestId('recover-deleted-empty')).toBeVisible();
+    await expect(page.getByTestId('recover-deleted-empty')).toContainText('archiving of deleted items');
     await shot(page, 'recovery-empty');
+    // With nothing to recover, Trash has no link (the page itself stays in Settings).
+    await page.goto('/');
+    const looked = page.waitForRequest((req) => (req.postData() ?? '').includes('"calculateTotal":true'), { timeout: 30000 });
+    await openTrash(page);
+    await looked;
+    await page.waitForTimeout(1000);
+    await expect(page.getByTestId('trash-recovery-link')).toHaveCount(0);
     await page.context().close();
   });
 
@@ -326,8 +338,8 @@ test.describe('with an Enterprise license', () => {
     expect(await alice.findEmailBySubject(subject)).toBeUndefined();
 
     const page = await userPage(browser, ORG.alice);
-    await openTrash(page);
-    await page.getByTestId('trash-recovery-link').getByRole('button', { name: 'Recover deleted items' }).click();
+    // The Trash link only shows once the archive holds the message; the page is there at once.
+    await page.goto('/settings/recovery');
     await expect(page.getByRole('heading', { name: 'Recover deleted items' }).first()).toBeVisible({ timeout: 30000 });
     // The server archives in the background: refresh until the message is there.
     const row = page.getByTestId('recover-deleted-row').filter({ hasText: subject });
@@ -340,7 +352,7 @@ test.describe('with an Enterprise license', () => {
 
     await row.getByRole('checkbox').check();
     await page.getByTestId('recover-deleted-restore').click();
-    await expect(page.getByText(/on the way back to your Inbox/)).toBeVisible();
+    await expect(page.getByTestId('recover-deleted-status')).toContainText('on the way back to your Inbox');
     await expect(row).toHaveCount(0);
 
     const restored = await alice.waitForEmail(subject, { mailboxId: inbox.id, timeoutMs: 90000 });
