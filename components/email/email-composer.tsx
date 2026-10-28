@@ -3353,8 +3353,6 @@ export function EmailComposer({
       bcc: expandRecipients(withInput(bcc, bccInput)).map(r => r.email),
       fromEmail: (fromOverrideEnabled && fromOverrideEmail.trim()) || currentIdentity?.email || undefined,
       identityId: currentIdentity?.id,
-      identityEmail: currentIdentity?.email || undefined,
-      localAccountId: currentIdentityParts.localAccountId ?? undefined,
       mode,
       plainText: plainTextMode,
       forwardedSeparator: tQuote('forwarded_separator'),

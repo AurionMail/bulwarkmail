@@ -114,12 +114,13 @@ describe('quick reply goes through the same confirm', () => {
 describe('the From address', () => {
   it('counts the chosen identity as internal, but not a From typed over it', async () => {
     useAuthStore.setState({ identities: [] });
-    const toPartner = { ...context(['bob@partner.example']), fromEmail: 'me@partner.example', identityEmail: 'org-alice@example.org' };
+    const alice = { name: 'Alice', email: 'org-alice@example.org' };
+    const toPartner = { ...context(['bob@partner.example']), fromEmail: 'me@partner.example', sender: alice };
     // The typed From is on partner.example, the identity on example.org:
     // partner.example stays external.
     expect((await recipientsToConfirm(toPartner)).map((r) => r.address)).toEqual(['bob@partner.example']);
     // The identity's own domain is internal even before identities load.
-    const toColleague = { ...context(['bob@example.org']), identityEmail: 'org-alice@example.org' };
+    const toColleague = { ...context(['bob@example.org']), sender: alice };
     expect(await recipientsToConfirm(toColleague)).toEqual([]);
   });
 });
@@ -206,7 +207,8 @@ describe('sending through another signed-in account', () => {
     } as never);
   }
   const asDave = (to: string[]): OutgoingContext => ({
-    ...context(to), fromEmail: 'org-dave@org-two.test', identityEmail: 'org-dave@org-two.test', localAccountId: 'acc-dave',
+    ...context(to), fromEmail: 'org-dave@org-two.test',
+    sender: { name: 'Dave', email: 'org-dave@org-two.test', accountId: 'acc-dave' },
   });
 
   it("uses that account's identities: its domain is internal, the active account's is not", async () => {

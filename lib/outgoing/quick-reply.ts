@@ -49,8 +49,6 @@ export async function prepareQuickReply(input: {
     sender: input.sendingIdentity
       ? { name: input.sendingIdentity.name, email: input.sendingIdentity.email }
       : undefined,
-    // Quick reply never rewrites From: it is the identity's own address.
-    identityEmail: input.fromEmail,
     mode: 'reply' as const,
     plainText: !html,
   };

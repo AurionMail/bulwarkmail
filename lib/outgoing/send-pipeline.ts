@@ -30,19 +30,13 @@ export interface OutgoingContext {
   fromEmail?: string;
   identityId?: string;
   /**
-   * The identity the message goes out from and the signed-in account it
-   * belongs to (its local account id; the active account when left out).
-   * identityId can name an identity of another account ("<account>::<id>").
+   * The identity the message goes out from (its own address, never a From
+   * typed over it) and the signed-in account (AccountEntry id) it goes out
+   * through; the active account when left out. identityId can name an
+   * identity of another account ("<account>::<id>"). Checks and finalisers
+   * use that account's policy and identities.
    */
   sender?: { name: string; email: string; accountId?: string | null };
-  /** The chosen identity's own address (never a typed From override). */
-  identityEmail?: string;
-  /**
-   * The signed-in account (AccountEntry id) the message goes out through,
-   * when it isn't the active one: an identity of another account picked in
-   * the composer. Checks use that account's policy and identities.
-   */
-  localAccountId?: string;
   /** compose, reply, replyAll or forward; quick reply is a reply. */
   mode: 'compose' | 'reply' | 'replyAll' | 'forward';
   /** Plain-text-only message (no HTML part). */
