@@ -129,3 +129,11 @@ describe('Settings plugin pages', () => {
     expect((createSlotInstance.mock.calls[0][0] as { slot: string }).slot).toBe('settings-page');
   });
 });
+
+// SET-21: every settings page has an h1 with its name on the desktop too.
+describe('Settings page heading', () => {
+  it('names the open page in an h1', () => {
+    render(<SettingsApp linkSegments={[]} />);
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('settings.tabs.appearance');
+  });
+});

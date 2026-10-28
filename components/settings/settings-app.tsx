@@ -1174,6 +1174,9 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
 
       <div ref={attachContentScroll} className="flex-1 overflow-y-auto">
         <div className={effectiveActiveTab.startsWith(PLUGIN_PAGE_PREFIX) ? "px-6 py-6" : "max-w-3xl mx-auto px-6 py-6"}>
+          {/* The page's heading for screen readers; the sidebar shows which
+              page is open (the phone header has a visible one). */}
+          <h1 className="sr-only">{activeTabLabel}</h1>
           {renderTabContent()}
         </div>
       </div>
