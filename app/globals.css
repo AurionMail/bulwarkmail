@@ -152,8 +152,13 @@
 }
 
 
-* {
-  border-color: var(--color-border);
+/* The default border colour. In the base layer, so a border colour utility
+   (border-primary, border-transparent, border-destructive, border-input)
+   wins over it; unlayered, it outranked every utility and drew them grey. */
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
 }
 
 body {
