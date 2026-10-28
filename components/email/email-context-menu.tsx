@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useEmailStore, removalFolder, canRemoveFromFolder, emailLinkSource } from "@/stores/email-store";
-import { useEmailTagScope } from "@/hooks/use-account-tags";
+import { useEmailTagScope, type TagScope } from "@/hooks/use-account-tags";
 import { Email, Mailbox } from "@/lib/jmap/types";
 import {
   ContextMenu,
@@ -113,6 +113,11 @@ interface EmailContextMenuProps {
   /** Tags every selected message carries, and those only some of them do. */
   batchTagIds?: string[];
   batchPartialTagIds?: string[];
+  /**
+   * The account of the whole selection (commonTagScope): its tags are
+   * offered. Null when the selection mixes accounts: the user's own tags.
+   */
+  batchTagScope?: TagScope | null;
   /** Takes the tag off when the whole selection has it, else puts it on all. */
   onBatchToggleTag?: (tagId: string) => void;
   onBatchDelete?: () => void;
@@ -180,6 +185,7 @@ export function EmailContextMenu({
   onBatchMarkAsRead,
   batchTagIds,
   batchPartialTagIds,
+  batchTagScope = null,
   onBatchToggleTag,
   onBatchDelete,
   onBatchArchive,
@@ -207,7 +213,7 @@ export function EmailContextMenu({
   const isPinned = email.keywords?.['$pinned'] === true;
   const isDraft = email.keywords?.['$draft'] === true;
   const currentTagIds = getEmailTagIds(email.keywords);
-  // The row's account names the tags, for a selection too: it is part of it.
+  // The row's account names its tags; a selection uses batchTagScope.
   const tagScope = useEmailTagScope(email);
   const showBatchActions = isMultiSelect && selectedCount > 1;
   const isInJunkFolder = currentMailboxRole === 'junk';
@@ -500,7 +506,7 @@ export function EmailContextMenu({
                   selectedIds={batchTagIds ?? []}
                   partialIds={batchPartialTagIds}
                   onToggle={(tagId) => onBatchToggleTag?.(tagId)}
-                  scope={tagScope}
+                  scope={batchTagScope}
                 />
               ) : (
                 <TagPicker

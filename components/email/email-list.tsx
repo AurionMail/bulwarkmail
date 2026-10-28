@@ -1173,6 +1173,7 @@ export function EmailList({
           onBatchMarkAsRead={(read) => markSelectionRead(read)}
           batchTagIds={selectionTags.all}
           batchPartialTagIds={selectionTags.some}
+          batchTagScope={selectionTags.scope}
           onBatchToggleTag={handleBatchToggleTag}
           onBatchDelete={async () => {
             if (!client) return;
