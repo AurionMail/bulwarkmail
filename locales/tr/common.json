@@ -3,11 +3,11 @@
   "login": {
     "title": "Webmail",
     "username_label": "E-posta",
-    "username_placeholder": "kullanici@ornek.com",
+    "username_placeholder": "kullanici@example.com",
     "password_label": "Şifre",
     "password_placeholder": "Şifrenizi girin",
     "jmap_endpoint_label": "JMAP Sunucusu",
-    "jmap_endpoint_placeholder": "https://mail.ornek.com",
+    "jmap_endpoint_placeholder": "https://mail.example.com",
     "jmap_endpoint_cors_hint": "Sunucu, bu etki alanından gelen CORS isteklerine izin vermelidir.",
     "jmap_server_label": "Sunucu",
     "jmap_server_auto_picked": "Sunucu, e-posta etki alanınıza göre seçildi.",
