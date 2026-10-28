@@ -308,7 +308,7 @@
       "selected_messages": "{count, plural, one {1 e-mail} other {# e-mails}} geselecteerd",
       "mark_unread": "Markeren als ongelezen",
       "delete": "Verwijderen",
-      "delete_confirm_title": "E-mails verwijderen",
+      "delete_confirm_title": "Deze e-mails verwijderen?",
       "delete_confirm_message": "Weet u zeker dat u {count, plural, one {1 e-mail} other {# e-mails}} wilt verwijderen?",
       "clear_selection": "Selectie wissen",
       "more": "Meer acties voor de selectie"
@@ -327,7 +327,8 @@
       "custom": "Eigen volgorde (in Instellingen)"
     },
     "permanent_delete": "Definitief verwijderen",
-    "permanent_delete_confirm_title": "Definitief verwijderen",
+    "permanent_delete_confirm_title": "Deze e-mail definitief verwijderen?",
+    "permanent_delete_confirm_batch_title": "Deze e-mails definitief verwijderen?",
     "permanent_delete_confirm_message": "Deze e-mail wordt definitief verwijderd. Deze actie kan niet ongedaan worden gemaakt.",
     "permanent_delete_confirm_batch_message": "Deze {count, plural, one {1 e-mail} other {# e-mails}} worden definitief verwijderd. Deze actie kan niet ongedaan worden gemaakt.",
     "empty_folder": {

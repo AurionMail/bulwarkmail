@@ -308,7 +308,7 @@
       "mark_read": "Mark as read",
       "mark_unread": "Mark as unread",
       "delete": "Delete",
-      "delete_confirm_title": "Delete emails",
+      "delete_confirm_title": "Delete these emails?",
       "delete_confirm_message": "Are you sure you want to delete {count, plural, one {1 email} other {# emails}}?",
       "clear_selection": "Clear selection",
       "more": "More actions for the selection"
@@ -327,7 +327,8 @@
       "custom": "Custom order (in Settings)"
     },
     "permanent_delete": "Delete permanently",
-    "permanent_delete_confirm_title": "Permanently delete",
+    "permanent_delete_confirm_title": "Delete this email permanently?",
+    "permanent_delete_confirm_batch_title": "Delete these emails permanently?",
     "permanent_delete_confirm_message": "This email will be permanently deleted. This action cannot be undone.",
     "permanent_delete_confirm_batch_message": "These {count, plural, one {1 email} other {# emails}} will be permanently deleted. This action cannot be undone.",
     "empty_folder": {

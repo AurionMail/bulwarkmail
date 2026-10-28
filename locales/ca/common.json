@@ -308,7 +308,7 @@
       "mark_read": "Marca com a llegit",
       "mark_unread": "Marca com a no llegit",
       "delete": "Suprimeix",
-      "delete_confirm_title": "Suprimeix els correus",
+      "delete_confirm_title": "Vols suprimir aquests correus?",
       "delete_confirm_message": "Segur que voleu suprimir {count, plural, one {1 correu} other {# correus}}?",
       "clear_selection": "Neteja la selecció",
       "more": "Més accions per a la selecció"
@@ -327,7 +327,8 @@
       "custom": "Ordre personalitzat (a la configuració)"
     },
     "permanent_delete": "Suprimeix definitivament",
-    "permanent_delete_confirm_title": "Suprimeix definitivament",
+    "permanent_delete_confirm_title": "Vols suprimir definitivament aquest correu?",
+    "permanent_delete_confirm_batch_title": "Vols suprimir definitivament aquests correus?",
     "permanent_delete_confirm_message": "Aquest correu se suprimirà definitivament. Aquesta acció no es pot desfer.",
     "permanent_delete_confirm_batch_message": "Aquests {count, plural, one {1 correu} other {# correus}} se suprimiran definitivament. Aquesta acció no es pot desfer.",
     "empty_folder": {

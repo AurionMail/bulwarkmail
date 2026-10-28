@@ -308,7 +308,7 @@
       "mark_read": "Markér som læst",
       "mark_unread": "Markér som ulæst",
       "delete": "Slet",
-      "delete_confirm_title": "Slet e-mails",
+      "delete_confirm_title": "Slet disse e-mails?",
       "delete_confirm_message": "Er du sikker på, at du vil slette {count, plural, one {1 e-mail} other {# e-mails}}?",
       "clear_selection": "Ryd markering",
       "more": "Flere handlinger for markeringen"
@@ -327,7 +327,8 @@
       "custom": "Brugerdefineret rækkefølge (i indstillinger)"
     },
     "permanent_delete": "Slet permanent",
-    "permanent_delete_confirm_title": "Slet permanent",
+    "permanent_delete_confirm_title": "Slet denne e-mail permanent?",
+    "permanent_delete_confirm_batch_title": "Slet disse e-mails permanent?",
     "permanent_delete_confirm_message": "Denne e-mail vil blive slettet permanent. Denne handling kan ikke fortrydes.",
     "permanent_delete_confirm_batch_message": "Disse {count, plural, one {1 e-mail} other {# e-mails}} vil blive slettet permanent. Denne handling kan ikke fortrydes.",
     "empty_folder": {

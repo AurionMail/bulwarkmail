@@ -308,7 +308,7 @@
       "mark_read": "Отметить прочитанными",
       "mark_unread": "Отметить непрочитанными",
       "delete": "Удалить",
-      "delete_confirm_title": "Удалить письма",
+      "delete_confirm_title": "Удалить эти письма?",
       "delete_confirm_message": "Вы уверены, что хотите удалить {count, plural, one {1 письмо} other {# писем}}?",
       "clear_selection": "Снять выделение",
       "more": "Другие действия с выбранным"
@@ -327,7 +327,8 @@
       "custom": "Свой порядок (в настройках)"
     },
     "permanent_delete": "Удалить навсегда",
-    "permanent_delete_confirm_title": "Удалить навсегда",
+    "permanent_delete_confirm_title": "Удалить это письмо навсегда?",
+    "permanent_delete_confirm_batch_title": "Удалить эти письма навсегда?",
     "permanent_delete_confirm_message": "Это письмо будет удалено навсегда. Действие нельзя отменить.",
     "permanent_delete_confirm_batch_message": "{count, plural, one {1 письмо} other {# писем}} будут удалены навсегда. Действие нельзя отменить.",
     "empty_folder": {

@@ -308,7 +308,7 @@
       "mark_read": "읽은 상태로 표시",
       "mark_unread": "읽지 않은 상태로 표시",
       "delete": "삭제",
-      "delete_confirm_title": "메일 삭제",
+      "delete_confirm_title": "이 메일들을 삭제할까요?",
       "delete_confirm_message": "정말 선택한 {count, plural, other {#개의 메일}}을 삭제할까요?",
       "clear_selection": "선택 취소",
       "more": "선택 항목에 대한 추가 작업"
@@ -327,7 +327,8 @@
       "custom": "사용자 지정 순서 (설정)"
     },
     "permanent_delete": "영구 삭제",
-    "permanent_delete_confirm_title": "영구 삭제",
+    "permanent_delete_confirm_title": "이 메일을 영구 삭제할까요?",
+    "permanent_delete_confirm_batch_title": "이 메일들을 영구 삭제할까요?",
     "permanent_delete_confirm_message": "이 메일은 영구적으로 삭제되며, 다시 복구할 수 없어요.",
     "permanent_delete_confirm_batch_message": "선택한 {count, plural, other {#개의 메일}}이 영구적으로 삭제돼요. 이 작업은 되돌릴 수 없어요.",
     "empty_folder": {

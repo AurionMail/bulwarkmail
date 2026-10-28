@@ -308,7 +308,7 @@
       "mark_read": "Merk som lest",
       "mark_unread": "Merk som ulest",
       "delete": "Slett",
-      "delete_confirm_title": "Slett e-poster",
+      "delete_confirm_title": "Slette disse e-postene?",
       "delete_confirm_message": "Er du sikker på at du vil slette {count, plural, one {1 e-post} other {# e-poster}}?",
       "clear_selection": "Fjern valg",
       "more": "Flere handlinger for utvalget"
@@ -327,7 +327,8 @@
       "custom": "Egendefinert rekkefølge (i innstillingene)"
     },
     "permanent_delete": "Slett permanent",
-    "permanent_delete_confirm_title": "Slett permanent",
+    "permanent_delete_confirm_title": "Slette denne e-posten permanent?",
+    "permanent_delete_confirm_batch_title": "Slette disse e-postene permanent?",
     "permanent_delete_confirm_message": "Denne e-posten slettes permanent. Denne handlingen kan ikke angres.",
     "permanent_delete_confirm_batch_message": "{count, plural, one {Denne e-posten} other {Disse # e-postene}} blir slettet permanent. Denne handlingen kan ikke angres.",
     "empty_folder": {

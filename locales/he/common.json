@@ -272,7 +272,7 @@
       "mark_read": "סמן כנקרא",
       "mark_unread": "סמן כלא נקרא",
       "delete": "לִמְחוֹק",
-      "delete_confirm_title": "מחק מיילים",
+      "delete_confirm_title": "למחוק את ההודעות האלה?",
       "delete_confirm_message": "האם למחוק {count, plural, one {הודעת דוא״ל אחת} other {# הודעות דוא״ל}}?",
       "clear_selection": "נקה בחירה",
       "more": "פעולות נוספות לבחירה",
@@ -292,7 +292,8 @@
       "custom": "סדר מותאם (בהגדרות)"
     },
     "permanent_delete": "מחק לצמיתות",
-    "permanent_delete_confirm_title": "מחק לצמיתות",
+    "permanent_delete_confirm_title": "למחוק את ההודעה הזו לצמיתות?",
+    "permanent_delete_confirm_batch_title": "למחוק את ההודעות האלה לצמיתות?",
     "permanent_delete_confirm_message": "אימייל זה יימחק לצמיתות. לא ניתן לבטל פעולה זו.",
     "permanent_delete_confirm_batch_message": "{count, plural, one {הודעת דוא״ל אחת תימחק לצמיתות} other {# הודעות דוא״ל יימחקו לצמיתות}}. לא ניתן לבטל פעולה זו.",
     "empty_folder": {

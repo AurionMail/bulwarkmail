@@ -308,7 +308,7 @@
       "mark_read": "Märgi loetuks",
       "mark_unread": "Märgi lugemata",
       "delete": "Kustuta",
-      "delete_confirm_title": "Kirjade kustutamine",
+      "delete_confirm_title": "Kas kustutada need kirjad?",
       "delete_confirm_message": "Kas oled kindel, et soovid kustutada {count, plural, one {1 kirja} other {# kirja}}?",
       "clear_selection": "Tühista valik",
       "more": "Rohkem toiminguid valiku jaoks"
@@ -327,7 +327,8 @@
       "custom": "Kohandatud järjestus (seadetes)"
     },
     "permanent_delete": "Kustuta jäädavalt",
-    "permanent_delete_confirm_title": "Jäädav kustutamine",
+    "permanent_delete_confirm_title": "Kas kustutada see kiri jäädavalt?",
+    "permanent_delete_confirm_batch_title": "Kas kustutada need kirjad jäädavalt?",
     "permanent_delete_confirm_message": "See kiri kustutatakse jäädavalt. Seda toimingut ei saa tagasi võtta.",
     "permanent_delete_confirm_batch_message": "{count, plural, one {See 1 kiri kustutatakse jäädavalt.} other {Need # kirja kustutatakse jäädavalt.}} Seda toimingut ei saa tagasi võtta.",
     "empty_folder": {

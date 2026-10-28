@@ -308,7 +308,7 @@
       "mark_read": "Marcar como lido",
       "mark_unread": "Marcar como não lido",
       "delete": "Excluir",
-      "delete_confirm_title": "Excluir e-mails",
+      "delete_confirm_title": "Excluir estes e-mails?",
       "delete_confirm_message": "Tem certeza que deseja excluir {count, plural, one {1 e-mail} other {# e-mails}}?",
       "clear_selection": "Limpar seleção",
       "more": "Mais ações para a seleção"
@@ -327,7 +327,8 @@
       "custom": "Ordem personalizada (nas Definições)"
     },
     "permanent_delete": "Excluir permanentemente",
-    "permanent_delete_confirm_title": "Excluir permanentemente",
+    "permanent_delete_confirm_title": "Excluir este e-mail permanentemente?",
+    "permanent_delete_confirm_batch_title": "Excluir estes e-mails permanentemente?",
     "permanent_delete_confirm_message": "Este e-mail será permanentemente excluído. Esta ação não pode ser desfeita.",
     "permanent_delete_confirm_batch_message": "Estes {count, plural, one {1 e-mail} other {# e-mails}} serão permanentemente excluídos. Esta ação não pode ser desfeita.",
     "empty_folder": {

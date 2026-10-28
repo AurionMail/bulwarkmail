@@ -239,7 +239,7 @@ export function MvListToolbar({
       const permanent = bulkDeleteIsPermanent(target);
       if (shouldConfirmBulkDelete(target)) {
         const confirmed = await confirmDialog({
-          title: permanent ? t("permanent_delete_confirm_title") : tBatch("delete_confirm_title"),
+          title: permanent ? t("permanent_delete_confirm_batch_title") : tBatch("delete_confirm_title"),
           message: permanent
             ? t("permanent_delete_confirm_batch_message", { count: selectionCount })
             : tBatch("delete_confirm_message", { count: selectionCount }),

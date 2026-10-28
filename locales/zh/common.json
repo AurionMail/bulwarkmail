@@ -308,7 +308,7 @@
       "mark_read": "标记为已读",
       "mark_unread": "标记为未读",
       "delete": "删除",
-      "delete_confirm_title": "删除邮件",
+      "delete_confirm_title": "要删除这些邮件吗？",
       "delete_confirm_message": "确定要删除{count, plural, one {1 封邮件} other {# 封邮件}}吗？",
       "clear_selection": "清除选择",
       "more": "所选项目的更多操作"
@@ -327,7 +327,8 @@
       "custom": "自定义顺序（在设置中）"
     },
     "permanent_delete": "永久删除",
-    "permanent_delete_confirm_title": "永久删除",
+    "permanent_delete_confirm_title": "要永久删除这封邮件吗？",
+    "permanent_delete_confirm_batch_title": "要永久删除这些邮件吗？",
     "permanent_delete_confirm_message": "该邮件将被永久删除。此操作无法撤销。",
     "permanent_delete_confirm_batch_message": "这些{count, plural, one {1 封邮件} other {# 封邮件}}将被永久删除。此操作无法撤销。",
     "empty_folder": {

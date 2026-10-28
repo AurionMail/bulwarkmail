@@ -308,7 +308,7 @@
       "mark_read": "Označiť ako prečítané",
       "mark_unread": "Označiť ako neprečítané",
       "delete": "Odstrániť",
-      "delete_confirm_title": "Odstrániť e-maily",
+      "delete_confirm_title": "Odstrániť tieto e-maily?",
       "delete_confirm_message": "Naozaj chcete odstrániť {count, plural, one {1 e-mail} other {# e-mailov}}?",
       "clear_selection": "Zrušiť výber",
       "more": "Ďalšie akcie pre výber"
@@ -327,7 +327,8 @@
       "custom": "Vlastné poradie (v nastaveniach)"
     },
     "permanent_delete": "Trvalo odstrániť",
-    "permanent_delete_confirm_title": "Trvalo odstrániť",
+    "permanent_delete_confirm_title": "Trvalo odstrániť tento e-mail?",
+    "permanent_delete_confirm_batch_title": "Trvalo odstrániť tieto e-maily?",
     "permanent_delete_confirm_message": "Tento e-mail bude trvalo odstránený. Túto akciu nie je možné vrátiť.",
     "permanent_delete_confirm_batch_message": "Týchto {count, plural, one {1 e-mail} other {# e-mailov}} bude trvalo odstránených. Túto akciu nie je možné vrátiť.",
     "empty_folder": {

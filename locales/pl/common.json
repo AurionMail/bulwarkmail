@@ -308,7 +308,7 @@
       "mark_read": "Oznacz jako przeczytane",
       "mark_unread": "Oznacz jako nieprzeczytane",
       "delete": "Usuń",
-      "delete_confirm_title": "Usuń wiadomości",
+      "delete_confirm_title": "Usunąć te wiadomości?",
       "delete_confirm_message": "Czy na pewno chcesz usunąć {count, plural, one {1 wiadomość} other {# wiadomości}}?",
       "clear_selection": "Wyczyść zaznaczenie",
       "more": "Więcej działań dla zaznaczenia"
@@ -327,7 +327,8 @@
       "custom": "Własna kolejność (w ustawieniach)"
     },
     "permanent_delete": "Usuń trwale",
-    "permanent_delete_confirm_title": "Trwałe usunięcie",
+    "permanent_delete_confirm_title": "Trwale usunąć tę wiadomość?",
+    "permanent_delete_confirm_batch_title": "Trwale usunąć te wiadomości?",
     "permanent_delete_confirm_message": "Ta wiadomość zostanie trwale usunięta. Tej operacji nie można cofnąć.",
     "permanent_delete_confirm_batch_message": "{count, plural, one {1 wiadomość zostanie trwale usunięta} other {# wiadomości zostanie trwale usuniętych}}. Tej operacji nie można cofnąć.",
     "empty_folder": {

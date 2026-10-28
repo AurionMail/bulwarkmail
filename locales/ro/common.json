@@ -308,7 +308,7 @@
       "mark_read": "Marcați ca citit",
       "mark_unread": "Marcați ca necitit",
       "delete": "Șterge",
-      "delete_confirm_title": "Ștergeți e-mailurile",
+      "delete_confirm_title": "Ștergi aceste e-mailuri?",
       "delete_confirm_message": "Sunteți sigur că doriți să ștergeți {count, plural, one {1 e-mail} few {# e-mailuri} other {# de e-mailuri}}?",
       "clear_selection": "Șterge selecția",
       "more": "Mai multe acțiuni pentru selecție"
@@ -327,7 +327,8 @@
       "custom": "Ordine personalizată (în Setări)"
     },
     "permanent_delete": "Șterge definitiv",
-    "permanent_delete_confirm_title": "Șterge definitiv",
+    "permanent_delete_confirm_title": "Ștergi definitiv acest e-mail?",
+    "permanent_delete_confirm_batch_title": "Ștergi definitiv aceste e-mailuri?",
     "permanent_delete_confirm_message": "Acest e-mail va fi șters definitiv. Această acțiune nu poate fi anulată.",
     "permanent_delete_confirm_batch_message": "Acestea {count, plural, one {1 e-mail} few {# e-mailuri} other {# de e-mailuri}} va fi șters definitiv. Această acțiune nu poate fi anulată.",
     "empty_folder": {

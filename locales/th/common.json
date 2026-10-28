@@ -512,7 +512,7 @@
       "mark_read": "ทำเครื่องหมายว่าอ่านแล้ว",
       "mark_unread": "ทำเครื่องหมายว่ายังไม่อ่าน",
       "delete": "ลบ",
-      "delete_confirm_title": "ยืนยันการลบอีเมล",
+      "delete_confirm_title": "ลบอีเมลเหล่านี้หรือไม่",
       "delete_confirm_message": "คุณแน่ใจหรือไม่ว่าต้องการลบอีเมล {count, plural, other {# ฉบับ}} ที่เลือกไว้?",
       "clear_selection": "ล้างการเลือก",
       "more": "การดำเนินการเพิ่มเติมสำหรับรายการที่เลือก"
@@ -531,7 +531,8 @@
       "custom": "ลำดับที่กำหนดเอง (ในการตั้งค่า)"
     },
     "permanent_delete": "ลบถาวร",
-    "permanent_delete_confirm_title": "ยืนยันการลบถาวร",
+    "permanent_delete_confirm_title": "ลบอีเมลนี้อย่างถาวรหรือไม่",
+    "permanent_delete_confirm_batch_title": "ลบอีเมลเหล่านี้อย่างถาวรหรือไม่",
     "permanent_delete_confirm_message": "อีเมลนี้จะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้",
     "permanent_delete_confirm_batch_message": "อีเมล {count, plural, other {# ฉบับ}} นี้จะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้",
     "empty_folder": {

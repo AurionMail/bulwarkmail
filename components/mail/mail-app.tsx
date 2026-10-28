@@ -949,7 +949,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         if (shouldConfirmBulkDelete(currentMailbox)) {
           const confirmed = await confirmDialog({
             title: permanent
-              ? t('email_list.permanent_delete_confirm_title')
+              ? t('email_list.permanent_delete_confirm_batch_title')
               : t('email_list.batch_actions.delete_confirm_title'),
             message: permanent
               ? t('email_list.permanent_delete_confirm_batch_message', { count: selectedEmailKeys.size })

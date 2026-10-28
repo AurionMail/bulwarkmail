@@ -308,7 +308,7 @@
       "mark_read": "既読にする",
       "mark_unread": "未読にする",
       "delete": "削除",
-      "delete_confirm_title": "メールを削除",
+      "delete_confirm_title": "これらのメールを削除しますか？",
       "delete_confirm_message": "{count, plural, one {1件} other {#件}}のメールを削除しますか？",
       "clear_selection": "選択を解除",
       "more": "選択項目のその他の操作"
@@ -327,7 +327,8 @@
       "custom": "カスタムの並び順（設定）"
     },
     "permanent_delete": "完全に削除",
-    "permanent_delete_confirm_title": "完全に削除",
+    "permanent_delete_confirm_title": "このメールを完全に削除しますか？",
+    "permanent_delete_confirm_batch_title": "これらのメールを完全に削除しますか？",
     "permanent_delete_confirm_message": "このメールは完全に削除されます。この操作は取り消せません。",
     "permanent_delete_confirm_batch_message": "{count, plural, one {1件} other {#件}}のメールが完全に削除されます。この操作は取り消せません。",
     "empty_folder": {

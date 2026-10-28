@@ -308,7 +308,7 @@
       "mark_read": "Atzīmēt kā izlasītu",
       "mark_unread": "Atzīmēt kā nelasītu",
       "delete": "Dzēst",
-      "delete_confirm_title": "Dzēst vēstules",
+      "delete_confirm_title": "Dzēst šīs vēstules?",
       "delete_confirm_message": "Vai tiešām vēlaties dzēst {count, plural, one {1 vēstuli} other {# vēstules}}?",
       "clear_selection": "Noņemt atlasi",
       "more": "Vairāk darbību atlasei"
@@ -327,7 +327,8 @@
       "custom": "Pielāgota secība (iestatījumos)"
     },
     "permanent_delete": "Dzēst neatgriezeniski",
-    "permanent_delete_confirm_title": "Dzēst neatgriezeniski",
+    "permanent_delete_confirm_title": "Neatgriezeniski dzēst šo vēstuli?",
+    "permanent_delete_confirm_batch_title": "Neatgriezeniski dzēst šīs vēstules?",
     "permanent_delete_confirm_message": "Šī vēstule tiks dzēsta neatgriezeniski. Šo darbību nevar atcelt.",
     "permanent_delete_confirm_batch_message": "{count, plural, one {1 vēstule} other {# vēstules}} tiks dzēstas neatgriezeniski. Šo darbību nevar atcelt.",
     "empty_folder": {

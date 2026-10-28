@@ -308,7 +308,7 @@
       "mark_read": "標示為已讀",
       "mark_unread": "標示為未讀",
       "delete": "刪除",
-      "delete_confirm_title": "刪除郵件",
+      "delete_confirm_title": "要刪除這些郵件嗎？",
       "delete_confirm_message": "您確定要刪除{count, plural, one {1 封郵件} other {# 封郵件}}嗎？",
       "clear_selection": "清除選取",
       "more": "所選項目的更多動作"
@@ -327,7 +327,8 @@
       "custom": "自訂順序（在設定中）"
     },
     "permanent_delete": "永久刪除",
-    "permanent_delete_confirm_title": "永久刪除",
+    "permanent_delete_confirm_title": "要永久刪除這封郵件嗎？",
+    "permanent_delete_confirm_batch_title": "要永久刪除這些郵件嗎？",
     "permanent_delete_confirm_message": "這封郵件將永久刪除。此動作無法復原。",
     "permanent_delete_confirm_batch_message": "將永久刪除{count, plural, one {1 封郵件} other {# 封郵件}}。此動作無法復原。",
     "empty_folder": {

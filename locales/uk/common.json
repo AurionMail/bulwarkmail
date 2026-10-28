@@ -308,7 +308,7 @@
       "mark_read": "Позначити як прочитане",
       "mark_unread": "Позначити як непрочитане",
       "delete": "Видалити",
-      "delete_confirm_title": "Видалити електронні листи",
+      "delete_confirm_title": "Видалити ці листи?",
       "delete_confirm_message": "Ви впевнені, що хочете видалити {count, plural, one {1 email} other {# emails}}?",
       "clear_selection": "Очистити вибір",
       "more": "Інші дії з вибраним"
@@ -327,7 +327,8 @@
       "custom": "Власний порядок (у налаштуваннях)"
     },
     "permanent_delete": "Видалити остаточно",
-    "permanent_delete_confirm_title": "Видалити назавжди",
+    "permanent_delete_confirm_title": "Видалити цей лист назавжди?",
+    "permanent_delete_confirm_batch_title": "Видалити ці листи назавжди?",
     "permanent_delete_confirm_message": "Цей електронний лист буде видалено назавжди. Цю дію не можна скасувати.",
     "permanent_delete_confirm_batch_message": "Ці {count, plural, one {1 email} other {# emails}} буде остаточно видалено. Цю дію не можна скасувати.",
     "empty_folder": {

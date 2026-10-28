@@ -308,7 +308,7 @@
       "mark_read": "Уншсан гэж тэмдэглэх",
       "mark_unread": "Уншаагүй гэж тэмдэглэх",
       "delete": "Устгах",
-      "delete_confirm_title": "Имэйл устгах",
+      "delete_confirm_title": "Эдгээр имэйлийг устгах уу?",
       "delete_confirm_message": "Та устгахдаа итгэлтэй байна уу{count, plural, one {1 имэйл} other {# имэйл}}?",
       "clear_selection": "Сонголтыг арилгах",
       "more": "Сонгосон зүйлсийн бусад үйлдэл"
@@ -327,7 +327,8 @@
       "custom": "Тусгай дараалал (тохиргоонд)"
     },
     "permanent_delete": "Бүрмөсөн устгах",
-    "permanent_delete_confirm_title": "Бүрмөсөн устгах",
+    "permanent_delete_confirm_title": "Энэ имэйлийг бүрмөсөн устгах уу?",
+    "permanent_delete_confirm_batch_title": "Эдгээр имэйлийг бүрмөсөн устгах уу?",
     "permanent_delete_confirm_message": "Энэ имэйлийг бүрмөсөн устгах болно. Энэ үйлдлийг буцаах боломжгүй.",
     "permanent_delete_confirm_batch_message": "Эдгээр{count, plural, one {1 имэйл} other {# имэйл}}бүрмөсөн устгагдах болно. Энэ үйлдлийг буцаах боломжгүй.",
     "empty_folder": {

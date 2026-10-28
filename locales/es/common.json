@@ -308,7 +308,7 @@
       "mark_read": "Marcar como leído",
       "mark_unread": "Marcar como no leído",
       "delete": "Eliminar",
-      "delete_confirm_title": "Eliminar correos",
+      "delete_confirm_title": "¿Eliminar estos correos?",
       "delete_confirm_message": "¿Estás seguro de que quieres eliminar {count, plural, one {1 correo} other {# correos}}?",
       "clear_selection": "Limpiar selección",
       "more": "Más acciones para la selección"
@@ -327,7 +327,8 @@
       "custom": "Orden personalizado (en Ajustes)"
     },
     "permanent_delete": "Eliminar permanentemente",
-    "permanent_delete_confirm_title": "Eliminar permanentemente",
+    "permanent_delete_confirm_title": "¿Eliminar este correo permanentemente?",
+    "permanent_delete_confirm_batch_title": "¿Eliminar estos correos permanentemente?",
     "permanent_delete_confirm_message": "Este correo se eliminará permanentemente. Esta acción no se puede deshacer.",
     "permanent_delete_confirm_batch_message": "Estos {count, plural, one {1 correo} other {# correos}} se eliminarán permanentemente. Esta acción no se puede deshacer.",
     "empty_folder": {

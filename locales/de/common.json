@@ -308,7 +308,7 @@
       "mark_read": "Als gelesen markieren",
       "mark_unread": "Als ungelesen markieren",
       "delete": "Löschen",
-      "delete_confirm_title": "E-Mails löschen",
+      "delete_confirm_title": "Diese E-Mails löschen?",
       "delete_confirm_message": "Möchten Sie {count, plural, one {1 E-Mail} other {# E-Mails}} wirklich löschen?",
       "clear_selection": "Auswahl aufheben",
       "more": "Weitere Aktionen für die Auswahl"
@@ -327,7 +327,8 @@
       "custom": "Eigene Reihenfolge (in den Einstellungen)"
     },
     "permanent_delete": "Endgültig löschen",
-    "permanent_delete_confirm_title": "Endgültig löschen",
+    "permanent_delete_confirm_title": "Diese E-Mail endgültig löschen?",
+    "permanent_delete_confirm_batch_title": "Diese E-Mails endgültig löschen?",
     "permanent_delete_confirm_message": "Diese E-Mail wird endgültig gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
     "permanent_delete_confirm_batch_message": "Diese {count, plural, one {1 E-Mail} other {# E-Mails}} werden endgültig gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
     "empty_folder": {

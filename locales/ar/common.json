@@ -308,7 +308,7 @@
       "mark_read": "تمييز كمقروءة",
       "mark_unread": "تمييز كغير مقروءة",
       "delete": "حذف",
-      "delete_confirm_title": "حذف الرسائل",
+      "delete_confirm_title": "حذف هذه الرسائل؟",
       "delete_confirm_message": "هل أنت متأكد أنك تريد حذف {count, plural, one {رسالة واحدة} other {# رسالة}}؟",
       "clear_selection": "إلغاء التحديد",
       "more": "مزيد من الإجراءات للمحدد"
@@ -327,7 +327,8 @@
       "custom": "ترتيب مخصص (في الإعدادات)"
     },
     "permanent_delete": "حذف نهائي",
-    "permanent_delete_confirm_title": "حذف نهائي",
+    "permanent_delete_confirm_title": "حذف هذه الرسالة نهائيًا؟",
+    "permanent_delete_confirm_batch_title": "حذف هذه الرسائل نهائيًا؟",
     "permanent_delete_confirm_message": "سيتم حذف هذه الرسالة نهائيًا. لا يمكن التراجع عن هذا الإجراء.",
     "permanent_delete_confirm_batch_message": "سيتم حذف {count, plural, one {رسالة واحدة} other {# رسالة}} نهائيًا. لا يمكن التراجع عن هذا الإجراء.",
     "empty_folder": {

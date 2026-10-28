@@ -677,7 +677,7 @@ export function EmailList({
     if (shouldConfirmBulkDelete(currentMailbox)) {
       const confirmed = await confirmDialog({
         title: isInTrash
-          ? t('permanent_delete_confirm_title')
+          ? t('permanent_delete_confirm_batch_title')
           : t('batch_actions.delete_confirm_title'),
         message: isInTrash
           ? t('permanent_delete_confirm_batch_message', { count: selectedEmailKeys.size })

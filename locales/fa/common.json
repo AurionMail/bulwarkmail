@@ -308,7 +308,7 @@
       "mark_read": "علامت‌گذاری به عنوان خوانده شده",
       "mark_unread": "علامت‌گذاری به عنوان خوانده نشده",
       "delete": "حذف",
-      "delete_confirm_title": "حذف ایمیل‌ها",
+      "delete_confirm_title": "این ایمیل‌ها حذف شوند؟",
       "delete_confirm_message": "آیا از حذف {count, plural, one {1 ایمیل} other {# ایمیل}} اطمینان دارید؟",
       "clear_selection": "پاک کردن انتخاب",
       "more": "اقدامات بیشتر برای موارد انتخاب‌شده"
@@ -327,7 +327,8 @@
       "custom": "ترتیب سفارشی (در تنظیمات)"
     },
     "permanent_delete": "حذف دائمی",
-    "permanent_delete_confirm_title": "حذف دائمی",
+    "permanent_delete_confirm_title": "این ایمیل برای همیشه حذف شود؟",
+    "permanent_delete_confirm_batch_title": "این ایمیل‌ها برای همیشه حذف شوند؟",
     "permanent_delete_confirm_message": "این ایمیل برای همیشه حذف خواهد شد. این عملیات قابل بازگشت نیست.",
     "permanent_delete_confirm_batch_message": "این {count, plural, one {1 ایمیل} other {# ایمیل}} برای همیشه حذف خواهد شد.",
     "empty_folder": {

@@ -308,7 +308,7 @@
       "mark_read": "Označit jako přečtené",
       "mark_unread": "Označit jako nepřečtené",
       "delete": "Odstranit",
-      "delete_confirm_title": "Odstranit zprávy",
+      "delete_confirm_title": "Odstranit tyto zprávy?",
       "delete_confirm_message": "Opravdu chcete odstranit {count, plural, one {1 zprávu} few {# zprávy} other {# zpráv}}?",
       "clear_selection": "Zrušit výběr",
       "more": "Další akce pro výběr"
@@ -327,7 +327,8 @@
       "custom": "Vlastní řazení (v nastavení)"
     },
     "permanent_delete": "Trvale odstranit",
-    "permanent_delete_confirm_title": "Trvalé odstranění",
+    "permanent_delete_confirm_title": "Trvale odstranit tuto zprávu?",
+    "permanent_delete_confirm_batch_title": "Trvale odstranit tyto zprávy?",
     "permanent_delete_confirm_message": "Tato zpráva bude trvale odstraněna. Tuto akci nelze vrátit zpět.",
     "permanent_delete_confirm_batch_message": "{count, plural, one {1 zpráva bude trvale odstraněna} few {# zprávy budou trvale odstraněny} other {# zpráv bude trvale odstraněno}}. Tuto akci nelze vrátit zpět.",
     "empty_folder": {
