@@ -27,6 +27,11 @@ const STAMP = Date.now().toString(36);
 const SIGNATURE_MARK = `Org signature ${STAMP}`;
 const SIGNATURE_HTML = `<p><b>{name}</b><br>Phone: {phone}<br>Mobile: {mobile}</p><p>${SIGNATURE_MARK}</p>`;
 const DISCLAIMER = `Confidential ${STAMP}: meant for the addressee only.`;
+// The plain-text templates differ from the HTML ones, so a check that
+// compares one against the other would add them twice.
+const SIGNATURE_TEXT = `{name} | Phone {phone} | ${SIGNATURE_MARK}`;
+const DISCLAIMER_HTML = `<p><i>${DISCLAIMER}</i> <a href="https://example.org/imprint">Imprint</a></p>`;
+const DISCLAIMER_TEXT = `${DISCLAIMER} Imprint: https://example.org/imprint`;
 const PHONE = '+49 30 5550100';
 
 let original: Record<string, unknown>;
@@ -173,7 +178,9 @@ test('the admin sets a locked signature and a disclaimer for example.org', async
     await expect(page.getByTestId('org-signature-preview')).toContainText(SIGNATURE_MARK, { timeout: 2000 });
   }).toPass({ timeout: 20000 });
   await expect(page.getByTestId('org-signature-fields').locator('[data-used]')).toHaveCount(2);
-  await page.getByTestId('org-disclaimer-text').fill(DISCLAIMER);
+  await page.getByTestId('org-signature-text').fill(SIGNATURE_TEXT);
+  await page.getByTestId('org-disclaimer-html').fill(DISCLAIMER_HTML);
+  await page.getByTestId('org-disclaimer-text').fill(DISCLAIMER_TEXT);
   await page.getByLabel('Lock').check();
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('Saved.')).toBeVisible();
@@ -184,8 +191,8 @@ test('the admin sets a locked signature and a disclaimer for example.org', async
 
   const policy = await getPolicy(admin);
   const scope = (policy.scopes as Array<{ id: string; policy: Record<string, any> }>).find((s) => s.id === 'example-org')!;
-  expect(scope.policy.organisation.signature).toEqual({ html: SIGNATURE_HTML, fields: ['phone', 'mobile'] });
-  expect(scope.policy.organisation.disclaimer).toEqual({ text: DISCLAIMER });
+  expect(scope.policy.organisation.signature).toEqual({ html: SIGNATURE_HTML, text: SIGNATURE_TEXT, fields: ['phone', 'mobile'] });
+  expect(scope.policy.organisation.disclaimer).toEqual({ html: DISCLAIMER_HTML, text: DISCLAIMER_TEXT });
   expect(scope.policy.restrictions.signature).toEqual({ locked: true });
   // Everyone has no signature.
   expect((policy.organisation as Record<string, any>).signature.html).toBe('');
@@ -217,7 +224,8 @@ test("org-alice's new mail carries the signature and the disclaimer once", async
   expect(countOf(received.html, DISCLAIMER)).toBe(1);
   expect(countOf(received.text, DISCLAIMER)).toBe(1);
   // Below everything.
-  expect(received.text.trimEnd().endsWith(DISCLAIMER)).toBe(true);
+  expect(received.text.trimEnd().endsWith(DISCLAIMER_TEXT)).toBe(true);
+  expect(received.html).toContain(`<i>${DISCLAIMER}</i>`);
   await alice.context().close();
 });
 
