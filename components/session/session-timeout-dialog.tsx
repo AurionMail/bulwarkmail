@@ -72,11 +72,13 @@ export function SessionTimeoutDialog({ mode, deadline, maxHours, onStay, onDismi
           </div>
         </div>
         {mode !== "ending" && (
-          <div className="flex flex-wrap items-center justify-end gap-3 px-6 pb-6">
-            <Button variant="outline" onClick={onSignOut}>{t("sign_out_now")}</Button>
+          // The safe answer comes first, so the focus trap starts on it and
+          // Enter keeps the user signed in; row-reverse shows it on the right.
+          <div className="flex flex-row-reverse flex-wrap items-center justify-start gap-3 px-6 pb-6">
             {mode === "idle"
-              ? <Button onClick={onStay} autoFocus>{t("stay")}</Button>
-              : <Button onClick={onDismiss} autoFocus>{t("dismiss")}</Button>}
+              ? <Button onClick={onStay}>{t("stay")}</Button>
+              : <Button onClick={onDismiss}>{t("dismiss")}</Button>}
+            <Button variant="outline" onClick={onSignOut}>{t("sign_out_now")}</Button>
           </div>
         )}
       </div>

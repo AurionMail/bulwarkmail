@@ -96,6 +96,8 @@ describe('session timeout guard', () => {
     expect(screen.queryByText('idle_title')).toBeNull();
     await advance(1 * SECOND);
     expect(screen.getByText('idle_title')).toBeTruthy();
+    // Enter on the warning keeps the user signed in.
+    expect(document.activeElement?.textContent).toBe('stay');
 
     fireEvent.click(screen.getByText('stay'));
     expect(screen.queryByText('idle_title')).toBeNull();
