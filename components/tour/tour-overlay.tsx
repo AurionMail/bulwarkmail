@@ -18,14 +18,30 @@ const PADDING = 8;
 const TOOLTIP_GAP = 12;
 const TOOLTIP_MAX_W = 360;
 
+/**
+ * The first element for the selector that is on screen. The same anchor can
+ * exist twice (the rail and the phone's tab bar); one with no size is not
+ * rendered in this layout and has nothing to point at.
+ */
+export function findTourTarget(selector: string): Element | null {
+  for (const el of document.querySelectorAll(selector)) {
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 || r.height > 0) return el;
+  }
+  return null;
+}
+
 function getTargetRect(selector: string): Rect | null {
-  const el = document.querySelector(selector);
+  const el = findTourTarget(selector);
   if (!el) return null;
   const r = el.getBoundingClientRect();
-  // Element might exist but be hidden (zero dimensions)
-  if (r.width === 0 && r.height === 0) return null;
   return { top: r.top, left: r.left, width: r.width, height: r.height };
 }
+
+/** Polls (100 ms apart) before a step whose target is in the DOM but has no size is skipped. */
+const HIDDEN_TARGET_ATTEMPTS = 10;
+/** Polls before a step whose target never appeared (another page loading) is skipped. */
+const MISSING_TARGET_ATTEMPTS = 50;
 
 function computeTooltipPosition(
   target: Rect,
@@ -90,7 +106,13 @@ export function TourOverlay() {
   // Use refs for callbacks to avoid stale closures in timers/intervals
   const updatePositionRef = useRef<() => void>(() => {});
   const nextStepRef = useRef<() => void>(() => {});
+  const prevStepRef = useRef<() => void>(() => {});
+  // A step with nothing to point at is skipped in the direction the user went.
+  const directionRef = useRef<1 | -1>(1);
+  const goNext = useCallback(() => { directionRef.current = 1; nextStep(); }, [nextStep]);
+  const goPrev = useCallback(() => { directionRef.current = -1; prevStep(); }, [prevStep]);
   nextStepRef.current = nextStep;
+  prevStepRef.current = prevStep;
 
   const focusTrapRef = useFocusTrap({
     isActive: visible,
@@ -123,7 +145,6 @@ export function TourOverlay() {
   // Wait for target element to appear, then show
   useEffect(() => {
     if (!step) return;
-    console.log(`[Tour] Step ${currentStep + 1}/${totalSteps}: "${step.id}" - target: ${step.target}, placement: ${step.placement}, interactive: ${!!step.interactive}`);
     setVisible(false);
     // Keep old targetRect and tooltipPos so the cutout/tooltip animate to the new position
     // instead of disappearing and reappearing
@@ -140,20 +161,16 @@ export function TourOverlay() {
     }
 
     let attempts = 0;
-    const maxAttempts = 50; // 5 seconds
     let cancelled = false;
 
     const tryFind = () => {
       if (cancelled) return true;
-      const el = document.querySelector(step.target);
+      const el = findTourTarget(step.target);
       if (el) {
-        const rect = el.getBoundingClientRect();
-        console.log(`[Tour] Step ${currentStep + 1} "${step.id}": element FOUND (${rect.width}x${rect.height} at ${Math.round(rect.left)},${Math.round(rect.top)})`);
         el.scrollIntoView({ behavior: "smooth", block: "nearest" });
         // Delay after scroll for layout to settle
         pendingTimerRef.current = setTimeout(() => {
           if (cancelled) return;
-          console.log(`[Tour] Step ${currentStep + 1} "${step.id}": showing tooltip`);
           updatePositionRef.current();
           setVisible(true);
           // Second position update after tooltip renders with final dimensions
@@ -163,24 +180,26 @@ export function TourOverlay() {
         }, 200);
         return true;
       }
-      if (attempts % 10 === 0) {
-        console.log(`[Tour] Step ${currentStep + 1} "${step.id}": element NOT found (attempt ${attempts + 1}/${maxAttempts})`);
-      }
       return false;
     };
 
     if (tryFind()) return () => { cancelled = true; };
 
-    // Poll for element appearance (for page navigation)
+    // Poll for the element to appear (another page loading). One that is in
+    // the DOM but not rendered in this layout (the rail on a phone) is given
+    // up on sooner.
     const interval = setInterval(() => {
       attempts++;
-      if (tryFind() || attempts >= maxAttempts) {
+      if (tryFind()) {
         clearInterval(interval);
-        if (attempts >= maxAttempts && !cancelled) {
-          // Skip this step if element never appears
-          console.warn(`[Tour] Step ${currentStep + 1} "${step.id}": SKIPPED - element never appeared after ${maxAttempts} attempts`);
-          nextStepRef.current();
-        }
+        return;
+      }
+      const limit = document.querySelector(step.target) ? HIDDEN_TARGET_ATTEMPTS : MISSING_TARGET_ATTEMPTS;
+      if (attempts >= limit) {
+        clearInterval(interval);
+        if (cancelled) return;
+        if (directionRef.current === -1 && currentStep > 0) prevStepRef.current();
+        else nextStepRef.current();
       }
     }, 100);
 
@@ -219,11 +238,11 @@ export function TourOverlay() {
       if (e.key === "ArrowRight" || e.key === "Enter") {
         e.preventDefault();
         e.stopPropagation();
-        nextStep();
+        goNext();
       } else if (e.key === "ArrowLeft") {
         e.preventDefault();
         e.stopPropagation();
-        prevStep();
+        goPrev();
       } else if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
@@ -232,7 +251,7 @@ export function TourOverlay() {
     };
     window.addEventListener("keydown", handler, true);
     return () => window.removeEventListener("keydown", handler, true);
-  }, [nextStep, prevStep, stopTour]);
+  }, [goNext, goPrev, stopTour]);
 
   // Re-position after tooltip content renders with new dimensions
   useEffect(() => {
@@ -373,7 +392,7 @@ export function TourOverlay() {
             </button>
             <div className="flex gap-2">
               <button
-                onClick={prevStep}
+                onClick={goPrev}
                 disabled={isFirst}
                 className={cn(
                   "text-xs px-3 py-1.5 rounded-md border border-border transition-colors",
@@ -385,7 +404,7 @@ export function TourOverlay() {
                 {t("tour.back")}
               </button>
               <button
-                onClick={nextStep}
+                onClick={goNext}
                 className="text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 {isLast ? t("tour.finish") : t("tour.next")}

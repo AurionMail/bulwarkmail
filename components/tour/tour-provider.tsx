@@ -9,6 +9,7 @@ import { useWebDAVStore } from "@/stores/webdav-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { usePolicyStore } from "@/stores/policy-store";
 import { getTourSteps, type TourStep } from "./tour-steps";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { TourOverlay } from "./tour-overlay";
 
 const TOUR_COMPLETED_KEY = "tour_completed";
@@ -50,7 +51,17 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [hasCompletedTour, setHasCompletedTour] = useState(false);
 
-  const steps = getTourSteps({ isDemoMode, supportsCalendar: supportsCalendar && calendarEnabled, supportsWebDAV: supportsWebDAV !== false });
+  const client = useAuthStore((s) => s.client);
+  const contactsEnabled = usePolicyStore((s) => s.isFeatureEnabled('contactsEnabled'));
+  const touch = useMediaQuery("(pointer: coarse)");
+
+  const steps = getTourSteps({
+    isDemoMode,
+    supportsCalendar: supportsCalendar && calendarEnabled,
+    supportsWebDAV: supportsWebDAV !== false,
+    supportsContacts: (client?.supportsContacts?.() ?? false) && contactsEnabled,
+    touch,
+  });
 
   useEffect(() => {
     // One-time migration: if the legacy per-device flag is set but the synced
