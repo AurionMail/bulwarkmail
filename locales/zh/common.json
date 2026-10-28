@@ -50,6 +50,18 @@
     "sign_in_sso": "使用 SSO 登录",
     "add_account_title": "添加账户",
     "add_account_subtitle": "使用其他账户登录",
+    "subtitle": "登录您的账户",
+    "version": {
+      "details": "版本详情",
+      "version_line": "版本：{value}",
+      "build_line": "构建：{value}",
+      "latest_line": "最新：{value}",
+      "copy": "复制版本信息",
+      "security_update": "有可用的安全更新",
+      "unsupported": "此版本已不再受支持",
+      "new_version": "有可用的新版本",
+      "release_notes": "发行说明"
+    },
     "cancel": "取消",
     "website": "网站",
     "imprint": "法律信息",

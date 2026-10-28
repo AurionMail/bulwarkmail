@@ -50,6 +50,18 @@
     "sign_in_sso": "Prihlásiť sa cez SSO",
     "add_account_title": "Pridať účet",
     "add_account_subtitle": "Prihlásiť sa iným účtom",
+    "subtitle": "Prihláste sa do svojho účtu",
+    "version": {
+      "details": "Podrobnosti o verzii",
+      "version_line": "Verzia: {value}",
+      "build_line": "Zostavenie: {value}",
+      "latest_line": "Najnovšia: {value}",
+      "copy": "Kopírovať informácie o verzii",
+      "security_update": "K dispozícii je bezpečnostná aktualizácia",
+      "unsupported": "Táto verzia už nie je podporovaná",
+      "new_version": "K dispozícii je nová verzia",
+      "release_notes": "Poznámky k vydaniu"
+    },
     "cancel": "Zrušiť",
     "website": "Webová stránka",
     "imprint": "Impressum",

@@ -47,6 +47,18 @@
     "sign_in_sso": "היכנס באמצעות SSO",
     "add_account_title": "הוסף חשבון",
     "add_account_subtitle": "היכנס עם חשבון אחר",
+    "subtitle": "התחברו לחשבון שלכם",
+    "version": {
+      "details": "פרטי הגרסה",
+      "version_line": "גרסה: {value}",
+      "build_line": "בנייה: {value}",
+      "latest_line": "העדכנית ביותר: {value}",
+      "copy": "העתקת פרטי הגרסה",
+      "security_update": "יש עדכון אבטחה",
+      "unsupported": "הגרסה הזו כבר לא נתמכת",
+      "new_version": "יש גרסה חדשה",
+      "release_notes": "הערות שחרור"
+    },
     "cancel": "ביטול",
     "website": "אתר",
     "imprint": "פרטי מוציא לאור",

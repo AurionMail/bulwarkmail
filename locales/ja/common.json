@@ -50,6 +50,18 @@
     "sign_in_sso": "SSOでサインイン",
     "add_account_title": "アカウントを追加",
     "add_account_subtitle": "別のアカウントでサインイン",
+    "subtitle": "アカウントにサインイン",
+    "version": {
+      "details": "バージョンの詳細",
+      "version_line": "バージョン: {value}",
+      "build_line": "ビルド: {value}",
+      "latest_line": "最新: {value}",
+      "copy": "バージョン情報をコピー",
+      "security_update": "セキュリティ更新があります",
+      "unsupported": "このバージョンはサポートが終了しました",
+      "new_version": "新しいバージョンがあります",
+      "release_notes": "リリースノート"
+    },
     "cancel": "キャンセル",
     "website": "ウェブサイト",
     "imprint": "サイト運営者情報",

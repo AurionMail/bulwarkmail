@@ -50,6 +50,18 @@
     "sign_in_sso": "SSO ile giriş yap",
     "add_account_title": "Hesap Ekle",
     "add_account_subtitle": "Başka bir hesapla giriş yap",
+    "subtitle": "Hesabınızda oturum açın",
+    "version": {
+      "details": "Sürüm ayrıntıları",
+      "version_line": "Sürüm: {value}",
+      "build_line": "Derleme: {value}",
+      "latest_line": "En yeni: {value}",
+      "copy": "Sürüm bilgisini kopyala",
+      "security_update": "Güvenlik güncellemesi var",
+      "unsupported": "Bu sürüm artık desteklenmiyor",
+      "new_version": "Yeni sürüm var",
+      "release_notes": "Sürüm notları"
+    },
     "cancel": "İptal",
     "website": "Web Sitesi",
     "imprint": "Yasal Bilgiler",

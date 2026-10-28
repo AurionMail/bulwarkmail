@@ -50,6 +50,18 @@
     "sign_in_sso": "Войти через SSO",
     "add_account_title": "Добавить аккаунт",
     "add_account_subtitle": "Войдите с другим аккаунтом",
+    "subtitle": "Войдите в свою учётную запись",
+    "version": {
+      "details": "Сведения о версии",
+      "version_line": "Версия: {value}",
+      "build_line": "Сборка: {value}",
+      "latest_line": "Последняя: {value}",
+      "copy": "Скопировать сведения о версии",
+      "security_update": "Доступно обновление безопасности",
+      "unsupported": "Эта версия больше не поддерживается",
+      "new_version": "Доступна новая версия",
+      "release_notes": "Примечания к выпуску"
+    },
     "cancel": "Отмена",
     "website": "Веб-сайт",
     "imprint": "Выходные данные",

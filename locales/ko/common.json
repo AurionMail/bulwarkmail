@@ -50,6 +50,18 @@
     "sign_in_sso": "SSO로 로그인",
     "add_account_title": "계정 추가",
     "add_account_subtitle": "다른 계정으로 로그인하기",
+    "subtitle": "계정에 로그인하세요",
+    "version": {
+      "details": "버전 정보",
+      "version_line": "버전: {value}",
+      "build_line": "빌드: {value}",
+      "latest_line": "최신: {value}",
+      "copy": "버전 정보 복사",
+      "security_update": "보안 업데이트가 있습니다",
+      "unsupported": "더 이상 지원되지 않는 버전입니다",
+      "new_version": "새 버전이 있습니다",
+      "release_notes": "릴리스 노트"
+    },
     "cancel": "취소",
     "website": "웹사이트",
     "imprint": "회사 소개",

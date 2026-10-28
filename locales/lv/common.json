@@ -50,6 +50,18 @@
     "sign_in_sso": "Pierakstīties ar SSO",
     "add_account_title": "Pievienot kontu",
     "add_account_subtitle": "Pierakstīties citā kontā",
+    "subtitle": "Piesakieties savā kontā",
+    "version": {
+      "details": "Versijas informācija",
+      "version_line": "Versija: {value}",
+      "build_line": "Būvējums: {value}",
+      "latest_line": "Jaunākā: {value}",
+      "copy": "Kopēt versijas informāciju",
+      "security_update": "Pieejams drošības atjauninājums",
+      "unsupported": "Šī versija vairs netiek atbalstīta",
+      "new_version": "Pieejama jauna versija",
+      "release_notes": "Laidiena piezīmes"
+    },
     "cancel": "Atcelt",
     "website": "Tīmekļa vietne",
     "imprint": "Rekvizīti",

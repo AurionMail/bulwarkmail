@@ -50,6 +50,18 @@
     "sign_in_sso": "Logg på med SSO",
     "add_account_title": "Legg til konto",
     "add_account_subtitle": "Logg på med en annen konto",
+    "subtitle": "Logg på kontoen din",
+    "version": {
+      "details": "Versjonsdetaljer",
+      "version_line": "Versjon: {value}",
+      "build_line": "Bygg: {value}",
+      "latest_line": "Nyeste: {value}",
+      "copy": "Kopier versjonsinformasjon",
+      "security_update": "Sikkerhetsoppdatering tilgjengelig",
+      "unsupported": "Versjonen støttes ikke lenger",
+      "new_version": "Ny versjon tilgjengelig",
+      "release_notes": "Utgivelsesnotater"
+    },
     "cancel": "Avbryt",
     "website": "Nettsted",
     "imprint": "Juridisk informasjon",

@@ -50,6 +50,18 @@
     "sign_in_sso": "Se connecter avec SSO",
     "add_account_title": "Ajouter un compte",
     "add_account_subtitle": "Se connecter avec un autre compte",
+    "subtitle": "Connectez-vous à votre compte",
+    "version": {
+      "details": "Détails de la version",
+      "version_line": "Version : {value}",
+      "build_line": "Build : {value}",
+      "latest_line": "Dernière : {value}",
+      "copy": "Copier les informations de version",
+      "security_update": "Mise à jour de sécurité disponible",
+      "unsupported": "Cette version n'est plus prise en charge",
+      "new_version": "Nouvelle version disponible",
+      "release_notes": "Notes de version"
+    },
     "cancel": "Annuler",
     "website": "Site web",
     "imprint": "Mentions légales",

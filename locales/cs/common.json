@@ -50,6 +50,18 @@
     "sign_in_sso": "Přihlásit se přes SSO",
     "add_account_title": "Přidat účet",
     "add_account_subtitle": "Přihlásit se k jinému účtu",
+    "subtitle": "Přihlaste se ke svému účtu",
+    "version": {
+      "details": "Podrobnosti o verzi",
+      "version_line": "Verze: {value}",
+      "build_line": "Sestavení: {value}",
+      "latest_line": "Nejnovější: {value}",
+      "copy": "Kopírovat informace o verzi",
+      "security_update": "Je k dispozici bezpečnostní aktualizace",
+      "unsupported": "Tato verze už není podporována",
+      "new_version": "Je k dispozici nová verze",
+      "release_notes": "Poznámky k vydání"
+    },
     "cancel": "Zrušit",
     "website": "Webové stránky",
     "imprint": "Tiráž",

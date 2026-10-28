@@ -50,6 +50,18 @@
     "sign_in_sso": "Bejelentkezés SSO-val",
     "add_account_title": "Fiók hozzáadása",
     "add_account_subtitle": "Bejelentkezés másik fiókkal",
+    "subtitle": "Jelentkezzen be a fiókjába",
+    "version": {
+      "details": "Verzió részletei",
+      "version_line": "Verzió: {value}",
+      "build_line": "Build: {value}",
+      "latest_line": "Legújabb: {value}",
+      "copy": "Verzióadatok másolása",
+      "security_update": "Biztonsági frissítés érhető el",
+      "unsupported": "Ez a verzió már nem támogatott",
+      "new_version": "Új verzió érhető el",
+      "release_notes": "Kiadási megjegyzések"
+    },
     "cancel": "Mégse",
     "website": "Weboldal",
     "imprint": "Impresszum",

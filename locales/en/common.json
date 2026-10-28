@@ -50,6 +50,18 @@
     "sign_in_sso": "Sign in with SSO",
     "add_account_title": "Add Account",
     "add_account_subtitle": "Sign in with another account",
+    "subtitle": "Sign in to your account",
+    "version": {
+      "details": "Version details",
+      "version_line": "Version: {value}",
+      "build_line": "Build: {value}",
+      "latest_line": "Latest: {value}",
+      "copy": "Copy version info",
+      "security_update": "Security update available",
+      "unsupported": "Version no longer supported",
+      "new_version": "New version available",
+      "release_notes": "Release notes"
+    },
     "cancel": "Cancel",
     "website": "Website",
     "imprint": "Imprint",

@@ -50,6 +50,18 @@
     "sign_in_sso": "Logi sisse SSO-ga",
     "add_account_title": "Lisa konto",
     "add_account_subtitle": "Logi sisse teise kontoga",
+    "subtitle": "Logige oma kontole sisse",
+    "version": {
+      "details": "Versiooni üksikasjad",
+      "version_line": "Versioon: {value}",
+      "build_line": "Järk: {value}",
+      "latest_line": "Uusim: {value}",
+      "copy": "Kopeeri versiooniteave",
+      "security_update": "Saadaval on turvavärskendus",
+      "unsupported": "Seda versiooni enam ei toetata",
+      "new_version": "Saadaval on uus versioon",
+      "release_notes": "Väljalaskemärkmed"
+    },
     "cancel": "Tühista",
     "website": "Veebileht",
     "imprint": "Väljaandja andmed",

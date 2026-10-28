@@ -50,6 +50,18 @@
     "sign_in_sso": "SSO-ээр нэвтрэх",
     "add_account_title": "Бүртгэл нэмэх",
     "add_account_subtitle": "Өөр бүртгэлээр нэвтрэх",
+    "subtitle": "Бүртгэлдээ нэвтэрнэ үү",
+    "version": {
+      "details": "Хувилбарын дэлгэрэнгүй",
+      "version_line": "Хувилбар: {value}",
+      "build_line": "Бүтээц: {value}",
+      "latest_line": "Хамгийн сүүлийн: {value}",
+      "copy": "Хувилбарын мэдээллийг хуулах",
+      "security_update": "Аюулгүй байдлын шинэчлэл гарсан",
+      "unsupported": "Энэ хувилбарыг дэмжихээ больсон",
+      "new_version": "Шинэ хувилбар гарсан",
+      "release_notes": "Хувилбарын тэмдэглэл"
+    },
     "cancel": "Болих",
     "website": "Вэбсайт",
     "imprint": "Хуулийн мэдээлэл",

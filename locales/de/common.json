@@ -50,6 +50,18 @@
     "sign_in_sso": "Mit SSO anmelden",
     "add_account_title": "Konto hinzufügen",
     "add_account_subtitle": "Mit einem anderen Konto anmelden",
+    "subtitle": "Melden Sie sich bei Ihrem Konto an",
+    "version": {
+      "details": "Versionsdetails",
+      "version_line": "Version: {value}",
+      "build_line": "Build: {value}",
+      "latest_line": "Neueste: {value}",
+      "copy": "Versionsinfo kopieren",
+      "security_update": "Sicherheitsupdate verfügbar",
+      "unsupported": "Version wird nicht mehr unterstützt",
+      "new_version": "Neue Version verfügbar",
+      "release_notes": "Versionshinweise"
+    },
     "cancel": "Abbrechen",
     "website": "Webseite",
     "imprint": "Impressum",

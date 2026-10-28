@@ -50,6 +50,18 @@
     "sign_in_sso": "Conectați-vă cu SSO",
     "add_account_title": "Adăugare cont",
     "add_account_subtitle": "Conectați-vă cu un alt cont",
+    "subtitle": "Conectați-vă la contul dvs.",
+    "version": {
+      "details": "Detalii despre versiune",
+      "version_line": "Versiune: {value}",
+      "build_line": "Build: {value}",
+      "latest_line": "Cea mai nouă: {value}",
+      "copy": "Copiază informațiile despre versiune",
+      "security_update": "Actualizare de securitate disponibilă",
+      "unsupported": "Versiunea nu mai este acceptată",
+      "new_version": "Versiune nouă disponibilă",
+      "release_notes": "Note de lansare"
+    },
     "cancel": "Anulează",
     "website": "Site web",
     "imprint": "Mențiuni legale",

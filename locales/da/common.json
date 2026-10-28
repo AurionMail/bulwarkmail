@@ -50,6 +50,18 @@
     "sign_in_sso": "Log ind med SSO",
     "add_account_title": "Tilføj konto",
     "add_account_subtitle": "Log ind med en anden konto",
+    "subtitle": "Log ind på din konto",
+    "version": {
+      "details": "Versionsdetaljer",
+      "version_line": "Version: {value}",
+      "build_line": "Build: {value}",
+      "latest_line": "Nyeste: {value}",
+      "copy": "Kopiér versionsoplysninger",
+      "security_update": "Sikkerhedsopdatering tilgængelig",
+      "unsupported": "Versionen understøttes ikke længere",
+      "new_version": "Ny version tilgængelig",
+      "release_notes": "Udgivelsesnoter"
+    },
     "cancel": "Annuller",
     "website": "Hjemmeside",
     "imprint": "Impressum",

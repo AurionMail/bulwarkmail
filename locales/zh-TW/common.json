@@ -50,6 +50,18 @@
     "sign_in_sso": "使用 SSO 登入",
     "add_account_title": "新增帳號",
     "add_account_subtitle": "使用其他帳號登入",
+    "subtitle": "登入您的帳戶",
+    "version": {
+      "details": "版本詳細資料",
+      "version_line": "版本：{value}",
+      "build_line": "組建：{value}",
+      "latest_line": "最新：{value}",
+      "copy": "複製版本資訊",
+      "security_update": "有可用的安全性更新",
+      "unsupported": "此版本已不再支援",
+      "new_version": "有可用的新版本",
+      "release_notes": "版本資訊"
+    },
     "cancel": "取消",
     "website": "網站",
     "imprint": "法律聲明",

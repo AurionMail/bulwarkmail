@@ -151,6 +151,18 @@
     "sign_in_sso": "เข้าสู่ระบบด้วย SSO",
     "add_account_title": "เพิ่มบัญชี",
     "add_account_subtitle": "เข้าสู่ระบบด้วยบัญชีอื่น",
+    "subtitle": "ลงชื่อเข้าใช้บัญชีของคุณ",
+    "version": {
+      "details": "รายละเอียดเวอร์ชัน",
+      "version_line": "เวอร์ชัน: {value}",
+      "build_line": "บิลด์: {value}",
+      "latest_line": "ล่าสุด: {value}",
+      "copy": "คัดลอกข้อมูลเวอร์ชัน",
+      "security_update": "มีอัปเดตความปลอดภัย",
+      "unsupported": "เวอร์ชันนี้ไม่ได้รับการสนับสนุนแล้ว",
+      "new_version": "มีเวอร์ชันใหม่",
+      "release_notes": "บันทึกประจำรุ่น"
+    },
     "cancel": "ยกเลิก",
     "website": "เว็บไซต์",
     "imprint": "ข้อมูลทางกฎหมาย",

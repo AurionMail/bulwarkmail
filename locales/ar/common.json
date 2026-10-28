@@ -50,6 +50,18 @@
     "sign_in_sso": "تسجيل الدخول عبر SSO",
     "add_account_title": "إضافة حساب",
     "add_account_subtitle": "تسجيل الدخول بحساب آخر",
+    "subtitle": "سجّل الدخول إلى حسابك",
+    "version": {
+      "details": "تفاصيل الإصدار",
+      "version_line": "الإصدار: {value}",
+      "build_line": "البنية: {value}",
+      "latest_line": "الأحدث: {value}",
+      "copy": "نسخ معلومات الإصدار",
+      "security_update": "يتوفر تحديث أمني",
+      "unsupported": "لم يعد هذا الإصدار مدعومًا",
+      "new_version": "يتوفر إصدار جديد",
+      "release_notes": "ملاحظات الإصدار"
+    },
     "cancel": "إلغاء",
     "website": "الموقع الإلكتروني",
     "imprint": "بيانات الناشر",

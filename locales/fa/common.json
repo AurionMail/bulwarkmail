@@ -50,6 +50,18 @@
     "sign_in_sso": "ورود با SSO",
     "add_account_title": "افزودن حساب",
     "add_account_subtitle": "ورود با حساب دیگر",
+    "subtitle": "به حساب خود وارد شوید",
+    "version": {
+      "details": "جزئیات نسخه",
+      "version_line": "نسخه: {value}",
+      "build_line": "بیلد: {value}",
+      "latest_line": "جدیدترین: {value}",
+      "copy": "کپی اطلاعات نسخه",
+      "security_update": "به‌روزرسانی امنیتی موجود است",
+      "unsupported": "این نسخه دیگر پشتیبانی نمی‌شود",
+      "new_version": "نسخهٔ جدید موجود است",
+      "release_notes": "یادداشت‌های انتشار"
+    },
     "cancel": "انصراف",
     "website": "وبسایت",
     "imprint": "اطلاعات حقوقی",

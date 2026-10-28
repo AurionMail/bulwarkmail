@@ -50,6 +50,18 @@
     "sign_in_sso": "Inloggen met SSO",
     "add_account_title": "Account toevoegen",
     "add_account_subtitle": "Inloggen met een ander account",
+    "subtitle": "Meld je aan bij je account",
+    "version": {
+      "details": "Versiedetails",
+      "version_line": "Versie: {value}",
+      "build_line": "Build: {value}",
+      "latest_line": "Nieuwste: {value}",
+      "copy": "Versie-informatie kopiëren",
+      "security_update": "Beveiligingsupdate beschikbaar",
+      "unsupported": "Deze versie wordt niet meer ondersteund",
+      "new_version": "Nieuwe versie beschikbaar",
+      "release_notes": "Releaseopmerkingen"
+    },
     "cancel": "Annuleren",
     "website": "Website",
     "imprint": "Colofon",
