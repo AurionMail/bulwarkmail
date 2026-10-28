@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
 import { ArrowLeft, Users, UsersRound, AlertTriangle, Plus, UserPlus, Upload, BookPlus } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { ContextMenuItem } from "@/components/ui/context-menu";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { ContactList } from "@/components/contacts/contact-list";
@@ -1293,6 +1294,13 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                   onDuplicateContact={(contact) => void handleDuplicateContact(contact)}
                   onMoveContacts={canMoveContacts ? handleMoveContacts : undefined}
                   onMenuClick={isNarrow ? () => setNarrowSidebarOpen(true) : undefined}
+                  phoneMenuItems={(close) => (
+                    // On the phone these are otherwise only in the drawer's "+".
+                    <>
+                      <ContextMenuItem icon={UsersRound} label={t("groups.create")} onClick={() => { close(); guard(handleCreateGroup)(); }} />
+                      <ContextMenuItem icon={Upload} label={t("import.title")} onClick={() => { close(); setShowImportDialog(true); }} />
+                    </>
+                  )}
                   isLoading={supportsSync && !contactsLoaded}
                 />
                 )}

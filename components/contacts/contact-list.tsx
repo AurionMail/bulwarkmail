@@ -123,6 +123,8 @@ interface ContactListProps {
   onMoveContacts?: (ids: string[]) => void;
   /** Show a burger button at the start that opens the (overlay) categories sidebar. */
   onMenuClick?: () => void;
+  /** Contacts' own entries in the phone header's ⋮. */
+  phoneMenuItems?: (close: () => void) => React.ReactNode;
   /** The first fetch is still running: show placeholders, not "No contacts yet". */
   isLoading?: boolean;
 }
@@ -150,6 +152,7 @@ export function ContactList({
   onDuplicateContact,
   onMoveContacts,
   onMenuClick,
+  phoneMenuItems,
   isLoading = false,
 }: ContactListProps) {
   const t = useTranslations("contacts");
@@ -439,7 +442,7 @@ export function ContactList({
                 </span>
               )}
             </IconButton>
-            <PhoneHeaderActions below="md" />
+            <PhoneHeaderActions below="md" menuItems={phoneMenuItems} />
           </div>
         </div>
 

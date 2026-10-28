@@ -367,7 +367,13 @@ export function FilesHeader({
             </IconButton>
           )}
           <DetailsToggle showDetails={showDetails} onToggle={onToggleDetails} label={t("details")} />
-          <PhoneHeaderActions below="md" />
+          <PhoneHeaderActions
+            below="md"
+            menuItems={(close) => (
+              // The phone header has no room for Refresh as a button.
+              <ContextMenuItem icon={RefreshCw} label={t("refresh")} onClick={() => { close(); onRefresh(); }} disabled={isLoading} />
+            )}
+          />
         </div>
       )}
 

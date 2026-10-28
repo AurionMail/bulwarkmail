@@ -211,4 +211,17 @@ describe('ContactsApp', () => {
     act(() => { contacts!.commands.find((c) => c.id === 'new-contact')!.run(); });
     expect(screen.getByPlaceholderText('middle_name')).toBeInTheDocument();
   });
+
+  it('puts New group and Import in the phone header menu', () => {
+    const matchMedia = window.matchMedia;
+    window.matchMedia = ((query: string) => ({ ...matchMedia(query), matches: query.includes('max-width') })) as typeof window.matchMedia;
+    try {
+      renderContacts();
+      fireEvent.click(screen.getByRole('button', { name: 'more' }));
+      fireEvent.click(screen.getByText('import.title'));
+      expect(screen.getByRole('dialog', { name: 'import.title' })).toBeInTheDocument();
+    } finally {
+      window.matchMedia = matchMedia;
+    }
+  });
 });
