@@ -72,13 +72,36 @@ describe('identity signature editor and the organisation signature', () => {
 
 describe('Your details', () => {
   it('asks only for the fields the template uses, and stores them', () => {
-    setPolicy();
+    setPolicy({ locked: true });
     useIdentityStore.setState({ identities: [ALICE] });
     render(<SignatureDetailsSection />);
     expect(screen.queryByTestId('signature-detail-title')).toBeNull();
     fireEvent.change(screen.getByTestId('signature-detail-phone'), { target: { value: '+49 30 2' } });
     expect(useSettingsStore.getState().signatureDetails.phone).toBe('+49 30 2');
     expect(screen.getByTestId('signature-details-preview').innerHTML).toContain('Alice<br>Phone: +49 30 2');
+  });
+
+  it('previews the signature that is sent: the own one while the organisation one is only the default', () => {
+    setPolicy();
+    useIdentityStore.setState({ identities: [ALICE] });
+    render(<SignatureDetailsSection />);
+    expect(screen.getByTestId('signature-detail-phone')).toBeInTheDocument();
+    expect(screen.getByTestId('signature-details-preview').innerHTML).toBe('<p class="text-xs font-medium text-muted-foreground mb-1">preview</p><div class="p-3 border border-border rounded-md bg-muted/40 text-sm break-words min-w-0"><div><b>Own</b></div></div>');
+  });
+
+  it('asks for what the signature of a group address uses too', () => {
+    const team = { id: 'id-team', name: 'Team', email: 'team@example.org', mayDelete: false } as Identity;
+    const policy: SettingsPolicy = {
+      ...DEFAULT_POLICY,
+      organisation: { ...DEFAULT_ORGANISATION_POLICY },
+      scopes: [{ id: 'team', label: 'Team', match: { groups: ['team@example.org'] }, policy: { organisation: { signature: { text: '{name}\nMobile: {mobile}' } } } }],
+    };
+    const subject = { email: 'alice@example.org', groups: ['team@example.org'] };
+    usePolicyStore.setState({ rawPolicy: policy, policy: { ...policy, scopes: undefined }, subject });
+    useIdentityStore.setState({ identities: [ALICE, team] });
+    render(<SignatureDetailsSection />);
+    expect(screen.getByTestId('signature-detail-mobile')).toBeInTheDocument();
+    expect(screen.queryByTestId('signature-detail-phone')).toBeNull();
   });
 
   it('shows nothing without an organisation signature', () => {
