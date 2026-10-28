@@ -494,3 +494,43 @@ describe('CalendarApp event menu', () => {
     expect(await screen.findByPlaceholderText('form.title')).toHaveValue('Standup');
   });
 });
+
+describe('CalendarApp from the keyboard', () => {
+  it('gives the month grid one tab stop and moves between days with the arrows', () => {
+    setUp([], 'month');
+    const { container } = renderApp();
+    const tabbable = container.querySelectorAll('[data-day-button][tabindex="0"]');
+    expect(tabbable).toHaveLength(1);
+    const today = tabbable[0] as HTMLButtonElement;
+    today.focus();
+    fireEvent.keyDown(today, { key: 'ArrowRight' });
+    expect(useCalendarStore.getState().selectedDate).toEqual(new Date(2026, 9, 13));
+    expect(document.activeElement).toBe(container.querySelector('[data-day-button="2026-10-13"]'));
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' });
+    expect(useCalendarStore.getState().selectedDate).toEqual(new Date(2026, 9, 20));
+    // The arrows moved the selection, not the calendar a month on.
+    expect(useCalendarStore.getState().viewMode).toBe('month');
+  });
+
+  it('moves the focus into an opened event card and back to the event on Escape', async () => {
+    renderApp();
+    const card = screen.getAllByRole('button', { name: /Standup/ })[0];
+    card.focus();
+    fireEvent.click(card, { detail: 0 });
+    const popover = await screen.findByRole('dialog', { name: 'Standup' });
+    await waitFor(() => expect(popover.contains(document.activeElement)).toBe(true));
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Standup' })).toBeNull());
+    expect(document.activeElement).toBe(card);
+  });
+
+  it('reaches a task with Tab and opens it', async () => {
+    setUp([], 'tasks');
+    const task = { id: 't1', '@type': 'Task', title: 'Buy milk', calendarIds: { cal: true }, progress: 'needs-action', priority: 0, due: null, showWithoutTime: true } as never;
+    useTaskStore.setState({ tasks: [task] } as never);
+    client.getCalendarTasks.mockResolvedValue([task]);
+    renderApp();
+    fireEvent.click(await screen.findByRole('button', { name: /Buy milk/ }));
+    expect(screen.getByRole('heading', { name: 'tasks.edit' })).toBeInTheDocument();
+  });
+});

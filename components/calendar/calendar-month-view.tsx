@@ -274,6 +274,38 @@ export function CalendarMonthView({
     anchorSelector: "[data-week]",
   });
 
+  // One tab stop for the whole grid (the selected day's date), arrows move
+  // from day to day and week to week, Enter opens the day (R8): Tab used to
+  // walk every date of the loaded months.
+  const selectedKey = dayKey(selectedDate);
+  const rovingKey = useMemo(() => {
+    const keys = new Set(weeks.flat().map(dayKey));
+    if (keys.has(selectedKey)) return selectedKey;
+    const focusKey = dayKey(focus.date);
+    return keys.has(focusKey) ? focusKey : (weeks[0]?.[0] ? dayKey(weeks[0][0]) : selectedKey);
+  }, [weeks, selectedKey, focus.date]);
+  const handleDayKeyDown = useCallback((e: React.KeyboardEvent<HTMLButtonElement>, day: Date, dayIndex: number) => {
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    const rtl = getComputedStyle(e.currentTarget).direction === "rtl";
+    let delta: number;
+    switch (e.key) {
+      case "ArrowLeft": delta = rtl ? 1 : -1; break;
+      case "ArrowRight": delta = rtl ? -1 : 1; break;
+      case "ArrowUp": delta = -7; break;
+      case "ArrowDown": delta = 7; break;
+      case "Home": delta = -dayIndex; break;
+      case "End": delta = 6 - dayIndex; break;
+      default: return;
+    }
+    // The grid's arrows, not the calendar's previous/next month.
+    e.preventDefault();
+    const next = addDays(day, delta);
+    const target = scrollRef.current?.querySelector<HTMLButtonElement>(`[data-day-button="${dayKey(next)}"]`);
+    if (!target) return;
+    onSelectDate(next);
+    target.focus();
+  }, [onSelectDate]);
+
   const [dropDayKey, setDropDayKey] = useState<string | null>(null);
 
   const handleCellDragOver = useCallback((e: DragEvent<HTMLDivElement>, dayKey: string) => {
@@ -402,7 +434,9 @@ export function CalendarMonthView({
                         whole cell already does. */}
                     <button
                       type="button"
-                      tabIndex={isMobile ? -1 : undefined}
+                      data-day-button={key}
+                      tabIndex={!isMobile && key === rovingKey ? 0 : -1}
+                      onKeyDown={(e) => handleDayKeyDown(e, day, dayIndex)}
                       onClick={(e) => {
                         if (isMobile || !onOpenDay) return;
                         e.stopPropagation();

@@ -47,6 +47,11 @@ interface EventDetailPopoverProps {
   isSubscriptionCalendar?: (calendarId: string) => boolean;
   timeFormat?: "12h" | "24h";
   isMobile?: boolean;
+  /**
+   * Opened by a click or Enter rather than shown on hover: it takes the
+   * focus, and gives it back to the event when it closes.
+   */
+  pinned?: boolean;
 }
 
 const POPOVER_WIDTH = 360;
@@ -125,6 +130,7 @@ export function EventDetailPopover({
   isSubscriptionCalendar,
   timeFormat = "24h",
   isMobile,
+  pinned = false,
 }: EventDetailPopoverProps) {
   const t = useTranslations("calendar");
   const locale = useLocale();
@@ -243,6 +249,17 @@ export function EventDetailPopover({
     observer.observe(node);
     return () => observer.disconnect();
   }, [anchorRect, isMobile]);
+
+  useEffect(() => {
+    if (!pinned) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const node = popoverRef.current;
+    node?.querySelector<HTMLElement>("button")?.focus({ preventScroll: true });
+    return () => {
+      const active = document.activeElement;
+      if (opener?.isConnected && (!active || active === document.body || node?.contains(active))) opener.focus({ preventScroll: true });
+    };
+  }, [pinned]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {

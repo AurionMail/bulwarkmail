@@ -222,9 +222,13 @@ export function TaskListView({
                 {isCompleted && <Check className="h-3 w-3" />}
               </button>
 
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
+              {/* Content: a button, so Tab reaches the task and Enter opens it. */}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onSelectTask(task); }}
+                className="flex-1 min-w-0 text-start rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="flex items-center gap-1.5">
                   <span className={cn(
                     "text-sm font-medium truncate",
                     isCompleted && "line-through text-muted-foreground"
@@ -232,9 +236,9 @@ export function TaskListView({
                     {task.title || t("tasks.no_title")}
                   </span>
                   {priorityIcon}
-                </div>
+                </span>
 
-                <div className="flex items-center gap-2 mt-0.5">
+                <span className="flex items-center gap-2 mt-0.5">
                   {dueDateInfo && (
                     <span className={cn("text-xs flex items-center gap-1", dueDateInfo.className)}>
                       <CalendarDays className="h-3 w-3" />
@@ -247,8 +251,8 @@ export function TaskListView({
                       {cal.name}
                     </span>
                   )}
-                </div>
-              </div>
+                </span>
+              </button>
             </div>
           );
         })}

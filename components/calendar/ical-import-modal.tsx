@@ -277,29 +277,33 @@ export function ICalImportModal({ calendars, client, onClose, initialUrl }: ICal
               </div>
 
               {importMode === "file" && (
-                <div
+                <>
+                <button
+                  type="button"
                   onClick={() => fileInputRef.current?.click()}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  className={`flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 cursor-pointer transition-colors ${
+                  className={`w-full flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     isDragging
                       ? "border-primary bg-primary/5"
                       : "border-border hover:border-primary/50 hover:bg-muted/50"
                   }`}
                 >
                   <Upload className="w-8 h-8 text-muted-foreground mb-3" />
-                  <p className="text-sm font-medium">{t("select_file")}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{t("drop_file")}</p>
-                  <p className="text-xs text-muted-foreground mt-2">{t("supported_formats")}</p>
+                  <span className="block text-sm font-medium">{t("select_file")}</span>
+                  <span className="block text-xs text-muted-foreground mt-1">{t("drop_file")}</span>
+                  <span className="block text-xs text-muted-foreground mt-2">{t("supported_formats")}</span>
+                </button>
                   <input
                     ref={fileInputRef}
                     type="file"
                     accept=".ics,.ical"
                     onChange={handleFileChange}
                     className="hidden"
+                    tabIndex={-1}
                   />
-                </div>
+                </>
               )}
 
               {importMode === "url" && (

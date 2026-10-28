@@ -2238,6 +2238,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
           isSubscriptionCalendar={isSubscriptionCalendar}
           timeFormat={timeFormat}
           isMobile={isMobile}
+          pinned={detailPinned}
         />
       )}
 

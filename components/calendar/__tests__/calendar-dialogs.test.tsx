@@ -55,3 +55,10 @@ describe('calendar dialogs', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 });
+
+describe('import dialog from the keyboard', () => {
+  it('lets the keyboard reach the file drop zone', () => {
+    render(<ICalImportModal calendars={calendars} client={client} onClose={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /select_file/ })).toBeInTheDocument();
+  });
+});
