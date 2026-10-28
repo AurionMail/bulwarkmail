@@ -1,14 +1,27 @@
 'use client';
 
 import { SettingsSection } from '@/components/settings/settings-section';
+import { restrictionKeysForPage } from '@/lib/admin/restriction-keys';
+import { RestrictionRow } from '../org-page';
 import type { OrgPolicyDraft } from '../use-org-policy-draft';
 
-/** Organisation feature 6; filled in by its own step (local-data/org-features-plan.md). */
+/**
+ * Organisation feature 6: shared tags in group mailboxes. The tags live in
+ * the group's Inbox on the mail server (Stalwart 1.0 metadata), so the only
+ * thing to set here is who may change them.
+ */
 export function SharedTagsSection({ draft }: { draft: OrgPolicyDraft }) {
-  void draft;
   return (
-    <SettingsSection id="shared-tags" title="Shared tags" description="Tag names and colours that every member of a shared mailbox sees.">
-      <p className="text-sm text-muted-foreground">Nothing to set here yet.</p>
+    <SettingsSection
+      id="shared-tags"
+      title="Shared tags"
+      description="Members of a group mailbox see the same tag names and colours on its mail, and members who may change the mailbox edit them (Stalwart 1.0 or later)."
+    >
+      <div data-testid="org-shared-tags-section">
+        {restrictionKeysForPage('org-sharing')
+          .filter((def) => def.key === 'sharedTags')
+          .map((def) => <RestrictionRow key={def.key} draft={draft} def={def} />)}
+      </div>
     </SettingsSection>
   );
 }

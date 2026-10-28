@@ -51,6 +51,15 @@ export const RESTRICTION_KEYS: readonly RestrictionKeyDef[] = [
     page: 'org-signatures',
     modes: ['locked', 'hidden'],
   },
+  {
+    key: 'sharedTags',
+    label: 'Shared tags',
+    description: "Lock: users can tag mail with the shared tags of their group mailboxes but can't add, rename or delete them. Unlock it in a group scope for the people who look after the tags.",
+    category: 'Sharing',
+    type: 'boolean',
+    page: 'org-sharing',
+    modes: ['locked'],
+  },
 ];
 
 export function restrictionKeysForPage(page: AdminPageId): RestrictionKeyDef[] {
