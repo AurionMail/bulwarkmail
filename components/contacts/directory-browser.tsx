@@ -184,7 +184,7 @@ export function DirectoryBrowser({
             title={t("refresh")}
             aria-label={t("refresh")}
           >
-            <RefreshCw className={cn("w-4 h-4", status === "loading" && "animate-spin")} />
+            <RefreshCw className={cn("w-4 h-4", status === "loading" && "animate-spin [animation-direction:reverse]")} />
           </button>
         </div>
         {entries.length > 0 && status === "error" && (

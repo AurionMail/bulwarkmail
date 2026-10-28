@@ -479,7 +479,7 @@ export function NotificationSettings() {
               onClick={() => void refreshDevices()}
               disabled={devices.kind === 'loading'}
             >
-              <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${devices.kind === 'loading' ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${devices.kind === 'loading' ? 'animate-spin [animation-direction:reverse]' : ''}`} />
               {t('push.devices_refresh')}
             </Button>
           </div>

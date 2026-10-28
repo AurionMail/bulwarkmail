@@ -65,7 +65,7 @@ export function LogsPage() {
               <option value="policy.update">Policy Update</option>
             </select>
             <Button type="button" variant="outline" size="sm" className="gap-2" onClick={fetchLogs} disabled={loading}>
-              <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
+              <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin [animation-direction:reverse]')} />
               Refresh
             </Button>
           </>

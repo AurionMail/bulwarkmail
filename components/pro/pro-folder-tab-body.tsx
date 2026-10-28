@@ -205,7 +205,7 @@ export function ProFolderTabBody({ tabId, data }: ProFolderTabBodyProps) {
           title={t('common.refresh')}
           aria-label={t('common.refresh')}
         >
-          <RefreshCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} />
+          <RefreshCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin [animation-direction:reverse]")} />
         </button>
       </div>
 

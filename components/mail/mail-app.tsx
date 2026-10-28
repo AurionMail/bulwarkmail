@@ -4717,7 +4717,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         )}
         {connectionLost && (
           <div className="flex items-center justify-center gap-2 bg-destructive/10 border-b border-destructive/30 text-destructive text-sm py-1.5 px-4 flex-shrink-0">
-            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+            <RefreshCw className="h-3.5 w-3.5 animate-spin [animation-direction:reverse]" />
             <span>{tCommon('reconnecting')}</span>
           </div>
         )}
@@ -5061,7 +5061,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     title={tCommon("refresh")}
                     aria-label={tCommon("refresh")}
                   >
-                    <RefreshCw className={cn("w-4 h-4", isManualRefreshing && "animate-spin")} />
+                    <RefreshCw className={cn("w-4 h-4", isManualRefreshing && "animate-spin [animation-direction:reverse]")} />
                   </button>
                   {/* The folder's actions, as the Mountain View list ⋮ has them. */}
                   <MailFolderMenu

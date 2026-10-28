@@ -364,7 +364,7 @@ export function FilesHeader({
           </div>
           {!compact && (
             <IconButton label={t("refresh")} onClick={onRefresh} disabled={isLoading}>
-              <RefreshCw className={cn(isLoading && "animate-spin")} />
+              <RefreshCw className={cn(isLoading && "animate-spin [animation-direction:reverse]")} />
             </IconButton>
           )}
           <DetailsToggle showDetails={showDetails} onToggle={onToggleDetails} label={t("details")} />

@@ -903,7 +903,7 @@ export function CalendarManagementSettings() {
                     disabled={refreshingSubId === sub.id}
                     className="text-muted-foreground"
                   >
-                    <RefreshCw className={cn("w-4 h-4", refreshingSubId === sub.id && "animate-spin")} />
+                    <RefreshCw className={cn("w-4 h-4", refreshingSubId === sub.id && "animate-spin [animation-direction:reverse]")} />
                   </IconButton>
                   <IconButton
                     label={tSub('unsubscribe')}
