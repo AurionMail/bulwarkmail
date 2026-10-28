@@ -134,8 +134,12 @@ export function TourProvider({ children }: { children: ReactNode }) {
     setIsActive(true);
   }, [allSteps]);
 
+  // Finished or skipped at any step, Mail closes the reader and the composer
+  // the tour opened and is back at its list. Not on Mail, it shows the list
+  // the next time it opens.
   const stopTour = useCallback(() => {
     setIsActive(false);
+    requestAppCommand("tour-end");
     try {
       localStorage.removeItem(TOUR_CURRENT_STEP_KEY);
     } catch { /* */ }
@@ -143,6 +147,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
 
   const completeTour = useCallback(() => {
     setIsActive(false);
+    requestAppCommand("tour-end");
     setHasCompletedTour(true);
     updateSetting("tourCompleted", true);
     try {

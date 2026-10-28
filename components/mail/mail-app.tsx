@@ -397,6 +397,17 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     resetEmailListWidth: state.resetEmailListWidth,
     resetEmailListHeight: state.resetEmailListHeight,
   })));
+  // On a phone the reading pane covers the list, the header and the tab bar.
+  // The view outlives this component, but the composer and the conversation
+  // in that pane don't: coming back to Mail after the tour opened the
+  // composer (or after leaving any open composer) showed only the empty
+  // welcome pane, with no way back. With nothing to read, show the list.
+  useEffect(() => {
+    if (!isMobile) return;
+    if (useUIStore.getState().activeView === "viewer" && !useEmailStore.getState().selectedEmail) {
+      setActiveView("list");
+    }
+  }, [isMobile, setActiveView]);
   const {
     emails,
     mailboxes,
@@ -1150,6 +1161,18 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (!isMobile) return;
       if (sidebarOpen) setSidebarOpen(false);
       if (!showComposer && (activeView !== "list" || selectedEmail)) handleMobileBack();
+    },
+    // The tour is over (finished or skipped at any step): close what it
+    // opened, so Mail is back at its list. A composer with text asks first.
+    'tour-end': () => {
+      const backToList = () => {
+        if (!isMobile) return;
+        if (sidebarOpen) setSidebarOpen(false);
+        handleMobileBack();
+      };
+      const requestClose = composerRequestCloseRef.current;
+      if (showComposer && requestClose) requestClose(backToList);
+      else backToList();
     },
   }, isAuthenticated && !!client);
 

@@ -108,4 +108,35 @@ describe('tour run', () => {
     start();
     expect(env.command).not.toHaveBeenCalled();
   });
+
+  // After the tour Mail was a dead end on a phone: the composer the tour had
+  // opened left only the empty reading pane. Ending the tour, whichever way,
+  // tells Mail to close what the tour opened.
+  it.each([true, false])('tells Mail the tour is over when it is skipped (phone %s)', (phone) => {
+    env.phone = phone;
+    start();
+    while (api.steps[api.currentStep].id !== 'compose-open') act(() => api.nextStep());
+    env.command.mockClear();
+    act(() => api.stopTour());
+    expect(probe()).toBe('off');
+    expect(env.command).toHaveBeenCalledWith('tour-end');
+  });
+
+  it('tells Mail the tour is over when it is finished', () => {
+    start();
+    while (api.currentStep < api.totalSteps - 1) act(() => api.nextStep());
+    env.command.mockClear();
+    act(() => api.nextStep());
+    expect(probe()).toBe('off');
+    expect(env.command).toHaveBeenCalledWith('tour-end');
+  });
+
+  it('tells Mail the tour is over when the last step has nothing to point at', () => {
+    start();
+    while (api.currentStep < api.totalSteps - 1) act(() => api.nextStep());
+    env.command.mockClear();
+    act(() => api.skipStep(1));
+    expect(probe()).toBe('off');
+    expect(env.command).toHaveBeenCalledWith('tour-end');
+  });
 });
