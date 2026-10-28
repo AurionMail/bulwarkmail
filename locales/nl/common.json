@@ -50,6 +50,18 @@
     "sign_in_sso": "Inloggen met SSO",
     "add_account_title": "Account toevoegen",
     "add_account_subtitle": "Inloggen met een ander account",
+    "subtitle": "Meld je aan bij je account",
+    "version": {
+      "details": "Versiedetails",
+      "version_line": "Versie: {value}",
+      "build_line": "Build: {value}",
+      "latest_line": "Nieuwste: {value}",
+      "copy": "Versie-informatie kopiëren",
+      "security_update": "Beveiligingsupdate beschikbaar",
+      "unsupported": "Deze versie wordt niet meer ondersteund",
+      "new_version": "Nieuwe versie beschikbaar",
+      "release_notes": "Releaseopmerkingen"
+    },
     "cancel": "Annuleren",
     "website": "Website",
     "imprint": "Colofon",
@@ -75,6 +87,13 @@
       "access_denied": "Toegang geweigerd. Neem contact op met uw beheerder.",
       "back_to_login": "Terug naar inloggen"
     }
+  },
+  "totp_reauth": {
+    "title": "Sessie verlopen",
+    "description": "Je tweestapscode is veranderd. Voer een nieuwe code uit je authenticator-app in om door te gaan.",
+    "oauth_hint": "Vraag je beheerder om aanmelden via OAuth aan te zetten (de ingebouwde OAuth van Stalwart of een externe identiteitsprovider), dan krijg je deze vraag niet meer.",
+    "code_label": "Verificatiecode",
+    "verify": "Bevestigen"
   },
   "sidebar": {
     "close": "Sluiten",
@@ -163,6 +182,7 @@
     "unified_all_starred": "Alle met ster",
     "unified_all_mail": "Alle e-mail",
     "remove_account": "Remove account",
+    "remove_account_title": "Account verwijderen?",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Labels",
     "create_label": "Nieuw label maken",
@@ -2605,6 +2625,10 @@
     "retry": "Opnieuw proberen",
     "go_home": "Ga naar postvak IN"
   },
+  "not_found": {
+    "title": "Pagina niet gevonden",
+    "description": "Deze pagina bestaat niet of is verplaatst. Controleer het adres of ga terug naar je inbox."
+  },
   "context_menu": {
     "reply": "Beantwoorden",
     "reply_all": "Allen beantwoorden",
@@ -4214,6 +4238,14 @@
     "copied": "Link gekopieerd",
     "copy_failed": "Kon de link niet kopiëren"
   },
+  "connector_link": {
+    "opening": "Openen…",
+    "unknown_title": "Deze link is nieuwer dan deze {name}",
+    "unknown_body": "Hij opent iets wat versie {version} niet kent. Bijwerken van {name} zou dat moeten oplossen.",
+    "malformed_title": "Deze link klopt niet helemaal",
+    "malformed_body": "Hij vraagt om {label}, maar de parameter {param} ontbreekt of is ongeldig. Er is niets geopend.",
+    "open_app": "{name} openen"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Autorisatie voltooien…",
@@ -4604,6 +4636,13 @@
   },
   "top_bar": {
     "more": "Meer opties"
+  },
+  "shell": {
+    "resize": "Formaat wijzigen",
+    "update_available": "Update beschikbaar",
+    "update_important": "Belangrijke update beschikbaar",
+    "folder_unread": "{count} ongelezen",
+    "folder_counts": "{unread} ongelezen, {total} totaal"
   },
   "plugin_pages": {
     "loading": "Pagina laden",

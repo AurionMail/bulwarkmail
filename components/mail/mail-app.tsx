@@ -81,7 +81,6 @@ import {
 } from "@/components/error";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PromptDialog } from "@/components/ui/prompt-dialog";
-import { TotpReauthDialog } from "@/components/totp-reauth-dialog";
 import { DragDropProvider } from "@/contexts/drag-drop-context";
 import { jmapErrorType } from "@/lib/jmap/jmap-error";
 import { isFilterEmpty, activeFilterCount, DEFAULT_SEARCH_FILTERS } from "@/lib/jmap/search-utils";
@@ -1148,6 +1147,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (isMobile) setMobileSearchOpen(true);
       else keyboardHandlers.onFocusSearch?.();
     },
+    'all-inboxes': () => handleMailboxSelect(UNIFIED_MAILBOX_IDS.inbox),
   }, isAuthenticated && !!client);
 
   // Shared mail refresh: re-fetch mailboxes (unread counts) + the active list
@@ -5587,7 +5587,6 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         )}
         <ShareNotificationToaster client={client} />
         <CalendarEventNotificationToaster client={client} />
-        <TotpReauthDialog />
         {floatingComposer && <MvComposeWindow>{composerNode}</MvComposeWindow>}
       </div>
     </DragDropProvider>

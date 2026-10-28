@@ -138,3 +138,34 @@ describe('notification bell', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
+
+describe('notification panel and the keyboard', () => {
+  it('moves the focus into the panel when it opens', () => {
+    act(() => add({ level: 'error', title: 'a', body: '' }));
+    render(<NavigationRail collapsed />);
+    fireEvent.click(bell());
+    expect(screen.getByRole('button', { name: 'mark_all_read' })).toHaveFocus();
+  });
+
+  it('focuses the panel itself when it has nothing to act on', () => {
+    render(<NavigationRail collapsed />);
+    fireEvent.click(bell());
+    expect(screen.getByRole('dialog', { name: 'title' })).toHaveFocus();
+  });
+
+  it('closes and returns to the bell when Tab leaves the panel', () => {
+    act(() => add({ level: 'error', title: 'a', body: '' }));
+    render(<NavigationRail collapsed />);
+    fireEvent.click(bell());
+    const clear = screen.getByRole('button', { name: 'clear' });
+    clear.focus();
+    act(() => { fireEvent.keyDown(clear, { key: 'Tab' }); });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(bell()).toHaveFocus();
+
+    fireEvent.click(bell());
+    const markAll = screen.getByRole('button', { name: 'mark_all_read' });
+    act(() => { fireEvent.keyDown(markAll, { key: 'Tab', shiftKey: true }); });
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});

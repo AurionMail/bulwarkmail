@@ -1,5 +1,6 @@
 import { CalendarApp } from "@/components/calendar/calendar-app";
 import { generateLiteSegmentParams } from "@/lib/lite-static-params";
+import { AppErrorBoundary } from "@/components/error/app-error-boundary";
 
 // Calendar permalinks (#733):
 //   /calendar                        the stored view, today
@@ -17,5 +18,9 @@ export default async function CalendarRoute({
   params: Promise<{ segments?: string[] }>;
 }) {
   const { segments } = await params;
-  return <CalendarApp linkSegments={segments ?? []} />;
+  return (
+    <AppErrorBoundary>
+      <CalendarApp linkSegments={segments ?? []} />
+    </AppErrorBoundary>
+  );
 }

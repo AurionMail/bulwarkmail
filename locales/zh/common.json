@@ -50,6 +50,18 @@
     "sign_in_sso": "使用 SSO 登录",
     "add_account_title": "添加账户",
     "add_account_subtitle": "使用其他账户登录",
+    "subtitle": "登录您的账户",
+    "version": {
+      "details": "版本详情",
+      "version_line": "版本：{value}",
+      "build_line": "构建：{value}",
+      "latest_line": "最新：{value}",
+      "copy": "复制版本信息",
+      "security_update": "有可用的安全更新",
+      "unsupported": "此版本已不再受支持",
+      "new_version": "有可用的新版本",
+      "release_notes": "发行说明"
+    },
     "cancel": "取消",
     "website": "网站",
     "imprint": "法律信息",
@@ -75,6 +87,13 @@
       "access_denied": "访问被拒绝。请联系您的管理员。",
       "back_to_login": "返回登录"
     }
+  },
+  "totp_reauth": {
+    "title": "会话已过期",
+    "description": "您的两步验证码已更新。请输入身份验证器应用中的新验证码以继续。",
+    "oauth_hint": "如不想再看到此提示，请让管理员启用 OAuth 登录（Stalwart 内置的 OAuth 或外部身份提供商）。",
+    "code_label": "验证码",
+    "verify": "验证"
   },
   "sidebar": {
     "close": "关闭",
@@ -163,6 +182,7 @@
     "unified_all_starred": "全部加星标",
     "unified_all_mail": "全部邮件",
     "remove_account": "Remove account",
+    "remove_account_title": "移除账户？",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "标签",
     "create_label": "新建标签",
@@ -2605,6 +2625,10 @@
     "retry": "重试",
     "go_home": "前往收件箱"
   },
+  "not_found": {
+    "title": "找不到页面",
+    "description": "此页面不存在或已移动。请检查地址，或返回收件箱。"
+  },
   "context_menu": {
     "reply": "回复",
     "reply_all": "全部回复",
@@ -4214,6 +4238,14 @@
     "copied": "链接已复制",
     "copy_failed": "无法复制链接"
   },
+  "connector_link": {
+    "opening": "正在打开…",
+    "unknown_title": "此链接比当前的 {name} 更新",
+    "unknown_body": "它要打开的内容是版本 {version} 无法识别的。更新 {name} 后即可打开。",
+    "malformed_title": "此链接不太对",
+    "malformed_body": "它请求 {label}，但参数 {param} 缺失或格式错误。未打开任何内容。",
+    "open_app": "打开 {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "正在完成授权…",
@@ -4604,6 +4636,13 @@
   },
   "top_bar": {
     "more": "更多选项"
+  },
+  "shell": {
+    "resize": "调整大小",
+    "update_available": "有可用更新",
+    "update_important": "有重要更新",
+    "folder_unread": "{count} 封未读",
+    "folder_counts": "{unread} 封未读，共 {total} 封"
   },
   "plugin_pages": {
     "loading": "正在加载页面",

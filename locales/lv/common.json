@@ -50,6 +50,18 @@
     "sign_in_sso": "Pierakstīties ar SSO",
     "add_account_title": "Pievienot kontu",
     "add_account_subtitle": "Pierakstīties citā kontā",
+    "subtitle": "Piesakieties savā kontā",
+    "version": {
+      "details": "Versijas informācija",
+      "version_line": "Versija: {value}",
+      "build_line": "Būvējums: {value}",
+      "latest_line": "Jaunākā: {value}",
+      "copy": "Kopēt versijas informāciju",
+      "security_update": "Pieejams drošības atjauninājums",
+      "unsupported": "Šī versija vairs netiek atbalstīta",
+      "new_version": "Pieejama jauna versija",
+      "release_notes": "Laidiena piezīmes"
+    },
     "cancel": "Atcelt",
     "website": "Tīmekļa vietne",
     "imprint": "Rekvizīti",
@@ -75,6 +87,13 @@
       "access_denied": "Piekļuve liegta. Sazinieties ar administratoru.",
       "back_to_login": "Atgriezties pie pierakstīšanās"
     }
+  },
+  "totp_reauth": {
+    "title": "Sesija ir beigusies",
+    "description": "Jūsu divfaktoru kods ir mainījies. Lai turpinātu, ievadiet jaunu kodu no autentifikācijas lietotnes.",
+    "oauth_hint": "Lai šis pieprasījums vairs neparādītos, lūdziet administratoram ieslēgt pieteikšanos ar OAuth (Stalwart iebūvēto OAuth vai ārēju identitātes nodrošinātāju).",
+    "code_label": "Autentifikācijas kods",
+    "verify": "Apstiprināt"
   },
   "sidebar": {
     "close": "Aizvērt",
@@ -163,6 +182,7 @@
     "unified_all_starred": "Visi ar zvaigzni",
     "unified_all_mail": "Visas vēstules",
     "remove_account": "Remove account",
+    "remove_account_title": "Noņemt kontu?",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Etiķetes",
     "create_label": "Izveidot jaunu etiķeti",
@@ -2605,6 +2625,10 @@
     "retry": "Mēģināt vēlreiz",
     "go_home": "Uz iesūtni"
   },
+  "not_found": {
+    "title": "Lapa nav atrasta",
+    "description": "Šī lapa nepastāv vai ir pārvietota. Pārbaudiet adresi vai atgriezieties iesūtnē."
+  },
   "context_menu": {
     "reply": "Atbildēt",
     "reply_all": "Atbildēt visiem",
@@ -4214,6 +4238,14 @@
     "copied": "Saite nokopēta",
     "copy_failed": "Neizdevās nokopēt saiti"
   },
+  "connector_link": {
+    "opening": "Atver…",
+    "unknown_title": "Šī saite ir jaunāka par šo {name}",
+    "unknown_body": "Tā atver kaut ko, ko versija {version} nepazīst. {name} atjaunināšanai tas būtu jāatrisina.",
+    "malformed_title": "Šī saite nav gluži pareiza",
+    "malformed_body": "Tā pieprasa {label}, bet tās parametrs {param} trūkst vai ir nepareizs. Nekas netika atvērts.",
+    "open_app": "Atvērt {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Pabeidz autorizāciju…",
@@ -4604,6 +4636,13 @@
   },
   "top_bar": {
     "more": "Citas iespējas"
+  },
+  "shell": {
+    "resize": "Mainīt izmēru",
+    "update_available": "Pieejams atjauninājums",
+    "update_important": "Pieejams svarīgs atjauninājums",
+    "folder_unread": "Nelasīti: {count}",
+    "folder_counts": "Nelasīti: {unread}, kopā: {total}"
   },
   "plugin_pages": {
     "loading": "Ielādē lapu",

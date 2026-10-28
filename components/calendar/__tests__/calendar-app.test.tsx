@@ -456,11 +456,13 @@ describe('CalendarApp creating in the month view', () => {
 });
 
 describe('CalendarApp on touch screens', () => {
-  it('has a ⋮ with Import, Subscribe and Refresh in the phone toolbar', async () => {
+  it("has Import, Subscribe and Refresh in the phone header's ⋮", async () => {
     media.mobile = true;
     media.desktop = false;
     renderApp();
-    fireEvent.click(screen.getByRole('button', { name: 'toolbar.more' }));
+    // The shell's phone ⋮, labelled by its own namespace (top_bar.more).
+    // Error toasts of earlier tests add an unread count to its name.
+    fireEvent.click(screen.getByRole('button', { name: /^more/ }));
     expect(await screen.findByRole('menuitem', { name: 'toolbar.import' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'toolbar.subscribe' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'refresh' })).toBeInTheDocument();

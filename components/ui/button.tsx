@@ -27,7 +27,7 @@ const SIZES: Record<ButtonSize, string> = {
 // that big. `relative` gives it something to centre on; a className with
 // another position (absolute, fixed, sticky) replaces it through
 // tailwind-merge and still holds the ::after.
-const TOUCH_HIT_AREA =
+export const TOUCH_HIT_AREA =
   "relative pointer-coarse:after:absolute pointer-coarse:after:top-1/2 pointer-coarse:after:left-1/2 " +
   "pointer-coarse:after:size-full pointer-coarse:after:min-h-11 pointer-coarse:after:min-w-11 " +
   "pointer-coarse:after:-translate-x-1/2 pointer-coarse:after:-translate-y-1/2";

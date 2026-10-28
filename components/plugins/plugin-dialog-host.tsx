@@ -19,7 +19,7 @@ import { usePluginStore } from '@/stores/plugin-store';
 import { toast } from '@/stores/toast-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { iconForName, Loader2, MoreHorizontal, Power, Puzzle, X } from '@/components/icons';
+import { iconForName, Loader2, MoreVertical, Power, Puzzle, X } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { PluginIframeSlot } from './plugin-iframe-slot';
 import type { SlotName } from '@/lib/plugin-types';
@@ -339,7 +339,7 @@ function PluginDialogMenu({ name, onTurnOff }: { name: string; onTurnOff: () => 
         title={t('plugin_menu', { name })}
         className={cn('p-1.5 rounded-md hover:bg-muted transition-colors duration-150 text-muted-foreground hover:text-foreground', open && 'bg-muted text-foreground')}
       >
-        <MoreHorizontal className="w-5 h-5" />
+        <MoreVertical className="w-5 h-5" />
       </button>
       {open && (
         <div role="menu" className="absolute end-0 top-full z-10 mt-1 min-w-[200px] rounded-md border border-border bg-background py-1 shadow-lg">

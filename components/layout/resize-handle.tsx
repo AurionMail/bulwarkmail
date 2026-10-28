@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 interface ResizeHandleProps {
@@ -17,6 +18,7 @@ interface ResizeHandleProps {
 const KEYBOARD_STEP = 10;
 
 export function ResizeHandle({ onResizeStart, onResize, onResizeEnd, onDoubleClick, orientation = "vertical", className, testId }: ResizeHandleProps) {
+  const t = useTranslations("shell");
   const handleRef = useRef<HTMLDivElement>(null);
   // Id of the pointer that started the drag, or null when idle. Only that
   // pointer may move or end the drag, so a second finger or button can't
@@ -120,7 +122,7 @@ export function ResizeHandle({ onResizeStart, onResize, onResizeEnd, onDoubleCli
       ref={handleRef}
       role="separator"
       aria-orientation={isHorizontal ? "horizontal" : "vertical"}
-      aria-label="Resize"
+      aria-label={t("resize")}
       data-testid={testId}
       tabIndex={0}
       onPointerDown={handlePointerDown}

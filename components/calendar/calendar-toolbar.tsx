@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, Plus, Upload, CalendarDays, Globe, ChevronDo
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { startOfWeek } from "date-fns";
+import { PhoneHeaderActions } from "@/components/layout/phone-header-actions";
 import { cn } from "@/lib/utils";
 import type { CalendarViewMode } from "@/stores/calendar-store";
 import type { Calendar } from "@/lib/jmap/types";
@@ -167,7 +168,7 @@ export function CalendarToolbar({
     <>
       <Button
         variant="ghost"
-        size={isMobile ? "icon-lg" : "icon-sm"}
+        size="icon-sm"
         className={cn(moreMenu.isOpen && "bg-accent text-accent-foreground")}
         onClick={(e) => openMoreMenuFrom(e.currentTarget, true, "end")}
         aria-label={t("toolbar.more")}
@@ -185,6 +186,14 @@ export function CalendarToolbar({
       </ContextMenu>
     </>
   ) : null;
+  // The same entries in the phone header's ⋮.
+  const phoneMenuItems = hasMoreMenu ? (close: () => void) => (
+    <>
+      {onImport && <ContextMenuItem icon={Upload} label={t("toolbar.import")} onClick={() => { close(); onImport(); }} />}
+      {onSubscribe && <ContextMenuItem icon={Globe} label={t("toolbar.subscribe")} onClick={() => { close(); onSubscribe(); }} />}
+      {onRefresh && <ContextMenuItem icon={RefreshCw} label={tCommon("refresh")} onClick={() => { close(); onRefresh(); }} />}
+    </>
+  ) : undefined;
 
 
 
@@ -225,7 +234,8 @@ export function CalendarToolbar({
                   </Button>
                 </>
               )}
-              {moreButton}
+              {/* The shell's phone ⋮ (notifications, palette, account) with the calendar's own entries on top. */}
+              <PhoneHeaderActions below="md" menuItems={phoneMenuItems} />
             </div>
 
             {/* Row 2: View switcher pills + calendar toggle */}

@@ -50,6 +50,18 @@
     "sign_in_sso": "SSO ile giriş yap",
     "add_account_title": "Hesap Ekle",
     "add_account_subtitle": "Başka bir hesapla giriş yap",
+    "subtitle": "Hesabınızda oturum açın",
+    "version": {
+      "details": "Sürüm ayrıntıları",
+      "version_line": "Sürüm: {value}",
+      "build_line": "Derleme: {value}",
+      "latest_line": "En yeni: {value}",
+      "copy": "Sürüm bilgisini kopyala",
+      "security_update": "Güvenlik güncellemesi var",
+      "unsupported": "Bu sürüm artık desteklenmiyor",
+      "new_version": "Yeni sürüm var",
+      "release_notes": "Sürüm notları"
+    },
     "cancel": "İptal",
     "website": "Web Sitesi",
     "imprint": "Yasal Bilgiler",
@@ -75,6 +87,13 @@
       "access_denied": "Erişim reddedildi. Lütfen yöneticinizle iletişime geçin.",
       "back_to_login": "Giriş sayfasına dön"
     }
+  },
+  "totp_reauth": {
+    "title": "Oturumun süresi doldu",
+    "description": "İki adımlı doğrulama kodunuz değişti. Devam etmek için kimlik doğrulama uygulamanızdan yeni bir kod girin.",
+    "oauth_hint": "Bu isteğin tekrar çıkmaması için yöneticinizden OAuth ile oturum açmayı (Stalwart'ın yerleşik OAuth'u veya harici bir kimlik sağlayıcı) açmasını isteyin.",
+    "code_label": "Doğrulama kodu",
+    "verify": "Doğrula"
   },
   "sidebar": {
     "close": "Kapat",
@@ -163,6 +182,7 @@
     "unified_all_starred": "Tüm yıldızlılar",
     "unified_all_mail": "Tüm postalar",
     "remove_account": "Remove account",
+    "remove_account_title": "Hesap kaldırılsın mı?",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Etiketler",
     "create_label": "Yeni etiket oluştur",
@@ -2605,6 +2625,10 @@
     "retry": "Yeniden dene",
     "go_home": "Gelen kutusuna git"
   },
+  "not_found": {
+    "title": "Sayfa bulunamadı",
+    "description": "Bu sayfa yok veya taşınmış. Adresi kontrol edin ya da gelen kutunuza dönün."
+  },
   "context_menu": {
     "reply": "Yanıtla",
     "reply_all": "Tümünü Yanıtla",
@@ -4214,6 +4238,14 @@
     "copied": "Bağlantı kopyalandı",
     "copy_failed": "Bağlantı kopyalanamadı"
   },
+  "connector_link": {
+    "opening": "Açılıyor…",
+    "unknown_title": "Bu bağlantı bu {name} sürümünden daha yeni",
+    "unknown_body": "{version} sürümünün bilmediği bir şeyi açıyor. {name} güncellenince açılmalı.",
+    "malformed_title": "Bu bağlantı tam doğru değil",
+    "malformed_body": "{label} istiyor, ancak {param} parametresi eksik veya hatalı. Hiçbir şey açılmadı.",
+    "open_app": "{name} uygulamasını aç"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Yetkilendirme tamamlanıyor…",
@@ -4604,6 +4636,13 @@
   },
   "top_bar": {
     "more": "Diğer seçenekler"
+  },
+  "shell": {
+    "resize": "Yeniden boyutlandır",
+    "update_available": "Güncelleme var",
+    "update_important": "Önemli güncelleme var",
+    "folder_unread": "{count} okunmamış",
+    "folder_counts": "{unread} okunmamış, toplam {total}"
   },
   "plugin_pages": {
     "loading": "Sayfa yükleniyor",

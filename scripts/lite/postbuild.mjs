@@ -78,7 +78,7 @@ function staticFiles({ config, basePath, locales, defaultLocale, version, commit
     "index.html": buildRootRedirect({ basePath, locales, defaultLocale }),
     // Replaces Next's default not-found page: only this shim replays deep links
     // on hosts without rewrite rules (see buildNotFoundShim).
-    "404.html": buildNotFoundShim({ basePath, locales }),
+    "404.html": buildNotFoundShim({ basePath, locales, defaultLocale }),
     "_redirects": buildRedirects({ basePath, locales }),
     "_headers": buildHeaders({ basePath, connectSrc }),
     "nginx.conf.example": buildNginxExample({ basePath, connectSrc }),

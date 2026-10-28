@@ -50,6 +50,18 @@
     "sign_in_sso": "Log ind med SSO",
     "add_account_title": "Tilføj konto",
     "add_account_subtitle": "Log ind med en anden konto",
+    "subtitle": "Log ind på din konto",
+    "version": {
+      "details": "Versionsdetaljer",
+      "version_line": "Version: {value}",
+      "build_line": "Build: {value}",
+      "latest_line": "Nyeste: {value}",
+      "copy": "Kopiér versionsoplysninger",
+      "security_update": "Sikkerhedsopdatering tilgængelig",
+      "unsupported": "Versionen understøttes ikke længere",
+      "new_version": "Ny version tilgængelig",
+      "release_notes": "Udgivelsesnoter"
+    },
     "cancel": "Annuller",
     "website": "Hjemmeside",
     "imprint": "Impressum",
@@ -75,6 +87,13 @@
       "access_denied": "Adgang blev nægtet. Kontakt din administrator.",
       "back_to_login": "Tilbage til login"
     }
+  },
+  "totp_reauth": {
+    "title": "Sessionen er udløbet",
+    "description": "Din tofaktorkode er ændret. Indtast en ny kode fra din godkendelsesapp for at fortsætte.",
+    "oauth_hint": "Bed din administrator om at slå login med OAuth til (Stalwarts indbyggede OAuth eller en ekstern identitetsudbyder), så du ikke bliver spurgt igen.",
+    "code_label": "Godkendelseskode",
+    "verify": "Bekræft"
   },
   "sidebar": {
     "close": "Luk",
@@ -163,6 +182,7 @@
     "unified_all_starred": "Alle med stjerne",
     "unified_all_mail": "Al post",
     "remove_account": "Remove account",
+    "remove_account_title": "Fjern konto?",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Etiketter",
     "create_label": "Opret ny etiket",
@@ -2605,6 +2625,10 @@
     "retry": "Prøv igen",
     "go_home": "Gå til indbakke"
   },
+  "not_found": {
+    "title": "Siden blev ikke fundet",
+    "description": "Siden findes ikke eller er flyttet. Tjek adressen, eller gå tilbage til din indbakke."
+  },
   "context_menu": {
     "reply": "Svar",
     "reply_all": "Svar alle",
@@ -4214,6 +4238,14 @@
     "copied": "Link kopieret",
     "copy_failed": "Kunne ikke kopiere linket"
   },
+  "connector_link": {
+    "opening": "Åbner…",
+    "unknown_title": "Dette link er nyere end denne {name}",
+    "unknown_body": "Det åbner noget, som version {version} ikke kender. En opdatering af {name} bør løse det.",
+    "malformed_title": "Dette link er ikke helt rigtigt",
+    "malformed_body": "Det beder om {label}, men parameteren {param} mangler eller er ugyldig. Intet blev åbnet.",
+    "open_app": "Åbn {name}"
+  },
   "plugins": {
     "oauth_callback": {
       "completing": "Fuldfører godkendelse…",
@@ -4604,6 +4636,13 @@
   },
   "top_bar": {
     "more": "Flere muligheder"
+  },
+  "shell": {
+    "resize": "Tilpas størrelse",
+    "update_available": "Opdatering tilgængelig",
+    "update_important": "Vigtig opdatering tilgængelig",
+    "folder_unread": "{count} ulæste",
+    "folder_counts": "{unread} ulæste, {total} i alt"
   },
   "plugin_pages": {
     "loading": "Indlæser side",
