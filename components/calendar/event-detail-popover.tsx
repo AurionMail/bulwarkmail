@@ -27,6 +27,7 @@ import { useContactNameResolver } from "@/hooks/use-contact-name-resolver";
 import { findMeetingLink, locationAction, mapsUrl, primaryLocationName } from "@/lib/event-links";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { eventToView } from "@/lib/plugin-projection";
+import { ParticipantStatusBadge, RsvpButtons } from "./rsvp-buttons";
 import { isEditableEventTarget } from "@/lib/keyboard";
 
 interface EventDetailPopoverProps {
@@ -407,7 +408,7 @@ export function EventDetailPopover({
             {event.title || t("events.no_title")}
           </h3>
           {event.status === "tentative" && (
-            <span className="mt-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-warning/15 text-warning">
+            <span className="mt-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-warning/15 text-amber-600 dark:text-amber-400">
               {t("detail.tentative")}
             </span>
           )}
@@ -546,7 +547,7 @@ export function EventDetailPopover({
                         </span>
                       )}
                     </span>
-                    <ParticipantStatusBadge status={p.status} t={t} />
+                    <ParticipantStatusBadge status={p.status} className="text-[10px]" />
                   </div>
                 ))}
                 {participants.length > 5 && (
@@ -652,47 +653,7 @@ export function EventDetailPopover({
           <p className="text-xs font-medium text-muted-foreground mb-2">
             {t("participants.rsvp_label")}
           </p>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant={userCurrentStatus === "accepted" ? "default" : "outline"}
-              onClick={() => onRsvp("accepted")}
-              className={
-                userCurrentStatus === "accepted"
-                  ? "bg-success hover:bg-success/80 text-success-foreground"
-                  : "text-success border-success/30 hover:bg-success/10"
-              }
-            >
-              {userCurrentStatus === "accepted" && <Check className="w-3.5 h-3.5 me-1" />}
-              {t("participants.accepted")}
-            </Button>
-            <Button
-              size="sm"
-              variant={userCurrentStatus === "tentative" ? "default" : "outline"}
-              onClick={() => onRsvp("tentative")}
-              className={
-                userCurrentStatus === "tentative"
-                  ? "bg-warning hover:bg-warning/80 text-warning-foreground"
-                  : "border border-warning/30 text-warning hover:bg-warning/10"
-              }
-            >
-              {userCurrentStatus === "tentative" && <Check className="w-3.5 h-3.5 me-1" />}
-              {t("participants.tentative")}
-            </Button>
-            <Button
-              size="sm"
-              variant={userCurrentStatus === "declined" ? "default" : "ghost"}
-              onClick={() => onRsvp("declined")}
-              className={
-                userCurrentStatus === "declined"
-                  ? "bg-destructive hover:bg-destructive/80 text-destructive-foreground"
-                  : "text-destructive hover:bg-destructive/10"
-              }
-            >
-              {userCurrentStatus === "declined" && <Check className="w-3.5 h-3.5 me-1" />}
-              {t("participants.declined")}
-            </Button>
-          </div>
+          <RsvpButtons status={userCurrentStatus} onRespond={onRsvp} size="xs" />
         </div>
       )}
 
@@ -700,30 +661,4 @@ export function EventDetailPopover({
   );
 
   return createPortal(popover, document.body);
-}
-
-function ParticipantStatusBadge({
-  status,
-  t,
-}: {
-  status: CalendarParticipant["participationStatus"];
-  t: ReturnType<typeof useTranslations>;
-}) {
-  const colors: Record<string, string> = {
-    accepted: "text-success",
-    declined: "text-destructive",
-    tentative: "text-warning",
-    "needs-action": "text-muted-foreground",
-  };
-  const labels: Record<string, string> = {
-    accepted: "participants.accepted",
-    declined: "participants.declined",
-    tentative: "participants.tentative",
-    "needs-action": "participants.needs_action",
-  };
-  return (
-    <span className={`text-[10px] flex-shrink-0 ${colors[status] || ""}`}>
-      {t(labels[status] || labels["needs-action"])}
-    </span>
-  );
 }

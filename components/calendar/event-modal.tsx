@@ -6,8 +6,9 @@ import { toast } from "@/stores/toast-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LinkifiedText } from "@/components/ui/linkified-text";
-import { X, Trash2, Check, Users, CalendarDays, Copy, Pencil, Clock, MapPin, Video, Repeat, Bell, AlignLeft, AlertTriangle, MoreVertical } from "@/components/icons";
+import { X, Trash2, Users, CalendarDays, Copy, Pencil, Clock, MapPin, Video, Repeat, Bell, AlignLeft, AlertTriangle, MoreVertical } from "@/components/icons";
 import { IconButton } from "@/components/ui/icon-button";
+import { ParticipantStatusBadge, RsvpButtons } from "./rsvp-buttons";
 import { format, parseISO, addHours, isSameDay } from "date-fns";
 import type { CalendarEvent, Calendar, CalendarParticipant, CalendarEventAlert, CalendarRecurrenceRule } from "@/lib/jmap/types";
 import { AlertListEditor, AlertSummary, formatEventAlertsLabel } from "./alert-list-editor";
@@ -1052,7 +1053,7 @@ export function EventModal({
                           <span className="text-muted-foreground ms-1">({t("participants.organizer").toLowerCase()})</span>
                         )}
                       </span>
-                      <StatusBadge status={p.status} t={t} />
+                      <ParticipantStatusBadge status={p.status} />
                     </div>
                   ))}
                 </div>
@@ -1209,7 +1210,7 @@ export function EventModal({
                             <span className="text-muted-foreground ms-1">({t("participants.organizer").toLowerCase()})</span>
                           )}
                         </span>
-                        <StatusBadge status={p.status} t={t} />
+                        <ParticipantStatusBadge status={p.status} />
                       </div>
                     ))}
                   </div>
@@ -1385,7 +1386,7 @@ export function EventModal({
                 it, Stalwart 1.0 refuses to save more participants - the
                 organizer entry a save adds counts too. */}
             {maxParticipants != null && attendees.length > 0 && attendees.length + 1 > maxParticipants && (
-              <p role="status" className="mt-1.5 flex items-start gap-1.5 text-xs text-warning">
+              <p role="status" className="mt-1.5 flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400">
                 <AlertTriangle className="mt-px h-3.5 w-3.5 flex-shrink-0" />
                 {t("participants.limit_warning", { max: maxParticipants })}
               </p>
@@ -1660,65 +1661,9 @@ function RsvpBar({ status, onRespond, t }: {
   t: ReturnType<typeof useTranslations>;
 }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between gap-2 flex-wrap">
       <span className="text-sm font-medium">{t("participants.rsvp_label")}</span>
-      <div className="flex gap-2">
-        <Button
-          size="sm"
-          variant={status === "accepted" ? "default" : "outline"}
-          onClick={() => onRespond("accepted")}
-          className={status === "accepted"
-            ? "bg-success hover:bg-success/80 text-success-foreground"
-            : "text-success border-success/30 hover:bg-success/10"}
-        >
-          {status === "accepted" && <Check className="w-4 h-4 me-1" />}
-          {t("participants.accepted")}
-        </Button>
-        <Button
-          size="sm"
-          variant={status === "tentative" ? "default" : "outline"}
-          onClick={() => onRespond("tentative")}
-          className={status === "tentative"
-            ? "bg-warning hover:bg-warning/80 text-warning-foreground"
-            : "border border-warning/30 text-warning hover:bg-warning/10"}
-        >
-          {status === "tentative" && <Check className="w-4 h-4 me-1" />}
-          {t("participants.tentative")}
-        </Button>
-        <Button
-          size="sm"
-          variant={status === "declined" ? "default" : "ghost"}
-          onClick={() => onRespond("declined")}
-          className={status === "declined"
-            ? "bg-destructive hover:bg-destructive/80 text-destructive-foreground"
-            : "text-destructive hover:bg-destructive/10"}
-        >
-          {status === "declined" && <Check className="w-4 h-4 me-1" />}
-          {t("participants.declined")}
-        </Button>
-      </div>
+      <RsvpButtons status={status} onRespond={onRespond} />
     </div>
   );
-}
-
-function StatusBadge({ status, t }: {
-  status: CalendarParticipant['participationStatus'];
-  t: ReturnType<typeof useTranslations>;
-}) {
-  // The organizer is marked by the "(组织者)" suffix on the name; the badge
-  // shows their participation status (organizers default to accepted) rather
-  // than repeating the organizer label.
-  const colors: Record<string, string> = {
-    accepted: "text-success",
-    declined: "text-destructive",
-    tentative: "text-warning",
-    "needs-action": "text-muted-foreground",
-  };
-  const labels: Record<string, string> = {
-    accepted: "participants.accepted",
-    declined: "participants.declined",
-    tentative: "participants.tentative",
-    "needs-action": "participants.needs_action",
-  };
-  return <span className={`text-xs ${colors[status] || ""}`}>{t(labels[status] || labels["needs-action"])}</span>;
 }

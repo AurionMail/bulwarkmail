@@ -18,7 +18,7 @@ export function CalendarLoadErrorNotice({ what = "events", onRetry }: CalendarLo
   const t = useTranslations("calendar.status");
   return (
     <div role="alert" className="flex items-center gap-2 border-b border-border bg-warning/10 px-4 py-2 text-sm">
-      <AlertTriangle className="h-4 w-4 flex-shrink-0 text-warning" />
+      <AlertTriangle className="h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
       <span className="min-w-0 flex-1">{what === "tasks" ? t("tasks_load_failed") : t("events_load_failed")}</span>
       <Button variant="outline" size="sm" onClick={onRetry}>
         {t("retry")}
