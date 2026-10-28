@@ -2,6 +2,8 @@ import type { Identity } from '@/lib/jmap/types';
 import { appendHtmlSignature, appendPlainTextSignature } from '@/lib/signature-utils';
 import { currentSignatureIdentity } from '@/lib/org/signature-state';
 import { finalizeOutgoing, runPreSendChecks, type OutgoingBodies } from './send-pipeline';
+// Registers the organisation signature check and the disclaimer.
+import '@/lib/org/outgoing';
 
 /**
  * The bodies a quick reply sends: the typed text with the signature, as

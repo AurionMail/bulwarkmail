@@ -24,7 +24,7 @@ import { getCachedConfig } from '@/hooks/use-config';
 import { usePolicyStore } from '@/stores/policy-store';
 import { useSettingsStore } from '@/stores/settings-store';
 
-interface PolicyView {
+export interface PolicyView {
   policy: SettingsPolicy;
   rawPolicy: SettingsPolicy;
   subject: PolicySubject | null;
@@ -52,19 +52,23 @@ export function policyForSender(view: PolicyView, email: string | undefined): Se
 export interface OrgSignatureSetup {
   /** Filled for the sending identity; null when the admin set no signature. */
   signature: FilledSignature | null;
+  /** The disclaimer, filled the same way; null when the admin set none. */
+  disclaimer: FilledSignature | null;
   restriction: SignatureRestriction;
 }
 
-/** The organisation signature for mail from `sending`, from the given policy. */
+/** The organisation signature and disclaimer for mail from `sending`, from the given policy. */
 export function orgSignatureSetup(
   policy: SettingsPolicy,
   sending: Pick<Identity, 'name' | 'email'> | null | undefined,
-  details: SignatureDetails,
+  details: SignatureDetails | null | undefined,
   company: string,
 ): OrgSignatureSetup {
   const organisation = policy.organisation ?? DEFAULT_ORGANISATION_POLICY;
+  const values = signatureValuesFor(sending, details, company);
   return {
-    signature: buildOrgSignature(organisation.signature, signatureValuesFor(sending, details, company)),
+    signature: buildOrgSignature(organisation.signature, values),
+    disclaimer: buildOrgSignature(organisation.disclaimer, values),
     restriction: signatureRestriction(policy.restrictions?.signature),
   };
 }
@@ -86,14 +90,4 @@ export function currentSignatureIdentity<T extends Identity>(
 ): T | null | undefined {
   const setup = currentOrgSignatureSetup(sending ?? own);
   return effectiveSignatureIdentity(own, sending, setup.signature, setup.restriction);
-}
-
-/** The disclaimer, filled in for mail from `sending`; null when there is none. */
-export function currentDisclaimer(sending: Pick<Identity, 'name' | 'email'> | null | undefined): FilledSignature | null {
-  const policy = policyForSender(usePolicyStore.getState(), sending?.email);
-  const organisation = policy.organisation ?? DEFAULT_ORGANISATION_POLICY;
-  return buildOrgSignature(
-    organisation.disclaimer,
-    signatureValuesFor(sending, useSettingsStore.getState().signatureDetails, companyName()),
-  );
 }

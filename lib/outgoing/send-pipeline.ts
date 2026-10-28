@@ -28,6 +28,12 @@ export interface OutgoingContext {
   mode: 'compose' | 'reply' | 'replyAll' | 'forward';
   /** Plain-text-only message (no HTML part). */
   plainText: boolean;
+  /**
+   * The composer's "Forwarded message" line in the UI language, where the
+   * forwarded original starts; finalisers looking for what the user wrote
+   * stop there.
+   */
+  forwardedSeparator?: string;
 }
 
 export interface OutgoingBodies {

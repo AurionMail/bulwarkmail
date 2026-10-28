@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import type { Identity } from '@/lib/jmap/types';
-import { DEFAULT_ORGANISATION_POLICY } from '@/lib/admin/organisation-policy';
-import { buildOrgSignature, effectiveSignatureIdentity, signatureValuesFor, type FilledSignature } from '@/lib/org-signature';
+import { effectiveSignatureIdentity, type FilledSignature } from '@/lib/org-signature';
 import { companyName, orgSignatureSetup, policyForSender, type OrgSignatureSetup } from '@/lib/org/signature-state';
 import { usePolicyStore } from '@/stores/policy-store';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -19,7 +18,7 @@ function useSenderPolicy(email: string | undefined) {
   );
 }
 
-/** The organisation signature filled in for mail from `sending`, and how it is restricted. */
+/** The organisation signature and disclaimer filled in for mail from `sending`, and how the signature is restricted. */
 export function useOrgSignatureSetup(sending: Sender): OrgSignatureSetup {
   const policy = useSenderPolicy(sending?.email);
   const details = useSettingsStore((s) => s.signatureDetails);
@@ -50,16 +49,5 @@ export function useOrgSignatureIdentity<T extends Identity>(
 
 /** The disclaimer added on send, filled in for mail from `sending`; null when there is none. */
 export function useOrgDisclaimer(sending: Sender): FilledSignature | null {
-  const policy = useSenderPolicy(sending?.email);
-  const details = useSettingsStore((s) => s.signatureDetails);
-  const company = companyName();
-  const name = sending?.name;
-  const email = sending?.email;
-  return useMemo(
-    () => buildOrgSignature(
-      (policy.organisation ?? DEFAULT_ORGANISATION_POLICY).disclaimer,
-      signatureValuesFor({ name: name ?? '', email: email ?? '' }, details, company),
-    ),
-    [policy, name, email, details, company],
-  );
+  return useOrgSignatureSetup(sending).disclaimer;
 }

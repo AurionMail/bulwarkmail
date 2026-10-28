@@ -88,6 +88,8 @@ import { notifyIdentitySelected } from "@/stores/identity-store";
 import { usePluginSignature } from "@/hooks/use-plugin-signature";
 import { useOrgSignatureIdentity } from "@/hooks/use-org-signature";
 import { OrgDisclaimerPreview } from "@/components/email/org-disclaimer-preview";
+// Registers the organisation signature check and the disclaimer on the send path.
+import "@/lib/org/outgoing";
 import { SubAddressHelper } from "@/components/identity/sub-address-helper";
 import { generateSubAddress } from "@/lib/sub-addressing";
 import { substitutePlaceholders, spliceTemplateAboveSignature, composeBodyHasUserContent } from "@/lib/template-utils";
@@ -3300,6 +3302,7 @@ export function EmailComposer({
       identityId: currentIdentity?.id,
       mode,
       plainText: plainTextMode,
+      forwardedSeparator: tQuote('forwarded_separator'),
     };
     preSendCheckingRef.current = true;
     let checksPassed = false;
@@ -4411,7 +4414,7 @@ export function EmailComposer({
           />
         ) : null}
         {/* The admin's disclaimer: added on send (lib/org/outgoing.ts), never part of the body. */}
-        <OrgDisclaimerPreview sending={currentIdentity} plainText={plainTextMode} />
+        <OrgDisclaimerPreview sending={currentIdentity} plainText={plainTextMode} body={body} />
         {wantsPluginDraft && (
           <PluginSlot name="composer-below-body" className="w-full" extraProps={pluginDraftProps} />
         )}

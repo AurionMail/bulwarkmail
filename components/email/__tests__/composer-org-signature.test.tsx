@@ -298,11 +298,14 @@ function expectOrgSignatureOnce(sent: { body: string; htmlBody?: string }, name:
 
 describe('organisation signature in the composer', () => {
   beforeEach(() => {
+    resetSendPipeline();
+    registerOrgOutgoing();
     useSettingsStore.setState({
       signatureDetails: { title: 'CEO', department: '', phone: '+49 30 1', mobile: '' },
     } as never);
   });
   afterEach(() => {
+    resetSendPipeline();
     useSettingsStore.setState({ plainTextMode: false, signaturePosition: 'below_quote' });
     setOrgPolicy({ signature: null });
     vi.clearAllMocks();
@@ -468,5 +471,17 @@ describe('organisation disclaimer in the composer', () => {
     expect(sent.htmlBody).toBeUndefined();
     expect(countOf(sent.body, 'Confidential')).toBe(1);
     expect(sent.body.endsWith('\n\nConfidential, from me@example.com')).toBe(true);
+  });
+
+  it('shows no block and adds no second copy when a draft back from Undo already ends with it', async () => {
+    const onSend = vi.fn();
+    // As the first send went out: the signature embedded, the disclaimer below it.
+    const body = '<p>Hi Bob</p><p data-signature-block="separator">-- </p><div data-signature-block-node=""><b>Alice</b></div>'
+      + '<p data-signature-block="end"></p><hr><p>Confidential, from me@example.com</p>';
+    render(<EmailComposer initialData={{ ...DRAFT, body }} onSend={onSend} />);
+    await waitFor(() => expect(screen.queryByTestId('org-disclaimer-preview')).toBeNull());
+    const sent = await send(onSend);
+    expect(countOf(sent.htmlBody!, 'Confidential')).toBe(1);
+    expect(countOf(sent.body, 'Confidential')).toBe(1);
   });
 });

@@ -1,24 +1,32 @@
 /**
  * The organisation's changes to outgoing mail, as send finalisers
  * (lib/outgoing/send-pipeline.ts): they run for the composer and quick
- * reply, on sends only, never on drafts. Registered once when this module
- * is imported (components/mail/mail-app.tsx); each reads the effective
- * policy at send time.
+ * reply, on sends only, never on drafts. Registered when this module is
+ * first imported (the composer and lib/outgoing/quick-reply.ts import it);
+ * each reads the effective policy at send time.
  *
  * - org-signature: a locked (or hidden) organisation signature the user
- *   deleted in the editor is put back once, at the end of their part.
+ *   deleted or changed in the editor is appended again once, at the end of
+ *   the message (below the quote, where a reply's signature goes by
+ *   default). Each part is checked and fixed on its own.
  * - org-disclaimer: the admin's disclaimer below everything, quote
  *   included: `<hr>` and the HTML in the HTML part, a blank line and the
  *   text in the text part (text from the HTML when the admin wrote none).
+ *   A part that already ends with it keeps the one it has.
  */
 
 import type { Identity } from '@/lib/jmap/types';
 import { registerOutgoingFinalizer, type OutgoingBodies, type OutgoingContext } from '@/lib/outgoing/send-pipeline';
 import { isSignatureEnforced, type FilledSignature } from '@/lib/org-signature';
-import { currentDisclaimer, currentOrgSignatureSetup } from '@/lib/org/signature-state';
-import { appendHtmlSignature, appendPlainTextSignature, getPlainTextSignature } from '@/lib/signature-utils';
-import { sanitizeSignatureHtml } from '@/lib/email-sanitization';
-import { htmlToPlainText } from '@/lib/html-to-text';
+import { currentOrgSignatureSetup } from '@/lib/org/signature-state';
+import {
+  DISCLAIMER_MARKER,
+  htmlCarriesDisclaimer,
+  htmlCarriesSignature,
+  textCarriesDisclaimer,
+  textCarriesSignature,
+} from '@/lib/org/body-match';
+import { appendHtmlSignature, appendPlainTextSignature, getPlainTextSignature, signatureAsHtml } from '@/lib/signature-utils';
 import { useIdentityStore } from '@/stores/identity-store';
 import { useSettingsStore } from '@/stores/settings-store';
 
@@ -38,78 +46,50 @@ function senderOf(context: OutgoingContext): Pick<Identity, 'name' | 'email'> | 
   return byEmail ?? (context.fromEmail ? { name: '', email: context.fromEmail } : null);
 }
 
-/** Text without any whitespace, for "does it contain" checks that survive reflowing. */
-const squash = (value: string) => value.replace(/\s+/g, '');
-
 const asSignature = (filled: FilledSignature) => ({ htmlSignature: filled.html, textSignature: filled.text });
 
-/** The user's part of the message as text: the quoted or forwarded message left out. */
-function ownText(bodies: OutgoingBodies): string {
-  if (bodies.html !== undefined) {
-    const doc = new DOMParser().parseFromString(`<!doctype html><html><body>${bodies.html}</body></html>`, 'text/html');
-    doc.querySelectorAll('[data-quoted-html], blockquote').forEach((el) => el.remove());
-    return htmlToPlainText(doc.body.innerHTML);
-  }
-  return bodies.text.split(/\r?\n/).filter((line) => !/^\s*>/.test(line)).join('\n');
-}
-
-/** Whether the user's part of the message carries `signatureText`. */
-function carriesSignature(bodies: OutgoingBodies, signatureText: string): boolean {
-  return squash(ownText(bodies)).includes(squash(signatureText));
-}
-
-const lines = (value: string) => value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-
-/** Whether the user's part of the message ends with `text`, line by line. */
-function endsWithText(bodies: OutgoingBodies, text: string): boolean {
-  const body = lines(ownText(bodies));
-  const tail = lines(text);
-  if (tail.length === 0 || tail.length > body.length) return false;
-  return tail.every((line, i) => line === body[body.length - tail.length + i]);
-}
-
 /**
- * Puts a locked organisation signature back when the user deleted it in
- * the editor. The composer and quick reply insert it, so this does nothing
- * unless it is missing, and then adds it once.
+ * Puts a locked organisation signature back when the user deleted or
+ * changed it. The composer and quick reply insert it, so this does nothing
+ * unless it is missing, and then adds it once to the part that lacks it.
  */
 export function orgSignatureFinalizer(bodies: OutgoingBodies, context: OutgoingContext): OutgoingBodies {
   const setup = currentOrgSignatureSetup(senderOf(context));
   if (!setup.signature || !isSignatureEnforced(setup.restriction)) return bodies;
-  const signature = asSignature(setup.signature);
-  const signatureText = getPlainTextSignature(signature);
-  if (!signatureText || carriesSignature(bodies, signatureText)) return bodies;
-  const separator = useSettingsStore.getState().signatureSeparatorEnabled;
+  const signature = setup.signature;
+  const separator = { separator: useSettingsStore.getState().signatureSeparatorEnabled };
+  const htmlMissing = bodies.html !== undefined && !htmlCarriesSignature(bodies.html, signature, context.forwardedSeparator);
+  // The text part of an HTML message is made from the HTML: what the HTML
+  // lacks, it lacks too.
+  const textMissing = htmlMissing || !textCarriesSignature(bodies.text, signature, context.forwardedSeparator);
+  if (!htmlMissing && !textMissing) return bodies;
   return {
-    html: bodies.html === undefined ? undefined : appendHtmlSignature(bodies.html, signature, { separator }),
-    text: appendPlainTextSignature(bodies.text, signature, { separator }),
+    html: htmlMissing ? appendHtmlSignature(bodies.html!, asSignature(signature), separator) : bodies.html,
+    text: textMissing ? appendPlainTextSignature(bodies.text, asSignature(signature), separator) : bodies.text,
   };
-}
-
-function escapeText(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
 }
 
 /** The disclaimer as it goes into the HTML part. */
 export function disclaimerHtml(disclaimer: FilledSignature): string {
-  const inner = disclaimer.html ? sanitizeSignatureHtml(disclaimer.html) : escapeText(disclaimer.text);
-  return `<hr><div data-org-disclaimer="">${inner}</div>`;
+  return `<hr><div ${DISCLAIMER_MARKER}="">${signatureAsHtml(asSignature(disclaimer))}</div>`;
 }
 
 /**
- * Adds the disclaimer below everything. A body whose own part already ends
- * with it (a message sent again after Undo, where the first send's copy came
- * back into the draft) keeps the one it has; a quoted copy doesn't count.
+ * Adds the disclaimer below everything, quote included. A part that already
+ * ends with it (a message sent again after Undo, where the first send's copy
+ * came back into the draft) keeps the one it has; a quoted copy doesn't count.
  */
 export function orgDisclaimerFinalizer(bodies: OutgoingBodies, context: OutgoingContext): OutgoingBodies {
-  const disclaimer = currentDisclaimer(senderOf(context));
+  const disclaimer = currentOrgSignatureSetup(senderOf(context)).disclaimer;
   if (!disclaimer) return bodies;
   const text = getPlainTextSignature(asSignature(disclaimer));
   if (!text) return bodies;
-  if (endsWithText(bodies, text)) return bodies;
+  const htmlMissing = bodies.html !== undefined && !htmlCarriesDisclaimer(bodies.html, disclaimer);
+  const textMissing = htmlMissing || !textCarriesDisclaimer(bodies.text, disclaimer);
+  if (!htmlMissing && !textMissing) return bodies;
   return {
-    html: bodies.html === undefined ? undefined : `${bodies.html}${disclaimerHtml(disclaimer)}`,
-    text: `${bodies.text.replace(/\s+$/, '')}\n\n${text}`,
+    html: htmlMissing ? `${bodies.html}${disclaimerHtml(disclaimer)}` : bodies.html,
+    text: textMissing ? `${bodies.text.replace(/\s+$/, '')}\n\n${text}` : bodies.text,
   };
 }
 
