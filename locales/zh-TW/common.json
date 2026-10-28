@@ -155,6 +155,7 @@
     "shared": "共用",
     "shared_account_hidden": "已從側邊欄隱藏。可在 設定 › 版面配置 中重新顯示。",
     "notifications_muted": "通知已靜音",
+    "folder_options": "{name} 的選項",
     "mail": "郵件",
     "nav_label": "導覽",
     "add_app": "應用程式",

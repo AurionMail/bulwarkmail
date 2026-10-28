@@ -158,6 +158,7 @@
     "shared": "Geteilt",
     "shared_account_hidden": "In der Seitenleiste ausgeblendet. Unter Einstellungen › Layout wieder einblenden.",
     "notifications_muted": "Benachrichtigungen stummgeschaltet",
+    "folder_options": "Optionen für {name}",
     "scheduled": "Geplant",
     "unified_all_unread": "Alle ungelesenen",
     "unified_all_starred": "Alle markierten",

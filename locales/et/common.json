@@ -155,6 +155,7 @@
     "shared": "Jagatud",
     "shared_account_hidden": "Külgribal peidetud. Lülita see tagasi sisse menüüs Seaded › Paigutus.",
     "notifications_muted": "Märguanded vaigistatud",
+    "folder_options": "{name}: valikud",
     "mail": "Kirjad",
     "nav_label": "Navigeerimine",
     "add_app": "Rakendused",

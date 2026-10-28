@@ -155,6 +155,7 @@
     "shared": "مشترك",
     "shared_account_hidden": "تم الإخفاء من الشريط الجانبي. أعد إظهاره من الإعدادات › التخطيط.",
     "notifications_muted": "الإشعارات مكتومة",
+    "folder_options": "خيارات {name}",
     "mail": "البريد",
     "nav_label": "التنقل",
     "add_app": "التطبيقات",

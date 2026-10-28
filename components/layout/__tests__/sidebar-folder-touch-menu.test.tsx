@@ -1,0 +1,60 @@
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mailbox } from '@/lib/jmap/types';
+
+// Touch has no right-click: a folder's menu (rename, delete, new subfolder,
+// empty, mark read) opens on a long-press and from the row's ⋮ (R7).
+
+vi.mock('@/components/plugins/plugin-slot', () => ({ PluginSlot: () => null }));
+vi.mock('@/components/tour/tour-provider', () => ({
+  useTour: () => ({ startTour: vi.fn(), resetTourCompletion: vi.fn(), activeTour: null, endTour: vi.fn(), registerStep: vi.fn() }),
+}));
+vi.mock('@/contexts/drag-drop-context', () => ({
+  useDragDropContext: () => ({ isDragging: false }),
+}));
+vi.mock('@/hooks/use-mailbox-drop', () => ({
+  useMailboxDrop: () => ({ dropHandlers: {}, isValidDropTarget: false, isInvalidDropTarget: false }),
+}));
+vi.mock('@/hooks/use-tag-drop', () => ({
+  useTagDrop: () => ({ dropHandlers: {}, isValidDropTarget: false }),
+}));
+vi.mock('../account-switcher', () => ({ AccountSwitcher: () => null }));
+
+const { Sidebar } = await import('../sidebar');
+const { useAuthStore } = await import('@/stores/auth-store');
+const { useSettingsStore } = await import('@/stores/settings-store');
+
+const box = (id: string, name: string, role: string | null) => ({
+  id, name, role, parentId: null, totalEmails: 0, unreadEmails: 0,
+  myRights: { mayAddItems: true, mayRename: true, mayDelete: true, mayCreateChild: true },
+}) as unknown as Mailbox;
+
+const mailboxes: Mailbox[] = [box('inbox', 'Inbox', 'inbox'), box('travel', 'Travel', null)];
+const row = (mailboxId: string) =>
+  screen.getAllByTestId('folder-row').find((el) => el.getAttribute('data-mailbox-id') === mailboxId)!;
+
+describe('folder menu on touch', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    useAuthStore.setState({ activeAccountId: 'login-a', client: { getAccountId: () => 'me', getCapabilities: () => ({}) } } as never);
+    useSettingsStore.setState({ hideAccountSwitcher: true } as never);
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it('opens on a long-press without opening the folder', () => {
+    const onMailboxSelect = vi.fn();
+    render(<Sidebar mailboxes={mailboxes} selectedMailbox="inbox" onMailboxSelect={onMailboxSelect} />);
+    fireEvent.touchStart(row('travel'), { touches: [{ clientX: 40, clientY: 200 }] });
+    act(() => { vi.advanceTimersByTime(600); });
+    fireEvent.touchEnd(row('travel'));
+    expect(screen.getByRole('menu')).toBeTruthy();
+    expect(screen.getByText('rename')).toBeTruthy();
+    expect(onMailboxSelect).not.toHaveBeenCalled();
+  });
+
+  it('opens from the row’s options button', () => {
+    render(<Sidebar mailboxes={mailboxes} selectedMailbox="inbox" />);
+    fireEvent.click(row('travel').querySelector('[data-testid="folder-row-menu"]')!);
+    expect(screen.getByRole('menu')).toBeTruthy();
+  });
+});

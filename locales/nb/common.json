@@ -155,6 +155,7 @@
     "shared": "Delt",
     "shared_account_hidden": "Skjult fra sidepanelet. Vis den igjen under Innstillinger › Oppsett.",
     "notifications_muted": "Varsler dempet",
+    "folder_options": "Alternativer for {name}",
     "mail": "E-post",
     "nav_label": "Navigasjon",
     "add_app": "Apper",

@@ -158,6 +158,7 @@
     "shared": "Общие",
     "shared_account_hidden": "Скрыто с боковой панели. Вернуть можно в Настройки › Макет.",
     "notifications_muted": "Уведомления отключены",
+    "folder_options": "Параметры: {name}",
     "scheduled": "Запланировано",
     "unified_all_unread": "Все непрочитанные",
     "unified_all_starred": "Все помеченные",

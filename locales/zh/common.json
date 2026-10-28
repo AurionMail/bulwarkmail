@@ -158,6 +158,7 @@
     "shared": "共享",
     "shared_account_hidden": "已从侧边栏隐藏。可在 设置 › 布局 中重新显示。",
     "notifications_muted": "通知已静音",
+    "folder_options": "{name} 的选项",
     "scheduled": "已计划",
     "unified_all_unread": "全部未读",
     "unified_all_starred": "全部加星标",

@@ -158,6 +158,7 @@
     "shared": "Koplietots",
     "shared_account_hidden": "Paslēpts no sānjoslas. Atkal parādiet sadaļā Iestatījumi › Izkārtojums.",
     "notifications_muted": "Paziņojumi izslēgti",
+    "folder_options": "{name} opcijas",
     "scheduled": "Ieplānots",
     "unified_all_unread": "Visi nelasītie",
     "unified_all_starred": "Visi ar zvaigzni",

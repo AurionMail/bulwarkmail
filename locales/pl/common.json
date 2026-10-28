@@ -158,6 +158,7 @@
     "shared": "Udostępnione",
     "shared_account_hidden": "Ukryto na pasku bocznym. Przywrócisz je w Ustawienia › Układ.",
     "notifications_muted": "Powiadomienia wyciszone",
+    "folder_options": "Opcje folderu {name}",
     "scheduled": "Zaplanowane",
     "unified_all_unread": "Wszystkie nieprzeczytane",
     "unified_all_starred": "Wszystkie oznaczone gwiazdką",

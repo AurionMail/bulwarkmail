@@ -158,6 +158,7 @@
     "shared": "Gedeeld",
     "shared_account_hidden": "Verborgen in de zijbalk. Zet het weer aan via Instellingen › Indeling.",
     "notifications_muted": "Meldingen gedempt",
+    "folder_options": "Opties voor {name}",
     "scheduled": "Gepland",
     "unified_all_unread": "Alle ongelezen",
     "unified_all_starred": "Alle met ster",

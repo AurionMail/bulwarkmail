@@ -158,6 +158,7 @@
     "shared": "共有",
     "shared_account_hidden": "サイドバーから非表示にしました。設定 › レイアウトで再表示できます。",
     "notifications_muted": "通知ミュート中",
+    "folder_options": "{name} のオプション",
     "scheduled": "予約済み",
     "unified_all_unread": "すべての未読",
     "unified_all_starred": "すべてのスター付き",

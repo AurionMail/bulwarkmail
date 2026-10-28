@@ -158,6 +158,7 @@
     "shared": "Спільні",
     "shared_account_hidden": "Приховано з бічної панелі. Повернути можна в Налаштування › Макет.",
     "notifications_muted": "Сповіщення вимкнено",
+    "folder_options": "Параметри: {name}",
     "scheduled": "Заплановано",
     "unified_all_unread": "Усі непрочитані",
     "unified_all_starred": "Усі позначені",

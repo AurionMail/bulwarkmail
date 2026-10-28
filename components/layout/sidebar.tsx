@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState, useEffect, useMemo, Fragment, ReactNode } from "react";
+import { memo, useState, useEffect, useMemo, useRef, Fragment, ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
@@ -40,6 +40,7 @@ import {
   Mails,
   MailOpen,
   MoreHorizontal,
+  MoreVertical,
 } from "@/components/icons";
 import { cn, buildMailboxTree, MailboxNode } from "@/lib/utils";
 import { localizeMailboxName } from "@/lib/mailbox-label";
@@ -55,6 +56,8 @@ import { useKeywordFormat } from "@/hooks/use-keyword-format";
 import { isEditableEventTarget } from "@/lib/keyboard";
 import { Mailbox } from "@/lib/jmap/types";
 import { useContextMenu } from "@/hooks/use-context-menu";
+import { useLongPress } from "@/hooks/use-long-press";
+import { IconButton } from "@/components/ui/icon-button";
 import { MailboxContextMenu, type MailboxContextTarget, type MailboxNotificationActions } from "./mailbox-context-menu";
 import { useAccountStore } from '@/stores/account-store';
 import { useShallow } from "zustand/react/shallow";
@@ -299,6 +302,23 @@ function SidebarRowCounts({
   );
 }
 
+/**
+ * What a row's menu handler needs from an event, for a menu opened by a
+ * long-press (at the finger) or from the row's ⋮ (under the button).
+ */
+function menuEventAt(element: HTMLElement, point?: { clientX: number; clientY: number }): React.MouseEvent {
+  return {
+    type: point ? "contextmenu" : "click",
+    detail: 0,
+    clientX: point?.clientX ?? 0,
+    clientY: point?.clientY ?? 0,
+    currentTarget: element,
+    target: element,
+    preventDefault: () => {},
+    stopPropagation: () => {},
+  } as unknown as React.MouseEvent;
+}
+
 interface SidebarRowProps {
   icon: ReactNode;
   label: string;
@@ -357,11 +377,23 @@ function SidebarRow({
   const t = useTranslations('sidebar');
   const leftPad = isCollapsed ? 0 : ROW_PX_BASE + depth * INDENT_STEP;
   const [labelRef, shortenedLabel] = useShortenedText(labelCandidates ?? [label]);
+  // Touch has no right-click: a long-press opens the same menu (R7), and a
+  // ⋮ shows it too.
+  const rowRef = useRef<HTMLDivElement>(null);
+  const hasMenu = !!onContextMenu && !isVirtual;
+  const longPress = useLongPress((point) => {
+    if (rowRef.current && onContextMenu) onContextMenu(menuEventAt(rowRef.current, point));
+  }, hasMenu);
 
   return (
     <div
+      ref={rowRef}
       {...(dropHandlers || {})}
       onContextMenu={onContextMenu}
+      onTouchStart={hasMenu ? longPress.onTouchStart : undefined}
+      onTouchMove={hasMenu ? longPress.onTouchMove : undefined}
+      onTouchEnd={hasMenu ? longPress.onTouchEnd : undefined}
+      onTouchCancel={hasMenu ? longPress.onTouchCancel : undefined}
       data-testid="folder-row"
       data-mv-nav-row=""
       data-folder-role={testRole ?? undefined}
@@ -445,6 +477,19 @@ function SidebarRow({
           </>
         )}
       </button>
+      {hasMenu && !isCollapsed && (
+        <IconButton
+          label={t('folder_options', { name: label })}
+          data-testid="folder-row-menu"
+          className="hidden pointer-coarse:inline-flex ms-1 flex-shrink-0 text-muted-foreground"
+          onClick={(e) => {
+            e.stopPropagation();
+            onContextMenu(menuEventAt(e.currentTarget));
+          }}
+        >
+          <MoreVertical />
+        </IconButton>
+      )}
     </div>
   );
 }

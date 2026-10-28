@@ -155,6 +155,7 @@
     "shared": "Delt",
     "shared_account_hidden": "Skjult i sidepanelet. Vis den igen under Indstillinger › Layout.",
     "notifications_muted": "Notifikationer slået fra",
+    "folder_options": "Indstillinger for {name}",
     "mail": "Mail",
     "nav_label": "Navigation",
     "add_app": "Apps",

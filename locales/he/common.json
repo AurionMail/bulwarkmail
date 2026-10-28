@@ -157,6 +157,7 @@
     "shared": "משותף",
     "shared_account_hidden": "הוסתר מסרגל הצד. אפשר להציג שוב בהגדרות › פריסה.",
     "notifications_muted": "ההתראות מושתקות",
+    "folder_options": "אפשרויות עבור {name}",
     "scheduled": "מתוכננים",
     "unified_all_unread": "הכל שלא נקראו",
     "unified_all_starred": "הכל מסומנים",

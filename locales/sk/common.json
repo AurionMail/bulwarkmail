@@ -155,6 +155,7 @@
     "shared": "Zdieľané",
     "shared_account_hidden": "Skryté z bočného panela. Znova zobrazíte v Nastavenia › Rozloženie.",
     "notifications_muted": "Upozornenia stlmené",
+    "folder_options": "Možnosti pre {name}",
     "mail": "Pošta",
     "nav_label": "Navigácia",
     "add_app": "Aplikácie",

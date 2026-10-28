@@ -158,6 +158,7 @@
     "shared": "Partagé",
     "shared_account_hidden": "Masqué de la barre latérale. Réaffichez-le dans Paramètres › Mise en page.",
     "notifications_muted": "Notifications désactivées",
+    "folder_options": "Options de {name}",
     "scheduled": "Planifiés",
     "unified_all_unread": "Tous les non lus",
     "unified_all_starred": "Tous les favoris",

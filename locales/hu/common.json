@@ -155,6 +155,7 @@
     "shared": "Megosztott",
     "shared_account_hidden": "Elrejtve az oldalsávról. A Beállítások › Elrendezés alatt jelenítheted meg újra.",
     "notifications_muted": "Értesítések némítva",
+    "folder_options": "{name} beállításai",
     "mail": "Levelek",
     "nav_label": "Navigáció",
     "add_app": "Alkalmazások",

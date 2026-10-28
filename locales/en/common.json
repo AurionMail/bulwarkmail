@@ -155,6 +155,7 @@
     "shared": "Shared",
     "shared_account_hidden": "Hidden from the sidebar. Turn it back on in Settings › Layout.",
     "notifications_muted": "Notifications muted",
+    "folder_options": "Options for {name}",
     "mail": "Mail",
     "nav_label": "Navigation",
     "add_app": "Apps",

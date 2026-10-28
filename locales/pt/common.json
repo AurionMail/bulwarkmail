@@ -158,6 +158,7 @@
     "shared": "Compartilhado",
     "shared_account_hidden": "Oculto da barra lateral. Mostre de novo em Configurações › Layout.",
     "notifications_muted": "Notificações silenciadas",
+    "folder_options": "Opções de {name}",
     "scheduled": "Agendados",
     "unified_all_unread": "Tudo não lido",
     "unified_all_starred": "Tudo com estrela",

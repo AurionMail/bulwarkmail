@@ -155,6 +155,7 @@
     "shared": "Compartit",
     "shared_account_hidden": "Amagat de la barra lateral. Torna'l a mostrar a Configuració › Disposició.",
     "notifications_muted": "Notificacions silenciades",
+    "folder_options": "Opcions de {name}",
     "mail": "Correu",
     "nav_label": "Navegació",
     "add_app": "Aplicacions",
