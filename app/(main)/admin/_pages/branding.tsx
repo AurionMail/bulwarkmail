@@ -216,7 +216,7 @@ export function BrandingPage() {
 
     if (res.ok) {
       const data = await res.json();
-      setMessage({ type: 'success', text: `Uploaded ${file.name} successfully.` });
+      setMessage({ type: 'success', text: `${file.name} uploaded` });
       setEdits(prev => {
         const next = { ...prev };
         delete next[slot];
@@ -396,7 +396,9 @@ export function BrandingPage() {
       accept={field.accept}
       value={currentValue(field.key)}
       badge={overrideBadge(field.key)}
-      placeholder={selectedHost ? 'Enter URL (uploads only for default scope)' : 'Enter URL or upload a file'}
+      // Files upload to the default scope and to exact hosts; a wildcard has
+      // no single host to serve them from (the scope line says so).
+      placeholder={wildcardScope ? 'Enter URL' : 'Enter URL or upload a file'}
       uploading={uploading === field.key}
       uploadDisabled={wildcardScope}
       uploaded={isUploadedFile(field.key)}
@@ -417,6 +419,7 @@ export function BrandingPage() {
           value={currentValue(field.key)}
           onChange={(e) => handleChange(field.key, e.target.value)}
           placeholder={placeholder}
+          title={placeholder}
           aria-label={field.label}
           autoComplete="off"
           spellCheck={false}
@@ -592,6 +595,7 @@ function ImageItem({ label, accept, value, badge, placeholder, uploading, upload
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
+            title={placeholder}
             aria-label={label}
             autoComplete="off"
             spellCheck={false}

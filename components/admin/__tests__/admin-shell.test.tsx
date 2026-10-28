@@ -39,13 +39,13 @@ describe('AdminShell', () => {
 
   it('does not server-render the phone layout, which desktop would show until hydration', () => {
     const html = renderToString(shell({ authenticated: false, isStalwartAutoLogin: false }));
-    expect(html).not.toContain('Back to mail');
+    expect(html).not.toContain('back_to_mail');
     expect(html).not.toContain('Search admin');
   });
 
   it('draws the desktop sidebar once on the client', () => {
     render(shell({ authenticated: true, isStalwartAutoLogin: false }));
-    expect(screen.getByText('Back to Mail')).toBeTruthy();
+    expect(screen.getByText('back_to_mail')).toBeTruthy();
   });
 
   it('hides the session links until the check says which kind of admin this is', () => {
@@ -66,7 +66,17 @@ describe('AdminShell', () => {
       startPolling: () => {},
     } as never);
     render(shell({ authenticated: true, isStalwartAutoLogin: false }));
-    const dot = screen.getAllByRole('img', { name: 'Update available' })[0];
-    expect(dot.getAttribute('title')).toBe('Update available');
+    const dot = screen.getAllByRole('img', { name: 'update_available' })[0];
+    expect(dot.getAttribute('title')).toBe('update_available');
+  });
+
+  // Translated like the same dot on the navigation rail (shell namespace).
+  it('names an important update in the language of the user', () => {
+    useUpdateStore.setState({
+      status: { updateAvailable: true, severity: 'security', current: process.env.NEXT_PUBLIC_APP_VERSION ?? '', latest: '9.9.9' },
+      startPolling: () => {},
+    } as never);
+    render(shell({ authenticated: true, isStalwartAutoLogin: false }));
+    expect(screen.getAllByRole('img', { name: 'update_important' })[0].getAttribute('title')).toBe('update_important');
   });
 });

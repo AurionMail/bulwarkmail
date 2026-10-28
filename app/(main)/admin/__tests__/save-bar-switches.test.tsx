@@ -81,4 +81,30 @@ describe('admin telemetry page', () => {
       expect.objectContaining({ url: '/api/admin/telemetry', body: { action: 'set-consent', consent: 'on' } }),
     ]));
   });
+
+  it('shows no next send and no consent date while heartbeats are off', async () => {
+    routes['/api/admin/telemetry'] = {
+      ...(routes['/api/admin/telemetry'] as object),
+      consent: 'off', consentedAt: '2026-10-01T10:00:00Z', lastSentAt: '2026-10-02T10:00:00Z',
+      nextScheduledAt: new Date(Date.now() - 7 * 3600_000).toISOString(),
+    };
+    render(<TelemetryPage />);
+    await screen.findByRole('switch', { name: 'Send anonymous heartbeats' });
+    expect(screen.queryByText('Next scheduled')).toBeNull();
+    expect(screen.queryByText('Consented at')).toBeNull();
+    expect(screen.queryByText(/hours ago/)).toBeNull();
+    expect(screen.getByText('Last sent')).toBeTruthy();
+  });
+
+  it('shows a past next send as due, not as "hours ago", while heartbeats are on', async () => {
+    routes['/api/admin/telemetry'] = {
+      ...(routes['/api/admin/telemetry'] as object),
+      consent: 'on', consentedAt: '2026-10-01T10:00:00Z',
+      nextScheduledAt: new Date(Date.now() - 7 * 3600_000).toISOString(),
+    };
+    render(<TelemetryPage />);
+    await screen.findByText('Next scheduled');
+    expect(screen.getByText('Due now')).toBeTruthy();
+    expect(screen.getByText('Consented at')).toBeTruthy();
+  });
 });

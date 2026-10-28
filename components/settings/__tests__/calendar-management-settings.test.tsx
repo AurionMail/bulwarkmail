@@ -72,3 +72,47 @@ describe('CalendarManagementSettings CalDAV fallback address', () => {
     vi.restoreAllMocks();
   });
 });
+
+// Phone: seven icons in a row hid the calendar names. The row actions are
+// also in a ⋮ menu (right-click too), the same list as the icons, and every
+// icon is a named button with the touch hit area.
+describe('CalendarManagementSettings row actions', () => {
+  const work = {
+    id: 'work', name: 'Work', color: '#ff0000', isDefault: false, isShared: false, shareWith: null, sortOrder: 1,
+    myRights: { mayShare: true, mayDelete: true, mayWriteAll: true },
+  } as unknown as Calendar;
+  const home = { ...appleColored, color: '#00ff00', sortOrder: 0 } as Calendar;
+
+  beforeEach(() => {
+    useAuthStore.setState({ client: { getAccountId: () => 'acct-1' }, serverUrl: null, username: null } as never);
+    useCalendarStore.setState({ calendars: [home, work], icalSubscriptions: [], updateCalendar: vi.fn() } as never);
+  });
+
+  it('offers the row actions from a named ⋮ menu, Delete last and only where it applies', async () => {
+    render(<CalendarManagementSettings />);
+    const more = screen.getAllByRole('button', { name: 'row_actions' });
+    expect(more).toHaveLength(2);
+
+    fireEvent.click(more[1]); // Work, not the default calendar
+    const menu = await screen.findByRole('menu');
+    const items = Array.from(menu.querySelectorAll('[role="menuitem"]')).map((el) => el.textContent);
+    expect(items).toEqual(['edit', 'default_alerts', 'share', 'clear_events', 'move_up', 'move_down', 'delete']);
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'delete' }));
+    expect(await screen.findByRole('alertdialog')).toBeTruthy();
+  });
+
+  it('leaves Delete out of the default calendar menu', async () => {
+    render(<CalendarManagementSettings />);
+    fireEvent.click(screen.getAllByRole('button', { name: 'row_actions' })[0]);
+    const menu = await screen.findByRole('menu');
+    expect(Array.from(menu.querySelectorAll('[role="menuitem"]')).map((el) => el.textContent)).not.toContain('delete');
+  });
+
+  it('names every row icon', () => {
+    render(<CalendarManagementSettings />);
+    for (const name of ['move_up', 'move_down', 'edit', 'default_alerts', 'share', 'clear_events', 'delete', 'change_color']) {
+      expect(screen.getAllByRole('button', { name }).length).toBeGreaterThan(0);
+    }
+  });
+});

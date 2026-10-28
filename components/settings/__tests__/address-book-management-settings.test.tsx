@@ -55,7 +55,7 @@ describe('address books in Settings', () => {
     expect(deletes).toHaveLength(1);
 
     fireEvent.click(deletes[0]);
-    const dialog = within(screen.getByRole('alertdialog'));
+    const dialog = within(screen.getByRole('alertdialog', { name: 'delete_title' }));
     expect(removeAddressBook).not.toHaveBeenCalled();
     fireEvent.click(dialog.getByRole('button', { name: 'delete' }));
     await waitFor(() => expect(removeAddressBook).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ id: 'club' })));

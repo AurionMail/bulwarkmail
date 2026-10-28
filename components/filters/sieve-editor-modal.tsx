@@ -1,11 +1,20 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { AlertTriangle, CheckCircle, Loader2 } from "@/components/icons";
 import { useDiscardChanges } from "@/components/settings/use-discard-changes";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { parseScript } from "@/lib/sieve/parser";
+
+/** Rules made in the visual builder (not external or opaque blocks). */
+function hasVisualRules(script: string): boolean {
+  const parsed = parseScript(script);
+  return !parsed.isOpaque && parsed.rules.some((r) => !r.origin || r.origin === "bulwark");
+}
 
 interface SieveEditorModalProps {
   content: string;
@@ -21,13 +30,13 @@ export function SieveEditorModal({
   onValidate,
 }: SieveEditorModalProps) {
   const t = useTranslations("settings.filters.sieve_editor");
+  const tSettings = useTranslations("settings");
   const [script, setScript] = useState(content);
   const [isValidating, setIsValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<{
     isValid: boolean;
     errors?: string[];
   } | null>(null);
-  const [showSaveWarning, setShowSaveWarning] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dirty = script !== content;
@@ -53,13 +62,23 @@ export function SieveEditorModal({
     }
   }, [script, onValidate, t]);
 
-  const handleSave = useCallback(() => {
-    if (!showSaveWarning) {
-      setShowSaveWarning(true);
-      return;
+  // The visual rules only go away when the saved script no longer carries
+  // them in a form the builder reads; only then does Save ask, once.
+  const startsWithVisualRules = useMemo(() => hasVisualRules(content), [content]);
+  const { dialogProps: overwriteProps, confirm: confirmOverwrite } = useConfirmDialog();
+  const handleSave = useCallback(async () => {
+    if (startsWithVisualRules && !hasVisualRules(script)) {
+      const ok = await confirmOverwrite({
+        title: t("overwrite_title"),
+        message: t("overwrite_message"),
+        confirmText: t("save"),
+        cancelText: tSettings("keep_editing"),
+        variant: "destructive",
+      });
+      if (!ok) return;
     }
     onSave(script);
-  }, [script, showSaveWarning, onSave]);
+  }, [startsWithVisualRules, script, confirmOverwrite, t, tSettings, onSave]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Tab") {
@@ -105,8 +124,8 @@ export function SieveEditorModal({
           <Button variant="outline" onClick={() => void requestClose()}>
             {t("cancel")}
           </Button>
-          <Button onClick={handleSave} disabled={!script.trim()}>
-            {showSaveWarning ? t("confirm_save") : t("save")}
+          <Button onClick={() => void handleSave()} disabled={!script.trim()}>
+            {t("save")}
           </Button>
         </>
       }
@@ -137,7 +156,6 @@ export function SieveEditorModal({
               onChange={(e) => {
                 setScript(e.target.value);
                 setValidationResult(null);
-                setShowSaveWarning(false);
               }}
               onKeyDown={handleKeyDown}
               className="flex-1 bg-background text-foreground font-mono text-sm p-2 resize-none focus:outline-none leading-[1.5rem]"
@@ -174,17 +192,11 @@ export function SieveEditorModal({
               )}
             </div>
           )}
-
-          {showSaveWarning && (
-            <div className="flex items-start gap-2 p-3 rounded-md bg-warning/10 border border-warning/20 text-sm text-warning">
-              <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <p>{t("save_warning")}</p>
-            </div>
-          )}
         </div>
 
     </Dialog>
     {discardDialog}
+    <ConfirmDialog {...overwriteProps} />
     </>
   );
 }

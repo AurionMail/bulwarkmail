@@ -40,6 +40,13 @@ function timeAgo(iso: string | null): string {
   return `${days} days ago`;
 }
 
+/** When the next heartbeat goes out; a time already past means it is due. */
+function nextRun(iso: string | null): string {
+  if (!iso) return '-';
+  const at = new Date(iso);
+  return at.getTime() <= Date.now() ? 'Due now' : at.toLocaleString();
+}
+
 export function TelemetryPage() {
   const [status, setStatus] = useState<TelemetryStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -177,12 +184,18 @@ export function TelemetryPage() {
           <SettingItem label="Last sent">
             <span className="text-sm text-foreground">{timeAgo(status.lastSentAt)}</span>
           </SettingItem>
-          <SettingItem label="Next scheduled">
-            <span className="text-sm text-foreground">{timeAgo(status.nextScheduledAt)}</span>
-          </SettingItem>
-          <SettingItem label="Consented at">
-            <span className="text-sm text-foreground">{status.consentedAt ? new Date(status.consentedAt).toLocaleString() : '-'}</span>
-          </SettingItem>
+          {/* Only a running schedule has a next send and a consent date; with
+              heartbeats off they were stale ("Next scheduled: 7 hours ago"). */}
+          {isOn && (
+            <>
+              <SettingItem label="Next scheduled">
+                <span className="text-sm text-foreground">{nextRun(status.nextScheduledAt)}</span>
+              </SettingItem>
+              <SettingItem label="Consented at">
+                <span className="text-sm text-foreground">{status.consentedAt ? new Date(status.consentedAt).toLocaleString() : '-'}</span>
+              </SettingItem>
+            </>
+          )}
         </SettingsSection>
 
         <SettingsSection

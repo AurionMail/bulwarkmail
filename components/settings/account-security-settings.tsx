@@ -522,7 +522,7 @@ function CredentialSection({ icon: Icon, i18nNamespace, entries, onCreate, onRem
         </div>
         <Button variant="outline" size="sm" onClick={() => setShowAdd(!showAdd)}>
           <Plus className="w-3 h-3 me-1" />
-          {t('app_passwords.add')}
+          {tk('new')}
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">{tk('description')}</p>
@@ -750,7 +750,7 @@ function PublicKeysSection() {
         </div>
         <Button variant="outline" size="sm" onClick={() => setShowAdd(!showAdd)}>
           <Plus className="w-3 h-3 me-1" />
-          {t('app_passwords.add')}
+          {tk('add')}
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">{t('encryption.description')}</p>
@@ -780,7 +780,7 @@ function PublicKeysSection() {
           <div className="flex gap-2">
             <Button type="submit" size="sm" disabled={isSaving || !description.trim() || !publicKey.trim()}>
               {isSaving ? <Loader2 className="w-4 h-4 me-1 animate-spin" /> : null}
-              {t('app_passwords.create')}
+              {tk('add_submit')}
             </Button>
             <Button type="button" variant="ghost" size="sm" onClick={() => setShowAdd(false)}>
               {t('app_passwords.cancel')}
