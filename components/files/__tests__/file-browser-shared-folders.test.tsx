@@ -420,4 +420,12 @@ describe('FileBrowser', () => {
     const dialog = screen.getByRole('dialog', { name: 'move_to_title' });
     expect(within(dialog).queryByRole('treeitem', { name: /Documents/ })).toBeNull();
   });
+
+  it("downloads a folder as a zip named after it", () => {
+    const onDownloadZip = vi.fn(async () => {});
+    renderBrowser({ props: { onDownloadZip } });
+    fireEvent.contextMenu(within(list()).getByText('Documents'));
+    fireEvent.click(screen.getByText('download_zip'));
+    expect(onDownloadZip).toHaveBeenCalledWith(['f-docs'], 'Documents.zip');
+  });
 });

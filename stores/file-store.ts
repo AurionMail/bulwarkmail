@@ -13,6 +13,7 @@ import {
   TRASH_FOLDER_NAME, TRASH_LOCATION, TRASH_PATH, findTrashFolder, isTrashLocation, trashBatchName,
   trashSubtreeIds, trashedItems,
 } from '@/lib/files-trash';
+import { buildZip, planZip, saveBlob, type ZipProgress } from '@/lib/files-zip';
 
 export interface FileResource {
   id: string;
@@ -144,6 +145,11 @@ interface FileState {
   renameResource: (oldName: string, newName: string) => Promise<boolean>;
   downloadResource: (name: string) => Promise<void>;
   downloadResources: (names: string[]) => Promise<void>;
+  /**
+   * Download items by id as one zip built in the browser: files as they are,
+   * folders with everything in them. Rejects with an AbortError when canceled.
+   */
+  downloadZip: (ids: string[], zipName: string, options?: { signal?: AbortSignal; onProgress?: (p: ZipProgress) => void }) => Promise<void>;
   getImageUrl: (name: string) => Promise<string>;
   getFileContent: (name: string) => Promise<{ blob: Blob; contentType: string }>;
   createTextFile: (name: string) => Promise<void>;
@@ -1288,6 +1294,18 @@ export const useFileStore = create<FileState>((set, get) => ({
     for (const name of names) {
       await downloadResource(name);
     }
+  },
+
+  downloadZip: async (ids, zipName, options = {}) => {
+    const { client } = get();
+    if (!client) return;
+    const nodes = ids.some(isCrossAccountId)
+      ? await client.listAllFileNodesAcrossAccounts()
+      : await client.listAllFileNodes();
+    const plan = planZip(nodes, ids);
+    // A node of a drive shared with the user is fetched from its owner's account.
+    const blob = await buildZip(plan, (node) => client.fetchBlob(node.blobId!, node.name, node.type, node.accountId), options);
+    saveBlob(blob, zipName);
   },
 
   getImageUrl: async (name: string) => {

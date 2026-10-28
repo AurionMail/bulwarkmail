@@ -75,6 +75,8 @@ export interface FilesSidebarProps {
   onRenameFolder: (folder: FileResource) => void;
   /** Move to… for a folder of the own drive. */
   onMoveFolder?: (folder: FileResource) => void;
+  /** Download a folder as a zip. */
+  onDownloadFolder?: (folder: FileResource) => void;
   onDeleteFolder: (folder: FileResource) => void;
   /** Open the folder holding a recent file, with the file selected. */
   onRevealRecent: (id: string) => void;
@@ -108,6 +110,7 @@ export function FilesSidebar({
   onCreateIn,
   onRenameFolder,
   onMoveFolder,
+  onDownloadFolder,
   onDeleteFolder,
   onRevealRecent,
   onDownloadRecent,
@@ -480,6 +483,9 @@ export function FilesSidebar({
               )}
               {onMoveFolder && !folder.isShared && mayRename && (
                 <ContextMenuItem icon={FolderInput} label={t("move_to")} onClick={() => run(() => onMoveFolder(folder))} />
+              )}
+              {onDownloadFolder && (
+                <ContextMenuItem icon={Download} label={t("download_zip")} onClick={() => run(() => onDownloadFolder(folder))} />
               )}
               {mayDelete && (
                 <ContextMenuItem icon={Trash2} label={t("delete")} destructive onClick={() => run(() => onDeleteFolder(folder))} />

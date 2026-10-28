@@ -73,6 +73,8 @@ interface FileBrowserProps {
   onRename: (oldName: string, newName: string) => Promise<void>;
   onDownload: (name: string) => Promise<void>;
   onBatchDownload: (names: string[]) => Promise<void>;
+  /** Download items by id as one zip, e.g. a folder. */
+  onDownloadZip?: (ids: string[], zipName: string) => Promise<void>;
   onRefresh: () => Promise<void>;
   onToggleSelect: (name: string) => void;
   onClearSelection: () => void;
@@ -164,6 +166,7 @@ export function FileBrowser({
   onRename,
   onDownload,
   onBatchDownload,
+  onDownloadZip,
   onRefresh,
   onToggleSelect,
   onClearSelection,
@@ -446,6 +449,8 @@ export function FileBrowser({
     return list;
   }, [currentPath, pathStack, inTrash, t]);
   const folderName = crumbs[crumbs.length - 1].name;
+  const folderNameRef = useRef(folderName);
+  folderNameRef.current = folderName;
 
   const navigateCrumb = useCallback((crumb: Crumb) => {
     if (crumb.path === "/") {
@@ -547,10 +552,17 @@ export function FileBrowser({
   }, [onDelete, onBatchDelete]);
 
   const downloadNames = useCallback((names: string[]) => {
+    const items = names.map((n) => resources.find((r) => r.name === n)).filter((r): r is FileResource => !!r && !r.isSymlink);
+    // Folders come as one zip, with any files picked next to them.
+    if (onDownloadZip && items.some((r) => r.isDirectory)) {
+      const zipName = items.length === 1 ? items[0].name : folderNameRef.current;
+      void onDownloadZip(items.map((r) => r.id), `${zipName}.zip`);
+      return;
+    }
     const files = names.filter(hasContent);
     if (files.length === 1) void onDownload(files[0]);
     else if (files.length > 1) void onBatchDownload(files);
-  }, [hasContent, onDownload, onBatchDownload]);
+  }, [resources, hasContent, onDownload, onBatchDownload, onDownloadZip]);
 
   // ---- Drag and drop ---------------------------------------------------------
   const moveNames = useCallback((names: string[], targetId: string | null) => {
@@ -849,10 +861,15 @@ export function FileBrowser({
     if (menuSelection.length > 1) {
       const names = menuSelection.map((r) => r.name);
       const fileCount = menuSelection.filter((r) => !r.isDirectory && !r.isSymlink).length;
+      const withFolders = !!onDownloadZip && menuSelection.some((r) => r.isDirectory);
       return (
         <>
-          {fileCount > 0 && (
-            <ContextMenuItem icon={Download} label={t("download_count", { count: fileCount })} onClick={() => { closeMenu(); downloadNames(names); }} />
+          {(fileCount > 0 || withFolders) && (
+            <ContextMenuItem
+              icon={Download}
+              label={withFolders ? t("download_zip") : t("download_count", { count: fileCount })}
+              onClick={() => { closeMenu(); downloadNames(names); }}
+            />
           )}
           {canMove && (
             <ContextMenuItem icon={FolderInput} label={t("move_to")} onClick={() => { closeMenu(); setMoveTarget({ names }); }} />
@@ -872,7 +889,12 @@ export function FileBrowser({
     return (
       <>
         {resource.isDirectory ? (
-          <ContextMenuItem icon={FolderOpen} label={t("open")} onClick={() => { closeMenu(); openResource(resource); }} />
+          <>
+            <ContextMenuItem icon={FolderOpen} label={t("open")} onClick={() => { closeMenu(); openResource(resource); }} />
+            {onDownloadZip && (
+              <ContextMenuItem icon={Download} label={t("download_zip")} onClick={() => { closeMenu(); downloadNames([resource.name]); }} />
+            )}
+          </>
         ) : resource.isSymlink ? null : (
           <>
             {isOfficeEditable?.(resource.name) && onEditFile && (
@@ -979,6 +1001,7 @@ export function FileBrowser({
       onShare={fromDrawer((r: FileResource) => setShareTargetId(r.id))}
       onCreateIn={fromDrawer(createIn)}
       onRenameFolder={fromDrawer(setRenameFolder)}
+      onDownloadFolder={onDownloadZip ? (folder: FileResource) => void onDownloadZip([folder.id], `${folder.name}.zip`) : undefined}
       onMoveFolder={onMoveNode ? fromDrawer((folder: FileResource) => setMoveTarget({ folder })) : undefined}
       onDeleteFolder={fromDrawer((folder: FileResource) => void onDeleteNode(folder.id, folder.name))}
       onRevealRecent={fromDrawer((id: string) => void onRevealNode(id))}
@@ -1126,7 +1149,8 @@ export function FileBrowser({
     pluginFiles: [],
   } : selectedList.length > 0 ? {
     count: selectedList.length,
-    fileCount: selectedList.filter((r) => !r.isDirectory && !r.isSymlink).length,
+    // Folders download as a zip.
+    fileCount: selectedList.filter((r) => !r.isSymlink && (!r.isDirectory || !!onDownloadZip)).length,
     canOpen: !!singleSelected && !singleSelected.isSymlink
       && (singleSelected.isDirectory || isPreviewable(singleSelected.name) || !!isOfficeEditable?.(singleSelected.name)),
     canRename: !!singleSelected,

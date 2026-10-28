@@ -89,6 +89,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     createTextFile,
     duplicateResource,
     downloadResources,
+    downloadZip,
     moveToFolderId,
     moveNode,
     cutResources,
@@ -537,6 +538,31 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     }
   }, [downloadResources, t]);
 
+  // A folder (or a selection with folders) comes as a zip built here; a
+  // progress toast shows how far it is and can cancel it.
+  const handleDownloadZip = useCallback(async (ids: string[], zipName: string) => {
+    const controller = new AbortController();
+    const toastId = toast.progress(t("zipping", { name: zipName }), {
+      progress: 0,
+      action: { label: t("cancel"), onClick: () => controller.abort() },
+    });
+    try {
+      await downloadZip(ids, zipName, {
+        signal: controller.signal,
+        onProgress: ({ progress, current }) => toast.update(toastId, { progress, message: current }),
+      });
+      toast.dismiss(toastId);
+    } catch (err) {
+      toast.dismiss(toastId);
+      if (err instanceof DOMException && err.name === "AbortError") {
+        toast.info(t("download_canceled"));
+        return;
+      }
+      console.error("Failed to download the zip:", err);
+      toast.error(t("zip_error", { name: zipName }), failureReason(err));
+    }
+  }, [downloadZip, t, failureReason]);
+
   const handleCreateTextFile = useCallback(async (name: string) => {
     try {
       await createTextFile(name);
@@ -804,6 +830,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
                   onRename={handleRename}
                   onDownload={handleDownload}
                   onBatchDownload={handleBatchDownload}
+                  onDownloadZip={handleDownloadZip}
                   onRefresh={refresh}
                   onToggleSelect={toggleSelect}
                   onClearSelection={clearSelection}
