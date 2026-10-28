@@ -3981,6 +3981,8 @@
       "invitation_parsing_desc": "Detectar convites de calendário em anexos de e-mail e mostrar ações do calendário",
       "show_time_in_month_view": "Mostrar horário na visualização mensal",
       "show_time_in_month_view_desc": "Exibir horários dos eventos na visualização mensal do calendário",
+      "tinted_events": "Cores de evento claras",
+      "tinted_events_desc": "Mostrar os eventos com um tom claro da cor do calendário e uma barra colorida no início, como no Outlook e na impressão, em vez de blocos sólidos.",
       "show_week_numbers": "Mostrar números da semana",
       "show_week_numbers_desc": "Exibir números da semana no minicalendário",
       "calendar_free_scroll": "Deslocamento livre",

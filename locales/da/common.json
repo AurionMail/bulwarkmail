@@ -3981,6 +3981,8 @@
       "invitation_parsing_desc": "Registrér kalenderinvitationer i e-mail-vedhæftninger og vis kalenderhandlinger",
       "show_time_in_month_view": "Vis tid i månedsvisning",
       "show_time_in_month_view_desc": "Vis begivenhedstider i månedskalendervisningen",
+      "tinted_events": "Lyse begivenhedsfarver",
+      "tinted_events_desc": "Vis begivenheder i en lys nuance af kalenderens farve med en farvet bjælke i starten, som i Outlook og på udskrifter, i stedet for udfyldte blokke.",
       "show_week_numbers": "Vis ugenumre",
       "show_week_numbers_desc": "Vis ugenumre i minikalenderen",
       "calendar_free_scroll": "Fri rulning",

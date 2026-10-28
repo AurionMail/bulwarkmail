@@ -3899,6 +3899,8 @@
       "invitation_parsing_desc": "זיהוי הזמנות ליומן בקבצים מצורפים לאימייל והצג פעולות ביומן",
       "show_time_in_month_view": "הצג זמן בתצוגת חודש",
       "show_time_in_month_view_desc": "הצג זמני אירועים בתצוגת לוח השנה של החודש",
+      "tinted_events": "צבעי אירועים בהירים",
+      "tinted_events_desc": "הצגת אירועים בגוון בהיר של צבע היומן עם פס צבעוני בהתחלה, כמו ב-Outlook ובהדפסה, במקום בלוקים מלאים.",
       "show_week_numbers": "הצג מספרי שבוע",
       "show_week_numbers_desc": "הצג מספרי שבוע במיני-לוח שנה",
       "calendar_free_scroll": "גלילה חופשית",

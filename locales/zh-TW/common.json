@@ -3981,6 +3981,8 @@
       "invitation_parsing_desc": "偵測郵件附件中的行事曆邀請，並顯示行事曆動作",
       "show_time_in_month_view": "在月檢視中顯示時間",
       "show_time_in_month_view_desc": "在月檢視中顯示活動時間。小螢幕會顯示完整活動項目，而不只是圓點。",
+      "tinted_events": "淺色活動顏色",
+      "tinted_events_desc": "像 Outlook 和列印版本一樣，以行事曆顏色的淺色調加開頭的彩色直條顯示活動，而非實心色塊。",
       "show_week_numbers": "顯示週數",
       "show_week_numbers_desc": "在迷你行事曆中顯示週數",
       "calendar_free_scroll": "自由捲動",

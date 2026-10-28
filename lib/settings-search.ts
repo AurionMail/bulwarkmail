@@ -235,6 +235,7 @@ export const tabSearchEntries: Record<Tab, SettingsSearchEntry[]> = {
     { label: 'calendar.settings.default_view' },
     { label: 'calendar.settings.invitation_parsing' },
     { label: 'calendar.settings.show_time_in_month_view' },
+    { label: 'calendar.settings.tinted_events' },
     { label: 'calendar.settings.show_week_numbers' },
     { label: 'calendar.settings.limit_hours' },
     { label: 'calendar.settings.visible_hours' },

@@ -3981,6 +3981,8 @@
       "invitation_parsing_desc": "Rozpoznávať pozvánky kalendára v prílohách e-mailov a zobrazovať akcie kalendára",
       "show_time_in_month_view": "Zobraziť čas v mesačnom zobrazení",
       "show_time_in_month_view_desc": "Zobrazovať časy udalostí v mesačnom zobrazení kalendára",
+      "tinted_events": "Svetlé farby udalostí",
+      "tinted_events_desc": "Zobrazovať udalosti vo svetlom odtieni farby kalendára s farebným pruhom na začiatku, ako v Outlooku a pri tlači, namiesto plných blokov.",
       "show_week_numbers": "Zobraziť čísla týždňov",
       "show_week_numbers_desc": "Zobrazovať čísla týždňov v minikalendári",
       "calendar_free_scroll": "Voľné posúvanie",

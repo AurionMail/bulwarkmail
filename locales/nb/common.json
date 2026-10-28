@@ -3981,6 +3981,8 @@
       "invitation_parsing_desc": "Finn kalenderinvitasjoner i e-postvedlegg og vis tilgjengelige kalenderhandlinger",
       "show_time_in_month_view": "Vis klokkeslett i månedsvisning",
       "show_time_in_month_view_desc": "Vis klokkeslettet for hendelser i månedsvisningen. På små skjermer vises hele hendelsesoppføringen i stedet for en prikk.",
+      "tinted_events": "Lyse hendelsesfarger",
+      "tinted_events_desc": "Vis hendelser i en lys nyanse av kalenderens farge med en farget stolpe i starten, som i Outlook og på utskrifter, i stedet for fylte blokker.",
       "show_week_numbers": "Vis ukenummer",
       "show_week_numbers_desc": "Vis ukenummer i minikalenderen",
       "calendar_free_scroll": "Fri rulling",

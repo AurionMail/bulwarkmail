@@ -1,6 +1,7 @@
 import { render, screen, cleanup } from '@testing-library/react';
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { EventCard } from '../event-card';
+import { useSettingsStore } from '@/stores/settings-store';
 import type { Calendar, CalendarEvent, CalendarParticipant } from '@/lib/jmap/types';
 
 // #1110: an invitation the user declined - the whole series or one occurrence
@@ -88,5 +89,26 @@ describe('EventCard fill', () => {
     const shadow = screen.getByRole('button').style.boxShadow;
     expect(shadow).toContain('0 0 0 2px var(--color-primary)');
     expect(shadow).toContain('inset 0 0 0 1px');
+  });
+
+  describe('with light event colours', () => {
+    beforeEach(() => useSettingsStore.setState({ calendarTintedEvents: true }));
+    afterEach(() => useSettingsStore.setState({ calendarTintedEvents: false }));
+
+    it.each(['chip', 'span', 'block'] as const)('tints the %s and draws the calendar colour as a bar at its start', (variant) => {
+      render(<EventCard event={makeOccurrence('a', 'accepted')} calendar={calendar} variant={variant} currentUserEmails={me} />);
+      const card = screen.getByRole('button');
+      expect(card).toHaveClass('start-bar');
+      expect(card.style.getPropertyValue('--start-bar')).toBe('#22c55e');
+      expect(card.style.backgroundColor).not.toBe('rgb(34, 197, 94)');
+      expect(card.style.color).toBe('var(--color-foreground)');
+    });
+
+    it('keeps the outline of a declined event, without a bar', () => {
+      render(<EventCard event={makeOccurrence('a', 'declined')} calendar={calendar} variant="block" currentUserEmails={me} />);
+      const card = screen.getByRole('button');
+      expect(card).not.toHaveClass('start-bar');
+      expect(card.style.boxShadow).toContain('inset 0 0 0 1px');
+    });
   });
 });

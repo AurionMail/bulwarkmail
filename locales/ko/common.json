@@ -3981,6 +3981,8 @@
       "invitation_parsing_desc": "이메일 첨부파일에서 캘린더 초대장을 감지하고 보여줘요",
       "show_time_in_month_view": "월간 보기에 시간 표시",
       "show_time_in_month_view_desc": "월간 캘린더에서도 일정 시간을 표시해요",
+      "tinted_events": "연한 일정 색상",
+      "tinted_events_desc": "일정을 꽉 찬 블록 대신 Outlook이나 인쇄본처럼 캘린더 색상의 연한 색조와 앞쪽의 색상 막대로 표시합니다.",
       "show_week_numbers": "주 차 번호 표시",
       "show_week_numbers_desc": "미니 캘린더에 1년 중 몇 주 차인지 표시해요",
       "calendar_free_scroll": "자유 스크롤",

@@ -34,6 +34,7 @@ export function CalendarSettings() {
   const defaultIdentityId = participantIdentities.find((i) => i.isDefault)?.id ?? participantIdentities[0]?.id ?? '';
   const {
     showTimeInMonthView,
+    calendarTintedEvents,
     showWeekNumbers,
     calendarFreeScroll,
     enableCalendarTasks,
@@ -132,6 +133,16 @@ export function CalendarSettings() {
         <ToggleSwitch
           checked={showTimeInMonthView}
           onChange={(checked) => updateSetting('showTimeInMonthView', checked)}
+        />
+      </SettingItem>
+
+      <SettingItem
+        label={t('tinted_events')}
+        description={t('tinted_events_desc')}
+      >
+        <ToggleSwitch
+          checked={calendarTintedEvents}
+          onChange={(checked) => updateSetting('calendarTintedEvents', checked)}
         />
       </SettingItem>
 

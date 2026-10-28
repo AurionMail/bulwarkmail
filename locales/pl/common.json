@@ -3981,6 +3981,8 @@
       "invitation_parsing_desc": "Wykrywaj zaproszenia kalendarza w załącznikach e-mail i pokazuj działania kalendarza",
       "show_time_in_month_view": "Pokaż godzinę w widoku miesiąca",
       "show_time_in_month_view_desc": "Wyświetlaj godziny wydarzeń w miesięcznym widoku kalendarza",
+      "tinted_events": "Jasne kolory wydarzeń",
+      "tinted_events_desc": "Pokazuj wydarzenia w jasnym odcieniu koloru kalendarza z kolorowym paskiem na początku, jak w Outlooku i na wydruku, zamiast pełnych bloków.",
       "show_week_numbers": "Pokaż numery tygodni",
       "show_week_numbers_desc": "Wyświetlaj numery tygodni w mini-kalendarzu",
       "calendar_free_scroll": "Swobodne przewijanie",

@@ -3981,6 +3981,8 @@
       "invitation_parsing_desc": "Detectați invitațiile din calendar din atașamentele de e-mail și afișați acțiunile din calendar",
       "show_time_in_month_view": "Afișați ora în vizualizarea lunară",
       "show_time_in_month_view_desc": "Afișați orele evenimentelor în vizualizarea calendarului lunar",
+      "tinted_events": "Culori deschise pentru evenimente",
+      "tinted_events_desc": "Afișează evenimentele într-o nuanță deschisă a culorii calendarului, cu o bară colorată la început, ca în Outlook și la tipărire, în loc de blocuri pline.",
       "show_week_numbers": "Afișați numerele săptămânilor",
       "show_week_numbers_desc": "Afișați numerele săptămânilor în mini-calendar",
       "calendar_free_scroll": "Derulare liberă",

@@ -55,11 +55,14 @@ function getEventColor(event: CalendarEvent, calendar?: Calendar): string {
 
 // Events are solid blocks of their calendar colour; declined and cancelled
 // ones drop the fill and keep a 1px border in it (repos/branding/APP.md).
+// With light event colours on (the Outlook look, as on the printout) an
+// event is a light tint of its colour with a bar in it at the start
+// (eventFillClass) and text in the text colour.
 // Everything is drawn with box-shadow, so the selection ring joins the list
 // here and the browser's focus outline stays free.
-function eventFillStyle(
+export function eventFillStyle(
   color: string,
-  { inactive, separated, selected }: { inactive: boolean; separated?: boolean; selected?: boolean },
+  { inactive, separated, selected, tinted }: { inactive: boolean; separated?: boolean; selected?: boolean; tinted?: boolean },
 ): CSSProperties {
   const shadows: string[] = [];
   if (selected) shadows.push("0 0 0 2px var(--color-primary)");
@@ -67,8 +70,19 @@ function eventFillStyle(
   if (inactive) shadows.push(`inset 0 0 0 1px ${color}`);
   const fill: CSSProperties = inactive
     ? { backgroundColor: "var(--color-background)", color: `color-mix(in srgb, ${color} 55%, var(--color-foreground))` }
-    : { backgroundColor: color, color: readableTextOn(color) };
+    : tinted
+      ? {
+        backgroundColor: `color-mix(in srgb, ${color} 20%, var(--color-background))`,
+        color: "var(--color-foreground)",
+        ["--start-bar" as string]: color,
+      }
+      : { backgroundColor: color, color: readableTextOn(color) };
   return shadows.length > 0 ? { ...fill, boxShadow: shadows.join(", ") } : fill;
+}
+
+/** The class that draws the light style's bar; declined and cancelled events keep their outline. */
+export function eventFillClass(tinted: boolean, inactive: boolean): string | undefined {
+  return tinted && !inactive ? "start-bar" : undefined;
 }
 
 function parseDuration(duration: string | undefined): number {
@@ -107,6 +121,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
   const startDate = getEventStartDate(event);
   const timeFormat = useSettingsStore((state) => state.timeFormat);
   const showTimeInMonthView = useSettingsStore((state) => state.showTimeInMonthView);
+  const tinted = useSettingsStore((state) => state.calendarTintedEvents);
   const timeFmt = timeFormat === "12h" ? "h:mm a" : "HH:mm";
 
   const calendarName = calendar?.name || "";
@@ -193,9 +208,10 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
           "min-h-[44px] sm:min-h-0",
           "hover:opacity-90 transition-opacity",
           isBeingDragged && "opacity-50",
+          eventFillClass(tinted, isInactive),
           className
         )}
-        style={{ ...eventFillStyle(color, { inactive: isInactive, selected: isSelected }), ...style }}
+        style={{ ...eventFillStyle(color, { inactive: isInactive, selected: isSelected, tinted }), ...style }}
       >
         {/* The whole width, aligned to the title's own start: a short English
             title in Arabic sat at the right, a cut one filled to the left. */}
@@ -221,9 +237,10 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
           continuesBefore && "rounded-s-none",
           continuesAfter && "rounded-e-none pe-2",
           isBeingDragged && "opacity-50",
+          eventFillClass(tinted, isInactive),
           className
         )}
-        style={{ ...eventFillStyle(color, { inactive: isInactive, selected: isSelected }), ...style }}
+        style={{ ...eventFillStyle(color, { inactive: isInactive, selected: isSelected, tinted }), ...style }}
       >
         <div className="flex items-center gap-1 min-w-0">
           {showTimeInMonthView && !event.showWithoutTime && (
@@ -259,9 +276,10 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
         continuesAfter && "rounded-b-none",
         continuesBefore && "pe-4",
         isBeingDragged && "opacity-50",
+        eventFillClass(tinted, isInactive),
         className
       )}
-      style={{ ...eventFillStyle(color, { inactive: isInactive, separated: true, selected: isSelected }), ...style }}
+      style={{ ...eventFillStyle(color, { inactive: isInactive, separated: true, selected: isSelected, tinted }), ...style }}
     >
       {continuesBefore && <ChevronUp aria-hidden="true" className="absolute top-0.5 end-0.5 w-3 h-3 opacity-85" />}
       {continuesAfter && <ChevronDown aria-hidden="true" className="absolute bottom-0.5 end-0.5 w-3 h-3 opacity-85" />}

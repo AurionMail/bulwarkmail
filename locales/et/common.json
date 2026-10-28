@@ -3981,6 +3981,8 @@
       "invitation_parsing_desc": "Tuvasta kalendrikutsed e-kirjade manustes ja kuva kalenditoimingud",
       "show_time_in_month_view": "Kuva kellaaeg kuuvaates",
       "show_time_in_month_view_desc": "Kuva sündmuste kellaajad kuu kalendrivaates. Väikestel ekraanidel kuvatakse punktide asemel täielikud sündmuste kirjed.",
+      "tinted_events": "Heledad sündmuste värvid",
+      "tinted_events_desc": "Näita sündmusi kalendri värvi heleda tooniga ja värvilise ribaga alguses, nagu Outlookis ja väljatrükil, mitte täisvärviliste plokkidena.",
       "show_week_numbers": "Kuva nädalanumbrid",
       "show_week_numbers_desc": "Kuva nädalanumbrid minikalendris",
       "calendar_free_scroll": "Vaba kerimine",

@@ -7,7 +7,7 @@ import {
   startOfWeek, format, isSameDay, eachDayOfInterval,
 } from "date-fns";
 import { cn } from "@/lib/utils";
-import { EventCard } from "./event-card";
+import { EventCard, eventFillClass, eventFillStyle } from "./event-card";
 import { QuickEventInput } from "./quick-event-input";
 import { CalendarTaskChip } from "./task-chip";
 import { AllHoursToggle, HiddenEventsIndicator } from "./display-hours-controls";
@@ -24,7 +24,6 @@ import { useScrollWindow, getScrollStart, setScrollStart, scrollToStart } from "
 import { dayKey, type ScrollWindowViewProps } from "@/lib/calendar-scroll-window";
 import type { PendingEventPreview } from "./event-modal";
 import { useCalendarErrorMessage } from "@/hooks/use-calendar-error-message";
-import { readableTextOn } from "@/lib/color-transform";
 import { PluginDayLabel } from "./plugin-day-label";
 
 interface CalendarWeekViewProps extends ScrollWindowViewProps {
@@ -107,6 +106,7 @@ export function CalendarWeekView({
   revealAt,
 }: CalendarWeekViewProps) {
   const t = useTranslations("calendar");
+  const tintedEvents = useSettingsStore((s) => s.calendarTintedEvents);
   const describeError = useCalendarErrorMessage();
   // Grid days / event dates are display dates (local fields = wall-clock in
   // the user's zone); the app-wide formatter would shift them again (#755).
@@ -839,12 +839,11 @@ export function CalendarWeekView({
                       return (
                         <div
                           data-pending-preview
-                          className="absolute left-0.5 right-0.5 z-30 rounded-xs pointer-events-none overflow-hidden px-1.5 py-0.5 text-xs shadow-md"
+                          className={cn("absolute left-0.5 right-0.5 z-30 rounded-xs pointer-events-none overflow-hidden px-1.5 py-0.5 text-xs shadow-md", eventFillClass(tintedEvents, false))}
                           style={{
                             top: ((clip.startMinutes - hours.startMinutes) / 60) * hourHeight,
                             height: Math.max(20, ((clip.endMinutes - clip.startMinutes) / 60) * hourHeight),
-                            backgroundColor: color,
-                            color: readableTextOn(color),
+                            ...eventFillStyle(color, { inactive: false, tinted: tintedEvents }),
                           }}
                         >
                           <div className="font-medium truncate">

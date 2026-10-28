@@ -585,6 +585,8 @@ interface SettingsState {
 
   // Calendar
   showTimeInMonthView: boolean;
+  /** Events as a light tint of their colour with a bar at the start (the Outlook look), not solid blocks. */
+  calendarTintedEvents: boolean;
   showWeekNumbers: boolean;
   /** Scroll continuously through months/weeks/days (#759) instead of one period at a time. */
   calendarFreeScroll: boolean;
@@ -898,6 +900,7 @@ const DEFAULT_SETTINGS = {
 
   // Calendar
   showTimeInMonthView: false,
+  calendarTintedEvents: false,
   showWeekNumbers: false,
   calendarFreeScroll: true,
   calendarHoverPreview: 'delay-500ms' as CalendarHoverPreview,
@@ -1316,6 +1319,7 @@ export const useSettingsStore = create<SettingsState>()(
           filesSettings: state.filesSettings,
           expandedFilterView: state.expandedFilterView,
           showTimeInMonthView: state.showTimeInMonthView,
+          calendarTintedEvents: state.calendarTintedEvents,
           showWeekNumbers: state.showWeekNumbers,
           calendarFreeScroll: state.calendarFreeScroll,
           calendarHoverPreview: state.calendarHoverPreview,

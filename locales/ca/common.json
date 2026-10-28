@@ -3981,6 +3981,8 @@
       "invitation_parsing_desc": "Detecta les invitacions de calendari als fitxers adjunts del correu i mostra les accions del calendari",
       "show_time_in_month_view": "Mostra l'hora a la vista mensual",
       "show_time_in_month_view_desc": "Mostra l'hora dels esdeveniments a la vista mensual del calendari. En pantalles petites, això mostra entrades completes d'esdeveniment en lloc de punts.",
+      "tinted_events": "Colors d'esdeveniment clars",
+      "tinted_events_desc": "Mostra els esdeveniments amb un to clar del color del calendari i una barra de color al principi, com a l'Outlook i a la impressió, en lloc de blocs sòlids.",
       "show_week_numbers": "Mostra els números de setmana",
       "show_week_numbers_desc": "Mostra els números de setmana al minicalendari",
       "calendar_free_scroll": "Desplaçament lliure",

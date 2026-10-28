@@ -3981,6 +3981,8 @@
       "invitation_parsing_desc": "تشخیص دعوت‌نامه‌های تقویم در پیوست ایمیل",
       "show_time_in_month_view": "نمایش زمان در نمای ماه",
       "show_time_in_month_view_desc": "نمایش زمان رویدادها در نمای ماه تقویم",
+      "tinted_events": "رنگ‌های روشن رویداد",
+      "tinted_events_desc": "نمایش رویدادها با ته‌رنگ روشنی از رنگ تقویم و نواری رنگی در ابتدا، مانند Outlook و نسخهٔ چاپی، به‌جای بلوک‌های تمام‌رنگ.",
       "show_week_numbers": "نمایش شماره هفته",
       "show_week_numbers_desc": "نمایش شماره هفته در تقویم کوچک",
       "calendar_free_scroll": "پیمایش آزاد",

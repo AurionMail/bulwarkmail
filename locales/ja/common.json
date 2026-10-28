@@ -3981,6 +3981,8 @@
       "invitation_parsing_desc": "メール添付のカレンダー招待を検出してカレンダー操作を表示する",
       "show_time_in_month_view": "月表示で時刻を表示",
       "show_time_in_month_view_desc": "月カレンダー表示でイベントの時刻を表示する",
+      "tinted_events": "淡いイベントカラー",
+      "tinted_events_desc": "予定を塗りつぶしではなく、Outlook や印刷時と同じように、カレンダーの色の淡い色合いと先頭の色付きバーで表示します。",
       "show_week_numbers": "週番号を表示",
       "show_week_numbers_desc": "ミニカレンダーに週番号を表示する",
       "calendar_free_scroll": "自由スクロール",

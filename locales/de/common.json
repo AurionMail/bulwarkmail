@@ -3981,6 +3981,8 @@
       "invitation_parsing_desc": "Kalendereinladungen in E-Mail-Anhängen erkennen und Kalenderaktionen anzeigen",
       "show_time_in_month_view": "Zeit in Monatsansicht anzeigen",
       "show_time_in_month_view_desc": "Ereigniszeiten in der Monatskalenderansicht anzeigen",
+      "tinted_events": "Helle Terminfarben",
+      "tinted_events_desc": "Termine als helle Tönung ihrer Kalenderfarbe mit farbigem Balken am Anfang anzeigen, wie in Outlook und im Ausdruck, statt als volle Farbflächen.",
       "show_week_numbers": "Kalenderwochen anzeigen",
       "show_week_numbers_desc": "Kalenderwochen im Minikalender anzeigen",
       "calendar_free_scroll": "Freies Scrollen",

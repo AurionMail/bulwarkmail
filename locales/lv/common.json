@@ -3980,6 +3980,8 @@
       "invitation_parsing_desc": "Meklēt kalendāra uzaicinājumus e-pasta pielikumos",
       "show_time_in_month_view": "Rādīt laiku mēneša skatā",
       "show_time_in_month_view_desc": "Rādīt pasākuma laiku mēneša kalendārā",
+      "tinted_events": "Gaišas notikumu krāsas",
+      "tinted_events_desc": "Rādīt notikumus kalendāra krāsas gaišā tonī ar krāsainu joslu sākumā, kā Outlook un izdrukās, nevis kā pilnus blokus.",
       "show_week_numbers": "Rādīt nedēļu numurus",
       "show_week_numbers_desc": "Rādīt nedēļu numurus mini kalendārā",
       "calendar_free_scroll": "Brīva ritināšana",

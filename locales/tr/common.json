@@ -3981,6 +3981,8 @@
       "invitation_parsing_desc": "E-posta eklerindeki takvim davetlerini algıla ve takvim işlemlerini göster",
       "show_time_in_month_view": "Ay görünümünde saati göster",
       "show_time_in_month_view_desc": "Aylık takvim görünümünde etkinlik saatlerini görüntüle",
+      "tinted_events": "Açık etkinlik renkleri",
+      "tinted_events_desc": "Etkinlikleri düz bloklar yerine, Outlook'ta ve çıktılarda olduğu gibi takvim renginin açık bir tonu ve başta renkli bir çubukla göster.",
       "show_week_numbers": "Hafta numaralarını göster",
       "show_week_numbers_desc": "Mini takvimde hafta numaralarını görüntüle",
       "calendar_free_scroll": "Serbest kaydırma",

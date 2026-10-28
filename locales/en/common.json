@@ -3981,6 +3981,8 @@
       "invitation_parsing_desc": "Detect calendar invitations in email attachments and show calendar actions",
       "show_time_in_month_view": "Show time in month view",
       "show_time_in_month_view_desc": "Display event times in the month calendar view. On small screens this shows full event entries instead of dots.",
+      "tinted_events": "Light event colors",
+      "tinted_events_desc": "Show events as a light tint of their calendar color with a colored bar at the start, as in Outlook and on printouts, instead of solid blocks.",
       "show_week_numbers": "Show week numbers",
       "show_week_numbers_desc": "Display week numbers in the mini-calendar",
       "calendar_free_scroll": "Free scrolling",

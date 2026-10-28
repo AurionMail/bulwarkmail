@@ -3981,6 +3981,8 @@
       "invitation_parsing_desc": "Rileva gli inviti del calendario negli allegati email e mostra le azioni del calendario",
       "show_time_in_month_view": "Mostra orario nella vista mensile",
       "show_time_in_month_view_desc": "Visualizza gli orari degli eventi nella vista mensile del calendario",
+      "tinted_events": "Colori evento chiari",
+      "tinted_events_desc": "Mostra gli eventi con una tinta chiara del colore del calendario e una barra colorata all'inizio, come in Outlook e nella stampa, invece che come blocchi pieni.",
       "show_week_numbers": "Mostra numeri di settimana",
       "show_week_numbers_desc": "Mostra i numeri di settimana nel mini-calendario",
       "calendar_free_scroll": "Scorrimento libero",

@@ -3981,6 +3981,8 @@
       "invitation_parsing_desc": "Naptármeghívók észlelése az e-mail csatolmányokban és naptár műveletek megjelenítése",
       "show_time_in_month_view": "Idő mutatása a hónap nézetben",
       "show_time_in_month_view_desc": "Események időpontjának mutatása a havi naptár nézetben",
+      "tinted_events": "Világos eseményszínek",
+      "tinted_events_desc": "Az események a naptár színének világos árnyalatával és az elején színes sávval jelennek meg, mint az Outlookban és nyomtatásban, teli blokkok helyett.",
       "show_week_numbers": "Hétszámok mutatása",
       "show_week_numbers_desc": "Hétszámok mutatása a mini naptárban",
       "calendar_free_scroll": "Szabad görgetés",

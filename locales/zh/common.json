@@ -3981,6 +3981,8 @@
       "invitation_parsing_desc": "检测邮件附件中的日历邀请并显示日历操作",
       "show_time_in_month_view": "在月视图中显示时间",
       "show_time_in_month_view_desc": "在月历视图中显示事件时间",
+      "tinted_events": "浅色日程颜色",
+      "tinted_events_desc": "像 Outlook 和打印件那样，用日历颜色的浅色调加开头的彩色竖条显示日程，而不是实心色块。",
       "show_week_numbers": "显示周数",
       "show_week_numbers_desc": "在迷你日历中显示周数",
       "calendar_free_scroll": "自由滚动",

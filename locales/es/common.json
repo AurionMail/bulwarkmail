@@ -3981,6 +3981,8 @@
       "invitation_parsing_desc": "Detectar invitaciones de calendario en archivos adjuntos del correo y mostrar acciones del calendario",
       "show_time_in_month_view": "Mostrar hora en vista mensual",
       "show_time_in_month_view_desc": "Mostrar las horas de los eventos en la vista mensual del calendario",
+      "tinted_events": "Colores de evento claros",
+      "tinted_events_desc": "Mostrar los eventos con un tono claro del color de su calendario y una barra de color al inicio, como en Outlook y al imprimir, en lugar de bloques sólidos.",
       "show_week_numbers": "Mostrar números de semana",
       "show_week_numbers_desc": "Mostrar los números de semana en el minicalendario",
       "calendar_free_scroll": "Desplazamiento libre",
