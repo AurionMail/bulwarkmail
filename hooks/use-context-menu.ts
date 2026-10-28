@@ -1,21 +1,24 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-
-interface Position {
-  x: number;
-  y: number;
-}
+import type { ContextMenuPosition } from "@/components/ui/context-menu";
 
 interface ContextMenuState<T> {
   isOpen: boolean;
-  position: Position;
+  position: ContextMenuPosition;
   data: T | null;
 }
 
 interface UseContextMenuReturn<T> {
   contextMenu: ContextMenuState<T>;
+  /**
+   * Open from a contextmenu or click event. Opened by keyboard (a click
+   * from Enter/Space, or Shift+F10 / the Menu key) it anchors to the
+   * element the handler sits on instead of the pointer.
+   */
   openContextMenu: (e: React.MouseEvent, data: T) => void;
+  /** Open under an element, e.g. a ⋮ button: lined up with its start or end edge. */
+  openContextMenuFrom: (element: HTMLElement, data: T, align?: "start" | "end") => void;
   closeContextMenu: () => void;
   menuRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -23,6 +26,30 @@ interface UseContextMenuReturn<T> {
 const MENU_WIDTH = 200;
 const MENU_HEIGHT = 320; // Approximate max height
 const VIEWPORT_MARGIN = 10;
+
+/** Shift+F10 or the Menu key: open the focused element's context menu. */
+export function isContextMenuKey(e: { key: string; shiftKey: boolean }): boolean {
+  return e.key === "ContextMenu" || (e.shiftKey && e.key === "F10");
+}
+
+/** Whether a mouse event came from the keyboard rather than a pointer. */
+function openedByKeyboard(e: React.MouseEvent): boolean {
+  if (e.type === "click") return e.detail === 0;
+  // Shift+F10 and the Menu key fire contextmenu at 0,0 (or without a point).
+  if (e.type === "contextmenu") return !e.clientX && !e.clientY;
+  return false;
+}
+
+/** The position that opens a menu under an element. */
+export function anchorPosition(element: HTMLElement, align: "start" | "end" = "start"): ContextMenuPosition {
+  const rect = element.getBoundingClientRect();
+  return {
+    x: rect.left,
+    y: rect.bottom,
+    anchor: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, align },
+    trigger: element,
+  };
+}
 
 export function useContextMenu<T>(): UseContextMenuReturn<T> {
   const [contextMenu, setContextMenu] = useState<ContextMenuState<T>>({
@@ -33,7 +60,7 @@ export function useContextMenu<T>(): UseContextMenuReturn<T> {
 
   const menuRef = useRef<HTMLDivElement | null>(null);
 
-  const calculatePosition = useCallback((clientX: number, clientY: number): Position => {
+  const calculatePosition = useCallback((clientX: number, clientY: number): ContextMenuPosition => {
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
@@ -61,7 +88,10 @@ export function useContextMenu<T>(): UseContextMenuReturn<T> {
     e.preventDefault();
     e.stopPropagation();
 
-    const position = calculatePosition(e.clientX, e.clientY);
+    const target = e.currentTarget instanceof HTMLElement ? e.currentTarget : null;
+    const position = target && openedByKeyboard(e)
+      ? anchorPosition(target)
+      : { ...calculatePosition(e.clientX, e.clientY), trigger: target };
 
     setContextMenu({
       isOpen: true,
@@ -70,6 +100,10 @@ export function useContextMenu<T>(): UseContextMenuReturn<T> {
     });
   }, [calculatePosition]);
 
+  const openContextMenuFrom = useCallback((element: HTMLElement, data: T, align: "start" | "end" = "start") => {
+    setContextMenu({ isOpen: true, position: anchorPosition(element, align), data });
+  }, []);
+
   const closeContextMenu = useCallback(() => {
     setContextMenu((prev) => ({
       ...prev,
@@ -77,7 +111,8 @@ export function useContextMenu<T>(): UseContextMenuReturn<T> {
     }));
   }, []);
 
-  // Close on escape key, click outside, and scroll
+  // Close on escape key, click outside, and scroll. (ContextMenu answers
+  // Escape itself and keeps it from the app; this one is a fallback.)
   useEffect(() => {
     if (!contextMenu.isOpen) return;
 
@@ -127,6 +162,7 @@ export function useContextMenu<T>(): UseContextMenuReturn<T> {
   return {
     contextMenu,
     openContextMenu,
+    openContextMenuFrom,
     closeContextMenu,
     menuRef,
   };
