@@ -165,8 +165,13 @@ export function SettingsPage() {
         <SettingsSection id="wopi" title="Document editing">
           <ConfigTextItem label="WOPI client URL" configKey="wopiClientUrl" value={currentValue('wopiClientUrl') as string} source={config.wopiClientUrl?.source} onChange={handleChange} onRevert={handleRevert} placeholder="https://office.example.com" wide />
           <ConfigTextItem label="WOPI host URL override" configKey="wopiHostUrl" value={currentValue('wopiHostUrl') as string} source={config.wopiHostUrl?.source} onChange={handleChange} onRevert={handleRevert} placeholder="http://webmail:3000" wide />
+          <ConfigTextItem label="New file formats" configKey="wopiNewFileFormats" value={currentValue('wopiNewFileFormats') as string} source={config.wopiNewFileFormats?.source} onChange={handleChange} onRevert={handleRevert} placeholder="Every format the editor can edit" wide />
+          <ConfigTextItem label="Template directory" configKey="wopiTemplateDir" value={currentValue('wopiTemplateDir') as string} source={config.wopiTemplateDir?.source} onChange={handleChange} onRevert={handleRevert} placeholder="/data/templates" wide />
           <ConfigNote>
             Point the client URL at a WOPI-compatible office suite (Collabora Online, OnlyOffice, EuroOffice, …) to let users edit documents in Files. The client URL may be an internal address: the browser loads the editor from the address its discovery advertises. The host override is only needed when the editor reaches this webmail under a different address than the browser does (e.g. Docker networks); give the address alone, the webmail&apos;s base path is added to it. The editor must also allow this webmail as a WOPI host.
+          </ConfigNote>
+          <ConfigNote>
+            &quot;New file&quot; in Files offers .txt plus every format the editor can edit that a blank template exists for: .docx, .xlsx, .pptx, .odt, .ods, .odp and .pdf are built in. List extensions separated by commas (e.g. <code className="text-[11px] bg-muted px-1 py-0.5 rounded">docx,xlsx,pptx</code>) to offer only those. A file named <code className="text-[11px] bg-muted px-1 py-0.5 rounded">new.&lt;ext&gt;</code> in the template directory on this server replaces the built-in blank file for that format or adds a format, so ONLYOFFICE&apos;s <code className="text-[11px] bg-muted px-1 py-0.5 rounded">document-templates/new/&lt;locale&gt;</code> folder works as one.
           </ConfigNote>
         </SettingsSection>
 

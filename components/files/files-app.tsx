@@ -26,7 +26,8 @@ import type { FileNodeRights } from "@/lib/jmap/types";
 import { ImagePreviewModal } from "@/components/files/image-preview-modal";
 import { FilePreviewModal } from "@/components/files/file-preview-modal";
 import { WopiEditor } from "@/components/files/wopi-editor";
-import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
+import { useWopiStatus, canWopiOpen, fileExtension } from "@/hooks/use-wopi-status";
+import { apiFetch } from "@/lib/browser-navigation";
 import { AppTopBannerSlot } from "@/components/plugins/app-top-banner-slot";
 import { AlertTriangle, Loader2 } from "@/components/icons";
 import { isFilePreviewable } from "@/lib/file-preview";
@@ -86,7 +87,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     downloadResource,
     getImageUrl,
     getFileContent,
-    createTextFile,
+    createFile,
     duplicateResource,
     downloadResources,
     downloadZip,
@@ -563,15 +564,25 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     }
   }, [downloadZip, t, failureReason]);
 
-  const handleCreateTextFile = useCallback(async (name: string) => {
+  // A document format the editor can create starts from a blank template
+  // and opens in the editor (#1393); any other name is an empty text file.
+  const handleCreateFile = useCallback(async (name: string) => {
     try {
-      await createTextFile(name);
+      const ext = fileExtension(name);
+      let template: Blob | undefined;
+      if (wopiStatus?.newExtensions.includes(ext)) {
+        const res = await apiFetch(`/api/wopi/template?ext=${encodeURIComponent(ext)}`);
+        if (!res.ok) throw new Error(`Template for .${ext} unavailable (${res.status})`);
+        template = await res.blob();
+      }
+      const created = await createFile(name, template);
       toast.success(t("create_file_success"));
+      if (template && created && isOfficeEditable(created)) setEditFile(created);
     } catch (err) {
       console.error("Failed to create file:", err);
       toast.error(t("create_file_error"), failureReason(err));
     }
-  }, [createTextFile, t, failureReason]);
+  }, [createFile, wopiStatus, isOfficeEditable, t, failureReason]);
 
   const handleDuplicate = useCallback(async (name: string) => {
     try {
@@ -867,7 +878,8 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
                   onPreviewFile={handlePreviewFile}
                   isOfficeEditable={isOfficeEditable}
                   onEditFile={setEditFile}
-                  onCreateTextFile={handleCreateTextFile}
+                  onCreateFile={handleCreateFile}
+                  newFileFormats={wopiStatus?.newExtensions}
                   onDuplicate={handleDuplicate}
                   getImageUrl={getImageUrl}
                   favorites={favorites}

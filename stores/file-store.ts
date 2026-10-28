@@ -152,7 +152,12 @@ interface FileState {
   downloadZip: (ids: string[], zipName: string, options?: { signal?: AbortSignal; onProgress?: (p: ZipProgress) => void }) => Promise<void>;
   getImageUrl: (name: string) => Promise<string>;
   getFileContent: (name: string) => Promise<{ blob: Blob; contentType: string }>;
-  createTextFile: (name: string) => Promise<void>;
+  /**
+   * A new file in the open folder: empty text, or a copy of `template` (a
+   * blank document, #1393). Resolves to the name it got, which differs from
+   * `name` when the server renamed it to avoid a clash.
+   */
+  createFile: (name: string, template?: Blob) => Promise<string | null>;
   duplicateResource: (name: string) => Promise<void>;
   moveToFolder: (names: string[], targetFolder: string) => Promise<boolean>;
   moveToParent: (names: string[]) => Promise<boolean>;
@@ -1380,15 +1385,17 @@ export const useFileStore = create<FileState>((set, get) => ({
     return { blob, contentType: resource.contentType || 'application/octet-stream' };
   },
 
-  createTextFile: async (name: string) => {
+  createFile: async (name: string, template?: Blob) => {
     const { client, currentParentId, refresh } = get();
-    if (!client) return;
+    if (!client) return null;
     assertCanAddTo(currentParentId);
 
-    const emptyBlob = new File([''], name, { type: 'text/plain' });
-    const { blobId } = await client.uploadBlob(emptyBlob);
-    await client.createFileNode(name, blobId, 'text/plain', 0, currentParentId);
+    const type = template?.type || 'text/plain';
+    const content = new File(template ? [template] : [''], name, { type });
+    const { blobId } = await client.uploadBlob(content);
+    const node = await client.createFileNode(name, blobId, type, content.size, currentParentId);
     await refresh();
+    return node.name || name;
   },
 
   duplicateResource: async (name: string) => {

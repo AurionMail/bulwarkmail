@@ -582,7 +582,7 @@ describe('file-store "Shared with me"', () => {
     const refusal = (promise: Promise<unknown>) => promise.then(() => null, (error: unknown) => fileErrorKind(error));
 
     expect(await refusal(store.createDirectory('New'))).toBe('forbidden');
-    expect(await refusal(store.createTextFile('a.txt'))).toBe('forbidden');
+    expect(await refusal(store.createFile('a.txt'))).toBe('forbidden');
     expect(await refusal(store.uploadFiles([new File(['x'], 'a.txt')]))).toBe('forbidden');
     expect(await refusal(store.uploadFolder([new File(['x'], 'a.txt')]))).toBe('forbidden');
     expect(await refusal(store.duplicateResource('notes.txt'))).toBe('forbidden');
@@ -1075,5 +1075,39 @@ describe('file-store preview content', () => {
     const { blob, contentType } = await useFileStore.getState().getFileContent('notes.txt');
     expect(await blob.text()).toBe('content of b-a');
     expect(contentType).toBe('text/plain');
+  });
+});
+
+describe('file-store new file (#1393)', () => {
+  const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+  it('creates a document from its blank template and returns the name the server gave it', async () => {
+    const client = makeMockClient([file('a', 'Report.docx', null)]);
+    const uploads: File[] = [];
+    const upload = client.uploadBlob.bind(client);
+    const create = client.createFileNode.bind(client);
+    Object.assign(client, {
+      uploadBlob: async (f: File) => { uploads.push(f); return upload(f); },
+      // Stalwart's onExists: "rename".
+      createFileNode: (name: string, ...rest: [string, string, number, string | null]) =>
+        create(name === 'Report.docx' ? 'Report (2).docx' : name, ...rest),
+    });
+    useFileStore.getState().initClient(client);
+    await useFileStore.getState().navigate(null);
+
+    const blank = new Blob(['PK blank docx'], { type: DOCX });
+    expect(await useFileStore.getState().createFile('Report.docx', blank)).toBe('Report (2).docx');
+    expect(await uploads[0].text()).toBe('PK blank docx');
+    expect(client._nodes().find(n => n.name === 'Report (2).docx')).toMatchObject({ type: DOCX, size: 13 });
+    expect(useFileStore.getState().resources.map(r => r.name)).toContain('Report (2).docx');
+  });
+
+  it('creates an empty text file without a template', async () => {
+    const client = makeMockClient();
+    useFileStore.getState().initClient(client);
+    await useFileStore.getState().navigate(null);
+
+    expect(await useFileStore.getState().createFile('notes.txt')).toBe('notes.txt');
+    expect(client._nodes()[0]).toMatchObject({ name: 'notes.txt', type: 'text/plain', size: 0 });
   });
 });

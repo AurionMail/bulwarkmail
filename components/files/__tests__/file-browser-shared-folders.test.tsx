@@ -105,7 +105,7 @@ function renderBrowser(opts: { resources?: FileResource[]; allFolders?: FileReso
       onPaste={noop}
       onMoveTo={noop}
       onPreviewImage={vi.fn()}
-      onCreateTextFile={noop}
+      onCreateFile={noop}
       onDuplicate={noop}
       getImageUrl={async () => ''}
       favorites={[]}

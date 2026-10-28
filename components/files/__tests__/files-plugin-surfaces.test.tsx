@@ -77,7 +77,7 @@ function renderBrowser(selected: string[] = []) {
       onPaste={noop}
       onMoveTo={noop}
       onPreviewImage={vi.fn()}
-      onCreateTextFile={noop}
+      onCreateFile={noop}
       onDuplicate={noop}
       getImageUrl={async () => ''}
       favorites={[]}

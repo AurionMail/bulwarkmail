@@ -66,6 +66,8 @@ export interface FilesSidebarProps {
   onUploadFolder: () => void;
   onNewFolder: () => void;
   onNewTextFile: () => void;
+  /** The label of the new-file entries: "New file" when documents can be made too (#1393). */
+  newFileLabel?: string;
   onToggleFavorite: (path: string) => void;
   /** Move dragged items from the open folder into a folder (null = the root). */
   onDropItems: (names: string[], targetId: string | null) => void;
@@ -104,6 +106,7 @@ export function FilesSidebar({
   onUploadFolder,
   onNewFolder,
   onNewTextFile,
+  newFileLabel,
   onToggleFavorite,
   onDropItems,
   canShare,
@@ -269,7 +272,7 @@ export function FilesSidebar({
     <>
       <ContextMenuSeparator />
       <ContextMenuItem icon={FolderPlus} label={t("new_folder")} onClick={() => run(() => onCreateIn(path, id, "folder"))} />
-      <ContextMenuItem icon={FilePlus} label={t("new_text_file")} onClick={() => run(() => onCreateIn(path, id, "text"))} />
+      <ContextMenuItem icon={FilePlus} label={newFileLabel ?? t("new_text_file")} onClick={() => run(() => onCreateIn(path, id, "text"))} />
       <ContextMenuItem icon={Upload} label={t("upload_files")} onClick={() => run(() => onCreateIn(path, id, "files"))} />
       <ContextMenuItem icon={FolderUp} label={t("upload_folder")} onClick={() => run(() => onCreateIn(path, id, "dir"))} />
     </>
@@ -443,7 +446,7 @@ export function FilesSidebar({
         <ContextMenuItem icon={FolderUp} label={t("upload_folder")} onClick={() => { newMenu.closeContextMenu(); onUploadFolder(); }} />
         <ContextMenuSeparator />
         <ContextMenuItem icon={FolderPlus} label={t("new_folder")} onClick={() => { newMenu.closeContextMenu(); onNewFolder(); }} />
-        <ContextMenuItem icon={FilePlus} label={t("new_text_file")} onClick={() => { newMenu.closeContextMenu(); onNewTextFile(); }} />
+        <ContextMenuItem icon={FilePlus} label={newFileLabel ?? t("new_text_file")} onClick={() => { newMenu.closeContextMenu(); onNewTextFile(); }} />
       </ContextMenu>
 
       <ContextMenu ref={itemMenu.menuRef} isOpen={itemMenu.contextMenu.isOpen} position={itemMenu.contextMenu.position} onClose={itemMenu.closeContextMenu}>

@@ -13,9 +13,11 @@ export interface WopiStatus {
   enabled: boolean;
   editExtensions: string[];
   viewExtensions: string[];
+  /** Formats "New file" can create from a blank template besides .txt (#1393). */
+  newExtensions: string[];
 }
 
-const DISABLED: WopiStatus = { enabled: false, editExtensions: [], viewExtensions: [] };
+const DISABLED: WopiStatus = { enabled: false, editExtensions: [], viewExtensions: [], newExtensions: [] };
 
 let statusPromise: Promise<WopiStatus> | null = null;
 
@@ -29,6 +31,7 @@ function fetchWopiStatus(): Promise<WopiStatus> {
         enabled: !!data?.enabled,
         editExtensions: Array.isArray(data?.editExtensions) ? data.editExtensions : [],
         viewExtensions: Array.isArray(data?.viewExtensions) ? data.viewExtensions : [],
+        newExtensions: Array.isArray(data?.newExtensions) ? data.newExtensions : [],
       }))
       .catch(() => {
         statusPromise = null; // allow a retry on the next mount

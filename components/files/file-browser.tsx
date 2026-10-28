@@ -16,6 +16,7 @@ import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { PromptDialog } from "@/components/ui/prompt-dialog";
+import { NewFileDialog } from "@/components/files/new-file-dialog";
 import { FolderPickerDialog } from "@/components/files/folder-picker-dialog";
 import { fileNameProblem } from "@/lib/file-name-rules";
 import { EmptyFolder, NoSearchResults } from "@/components/files/file-empty-state";
@@ -37,6 +38,8 @@ import { ShareCollectionDialog } from "@/components/settings/share-collection-di
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import type { FileNodeRights } from "@/lib/jmap/types";
 import type { FileResourceView } from "@/lib/plugin-types";
+
+const NO_FORMATS: string[] = [];
 
 interface ClipboardState {
   mode: "cut" | "copy";
@@ -93,7 +96,10 @@ interface FileBrowserProps {
   /** WOPI document editing (#425): whether a file can open in the document editor. */
   isOfficeEditable?: (name: string) => boolean;
   onEditFile?: (name: string) => void;
-  onCreateTextFile: (name: string) => Promise<void>;
+  /** "New file": empty text, or a blank document of a format in `newFileFormats`. */
+  onCreateFile: (name: string) => Promise<void>;
+  /** Document formats a WOPI editor can create besides .txt (#1393). */
+  newFileFormats?: string[];
   onDuplicate: (name: string) => Promise<void>;
   getImageUrl: (name: string) => Promise<string>;
   favorites: string[];
@@ -182,7 +188,8 @@ export function FileBrowser({
   onPreviewFile,
   isOfficeEditable,
   onEditFile,
-  onCreateTextFile,
+  onCreateFile,
+  newFileFormats = NO_FORMATS,
   onDuplicate,
   getImageUrl,
   favorites,
@@ -204,6 +211,7 @@ export function FileBrowser({
   onShare,
 }: FileBrowserProps) {
   const t = useTranslations("files");
+  const newFileLabel = newFileFormats.length > 0 ? t("new_file") : t("new_text_file");
   const fileNameRules = useMemo(() => client?.getFileNameRules?.() ?? null, [client]);
   const validateFileName = useCallback((name: string) => {
     const problem = fileNameProblem(name, fileNameRules);
@@ -940,7 +948,7 @@ export function FileBrowser({
       <ContextMenuItem icon={FolderUp} label={t("upload_folder")} onClick={() => { closeMenu(); folderInputRef.current?.click(); }} />
       <ContextMenuSeparator />
       <ContextMenuItem icon={FolderPlus} label={t("new_folder")} onClick={() => { closeMenu(); setShowNewFolder(true); }} />
-      <ContextMenuItem icon={FilePlus} label={t("new_text_file")} onClick={() => { closeMenu(); setShowNewTextFile(true); }} />
+      <ContextMenuItem icon={FilePlus} label={newFileLabel} onClick={() => { closeMenu(); setShowNewTextFile(true); }} />
     </>
   );
 
@@ -978,7 +986,7 @@ export function FileBrowser({
     { id: "upload-files", label: t("upload_files"), icon: Upload, run: () => fileInputRef.current?.click(), when: () => canCreate },
     { id: "upload-folder", label: t("upload_folder"), icon: FolderUp, run: () => folderInputRef.current?.click(), when: () => canCreate },
     { id: "new-folder", label: t("new_folder"), icon: FolderPlus, run: () => setShowNewFolder(true), when: () => canCreate },
-    { id: "new-text-file", label: t("new_text_file"), icon: FilePlus, run: () => setShowNewTextFile(true), when: () => canCreate },
+    { id: "new-text-file", label: newFileLabel, icon: FilePlus, run: () => setShowNewTextFile(true), when: () => canCreate },
     { id: "trash", label: t("trash"), icon: Trash2, run: () => onNavigate(TRASH_PATH, TRASH_LOCATION), when: () => !inTrash && !accountPickerMode },
     { id: "empty-trash", label: t("empty_trash"), icon: Trash2, run: () => onEmptyTrash?.(), when: () => inTrash && trashCount > 0 && !!onEmptyTrash },
     { id: "refresh", label: t("refresh"), icon: RefreshCw, run: () => void onRefresh() },
@@ -1000,6 +1008,7 @@ export function FileBrowser({
       onUploadFolder={fromDrawer(() => folderInputRef.current?.click())}
       onNewFolder={fromDrawer(() => setShowNewFolder(true))}
       onNewTextFile={fromDrawer(() => setShowNewTextFile(true))}
+      newFileLabel={newFileLabel}
       onToggleFavorite={onToggleFavorite}
       onDropItems={moveNames}
       canShare={canShare}
@@ -1358,17 +1367,12 @@ export function FileBrowser({
         onSubmit={(name) => void onCreateFolder(name)}
       />
 
-      <PromptDialog
+      <NewFileDialog
         isOpen={showNewTextFile}
         onClose={() => setShowNewTextFile(false)}
-        title={t("new_text_file")}
-        placeholder={t("file_name")}
-        defaultValue="new-file.txt"
-        selectBaseName
-        confirmText={t("create")}
-        cancelText={t("cancel")}
+        formats={newFileFormats}
         validate={validateFileName}
-        onSubmit={(name) => void onCreateTextFile(name)}
+        onSubmit={(name) => void onCreateFile(name)}
       />
 
       <PromptDialog

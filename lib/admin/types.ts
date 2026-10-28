@@ -373,6 +373,12 @@ export const CONFIG_ENV_MAP: Record<string, { envVar: string; fileEnvVar?: strin
   // than the browser (docker networks, split DNS). The base path of a
   // sub-path install is added to a bare origin (#1130).
   wopiHostUrl: { envVar: 'WOPI_HOST_URL', type: 'url', defaultValue: '' },
+  // "New file" formats (#1393). Empty = every format the editor can edit and
+  // a blank template exists for; otherwise a comma-separated list of
+  // extensions. `wopiTemplateDir` is a server directory whose `new.<ext>`
+  // files replace the shipped blank templates or add formats.
+  wopiNewFileFormats: { envVar: 'WOPI_NEW_FILE_FORMATS', type: 'string', defaultValue: '' },
+  wopiTemplateDir: { envVar: 'WOPI_TEMPLATE_DIR', type: 'string', defaultValue: '' },
 };
 
 /** Keys that should never be exposed to the client config endpoint */
