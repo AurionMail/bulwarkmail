@@ -138,6 +138,28 @@ describe('viewer send failures', () => {
     expect(onRescheduleScheduled).toHaveBeenCalledTimes(1);
   });
 
+  it('offers Cancel send, and shows one set of scheduled actions and no draft bar', () => {
+    const onCancelScheduledSend = vi.fn();
+    render(
+      <EmailViewer
+        email={makeEmail({ ...scheduled(), keywords: { $seen: true, $draft: true } })}
+        mailboxes={mailboxes}
+        selectedMailbox="inbox"
+        currentMailboxRole="inbox"
+        onCancelScheduledSend={onCancelScheduledSend}
+        onCancelScheduledForEdit={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('cancel-scheduled-send'));
+    expect(onCancelScheduledSend).toHaveBeenCalledTimes(1);
+    // The banner's buttons are for the phone only, where the toolbar has none.
+    const bannerReschedule = screen.getAllByText('reschedule_send').map(el => el.closest('div.flex-wrap')).find(Boolean);
+    expect(bannerReschedule?.className).toContain('sm:hidden');
+    expect(screen.getAllByText('send_now')).toHaveLength(1);
+    expect(screen.queryByText('draft_banner')).toBeNull();
+  });
+
   it('reschedules through the schedule dialog, not a browser prompt', async () => {
     const prompt = vi.spyOn(window, 'prompt');
     const onRescheduleScheduled = vi.fn().mockResolvedValue(undefined);

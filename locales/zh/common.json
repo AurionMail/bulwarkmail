@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "取消发送",
     "reschedule_send": "重新计划",
     "cancel_and_edit": "取消并编辑",
-    "cancel_and_compose_again": "取消并重新撰写",
-    "reschedule_prompt": "输入新的日期/时间，例如 2026-05-04T15:30"
+    "cancel_and_compose_again": "取消并重新撰写"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "已取消发送，但无法将邮件放回草稿。它仍在“已发送”中。",
     "send_cancelled_remove_failed": "已取消发送，但无法从“已发送”中移除未发送的邮件。",
     "cancel_scheduled_failed": "无法取消定时发送",
+    "send_cancelled": "已取消发送",
     "still_scheduled_at": "邮件仍计划于 {date} 发送。",
     "still_scheduled": "邮件仍处于定时发送状态。",
     "already_sent": "此邮件已发送。",

@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "Cancelar envío",
     "reschedule_send": "Reprogramar",
     "cancel_and_edit": "Cancelar y editar",
-    "cancel_and_compose_again": "Cancelar y redactar de nuevo",
-    "reschedule_prompt": "Introduce una nueva fecha/hora, p. ej. 2026-05-04T15:30"
+    "cancel_and_compose_again": "Cancelar y redactar de nuevo"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "Se canceló el envío, pero el mensaje no se pudo devolver a Borradores. Sigue en Enviados.",
     "send_cancelled_remove_failed": "Se canceló el envío, pero el mensaje no enviado no se pudo quitar de Enviados.",
     "cancel_scheduled_failed": "No se pudo cancelar el envío programado",
+    "send_cancelled": "Envío cancelado",
     "still_scheduled_at": "El mensaje sigue programado para el {date}.",
     "still_scheduled": "El mensaje sigue programado.",
     "already_sent": "Este mensaje ya se envió.",

@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "Илгээхийг цуцлах",
     "reschedule_send": "Хуваарь солих",
     "cancel_and_edit": "Цуцлах, засах",
-    "cancel_and_compose_again": "Цуцлаад дахин бичих",
-    "reschedule_prompt": "Шинэ огноо/цаг оруулна, ж.нь. 2026-05-04Т15:30"
+    "cancel_and_compose_again": "Цуцлаад дахин бичих"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "Илгээлтийг цуцалсан ч мессежийг Ноорог руу буцааж чадсангүй. Энэ одоо ч Илгээсэн хэсэгт байна.",
     "send_cancelled_remove_failed": "Илгээлтийг цуцалсан ч илгээгээгүй мессежийг Илгээсэн хэсгээс устгаж чадсангүй.",
     "cancel_scheduled_failed": "Товлосон илгээлтийг цуцалж чадсангүй",
+    "send_cancelled": "Илгээхийг цуцаллаа",
     "still_scheduled_at": "Мессеж {date}-нд илгээгдэхээр товлогдсон хэвээр байна.",
     "still_scheduled": "Мессеж товлогдсон хэвээр байна.",
     "already_sent": "Энэ мессеж аль хэдийн илгээгдсэн.",

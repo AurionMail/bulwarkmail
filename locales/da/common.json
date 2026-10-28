@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "Annuller afsendelse",
     "reschedule_send": "Planlæg om",
     "cancel_and_edit": "Annuller og redigér",
-    "cancel_and_compose_again": "Annuller og skriv igen",
-    "reschedule_prompt": "Indtast en ny dato/tid, f.eks. 2026-05-04T15:30"
+    "cancel_and_compose_again": "Annuller og skriv igen"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "Afsendelsen blev annulleret, men beskeden kunne ikke lægges tilbage i Kladder. Den ligger stadig i Sendt.",
     "send_cancelled_remove_failed": "Afsendelsen blev annulleret, men den ikke-sendte besked kunne ikke fjernes fra Sendt.",
     "cancel_scheduled_failed": "Den planlagte afsendelse kunne ikke annulleres",
+    "send_cancelled": "Afsendelse annulleret",
     "still_scheduled_at": "Beskeden er stadig planlagt til {date}.",
     "still_scheduled": "Beskeden er stadig planlagt.",
     "already_sent": "Denne besked er allerede sendt.",

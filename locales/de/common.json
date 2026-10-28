@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "Senden abbrechen",
     "reschedule_send": "Neu planen",
     "cancel_and_edit": "Abbrechen und bearbeiten",
-    "cancel_and_compose_again": "Abbrechen und neu verfassen",
-    "reschedule_prompt": "Neues Datum/Uhrzeit eingeben, z. B. 2026-05-04T15:30"
+    "cancel_and_compose_again": "Abbrechen und neu verfassen"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "Das Senden wurde abgebrochen, aber die Nachricht konnte nicht zurück in die Entwürfe gelegt werden. Sie liegt noch im Ordner „Gesendet“.",
     "send_cancelled_remove_failed": "Das Senden wurde abgebrochen, aber die nicht gesendete Nachricht konnte nicht aus dem Ordner „Gesendet“ entfernt werden.",
     "cancel_scheduled_failed": "Das geplante Senden konnte nicht abgebrochen werden",
+    "send_cancelled": "Senden abgebrochen",
     "still_scheduled_at": "Die Nachricht ist weiterhin für {date} geplant.",
     "still_scheduled": "Die Nachricht ist weiterhin geplant.",
     "already_sent": "Diese Nachricht wurde bereits gesendet.",

@@ -494,8 +494,7 @@
     "cancel_scheduled_send": "ยกเลิกการส่ง",
     "reschedule_send": "เปลี่ยนเวลาส่งใหม่",
     "cancel_and_edit": "ยกเลิกและแก้ไข",
-    "cancel_and_compose_again": "ยกเลิกและเขียนใหม่",
-    "reschedule_prompt": "ระบุวันและเวลาใหม่ เช่น 2026-05-04T15:30"
+    "cancel_and_compose_again": "ยกเลิกและเขียนใหม่"
   },
   "context_menu": {
     "reply": "ตอบกลับ",
@@ -1360,6 +1359,7 @@
     "send_cancelled_restore_failed": "ยกเลิกการส่งแล้ว แต่ไม่สามารถนำข้อความกลับไปยังจดหมายร่างได้ ข้อความยังคงอยู่ในโฟลเดอร์ส่งแล้ว",
     "send_cancelled_remove_failed": "ยกเลิกการส่งแล้ว แต่ไม่สามารถนำข้อความที่ไม่ได้ส่งออกจากโฟลเดอร์ส่งแล้วได้",
     "cancel_scheduled_failed": "ไม่สามารถยกเลิกการกำหนดเวลาส่งได้",
+    "send_cancelled": "ยกเลิกการส่งแล้ว",
     "still_scheduled_at": "ข้อความยังคงมีกำหนดส่งในวันที่ {date}",
     "still_scheduled": "ข้อความยังคงมีกำหนดเวลาส่งอยู่",
     "already_sent": "ข้อความนี้ถูกส่งออกไปแล้ว",

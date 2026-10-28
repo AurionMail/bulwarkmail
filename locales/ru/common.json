@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "Отменить отправку",
     "reschedule_send": "Перенести",
     "cancel_and_edit": "Отменить и изменить",
-    "cancel_and_compose_again": "Отменить и написать заново",
-    "reschedule_prompt": "Введите новую дату/время, например 2026-05-04T15:30"
+    "cancel_and_compose_again": "Отменить и написать заново"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "Отправка отменена, но вернуть письмо в Черновики не удалось. Оно по-прежнему в Отправленных.",
     "send_cancelled_remove_failed": "Отправка отменена, но удалить неотправленное письмо из Отправленных не удалось.",
     "cancel_scheduled_failed": "Не удалось отменить запланированную отправку",
+    "send_cancelled": "Отправка отменена",
     "still_scheduled_at": "Письмо по-прежнему запланировано на {date}.",
     "still_scheduled": "Письмо по-прежнему запланировано.",
     "already_sent": "Это письмо уже отправлено.",

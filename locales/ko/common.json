@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "보내기 취소",
     "reschedule_send": "다시 예약",
     "cancel_and_edit": "취소하고 편집",
-    "cancel_and_compose_again": "취소하고 다시 작성",
-    "reschedule_prompt": "새 날짜/시간을 입력하세요. 예: 2026-05-04T15:30"
+    "cancel_and_compose_again": "취소하고 다시 작성"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "보내기가 취소되었지만 메시지를 임시보관함으로 되돌리지 못했습니다. 메시지는 아직 보낸편지함에 있습니다.",
     "send_cancelled_remove_failed": "보내기가 취소되었지만 보내지 않은 메시지를 보낸편지함에서 제거하지 못했습니다.",
     "cancel_scheduled_failed": "예약된 보내기를 취소하지 못했습니다",
+    "send_cancelled": "보내기를 취소했어요",
     "still_scheduled_at": "메시지는 여전히 {date}에 보내도록 예약되어 있습니다.",
     "still_scheduled": "메시지는 여전히 예약되어 있습니다.",
     "already_sent": "이 메시지는 이미 보냈습니다.",

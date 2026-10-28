@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "لغو ارسال",
     "reschedule_send": "باززمان‌بندی",
     "cancel_and_edit": "لغو و ویرایش",
-    "cancel_and_compose_again": "لغو و نوشتن مجدد",
-    "reschedule_prompt": "تاریخ/زمان جدید را وارد کنید"
+    "cancel_and_compose_again": "لغو و نوشتن مجدد"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "ارسال لغو شد، اما پیام به پیش‌نویس‌ها بازگردانده نشد. هنوز در ارسال شده است.",
     "send_cancelled_remove_failed": "ارسال لغو شد، اما پیام ارسال‌نشده از ارسال شده حذف نشد.",
     "cancel_scheduled_failed": "لغو ارسال زمان‌بندی‌شده ممکن نشد",
+    "send_cancelled": "ارسال لغو شد",
     "still_scheduled_at": "پیام همچنان برای {date} زمان‌بندی شده است.",
     "still_scheduled": "پیام همچنان زمان‌بندی شده است.",
     "already_sent": "این پیام قبلاً ارسال شده است.",

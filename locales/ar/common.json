@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "إلغاء الإرسال",
     "reschedule_send": "إعادة الجدولة",
     "cancel_and_edit": "إلغاء والتعديل",
-    "cancel_and_compose_again": "إلغاء وإعادة الكتابة",
-    "reschedule_prompt": "أدخل تاريخًا/وقتًا جديدًا، مثل 2026-05-04T15:30"
+    "cancel_and_compose_again": "إلغاء وإعادة الكتابة"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "أُلغي الإرسال، لكن تعذّرت إعادة الرسالة إلى المسودات. لا تزال في المرسل.",
     "send_cancelled_remove_failed": "أُلغي الإرسال، لكن تعذّرت إزالة الرسالة غير المرسلة من المرسل.",
     "cancel_scheduled_failed": "تعذّر إلغاء الإرسال المجدول",
+    "send_cancelled": "أُلغي الإرسال",
     "still_scheduled_at": "لا تزال الرسالة مجدولة للإرسال في {date}.",
     "still_scheduled": "لا تزال الرسالة مجدولة.",
     "already_sent": "أُرسلت هذه الرسالة بالفعل.",

@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "Anulează trimiterea",
     "reschedule_send": "Reprogramare",
     "cancel_and_edit": "Anulează și editează",
-    "cancel_and_compose_again": "Anulează și redactează din nou",
-    "reschedule_prompt": "Introduceți o nouă dată/oră, de exemplu 2026-05-04T15:30"
+    "cancel_and_compose_again": "Anulează și redactează din nou"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "Trimiterea a fost anulată, dar mesajul nu a putut fi mutat înapoi în Ciorne. Se află încă în Trimise.",
     "send_cancelled_remove_failed": "Trimiterea a fost anulată, dar mesajul netrimis nu a putut fi eliminat din Trimise.",
     "cancel_scheduled_failed": "Trimiterea programată nu a putut fi anulată",
+    "send_cancelled": "Trimiterea a fost anulată",
     "still_scheduled_at": "Mesajul este încă programat pentru {date}.",
     "still_scheduled": "Mesajul este încă programat.",
     "already_sent": "Acest mesaj a fost deja trimis.",

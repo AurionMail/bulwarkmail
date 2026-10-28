@@ -85,6 +85,8 @@ interface EmailListProps {
   isScheduledView?: boolean;
   onLoadMoreScheduled?: () => void;
   onCancelScheduledForEdit?: (email: Email) => void | Promise<void>;
+  /** Stop a scheduled message from going out; it goes back to Drafts. */
+  onCancelScheduledSend?: (email: Email) => void | Promise<void>;
   onRescheduleScheduled?: (email: Email) => void | Promise<void>;
   /**
    * Mountain View folds the batch verbs into the single toolbar above the
@@ -164,6 +166,7 @@ export function EmailList({
   hideBatchToolbar = false,
   onLoadMoreScheduled,
   onCancelScheduledForEdit,
+  onCancelScheduledSend,
   onRescheduleScheduled,
 }: EmailListProps) {
   const t = useTranslations('email_list');
@@ -1204,6 +1207,7 @@ export function EmailList({
           onUndoSpam={() => onUndoSpam?.(contextMenuEmail!)}
           onEditDraft={() => onEditDraft?.(contextMenuEmail!)}
           onCancelScheduledForEdit={onCancelScheduledForEdit ? () => onCancelScheduledForEdit(contextMenuEmail!) : undefined}
+          onCancelScheduledSend={onCancelScheduledSend ? () => void onCancelScheduledSend(contextMenuEmail!) : undefined}
           onRescheduleScheduled={onRescheduleScheduled ? () => onRescheduleScheduled(contextMenuEmail!) : undefined}
           copyTargets={copyTargets}
           onCopyToAccount={async (accountId, mailboxId) => {

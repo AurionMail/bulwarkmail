@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "Atcelt sūtīšanu",
     "reschedule_send": "Pārplānot",
     "cancel_and_edit": "Atcelt un rediģēt",
-    "cancel_and_compose_again": "Atcelt un rakstīt no jauna",
-    "reschedule_prompt": "Ievadiet jaunu datumu/laiku, piem. 2026-05-04T15:30"
+    "cancel_and_compose_again": "Atcelt un rakstīt no jauna"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "Sūtīšana tika atcelta, bet ziņojumu neizdevās atgriezt Melnrakstos. Tas joprojām ir Nosūtītajos.",
     "send_cancelled_remove_failed": "Sūtīšana tika atcelta, bet nenosūtīto ziņojumu neizdevās noņemt no Nosūtītajiem.",
     "cancel_scheduled_failed": "Ieplānoto sūtīšanu neizdevās atcelt",
+    "send_cancelled": "Sūtīšana atcelta",
     "still_scheduled_at": "Ziņojums joprojām ir ieplānots uz {date}.",
     "still_scheduled": "Ziņojums joprojām ir ieplānots.",
     "already_sent": "Šis ziņojums jau ir nosūtīts.",

@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "Göndermeyi iptal et",
     "reschedule_send": "Yeniden zamanla",
     "cancel_and_edit": "İptal et ve düzenle",
-    "cancel_and_compose_again": "İptal et ve yeniden yaz",
-    "reschedule_prompt": "Yeni tarih/saat girin, ör. 2026-05-04T15:30"
+    "cancel_and_compose_again": "İptal et ve yeniden yaz"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "Gönderim iptal edildi, ancak ileti Taslaklar'a geri taşınamadı. Hâlâ Gönderilenler'de.",
     "send_cancelled_remove_failed": "Gönderim iptal edildi, ancak gönderilmemiş ileti Gönderilenler'den kaldırılamadı.",
     "cancel_scheduled_failed": "Zamanlanmış gönderim iptal edilemedi",
+    "send_cancelled": "Gönderim iptal edildi",
     "still_scheduled_at": "İleti hâlâ {date} için zamanlanmış durumda.",
     "still_scheduled": "İleti hâlâ zamanlanmış durumda.",
     "already_sent": "Bu ileti zaten gönderildi.",

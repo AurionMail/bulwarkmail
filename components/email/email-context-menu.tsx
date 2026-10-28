@@ -36,6 +36,7 @@ import {
   ShieldCheck,
   EditIcon,
   CalendarClock,
+  CalendarX,
   Paperclip,
   Link as LinkIcon,
   MessagesSquare,
@@ -106,6 +107,7 @@ interface EmailContextMenuProps {
   onUndoSpam?: () => void;
   onEditDraft?: () => void;
   onCancelScheduledForEdit?: () => void;
+  onCancelScheduledSend?: () => void;
   onRescheduleScheduled?: () => void;
   // Batch actions
   onBatchMarkAsRead?: (read: boolean) => void;
@@ -190,6 +192,7 @@ export function EmailContextMenu({
   onBatchForwardAsAttachment,
   onEditDraft,
   onCancelScheduledForEdit,
+  onCancelScheduledSend,
   onRescheduleScheduled,
   copyTargets,
   onCopyToAccount,
@@ -575,6 +578,16 @@ export function EmailContextMenu({
             onClick={() => handleAction(onCancelScheduledForEdit!)}
             disabled={!onCancelScheduledForEdit}
           />
+          {/* Back into Drafts. An S/MIME message can't go back (it is
+              encrypted), so it only offers "Cancel and compose again". */}
+          {onCancelScheduledSend && !email.isSmimeScheduled && (
+            <ContextMenuItem
+              icon={CalendarX}
+              label={t("cancel_scheduled_send")}
+              testId="ctx-cancel-scheduled-send"
+              onClick={() => handleAction(onCancelScheduledSend)}
+            />
+          )}
         </>
       )}
 

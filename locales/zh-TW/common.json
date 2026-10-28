@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "取消傳送",
     "reschedule_send": "重新排程",
     "cancel_and_edit": "取消並編輯",
-    "cancel_and_compose_again": "取消並重新撰寫",
-    "reschedule_prompt": "輸入新的日期與時間，例如 2026-05-04T15:30"
+    "cancel_and_compose_again": "取消並重新撰寫"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "已取消傳送，但無法將郵件放回草稿。郵件仍在「寄件備份」中。",
     "send_cancelled_remove_failed": "已取消傳送，但無法從「寄件備份」移除未寄出的郵件。",
     "cancel_scheduled_failed": "無法取消排定的傳送",
+    "send_cancelled": "已取消傳送",
     "still_scheduled_at": "郵件仍排定於 {date} 傳送。",
     "still_scheduled": "郵件仍在排定傳送中。",
     "already_sent": "此郵件已寄出。",

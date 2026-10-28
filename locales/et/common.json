@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "Tühista saatmine",
     "reschedule_send": "Ajasta uuesti",
     "cancel_and_edit": "Tühista ja muuda",
-    "cancel_and_compose_again": "Tühista ja koosta uuesti",
-    "reschedule_prompt": "Sisesta uus kuupäev/kellaaeg, nt 2026-05-04T15:30"
+    "cancel_and_compose_again": "Tühista ja koosta uuesti"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "Saatmine tühistati, kuid kirja ei õnnestunud mustanditesse tagasi panna. See on endiselt kaustas Saadetud.",
     "send_cancelled_remove_failed": "Saatmine tühistati, kuid saatmata kirja ei õnnestunud kaustast Saadetud eemaldada.",
     "cancel_scheduled_failed": "Ajastatud saatmist ei õnnestunud tühistada",
+    "send_cancelled": "Saatmine tühistatud",
     "still_scheduled_at": "Kiri on endiselt ajastatud ajale {date}.",
     "still_scheduled": "Kiri on endiselt ajastatud.",
     "already_sent": "See kiri on juba saadetud.",

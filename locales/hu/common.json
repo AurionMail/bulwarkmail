@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "Küldés megszakítása",
     "reschedule_send": "Átütemezés",
     "cancel_and_edit": "Mégse és szerkesztés",
-    "cancel_and_compose_again": "Mégse és újraírás",
-    "reschedule_prompt": "Adj meg egy új dátumot/időpontot, pl. 2026-05-04T15:30"
+    "cancel_and_compose_again": "Mégse és újraírás"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "A küldés megszakadt, de az üzenetet nem sikerült visszatenni a Piszkozatok közé. Még az Elküldött mappában van.",
     "send_cancelled_remove_failed": "A küldés megszakadt, de az el nem küldött üzenetet nem sikerült eltávolítani az Elküldött mappából.",
     "cancel_scheduled_failed": "Az ütemezett küldést nem sikerült megszakítani",
+    "send_cancelled": "Küldés megszakítva",
     "still_scheduled_at": "Az üzenet továbbra is ütemezve van: {date}.",
     "still_scheduled": "Az üzenet továbbra is ütemezve van.",
     "already_sent": "Ez az üzenet már el lett küldve.",

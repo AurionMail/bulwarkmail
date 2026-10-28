@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "Cancel send",
     "reschedule_send": "Reschedule",
     "cancel_and_edit": "Cancel and edit",
-    "cancel_and_compose_again": "Cancel and compose again",
-    "reschedule_prompt": "Enter a new date/time, e.g. 2026-05-04T15:30"
+    "cancel_and_compose_again": "Cancel and compose again"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "Sending was cancelled, but the message could not be put back in Drafts. It is still in Sent.",
     "send_cancelled_remove_failed": "Sending was cancelled, but the unsent message could not be removed from Sent.",
     "cancel_scheduled_failed": "Couldn't cancel the scheduled send",
+    "send_cancelled": "Sending cancelled",
     "still_scheduled_at": "The message is still scheduled for {date}.",
     "still_scheduled": "The message is still scheduled.",
     "already_sent": "This message was already sent.",

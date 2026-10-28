@@ -93,6 +93,7 @@ import {
   PlayCircle,
   PenSquare,
   CalendarClock,
+  CalendarX,
   Link as LinkIcon,
   Maximize2,
   Minimize2,
@@ -214,6 +215,8 @@ interface EmailViewerProps {
   onShowShortcuts?: () => void;
   onEditDraft?: () => void;
   onCancelScheduledForEdit?: () => void;
+  /** Stop a scheduled message from going out; it goes back to Drafts. */
+  onCancelScheduledSend?: () => void;
   onRescheduleScheduled?: (delayedUntil: string) => void | Promise<void>;
   onCompose?: () => void;
   /**
@@ -1064,6 +1067,7 @@ export function EmailViewer({
   onShowShortcuts,
   onEditDraft,
   onCancelScheduledForEdit,
+  onCancelScheduledSend,
   onRescheduleScheduled,
   onCompose,
   onToggleFullscreen,
@@ -3864,6 +3868,12 @@ export function EmailViewer({
               <EditIcon className="w-4 h-4" />
               {showToolbarLabels && <span className="hidden sm:inline text-sm">{email.isSmimeScheduled ? t('cancel_and_compose_again') : t('cancel_and_edit')}</span>}
             </Button>
+            {onCancelScheduledSend && !email.isSmimeScheduled && (
+              <Button variant="ghost" size="sm" onClick={onCancelScheduledSend} className="hidden sm:flex sm:h-8 sm:gap-1.5 sm:py-0" title={t('cancel_scheduled_send')} data-testid="cancel-scheduled-send">
+                <CalendarX className="w-4 h-4" />
+                {showToolbarLabels && <span className="hidden sm:inline text-sm">{t('cancel_scheduled_send')}</span>}
+              </Button>
+            )}
           </>
         )}
         {!isScheduled && isDraft && onEditDraft && (
@@ -5746,18 +5756,10 @@ export function EmailViewer({
                   {t('scheduled_banner', { date: email.scheduledSendAt ? formatScheduledSendAt(email.scheduledSendAt, timeFormat) : '' })}
                 </span>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              {/* The toolbar has these from sm up; on the phone it has no room. */}
+              <div className="flex flex-wrap items-center gap-2 sm:hidden">
                 {canCancelScheduled && (
                   <>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => void rescheduleScheduled(new Date(Date.now() + 1000).toISOString())}
-                      className="gap-1.5"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      {t('send_now')}
-                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
@@ -5773,6 +5775,12 @@ export function EmailViewer({
                       <EditIcon className="w-3.5 h-3.5" />
                       {email.isSmimeScheduled ? t('cancel_and_compose_again') : t('cancel_and_edit')}
                     </Button>
+                    {onCancelScheduledSend && !email.isSmimeScheduled && (
+                      <Button size="sm" variant="outline" onClick={onCancelScheduledSend} className="gap-1.5">
+                        <CalendarX className="w-3.5 h-3.5" />
+                        {t('cancel_scheduled_send')}
+                      </Button>
+                    )}
                   </>
                 )}
               </div>
@@ -5780,26 +5788,14 @@ export function EmailViewer({
           </div>
         )}
 
-        {/* Draft Banner */}
-        {isDraft && (
+        {/* Draft Banner: a scheduled message has its own. */}
+        {isDraft && !isScheduled && (
           <div className="border-b border-border bg-warning/10">
             <div className="px-6 py-2.5 flex items-center justify-between">
               <div className="flex items-center gap-2 text-warning">
                 <File className="w-4 h-4" />
                 <span className="text-sm font-medium">{t('draft_banner')}</span>
               </div>
-              {/* The toolbar already has Edit, except for a scheduled message. */}
-              {onEditDraft && isScheduled && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onEditDraft()}
-                  className="gap-1.5"
-                >
-                  <EditIcon className="w-3.5 h-3.5" />
-                  {t('edit_draft')}
-                </Button>
-              )}
             </div>
           </div>
         )}

@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "Anuluj wysyłkę",
     "reschedule_send": "Przełóż",
     "cancel_and_edit": "Anuluj i edytuj",
-    "cancel_and_compose_again": "Anuluj i napisz ponownie",
-    "reschedule_prompt": "Wprowadź nową datę/godzinę, np. 2026-05-04T15:30"
+    "cancel_and_compose_again": "Anuluj i napisz ponownie"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "Wysyłka została anulowana, ale nie udało się przenieść wiadomości z powrotem do Szkiców. Nadal jest w Wysłanych.",
     "send_cancelled_remove_failed": "Wysyłka została anulowana, ale nie udało się usunąć niewysłanej wiadomości z Wysłanych.",
     "cancel_scheduled_failed": "Nie udało się anulować zaplanowanej wysyłki",
+    "send_cancelled": "Anulowano wysyłanie",
     "still_scheduled_at": "Wiadomość jest nadal zaplanowana na {date}.",
     "still_scheduled": "Wiadomość jest nadal zaplanowana.",
     "already_sent": "Ta wiadomość została już wysłana.",

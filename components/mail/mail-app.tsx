@@ -932,7 +932,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       }
     } : undefined,
     onDelete: async () => {
-      if (isScheduledView) return;
+      // Delete on a scheduled message cancels the send, back into Drafts.
+      if (isScheduledView) {
+        if (selectedEmail) await handleCancelScheduledSend(selectedEmail);
+        return;
+      }
       if (shortcutsTargetSelection && client) {
         const currentMailbox = mailboxes.find(m => m.id === selectedMailbox);
         const permanent = bulkDeleteIsPermanent(currentMailbox);
@@ -2434,6 +2438,19 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       toastCancelFailure(error, tViewer('cancel_scheduled_failed'));
       return undefined;
     }
+  };
+
+  // "Cancel send": nothing goes out, and the message is back in Drafts. An
+  // S/MIME message can't go back (it is encrypted) and only offers "Cancel
+  // and compose again".
+  const handleCancelScheduledSend = async (email: Email) => {
+    if (email.isSmimeScheduled || email.scheduledUndoStatus !== 'pending') return;
+    const restored = await cancelScheduledForEdit(email);
+    if (restored === undefined) return;
+    toast.success(
+      tViewer('send_cancelled'),
+      t('notifications.moved_to_mailbox', { mailbox: t('sidebar.mailboxes.drafts') }),
+    );
   };
 
   useEffect(() => {
@@ -5158,6 +5175,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   if (isMobile) setActiveView('viewer');
                 }}
                 onRescheduleScheduled={(email) => setRescheduleTarget(email)}
+                onCancelScheduledSend={handleCancelScheduledSend}
                 onEmailSelect={handleEmailSelect}
                 onOpenSearchResult={handleEmailSelect}
                 onEmailPrefetch={handleEmailPrefetch}
@@ -5468,6 +5486,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                       // Restored through the active login's client (see the list's Cancel and edit).
                       if (restored) await handleEditDraft(restored, { accountId: selectedEmail.scheduledAccountId, localAccountId: activeAccountId ?? undefined }).catch(reportDraftOpenFailure);
                     }}
+                    onCancelScheduledSend={() => { if (selectedEmail) void handleCancelScheduledSend(selectedEmail); }}
                     onRescheduleScheduled={async (delayedUntil) => {
                       if (client && selectedEmail?.emailSubmissionId && selectedEmail.scheduledIdentityId) {
                         const result = await rescheduleScheduledEmail(client, selectedEmail.emailSubmissionId, selectedEmail.id, selectedEmail.scheduledIdentityId, delayedUntil, selectedEmail.scheduledAccountId);

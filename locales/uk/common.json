@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "Скасувати надсилання",
     "reschedule_send": "Перенести",
     "cancel_and_edit": "Скасувати й редагувати",
-    "cancel_and_compose_again": "Скасувати й написати знову",
-    "reschedule_prompt": "Введіть нову дату/час, напр. 2026-05-04T15:30"
+    "cancel_and_compose_again": "Скасувати й написати знову"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "Надсилання скасовано, але повернути лист до Чернеток не вдалося. Він досі в Надісланих.",
     "send_cancelled_remove_failed": "Надсилання скасовано, але видалити ненадісланий лист із Надісланих не вдалося.",
     "cancel_scheduled_failed": "Не вдалося скасувати заплановане надсилання",
+    "send_cancelled": "Надсилання скасовано",
     "still_scheduled_at": "Лист і далі заплановано на {date}.",
     "still_scheduled": "Лист і далі заплановано.",
     "already_sent": "Цей лист уже надіслано.",

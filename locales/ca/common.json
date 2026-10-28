@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "Cancel·la l'enviament",
     "reschedule_send": "Reprograma",
     "cancel_and_edit": "Cancel·la i edita",
-    "cancel_and_compose_again": "Cancel·la i torna a redactar",
-    "reschedule_prompt": "Introduïu una data i hora noves, p. ex. 2026-05-04T15:30"
+    "cancel_and_compose_again": "Cancel·la i torna a redactar"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "S'ha cancel·lat l'enviament, però el missatge no s'ha pogut tornar a Esborranys. Encara és a Enviats.",
     "send_cancelled_remove_failed": "S'ha cancel·lat l'enviament, però el missatge no enviat no s'ha pogut treure d'Enviats.",
     "cancel_scheduled_failed": "No s'ha pogut cancel·lar l'enviament programat",
+    "send_cancelled": "S'ha cancel·lat l'enviament",
     "still_scheduled_at": "El missatge encara està programat per al {date}.",
     "still_scheduled": "El missatge encara està programat.",
     "already_sent": "Aquest missatge ja s'ha enviat.",

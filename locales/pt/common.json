@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "Cancelar envio",
     "reschedule_send": "Reagendar",
     "cancel_and_edit": "Cancelar e editar",
-    "cancel_and_compose_again": "Cancelar e escrever novamente",
-    "reschedule_prompt": "Informe uma nova data/hora, ex. 2026-05-04T15:30"
+    "cancel_and_compose_again": "Cancelar e escrever novamente"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "O envio foi cancelado, mas não foi possível devolver a mensagem para Rascunhos. Ela ainda está em Enviados.",
     "send_cancelled_remove_failed": "O envio foi cancelado, mas não foi possível remover a mensagem não enviada de Enviados.",
     "cancel_scheduled_failed": "Não foi possível cancelar o envio agendado",
+    "send_cancelled": "Envio cancelado",
     "still_scheduled_at": "A mensagem continua agendada para {date}.",
     "still_scheduled": "A mensagem continua agendada.",
     "already_sent": "Esta mensagem já foi enviada.",

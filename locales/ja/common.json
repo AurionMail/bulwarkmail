@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "送信をキャンセル",
     "reschedule_send": "再予約",
     "cancel_and_edit": "キャンセルして編集",
-    "cancel_and_compose_again": "キャンセルして新規作成",
-    "reschedule_prompt": "新しい日時を入力してください。例: 2026-05-04T15:30"
+    "cancel_and_compose_again": "キャンセルして新規作成"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "送信はキャンセルされましたが、メッセージを下書きに戻せませんでした。メッセージは送信済みに残っています。",
     "send_cancelled_remove_failed": "送信はキャンセルされましたが、未送信のメッセージを送信済みから削除できませんでした。",
     "cancel_scheduled_failed": "予約送信をキャンセルできませんでした",
+    "send_cancelled": "送信を取り消しました",
     "still_scheduled_at": "メッセージは引き続き {date} に送信予定です。",
     "still_scheduled": "メッセージは引き続き送信予定です。",
     "already_sent": "このメッセージはすでに送信されています。",

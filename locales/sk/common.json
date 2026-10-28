@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "Zrušiť odoslanie",
     "reschedule_send": "Prenaplánovať",
     "cancel_and_edit": "Zrušiť a upraviť",
-    "cancel_and_compose_again": "Zrušiť a napísať znova",
-    "reschedule_prompt": "Zadajte nový dátum/čas, napr. 2026-05-04T15:30"
+    "cancel_and_compose_again": "Zrušiť a napísať znova"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "Odoslanie bolo zrušené, ale správu sa nepodarilo vrátiť do Konceptov. Stále je v Odoslaných.",
     "send_cancelled_remove_failed": "Odoslanie bolo zrušené, ale neodoslanú správu sa nepodarilo odstrániť z Odoslaných.",
     "cancel_scheduled_failed": "Naplánované odoslanie sa nepodarilo zrušiť",
+    "send_cancelled": "Odoslanie zrušené",
     "still_scheduled_at": "Správa je stále naplánovaná na {date}.",
     "still_scheduled": "Správa je stále naplánovaná.",
     "already_sent": "Táto správa už bola odoslaná.",

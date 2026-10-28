@@ -311,8 +311,7 @@
     "cancel_scheduled_send": "Annuler l’envoi",
     "reschedule_send": "Replanifier",
     "cancel_and_edit": "Annuler et modifier",
-    "cancel_and_compose_again": "Annuler et rédiger à nouveau",
-    "reschedule_prompt": "Saisissez une nouvelle date/heure, p. ex. 2026-05-04T15:30"
+    "cancel_and_compose_again": "Annuler et rédiger à nouveau"
   },
   "email_viewer": {
     "read_receipt": {
@@ -628,6 +627,7 @@
     "send_cancelled_restore_failed": "L’envoi a été annulé, mais le message n’a pas pu être remis dans Brouillons. Il est toujours dans Envoyés.",
     "send_cancelled_remove_failed": "L’envoi a été annulé, mais le message non envoyé n’a pas pu être retiré d’Envoyés.",
     "cancel_scheduled_failed": "Impossible d’annuler l’envoi planifié",
+    "send_cancelled": "Envoi annulé",
     "still_scheduled_at": "Le message reste planifié pour le {date}.",
     "still_scheduled": "Le message reste planifié.",
     "already_sent": "Ce message a déjà été envoyé.",
