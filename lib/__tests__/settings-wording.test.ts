@@ -45,6 +45,20 @@ describe('settings wording', () => {
     expect(offenders).toEqual([]);
   });
 
+  // R9: a success toast states the result, without "successfully".
+  it('reports Settings saves without "successfully"', () => {
+    for (const key of [
+      'notifications.filters_saved',
+      'settings.filters.saved',
+      'notifications.identity_created',
+      'notifications.identity_updated',
+      'notifications.templates_exported',
+    ]) {
+      expect(text(key), key).not.toMatch(/successful|!/i);
+    }
+    expect(text('notifications.filters_saved')).toBe('Filters saved');
+  });
+
   it('does not repeat the debug section title as its only row', () => {
     expect(text('settings.advanced.debug_mode.toggle')).not.toBe(text('settings.advanced.debug_mode.label'));
   });
