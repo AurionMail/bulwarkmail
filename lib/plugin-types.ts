@@ -837,6 +837,20 @@ export interface AppInfoView {
   demoMode: boolean;
 }
 
+/**
+ * Features of Bulwark itself that replace what a plugin did, as
+ * `api.host.features` tells the plugin (no permission needed). A plugin
+ * that does the same job steps back while one is true. Missing on hosts
+ * older than 1.19.0, so read it as `api.host?.features?.x === true`.
+ */
+export interface HostFeaturesView {
+  /**
+   * The admin turned on the "External" sender label or the external
+   * recipient warning (policy organisation.externalMail) for this user.
+   */
+  externalMailWarnings: boolean;
+}
+
 /** One setting `api.app.searchSettings` found, in the user's language. */
 export interface SettingsSearchResult {
   /** The settings page's id: account, appearance, composing, vacation, ... */

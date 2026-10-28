@@ -33,7 +33,7 @@ import { initFloatingDropdownBridge, dispatchFloatingDropdownEvent } from './ui-
 import { interpolate, lookup, textDirection, type LocaleTables } from './plugin-i18n';
 import { isFillableSlot, isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
 import type {
-  AppInfoView, AppSettingsView, SettingsSearchResult, CalendarEventInput, CalendarEventView, CalendarView, ComposeInput, DraftInput, EmailReadView,
+  AppInfoView, AppSettingsView, HostFeaturesView, SettingsSearchResult, CalendarEventInput, CalendarEventView, CalendarView, ComposeInput, DraftInput, EmailReadView,
   EmailSummary, IdentityPatch, IdentityView, MailboxView, NotificationInput, SlotName, TaskInput,
   TaskView, TemplateInput, TemplateView, VacationInput, VacationView,
 } from '../plugin-types';
@@ -146,6 +146,18 @@ function applySettings(next: Record<string, unknown>): void {
   Object.assign(settingsState, next);
   for (const listener of settingsListeners) {
     try { listener(settingsState); } catch (err) { console.error('[plugin] settings listener failed', err); }
+  }
+}
+// What api.host.features says: one object for the iframe's lifetime,
+// updated in place on 'host-change' like the settings.
+const hostFeaturesState: HostFeaturesView = { externalMailWarnings: false };
+const hostFeatureListeners = new Set<(features: HostFeaturesView) => void>();
+
+function applyHostFeatures(next: HostFeaturesView | undefined): void {
+  if (!next) return;
+  hostFeaturesState.externalMailWarnings = next.externalMailWarnings === true;
+  for (const listener of hostFeatureListeners) {
+    try { listener(hostFeaturesState); } catch (err) { console.error('[plugin] host feature listener failed', err); }
   }
 }
 const pendingCallbacks = new Map<string, { resolve: (v: unknown) => void; reject: (err: Error) => void }>();
@@ -373,6 +385,18 @@ function buildPluginApi(manifest: PluginManifest) {
       onSettingsChange: (listener: (settings: Record<string, unknown>) => void) => {
         settingsListeners.add(listener);
         return () => { settingsListeners.delete(listener); };
+      },
+    },
+    /**
+     * Bulwark features that replace what plugins did, so a plugin can step
+     * back while Bulwark does its job. Updated in place; no permission needed.
+     */
+    host: {
+      features: hostFeaturesState,
+      /** Called with the new features whenever one turns on or off. Returns an unsubscribe function. */
+      onFeaturesChange: (listener: (features: HostFeaturesView) => void) => {
+        hostFeatureListeners.add(listener);
+        return () => { hostFeatureListeners.delete(listener); };
       },
     },
     /** The app the plugin runs in: product, the administrator's name for it, version, edition. No permission needed. */
@@ -1143,9 +1167,11 @@ async function bootSlot(payload: SlotInit): Promise<void> {
       const bump = () => setSettingsVersion((v) => v + 1);
       settingsListeners.add(bump);
       localeListeners.add(bump);
+      hostFeatureListeners.add(bump);
       return () => {
         settingsListeners.delete(bump);
         localeListeners.delete(bump);
+        hostFeatureListeners.delete(bump);
       };
     }, []);
     React.useEffect(() => {
@@ -1193,6 +1219,8 @@ async function handleInit(payload: InitPayload): Promise<void> {
   // Make the active locale available to plugin code (api.i18n) right away -
   // not only after the first 'locale-change' push.
   applyLocale(payload.locale, payload.regional);
+  // Before the bundle runs, so activate() and shouldShow already see it.
+  applyHostFeatures(payload.hostFeatures);
   try {
     if (payload.mode === 'background') {
       await bootBackground(payload);
@@ -1287,6 +1315,10 @@ function handleHostMessage(ev: MessageEvent): void {
 
     case 'settings-change':
       applySettings(msg.settings ?? {});
+      break;
+
+    case 'host-change':
+      applyHostFeatures(msg.features);
       break;
 
     case 'props-update':

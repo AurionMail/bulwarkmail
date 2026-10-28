@@ -31,6 +31,7 @@ import { clearPluginPages } from './pages';
 import { clearSectionTitle } from './section-titles';
 import { cancelPluginProxyRequests } from './proxy-client';
 import { cancelConnectFor } from './connect-dialog';
+import { isHookHandedOver } from './host-features';
 import type { SlotName } from '../plugin-types';
 
 // ─── Hook-bus lookup (one flat map for name → bus) ────────────
@@ -280,7 +281,12 @@ async function startSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
       }
       // The bus records a failure once; recording it here too made the
       // three-strikes breaker trip on the second error.
-      const proxy = (...args: unknown[]) => bg.invokeHook(hookName, args);
+      // While Bulwark does a retired plugin's job itself, that plugin's
+      // hook is skipped: copies older than the release that steps back on
+      // its own would ask twice (host-features.ts). Asked per call, so
+      // turning the core switch off gives the plugin its hook back.
+      const pluginId = plugin.id;
+      const proxy = (...args: unknown[]) => (isHookHandedOver(pluginId, hookName) ? undefined : bg.invokeHook(hookName, args));
       hookDisposables.push(bus.register(plugin.id, proxy as (...a: unknown[]) => unknown));
       if (hookName === 'onEmailOpen') openHandler = proxy;
     }
