@@ -79,5 +79,11 @@ describe('TrashRecoveryLink', () => {
     cleanup();
     const shared = await renderLink({ ...TRASH, accountId: 'ch', isShared: true });
     expect(shared.container).toBeEmptyDOMElement();
+    cleanup();
+    const sharedNoAccount = await renderLink({ ...TRASH, accountId: undefined, isShared: true });
+    expect(sharedNoAccount.container).toBeEmptyDOMElement();
+    cleanup();
+    const otherAccount = await renderLink({ ...TRASH, accountId: 'ch' });
+    expect(otherAccount.container).toBeEmptyDOMElement();
   });
 });
