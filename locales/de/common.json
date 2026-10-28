@@ -4161,7 +4161,7 @@
     "unknown_sender": "Unbekannter Absender",
     "no_subject": "(kein Betreff)",
     "deleted_on": "Gelöscht am {date}",
-    "trash_hint": "Versehentlich etwas endgültig gelöscht?",
+    "trash_hint": "Versehentlich endgültig gelöscht?",
     "trash_link": "Gelöschte Elemente wiederherstellen"
   },
   "calendar_event_notifications": {

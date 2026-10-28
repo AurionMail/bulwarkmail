@@ -4290,7 +4290,7 @@
     "unknown_sender": "Unknown sender",
     "no_subject": "(no subject)",
     "deleted_on": "Deleted {date}",
-    "trash_hint": "Deleted something for good by mistake?",
+    "trash_hint": "Deleted for good by mistake?",
     "trash_link": "Recover deleted items"
   },
   "quote_header": {
