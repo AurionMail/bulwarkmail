@@ -1109,6 +1109,7 @@
   "settings": {
     "title": "Beállítások",
     "back_to_mail": "Vissza a levelekhez",
+    "back_to_settings": "Vissza a beállításokhoz",
     "save_success": "Beállítások sikeresen elmentve",
     "import_success": "Beállítások sikeresen importálva",
     "import_error": "Nem sikerült importálni a beállításokat",
@@ -1348,6 +1349,7 @@
       "id_exists": "Ez a címke azonosító már létezik",
       "edit": "Címke szerkesztése",
       "delete": "Címke törlése",
+      "deleted": "Címke törölve",
       "save": "Mentés",
       "add": "Hozzáadás",
       "cancel": "Mégse",
@@ -1852,6 +1854,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Más eszközök többé nem tudják visszaállítani belőle a fiókokat.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1953,6 +1956,8 @@
         "removed": "Alkalmazás jelszó eltávolítva",
         "add_error": "Nem sikerült létrehozni az alkalmazás jelszót",
         "remove_error": "Nem sikerült eltávolítani az alkalmazás jelszót",
+        "delete_title": "Törli az alkalmazásjelszót?",
+        "delete_message": "A(z) {name} jelszóval bejelentkező alkalmazások többé nem tudnak bejelentkezni.",
         "none": "Nincs alkalmazás jelszó beállítva"
       },
       "api_keys": {
@@ -1965,6 +1970,8 @@
         "removed": "API kulcs eltávolítva",
         "add_error": "Nem sikerült létrehozni az API kulcsot",
         "remove_error": "Nem sikerült eltávolítani az API kulcsot",
+        "delete_title": "Törli az API-kulcsot?",
+        "delete_message": "A(z) {name} kulcsot használó szkriptek és integrációk elveszítik a hozzáférést.",
         "none": "Nincs API kulcs beállítva"
       },
       "encryption": {
@@ -1984,6 +1991,9 @@
         "configure_title": "Titkosítás engedélyezése ezzel a kulccsal",
         "enable_button": "Engedélyezés",
         "disable_tooltip": "Titkosítás letiltása",
+        "disable_title": "Kikapcsolja a tárolt adatok titkosítását?",
+        "disable_message": "Az új leveleket mostantól titkosítás nélkül tárolja a szerver.",
+        "disable_button": "Kikapcsolás",
         "enabled_success": "Titkosítás nyugalmi állapotban engedélyezve"
       },
       "email_client": {
@@ -2032,7 +2042,14 @@
         "name_placeholder": "pl. A kulcsom",
         "key_label": "Nyilvános kulcs (S/MIME vagy PGP ASCII formátumban)",
         "key_placeholder": "Illessze be ide a nyilvános kulcsát",
-        "none": "Nincs beállítva nyilvános kulcs"
+        "none": "Nincs beállítva nyilvános kulcs",
+        "title": "Nyilvános kulcsok",
+        "added": "Nyilvános kulcs hozzáadva",
+        "removed": "Nyilvános kulcs törölve",
+        "add_error": "Nem sikerült hozzáadni a nyilvános kulcsot",
+        "remove_error": "Nem sikerült törölni a nyilvános kulcsot",
+        "delete_title": "Törli a nyilvános kulcsot?",
+        "delete_message": "A(z) {name} törlődik a szerverről."
       },
       "sections": {
         "devices": "Más alkalmazások és eszközök",
@@ -2092,6 +2109,7 @@
       },
       "save": "Változtatások mentése",
       "saving": "Mentés...",
+      "saved": "Mentve",
       "warnings": {
         "end_before_start": "A befejező dátumnak a kezdő dátum után kell lennie",
         "invalid_date": "Adjon meg érvényes kezdő és befejező dátumot időponttal, vagy hagyja üresen a mezőt",
@@ -2158,12 +2176,17 @@
       "new_folder_name": "Mappa neve",
       "rename": "Átnevezés",
       "change_icon": "Ikon módosítása",
+      "actions": "{name} – műveletek",
+      "expand": "{name} kibontása",
+      "collapse": "{name} összecsukása",
+      "counter": "Számláló",
       "count_mode": "Számláló: {name}",
       "count_mode_default": "Számláló: alapértelmezett",
       "count_mode_unread": "Csak olvasatlan",
       "count_mode_all": "Olvasatlan és összes",
       "count_mode_none": "Nincs számláló",
       "delete": "Törlés",
+      "delete_title": "Törli a mappát?",
       "confirm_delete": "Biztosan törölni szeretnéd a \"{name}\" mappát? A mappában lévő e-mailek a Kukába kerülnek.",
       "create": "Létrehozás",
       "cancel": "Mégse",
@@ -2183,7 +2206,8 @@
     "advanced": {
       "debug_mode": {
         "label": "Hibakeresési mód",
-        "description": "Részletes naplózás engedélyezése hibaelhárításhoz"
+        "description": "Részletes naplózás engedélyezése hibaelhárításhoz",
+        "toggle": "Részletes naplózás"
       },
       "debug_categories": {
         "description": "Válaszd ki a naplózandó kategóriákat. Kapcsold ki a nem szükséges kategóriákat a konzol zaj csökkentéséhez.",
@@ -2228,12 +2252,15 @@
       "refresh_cache": {
         "label": "Refresh cached data",
         "description": "Reload contacts, calendars, and folders from the server. Keeps your accounts and sessions — fixes a stale or wrong view without signing out.",
-        "button": "Refresh"
+        "button": "Refresh",
+        "confirm_title": "Frissíti a gyorsítótárazott adatokat?"
       },
       "reset_settings": {
         "label": "Beállítások visszaállítása",
         "description": "Összes beállítás visszaállítása az alapértelmezett értékekre",
-        "button": "Visszaállítás alapértelmezettre"
+        "button": "Visszaállítás alapértelmezettre",
+        "confirm_title": "Visszaállítja az összes beállítást?",
+        "done": "Beállítások visszaállítva"
       },
       "export_settings": {
         "label": "Beállítások exportálása",
@@ -2308,7 +2335,15 @@
       "no_address_books": "Nincs címjegyzék",
       "categories_title": "Kategóriák",
       "categories_description": "Névjegy kategóriák átnevezése",
-      "no_categories": "Nincs kategória"
+      "no_categories": "Nincs kategória",
+      "delete_category": "Kategória törlése",
+      "category_deleted": "Kategória törölve",
+      "category_delete_failed": "Nem sikerült törölni a kategóriát"
+    },
+    "calendar_management": {
+      "delete_title": "Törli a naptárt?",
+      "clear_title": "Törli az összes eseményt?",
+      "unsubscribe_title": "Leiratkozik erről a naptárról?"
     },
     "downloads": {
       "title": "Letöltések",
@@ -2374,7 +2409,7 @@
       "validate": "Ellenőrzés",
       "validation_success": "A szkript érvényes",
       "validation_error": "A szkript hibákat tartalmaz",
-      "save": "Szabályok mentése",
+      "save": "Mentés",
       "saving": "Mentés...",
       "saved": "Szűrők sikeresen elmentve",
       "save_failed": "Nem sikerült menteni a szűrőket",
@@ -2388,6 +2423,8 @@
       "add_condition": "Feltétel hozzáadása",
       "actions": "Műveletek",
       "add_action": "Művelet hozzáadása",
+      "remove_condition": "Feltétel eltávolítása",
+      "remove_action": "Művelet eltávolítása",
       "stop_processing": "További szabályok feldolgozásának leállítása",
       "include_spam": "A levélszemétnek jelölt üzenetek áthelyezése is",
       "attachment_type_placeholder": "pl. pdf, doc, jpg",
@@ -2464,6 +2501,7 @@
       "match_type": "Egyezés típusa",
       "reset_to_visual": "Visszaállítás vizuális szerkesztőre",
       "reset_warning": "Ez elveti az aktuális szkriptet és újat kezd.",
+      "reset_title": "Visszaáll a vizuális szerkesztőre?",
       "confirm_reset": "Visszaállítás",
       "validation_empty_name": "A szabály neve kötelező",
       "validation_empty_conditions": "Legalább egy feltétel szükséges értékkel",
@@ -2649,6 +2687,217 @@
         "sending": "Küldés előtt",
         "receipts": "Olvasási visszaigazolások"
       }
+    }
+  },
+  "setup": {
+    "title": "A Bulwark Webmail beállítása",
+    "subtitle": "Állítsa be a webmail-példányát a böngészőből.",
+    "loading": "Betöltés…",
+    "back": "Vissza",
+    "next": "Tovább",
+    "saving": "Mentés…",
+    "show": "Megjelenítés",
+    "hide": "Elrejtés",
+    "remove": "Eltávolítás",
+    "on": "Be",
+    "off": "Ki",
+    "dismiss": "Bezárás",
+    "unknown_error": "Ismeretlen hiba",
+    "steps": {
+      "welcome": "Üdvözöljük",
+      "server": "Szerver",
+      "auth": "Bejelentkezés",
+      "security": "Biztonság",
+      "logging": "Naplózás",
+      "branding": "Arculat",
+      "review": "Áttekintés"
+    },
+    "read_only": {
+      "title": "A konfiguráció csak olvasható",
+      "body": "A konfigurációs kötet csak olvasásra van csatolva, vagy be van állítva a(z) {variable}. Csatolja írhatóként vagy törölje a változót, majd indítsa újra a konténert."
+    },
+    "done": {
+      "title": "Minden kész",
+      "body": "A(z) {appName} be van állítva és használatra kész.",
+      "admin_sign_in": "Bejelentkezés az adminisztrációs felületre",
+      "webmail_login": "A webmail bejelentkezés megnyitása",
+      "redirecting": "Átirányítás az adminisztrációs felületre…"
+    },
+    "already": {
+      "title": "A beállítás már befejeződött",
+      "body": "A(z) {appName} be van állítva. A folytatáshoz jelentkezzen be."
+    },
+    "insecure": {
+      "title": "A beállítást titkosítatlan HTTP-n keresztül futtatja",
+      "body": "Az itt megadott beállítási token és rendszergazdai jelszó titkosítatlanul utazik. Ha lehet, használjon HTTPS-t: a TLS-t a konténerben vagy egy előtte álló fordított proxyban zárja le.",
+      "try_https": "HTTPS kipróbálása",
+      "continue_http": "Folytatás HTTP-n"
+    },
+    "errors": {
+      "token_expired": "Ez a beállítási token már nem érvényes. Indítsa újra a konténert, hogy a naplóban újat kapjon.",
+      "session_expired": "A beállítási munkamenet lejárt. A folytatáshoz illessze be újra a beállítási tokent.",
+      "token_required": "A folytatáshoz illessze be a konténer naplójában látható beállítási tokent.",
+      "already_finished": "A beállítás már befejeződött. A bejelentkezéshez töltse újra az oldalt.",
+      "token_rejected": "Token elutasítva (HTTP {status})",
+      "step_failed": "Nem sikerült menteni ezt a lépést (HTTP {status})",
+      "upload_failed": "A feltöltés nem sikerült (HTTP {status})",
+      "finish_failed": "Nem sikerült befejezni a beállítást (HTTP {status})"
+    },
+    "welcome": {
+      "title": "Üdvözöljük",
+      "body": "A folytatáshoz illessze be a konténer naplójában látható beállítási tokent. A token 1 óra után lejár.",
+      "token_label": "Beállítási token",
+      "token_placeholder": "32 bájtos hexadecimális token",
+      "verifying": "Ellenőrzés…",
+      "continue": "Folytatás"
+    },
+    "server": {
+      "title": "Szerver",
+      "subtitle": "Ahol a levelei vannak.",
+      "app_name": "Az alkalmazás neve",
+      "url_label": "A JMAP-szerver URL-je",
+      "url_hint": "Az alapértelmezett szerver, amelyhez a felhasználók csatlakoznak. Példa: https://mail.example.com",
+      "test": "Teszt",
+      "testing": "Tesztelés…",
+      "probe_ok": "Csatlakozva: ez JMAP-szervernek tűnik.",
+      "probe_not_jmap": "A szerver válaszol, de nem tűnik JMAP-végpontnak.",
+      "probe_invalid": "Ez az URL érvénytelen. http:// vagy https:// előtaggal kell kezdődnie.",
+      "probe_unreachable": "Nem sikerült csatlakozni ehhez a címhez. Ellenőrizze az URL-t, és hogy a szerver elérhető-e.",
+      "not_jmap_hint": "Ez előfordulhat, ha egy fordított proxy ugyanazon a tartományon külön irányítja a JMAP-ot. Egyébként általában rossz az URL.",
+      "not_jmap_confirm": "Biztos vagyok benne, hogy az URL helyes, folytatás így is.",
+      "http_title": "Ez az URL titkosítatlan HTTP-t használ.",
+      "http_body": "A jelszavak és a levelek tartalma titkosítás nélkül utaznak a felhasználók és a szerver között. Éles környezetben használja a(z) {https} előtagot: a TLS-t a levelezőszerveren vagy egy előtte álló fordított proxyban zárja le.",
+      "local_title": "Ez az URL csak helyben érhető el.",
+      "local_body": "A leveleket közvetlenül a felhasználó böngészője tölti le, ezért a JMAP-URL-nek mindenhonnan elérhetőnek kell lennie, ahol a felhasználók bejelentkeznek, nem csak erről a gépről vagy helyi hálózatból. Éles környezetben használjon nyilvános gépnevet (pl. {example}).",
+      "additional_title": "További JMAP-szerverek",
+      "additional_hint": "Nem kötelező. Több szervert kínálhat a bejelentkezési listában, hasznos több Stalwart-példányt futtató szolgáltatóknak.",
+      "additional_show": "Megjelenítés ({count})",
+      "add": "Hozzáadás",
+      "row_title": "{index}. szerver",
+      "id_label": "Azonosító",
+      "id_hint": "Egyedi rövid név, pl. eu-1",
+      "label_label": "Felirat",
+      "label_hint": "A felhasználók látják",
+      "row_url": "URL",
+      "domains_label": "Tartományok",
+      "domains_hint": "Vesszővel elválasztva. Bejelentkezéskor ezek alapján választja ki ezt a szervert az e-mail-tartomány szerint.",
+      "add_server": "Szerver hozzáadása",
+      "auto_pick": "Szerver kiválasztása az e-mail-tartomány alapján",
+      "auto_pick_hint": "Amikor a felhasználó beírja az e-mail-címét, a fenti listából a megfelelő szerver lesz kiválasztva.",
+      "row_id_required": "{index}. szerver: az azonosító kötelező",
+      "row_id_invalid": "{index}. szerver: az azonosító csak betűket, számjegyeket, - és _ jelet tartalmazhat, és betűvel vagy számjeggyel kell kezdődnie",
+      "row_id_duplicate": "{index}. szerver: a(z) „{id}” azonosító kétszer szerepel",
+      "row_url_required": "{index}. szerver: az URL kötelező",
+      "row_url_scheme": "{index}. szerver: az URL-nek http:// vagy https:// előtaggal kell kezdődnie",
+      "stalwart": "Stalwart-specifikus funkciók bekapcsolása",
+      "stalwart_hint": "Jelszómódosítást és Sieve-szűrők kezelését ad hozzá. Más szervereken is nyugodtan bekapcsolható."
+    },
+    "auth": {
+      "title": "Hitelesítés",
+      "subtitle": "A jelszavas bejelentkezés mindig elérhető. Az OAuth/OIDC nem kötelező.",
+      "oauth": "OAuth2 / OpenID Connect bekapcsolása",
+      "oauth_only": "Csak OAuth (jelszó űrlap elrejtése)",
+      "client_id": "OAuth-ügyfélazonosító",
+      "client_secret": "OAuth-ügyféltitok",
+      "client_secret_hint": "Hagyja üresen a csak PKCE-t használó nyilvános ügyfeleknél.",
+      "client_secret_placeholder": "Illessze be a titkot",
+      "issuer": "OAuth-kibocsátó URL-je",
+      "issuer_hint": "Külső identitásszolgáltatókhoz (Keycloak, Authentik, Entra ID stb.)."
+    },
+    "security": {
+      "title": "Biztonság és munkamenetek",
+      "subtitle": "A munkamenet-titok lehetővé teszi az „Emlékezzen rám” funkciót és a beállítások szinkronizálását.",
+      "generated": "Munkamenet-titok létrehozva",
+      "customize": "Testreszabás",
+      "generated_hint": "Létrehoztunk egy 32 bájtos titkot. Csak akkor módosítsa, ha konkrét oka van rá.",
+      "secret_label": "Munkamenet-titok",
+      "secret_hint": "Illessze be a saját értékét, vagy hozzon létre újat.",
+      "regenerate": "Újragenerálás",
+      "sync": "Felhasználói beállítások szinkronizálása az eszközök között",
+      "sync_hint": "A felhasználók beállításait a szerveren tárolja, a munkamenet-titokkal titkosítva.",
+      "telemetry": "Névtelen használati statisztikák küldése a Bulwark fejlesztéséhez",
+      "telemetry_hint": "Alapértelmezés szerint ki van kapcsolva. Naponta egy névtelen jelzés a verzióval, a platformmal és a bekapcsolt funkciókkal; soha nem küld e-mail-címet, gépnevet vagy IP-címet. Ezt bármikor módosíthatja az adminisztrációs beállításokban."
+    },
+    "logging": {
+      "title": "Naplózás",
+      "subtitle": "Az alkalmazásnaplók formátuma és részletessége.",
+      "format": "Formátum",
+      "format_text": "text: színes, könnyen olvasható",
+      "format_json": "json: strukturált, naplógyűjtéshez",
+      "level": "Szint",
+      "level_info": "info (ajánlott)"
+    },
+    "branding": {
+      "title": "Arculat",
+      "subtitle": "Minden mező nem kötelező. Töltsön fel egy fájlt vagy illesszen be egy URL-t; a kihagyott mezőkhöz az alapértelmezések érvényesek.",
+      "company": "A cég vagy szervezet neve",
+      "favicon": "Favicon",
+      "favicon_hint": "A böngészőlap ikonja. SVG ajánlott.",
+      "login_light": "Bejelentkezési logó (világos mód)",
+      "login_light_hint": "A bejelentkezési oldalon, világos háttéren.",
+      "login_dark": "Bejelentkezési logó (sötét mód)",
+      "login_dark_hint": "A bejelentkezési oldalon, sötét háttéren.",
+      "sidebar_light": "Oldalsáv logója (világos mód)",
+      "sidebar_light_hint": "Bejelentkezés után látható. Hagyja üresen, ha nem kell.",
+      "sidebar_dark": "Oldalsáv logója (sötét mód)",
+      "sidebar_dark_hint": "Az oldalsáv logójának sötét módú változata.",
+      "website": "Weboldal URL-je",
+      "imprint": "Impresszum URL-je",
+      "privacy": "Adatvédelmi tájékoztató URL-je",
+      "drop": "Kattintson vagy húzza ide",
+      "uploading": "Feltöltés…",
+      "uploaded": "Feltöltött fájl",
+      "formats": "SVG, PNG, JPEG, WebP vagy ICO · legfeljebb 2 MB",
+      "use_url": "URL használata",
+      "hide_url": "URL elrejtése",
+      "url_placeholder": "https://… vagy /branding/fajl.svg"
+    },
+    "review": {
+      "title": "Majdnem kész",
+      "subtitle": "Tekintse át a beállításokat, válasszon rendszergazdai jelszót, és alkalmazza.",
+      "server": "Szerver",
+      "app_name": "Az alkalmazás neve",
+      "jmap_server": "JMAP-szerver",
+      "additional": "További szerverek",
+      "additional_count": "{count} beállítva",
+      "additional_auto_pick": "{count} beállítva · tartomány szerinti választás",
+      "stalwart": "Stalwart-funkciók",
+      "auth": "Hitelesítés",
+      "method": "Módszer",
+      "oauth_only": "Csak OAuth",
+      "password_oauth": "Jelszó + OAuth",
+      "password_only": "Csak jelszó",
+      "client_id": "OAuth-ügyfélazonosító",
+      "security": "Biztonság",
+      "secret": "Munkamenet-titok",
+      "configured": "Beállítva",
+      "not_set": "Nincs megadva",
+      "remember_me": "Emlékezzen rám",
+      "available": "Elérhető",
+      "disabled": "Kikapcsolva",
+      "sync": "Beállítások szinkronizálása",
+      "needs_secret": "Munkamenet-titok szükséges",
+      "telemetry": "Névtelen telemetria",
+      "logging": "Naplózás",
+      "format": "Formátum",
+      "level": "Szint",
+      "branding": "Arculat",
+      "customizations": "Testreszabások",
+      "custom_assets": "Saját fájlok beállítva",
+      "defaults": "Alapértelmezések",
+      "company": "A cég neve",
+      "password_title": "Válasszon rendszergazdai jelszót",
+      "password_hint": "Ezzel jelentkezik be itt: {path}. Legalább 8 karakter.",
+      "new_password": "Új jelszó",
+      "confirm": "Megerősítés",
+      "too_short": "Legalább 8 karakter.",
+      "mismatch": "A jelszavak nem egyeznek.",
+      "looks_good": "Rendben.",
+      "advanced": "Speciális",
+      "lock": "Konfiguráció zárolása a beállítás után",
+      "lock_hint": "Jelölőfájlt hoz létre. Ezután csatolja csak olvasásra a konfigurációs kötetet, és az alkalmazás elutasítja a további konfigurációs írásokat. A naplók és a bejelentkezési állapot írható marad az állapotkötetben.",
+      "applying": "Alkalmazás…",
+      "finish": "Alkalmazás és befejezés"
     }
   },
   "errors": {

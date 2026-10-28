@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { SettingsSection, ToggleSwitch } from "./settings-section";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { FilterRuleModal } from "@/components/filters/filter-rule-modal";
 import { SieveEditorModal } from "@/components/filters/sieve-editor-modal";
 import { useFilterStore } from "@/stores/filter-store";
@@ -21,7 +24,7 @@ import { useManagedAccountStore } from "@/stores/managed-account-store";
 import {
   Plus,
   GripVertical,
-  X,
+  Trash2,
   Code,
   AlertTriangle,
   Loader2,
@@ -288,8 +291,6 @@ export function FilterSettings() {
   const [editingRule, setEditingRule] = useState<FilterRule | undefined>();
   const [showRuleModal, setShowRuleModal] = useState(false);
   const [showSieveEditor, setShowSieveEditor] = useState(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const draggedIndexRef = useRef<number | null>(null);
 
@@ -336,22 +337,38 @@ export function FilterSettings() {
     [client, toggleRule, saveFilters, tNotifications]
   );
 
+  // A rule can be put back as it was, so it goes at once with an Undo (R3).
   const handleDelete = useCallback(
     async (ruleId: string) => {
-      const deletedRule = rules.find((r) => r.id === ruleId);
+      const before = useFilterStore.getState().rules;
+      const deletedRule = before.find((r) => r.id === ruleId);
+      if (!deletedRule) return;
       deleteRule(ruleId);
-      setDeleteConfirmId(null);
-      if (client) {
-        try {
-          await saveFilters(client);
-          toast.success(tNotifications("filters_deleted"));
-        } catch {
-          if (deletedRule) addRule(deletedRule);
-          toast.error(tNotifications("filters_save_failed"));
-        }
+      if (!client) return;
+      const putBack = () => useFilterStore.setState({ rules: before });
+      try {
+        await saveFilters(client);
+      } catch {
+        putBack();
+        toast.error(tNotifications("filters_save_failed"));
+        return;
       }
+      toast.success(tNotifications("filters_deleted"), {
+        action: {
+          label: tNotifications("rule_undo"),
+          onClick: () => {
+            if (useFilterStore.getState().rules.some((r) => r.id === ruleId)) return;
+            const current = useFilterStore.getState().rules;
+            putBack();
+            saveFilters(client).catch(() => {
+              useFilterStore.setState({ rules: current });
+              toast.error(tNotifications("filters_save_failed"));
+            });
+          },
+        },
+      });
     },
-    [client, rules, deleteRule, addRule, saveFilters, tNotifications]
+    [client, deleteRule, saveFilters, tNotifications]
   );
 
   const handleSaveRule = useCallback(
@@ -394,13 +411,17 @@ export function FilterSettings() {
     [client, setRawScript, saveFilters, tNotifications]
   );
 
+  const { dialogProps: confirmProps, confirm } = useConfirmDialog();
+  // The script typed in the raw editor is thrown away, so it asks first (R3).
   const handleResetToVisual = useCallback(async () => {
-    if (!showResetConfirm) {
-      setShowResetConfirm(true);
-      return;
-    }
+    const ok = await confirm({
+      title: t("reset_title"),
+      message: t("reset_warning"),
+      confirmText: t("confirm_reset"),
+      variant: "destructive",
+    });
+    if (!ok) return;
     resetToVisualBuilder();
-    setShowResetConfirm(false);
     if (client) {
       try {
         await saveFilters(client);
@@ -409,7 +430,7 @@ export function FilterSettings() {
         toast.error(tNotifications("filters_save_failed"));
       }
     }
-  }, [showResetConfirm, resetToVisualBuilder, client, saveFilters, tNotifications]);
+  }, [confirm, t, resetToVisualBuilder, client, saveFilters, tNotifications]);
 
   const handleValidate = useCallback(
     async (content: string) => {
@@ -519,34 +540,14 @@ export function FilterSettings() {
                 >
                   {t("open_sieve_editor")}
                 </button>
-                {showResetConfirm ? (
-                  <span className="flex items-center gap-2">
-                    <span className="text-red-600 dark:text-red-400">{t("reset_warning")}</span>
-                    <button
-                      type="button"
-                      onClick={handleResetToVisual}
-                      className="text-red-600 dark:text-red-400 hover:underline font-medium"
-                    >
-                      {t("confirm_reset")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowResetConfirm(false)}
-                      className="text-muted-foreground hover:underline"
-                    >
-                      {t("cancel")}
-                    </button>
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleResetToVisual}
-                    className="text-red-600 dark:text-red-400 hover:underline font-medium flex items-center gap-1"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    {t("reset_to_visual")}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => void handleResetToVisual()}
+                  className="text-red-600 dark:text-red-400 hover:underline font-medium flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  {t("reset_to_visual")}
+                </button>
               </div>
             </div>
           </div>
@@ -671,6 +672,7 @@ export function FilterSettings() {
                     <ToggleSwitch
                       checked={rule.enabled}
                       onChange={() => handleToggle(rule.id)}
+                      ariaLabel={rule.name}
                     />
                   </div>
 
@@ -700,33 +702,13 @@ export function FilterSettings() {
                     )}
                   </div>
 
-                  {deleteConfirmId === rule.id ? (
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(rule.id)}
-                      >
-                        {t("confirm_delete")}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeleteConfirmId(null)}
-                      >
-                        {t("cancel")}
-                      </Button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setDeleteConfirmId(rule.id)}
-                      className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                      aria-label={t("delete_rule")}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
+                  <IconButton
+                    label={t("delete_rule")}
+                    onClick={() => void handleDelete(rule.id)}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 />
+                  </IconButton>
                 </div>
               );
             })}
@@ -740,6 +722,7 @@ export function FilterSettings() {
             <Button
               variant="outline"
               size="sm"
+              data-search-label={t("add_rule")}
               onClick={() => {
                 setEditingRule(undefined);
                 setShowRuleModal(true);
@@ -752,6 +735,7 @@ export function FilterSettings() {
           <Button
             variant="outline"
             size="sm"
+            data-search-label={t("raw_editor")}
             onClick={() => setShowSieveEditor(true)}
           >
             <Code className="w-4 h-4 me-1" />
@@ -772,6 +756,7 @@ export function FilterSettings() {
               <ToggleSwitch
                 checked={expandedFilterView}
                 onChange={(v) => updateSetting("expandedFilterView", v)}
+                ariaLabel={t("expanded_view")}
               />
             </div>
           )}
@@ -802,6 +787,7 @@ export function FilterSettings() {
           onValidate={handleValidate}
         />
       )}
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 }

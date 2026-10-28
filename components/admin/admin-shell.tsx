@@ -181,10 +181,15 @@ export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly,
       );
     }
     if (id === 'version' && hasUpdate) {
+      // A dot only: role="img" makes screen readers announce its label, which
+      // they skip on a plain span; the title shows it on hover.
+      const label = updateImportant ? 'Important update available' : 'Update available';
       return (
         <span
+          role="img"
+          aria-label={label}
+          title={label}
           className={cn('ms-auto h-2 w-2 rounded-full', updateImportant ? 'bg-red-500' : 'bg-amber-500')}
-          aria-label={updateImportant ? 'Important update available' : 'Update available'}
         />
       );
     }

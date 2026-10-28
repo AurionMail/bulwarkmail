@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Book, BookPlus, Pencil, Share2, Star, Tag, Users } from "@/components/icons";
+import { Book, BookPlus, Pencil, Share2, Star, Tag, Trash2, Users } from "@/components/icons";
 import { useContactStore } from "@/stores/contact-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { useManagedAccountStore } from "@/stores/managed-account-store";
@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import type { AddressBook, AddressBookRights } from "@/lib/jmap/types";
 import { ShareCollectionDialog } from "./share-collection-dialog";
 import { PromptDialog } from "@/components/ui/prompt-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 function AddressBookEditRow({
   initial,
@@ -74,7 +76,9 @@ export function AddressBookManagementSettings() {
   const tSettings = useTranslations("settings.contacts");
   const { client } = useAuthStore();
   const managedAccountId = useManagedAccountStore((s) => s.managedAccountId);
-  const { addressBooks, contacts, supportsSync, fetchAddressBooks, createAddressBook, renameAddressBook, shareAddressBook, setDefaultAddressBook, renameKeyword } = useContactStore();
+  const tNotifications = useTranslations("notifications");
+  const { addressBooks, contacts, supportsSync, fetchAddressBooks, createAddressBook, renameAddressBook, shareAddressBook, setDefaultAddressBook, removeAddressBook, renameKeyword, updateContact, updateLocalContact } = useContactStore();
+  const { dialogProps: confirmProps, confirm } = useConfirmDialog();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingKeyword, setEditingKeyword] = useState<string | null>(null);
   const [sharingId, setSharingId] = useState<string | null>(null);
@@ -128,6 +132,65 @@ export function AddressBookManagementSettings() {
     }
   };
 
+  // An address book takes its contacts with it, so it asks first (R3), as
+  // the Contacts sidebar does.
+  const handleDelete = async (book: AddressBook) => {
+    if (!client) return;
+    const ok = await confirm({
+      title: t("delete"),
+      message: t("confirm_delete", { name: book.name }),
+      confirmText: t("delete"),
+      variant: "destructive",
+    });
+    if (!ok) return;
+    setIsLoading(true);
+    try {
+      await removeAddressBook(client, book);
+      toast.success(t("deleted"));
+    } catch {
+      toast.error(t("delete_failed"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Sets a category on or off for each of these contacts.
+  const setCategory = async (keyword: string, ids: string[], on: boolean) => {
+    for (const id of ids) {
+      const contact = useContactStore.getState().contacts.find((c) => c.id === id);
+      if (!contact) continue;
+      const { [keyword]: _removed, ...rest } = contact.keywords || {};
+      const keywords: Record<string, boolean> = on ? { ...rest, [keyword]: true } : rest;
+      const saved = supportsSync && client
+        ? await updateContact(client, id, { keywords })
+        : await updateLocalContact(id, { keywords });
+      if (!saved) throw new Error("not saved");
+    }
+  };
+
+  // Deleting a category only takes it off the contacts: no confirm, and
+  // Undo puts it back on the same ones (R3).
+  const handleDeleteCategory = async (keyword: string) => {
+    const ids = contacts.filter((c) => c.kind !== "group" && c.keywords?.[keyword]).map((c) => c.id);
+    setIsLoading(true);
+    try {
+      await setCategory(keyword, ids, false);
+    } catch {
+      toast.error(tSettings("category_delete_failed"));
+      return;
+    } finally {
+      setIsLoading(false);
+    }
+    toast.success(tSettings("category_deleted"), {
+      action: {
+        label: tNotifications("rule_undo"),
+        onClick: () => {
+          setCategory(keyword, ids, true).catch(() => toast.error(tSettings("category_delete_failed")));
+        },
+      },
+    });
+  };
+
   // Group: personal first, then by shared account
   const personal = addressBooks.filter((b) => !b.isShared);
   const sharedGroups = new Map<string, { accountName: string; books: AddressBook[] }>();
@@ -156,6 +219,9 @@ export function AddressBookManagementSettings() {
     // The default only applies to books the account owns, and re-setting the
     // current default is a no-op, so hide it in both cases.
     const canSetDefault = !!client && !book.isShared && !book.isDefault;
+    // The default book is where new contacts go, so it stays; a shared one
+    // only when its owner lets this account delete it.
+    const canDelete = !!client && !book.isDefault && book.myRights?.mayDelete !== false;
 
     return (
       <div
@@ -186,7 +252,7 @@ export function AddressBookManagementSettings() {
             </span>
           );
         })()}
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity">
           {canRename && (
             <button
               type="button"
@@ -216,6 +282,18 @@ export function AddressBookManagementSettings() {
               title={t("share")}
             >
               <Users className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {canDelete && (
+            <button
+              type="button"
+              onClick={() => void handleDelete(book)}
+              disabled={isLoading}
+              className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+              title={t("delete")}
+              aria-label={t("delete")}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
@@ -313,7 +391,7 @@ export function AddressBookManagementSettings() {
                   <span className="text-sm font-medium truncate block">{keyword}</span>
                 </div>
                 <span className="text-xs text-muted-foreground tabular-nums">{count}</span>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity">
                   <button
                     type="button"
                     onClick={() => setEditingKeyword(keyword)}
@@ -321,6 +399,16 @@ export function AddressBookManagementSettings() {
                     title={tContacts("rename_category")}
                   >
                     <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleDeleteCategory(keyword)}
+                    disabled={isLoading}
+                    className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+                    title={tSettings("delete_category")}
+                    aria-label={tSettings("delete_category")}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -342,6 +430,8 @@ export function AddressBookManagementSettings() {
       confirmText={t("create_confirm")}
       onSubmit={(name) => void handleCreate(name)}
     />
+
+    <ConfirmDialog {...confirmProps} />
 
     {sharingId && client && (() => {
       const book = addressBooks.find((b) => b.id === sharingId);

@@ -92,3 +92,45 @@ describe('admin unsaved changes guard (#1255)', () => {
     expect(cleanEvent.defaultPrevented).toBe(false);
   });
 });
+
+// Admin pages switch through pushState, so browser Back and the phone's back
+// gesture are a same-document popstate. With unsaved edits they must ask too.
+describe('admin unsaved changes guard on Back', () => {
+  const popped = () => new Promise<void>((resolve) => window.addEventListener('popstate', () => resolve(), { once: true }));
+  const back = async () => {
+    const done = popped();
+    window.history.back();
+    await act(async () => { await done; });
+  };
+
+  it('keeps the page and asks when Back is pressed with unsaved edits; Stay keeps guarding', async () => {
+    window.history.pushState(null, '', '/admin/policy');
+    window.history.pushState(null, '', '/admin/telemetry');
+    render(<><UnsavedChangesGuard /><DirtySection dirty /></>);
+
+    await back();
+    expect(window.location.pathname).toBe('/admin/telemetry');
+    expect(screen.getByRole('alertdialog')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Stay' }));
+    expect(useAdminUnsavedStore.getState().dirty).toEqual({ settings: true });
+
+    // Back asks again: the page is still guarded.
+    await back();
+    expect(window.location.pathname).toBe('/admin/telemetry');
+    expect(screen.getByRole('alertdialog')).toBeTruthy();
+  });
+
+  it('Leave goes back to the previous page', async () => {
+    window.history.pushState(null, '', '/admin/policy');
+    window.history.pushState(null, '', '/admin/telemetry');
+    render(<><UnsavedChangesGuard /><DirtySection dirty /></>);
+
+    await back();
+    const done = popped();
+    fireEvent.click(screen.getByRole('button', { name: 'Leave' }));
+    await act(async () => { await done; });
+    expect(window.location.pathname).toBe('/admin/policy');
+    expect(useAdminUnsavedStore.getState().dirty).toEqual({});
+  });
+});

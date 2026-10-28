@@ -7,6 +7,15 @@ import { apiFetch } from '@/lib/browser-navigation';
 import { useAdminUnsavedStore } from '@/stores/admin-unsaved-store';
 import { AdminShell } from '@/components/admin/admin-shell';
 import { UnsavedChangesGuard } from './_unsaved-changes-guard';
+import { ToastContainer } from '@/components/ui/toast';
+import { useToastStore } from '@/stores/toast-store';
+
+/** The app's toasts, which the admin reports its results in (R9). */
+function AdminToasts() {
+  const toasts = useToastStore((s) => s.toasts);
+  const removeToast = useToastStore((s) => s.removeToast);
+  return <ToastContainer toasts={toasts} onClose={removeToast} />;
+}
 
 /**
  * Gates the admin panel behind the admin session and draws its shell. The
@@ -107,12 +116,13 @@ export function AdminLayoutClient({ children }: { children: React.ReactNode }) {
 
   // Don't gate the login page
   if (pathname === '/admin/login') {
-    return <>{children}</>;
+    return <>{children}<AdminToasts /></>;
   }
 
   return (
     <>
       <UnsavedChangesGuard />
+      <AdminToasts />
       <AdminShell
         authenticated={authenticated === true}
         isStalwartAutoLogin={isStalwartAutoLogin}

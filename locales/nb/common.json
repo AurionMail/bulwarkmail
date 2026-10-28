@@ -1109,6 +1109,7 @@
   "settings": {
     "title": "Innstillinger",
     "back_to_mail": "Tilbake til e-post",
+    "back_to_settings": "Tilbake til innstillinger",
     "save_success": "Innstillingene er lagret",
     "import_success": "Innstillingene er importert",
     "import_error": "Kunne ikke importere innstillinger",
@@ -1348,6 +1349,7 @@
       "id_exists": "Denne etikett-ID-en finnes allerede",
       "edit": "Rediger etikett",
       "delete": "Slett etikett",
+      "deleted": "Etikett slettet",
       "save": "Lagre",
       "add": "Legg til",
       "cancel": "Avbryt",
@@ -1852,6 +1854,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Andre enheter kan ikke lenger gjenopprette kontoene fra den.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1957,6 +1960,8 @@
         "removed": "App-passordet er fjernet",
         "add_error": "Kunne ikke opprette app-passord",
         "remove_error": "Kunne ikke fjerne app-passordet",
+        "delete_title": "Slette app-passordet?",
+        "delete_message": "Apper som logger på med {name}, kan ikke logge på lenger.",
         "none": "Ingen app-passord er opprettet"
       },
       "api_keys": {
@@ -1969,6 +1974,8 @@
         "removed": "API-nøkkelen er fjernet",
         "add_error": "Kunne ikke opprette API-nøkkel",
         "remove_error": "Kunne ikke fjerne API-nøkkelen",
+        "delete_title": "Slette API-nøkkelen?",
+        "delete_message": "Skript og integrasjoner som bruker {name}, mister tilgangen.",
         "none": "Ingen API-nøkler er opprettet"
       },
       "encryption": {
@@ -1988,6 +1995,9 @@
         "configure_title": "Aktiver kryptering med denne nøkkelen",
         "enable_button": "Aktiver",
         "disable_tooltip": "Deaktiver kryptering",
+        "disable_title": "Slå av kryptering av lagrede data?",
+        "disable_message": "Ny e-post lagres heretter uten kryptering.",
+        "disable_button": "Slå av",
         "enabled_success": "Kryptering av lagrede data er aktivert"
       },
       "public_keys": {
@@ -1995,7 +2005,14 @@
         "name_placeholder": "f.eks. Min nøkkel",
         "key_label": "Offentlig nøkkel (S/MIME eller ASCII-armert PGP)",
         "key_placeholder": "Lim inn den offentlige nøkkelen din her",
-        "none": "Ingen offentlige nøkler er lagt til"
+        "none": "Ingen offentlige nøkler er lagt til",
+        "title": "Offentlige nøkler",
+        "added": "Offentlig nøkkel lagt til",
+        "removed": "Offentlig nøkkel slettet",
+        "add_error": "Kunne ikke legge til den offentlige nøkkelen",
+        "remove_error": "Kunne ikke slette den offentlige nøkkelen",
+        "delete_title": "Slette den offentlige nøkkelen?",
+        "delete_message": "{name} fjernes fra serveren."
       },
       "email_client": {
         "title": "Oppsett av e-postklient",
@@ -2096,6 +2113,7 @@
       },
       "save": "Lagre endringer",
       "saving": "Lagrer...",
+      "saved": "Lagret",
       "warnings": {
         "end_before_start": "Sluttdatoen må være etter startdatoen",
         "invalid_date": "Angi en gyldig start- og sluttdato med klokkeslett, eller la feltet stå tomt",
@@ -2162,12 +2180,17 @@
       "new_folder_name": "Mappenavn",
       "rename": "Gi nytt navn",
       "change_icon": "Endre ikon",
+      "actions": "Handlinger for {name}",
+      "expand": "Vis innholdet i {name}",
+      "collapse": "Skjul innholdet i {name}",
+      "counter": "Teller",
       "count_mode": "Teller for {name}",
       "count_mode_default": "Teller: standard",
       "count_mode_unread": "Bare uleste",
       "count_mode_all": "Uleste og totalt",
       "count_mode_none": "Ingen teller",
       "delete": "Slett",
+      "delete_title": "Slette mappen?",
       "confirm_delete": "Er du sikker på at du vil slette «{name}»? E-postene i denne mappen flyttes til papirkurven.",
       "create": "Opprett",
       "cancel": "Avbryt",
@@ -2187,7 +2210,8 @@
     "advanced": {
       "debug_mode": {
         "label": "Feilsøkingsmodus",
-        "description": "Aktiver detaljert logging for feilsøking"
+        "description": "Aktiver detaljert logging for feilsøking",
+        "toggle": "Detaljert logging"
       },
       "debug_categories": {
         "description": "Velg hvilke kategorier som skal logges. Deaktiver kategorier du ikke trenger, for å redusere antallet meldinger i konsollen.",
@@ -2232,12 +2256,15 @@
       "refresh_cache": {
         "label": "Oppdater bufrede data",
         "description": "Last inn kontakter, kalendere og mapper på nytt fra serveren. Kontoene og øktene beholdes, slik at du kan rette en utdatert eller feil visning uten å logge av.",
-        "button": "Oppdater"
+        "button": "Oppdater",
+        "confirm_title": "Oppdatere bufrede data?"
       },
       "reset_settings": {
         "label": "Tilbakestill innstillinger",
         "description": "Gjenopprett standardinnstillingene",
-        "button": "Tilbakestill til standard"
+        "button": "Tilbakestill til standard",
+        "confirm_title": "Tilbakestille alle innstillinger?",
+        "done": "Innstillinger tilbakestilt"
       },
       "export_settings": {
         "label": "Eksporter innstillinger",
@@ -2312,7 +2339,15 @@
       "no_address_books": "Ingen adressebøker funnet",
       "categories_title": "Kategorier",
       "categories_description": "Gi nytt navn til kontaktkategorier",
-      "no_categories": "Ingen kategorier funnet"
+      "no_categories": "Ingen kategorier funnet",
+      "delete_category": "Slett kategori",
+      "category_deleted": "Kategori slettet",
+      "category_delete_failed": "Kunne ikke slette kategorien"
+    },
+    "calendar_management": {
+      "delete_title": "Slette kalenderen?",
+      "clear_title": "Fjerne alle hendelser?",
+      "unsubscribe_title": "Avslutte abonnementet på denne kalenderen?"
     },
     "downloads": {
       "title": "Nedlastinger",
@@ -2378,7 +2413,7 @@
       "validate": "Valider",
       "validation_success": "Skriptet er gyldig",
       "validation_error": "Skriptet har feil",
-      "save": "Lagre regler",
+      "save": "Lagre",
       "saving": "Lagrer...",
       "saved": "Filtrene er lagret",
       "save_failed": "Kunne ikke lagre filtrene",
@@ -2392,6 +2427,8 @@
       "add_condition": "Legg til vilkår",
       "actions": "Handlinger",
       "add_action": "Legg til handling",
+      "remove_condition": "Fjern betingelse",
+      "remove_action": "Fjern handling",
       "stop_processing": "Ikke behandle flere regler",
       "include_spam": "Flytt også meldinger som er merket som søppelpost",
       "attachment_type_placeholder": "f.eks. pdf, doc, jpg",
@@ -2468,6 +2505,7 @@
       "match_type": "Samsvar",
       "reset_to_visual": "Gå tilbake til visuell redigering",
       "reset_warning": "Dette forkaster det gjeldende skriptet og lar deg begynne på nytt.",
+      "reset_title": "Tilbakestille til den visuelle redigereren?",
       "confirm_reset": "Tilbakestill",
       "validation_empty_name": "Regelnavn må fylles ut",
       "validation_empty_conditions": "Minst ett vilkår må ha en verdi",
@@ -2649,6 +2687,217 @@
         "sending": "Før sending",
         "receipts": "Lesebekreftelser"
       }
+    }
+  },
+  "setup": {
+    "title": "Oppsett av Bulwark Webmail",
+    "subtitle": "Sett opp webmail-instansen din i nettleseren.",
+    "loading": "Laster inn…",
+    "back": "Tilbake",
+    "next": "Neste",
+    "saving": "Lagrer…",
+    "show": "Vis",
+    "hide": "Skjul",
+    "remove": "Fjern",
+    "on": "På",
+    "off": "Av",
+    "dismiss": "Lukk",
+    "unknown_error": "Ukjent feil",
+    "steps": {
+      "welcome": "Velkommen",
+      "server": "Server",
+      "auth": "Pålogging",
+      "security": "Sikkerhet",
+      "logging": "Logging",
+      "branding": "Merkevare",
+      "review": "Gjennomgang"
+    },
+    "read_only": {
+      "title": "Konfigurasjonen er skrivebeskyttet",
+      "body": "Konfigurasjonsvolumet er montert skrivebeskyttet, eller {variable} er satt. Monter det med skrivetilgang eller fjern variabelen, og start containeren på nytt."
+    },
+    "done": {
+      "title": "Alt er klart",
+      "body": "{appName} er satt opp og klar til bruk.",
+      "admin_sign_in": "Logg på administrasjonspanelet",
+      "webmail_login": "Åpne pålogging til webmail",
+      "redirecting": "Du sendes til administrasjonspanelet…"
+    },
+    "already": {
+      "title": "Oppsettet er allerede fullført",
+      "body": "{appName} er satt opp. Logg på for å fortsette."
+    },
+    "insecure": {
+      "title": "Du kjører oppsettet over ukryptert HTTP",
+      "body": "Oppsettstokenet og administratorpassordet du skriver inn her, sendes i klartekst. Bruk HTTPS om mulig: avslutt TLS i containeren eller i en omvendt proxy foran den.",
+      "try_https": "Prøv HTTPS",
+      "continue_http": "Fortsett over HTTP"
+    },
+    "errors": {
+      "token_expired": "Oppsettstokenet er ikke lenger gyldig. Start containeren på nytt for å få et nytt fra loggen.",
+      "session_expired": "Oppsettsøkten er utløpt. Lim inn oppsettstokenet på nytt for å fortsette.",
+      "token_required": "Lim inn oppsettstokenet fra containerloggen for å fortsette.",
+      "already_finished": "Oppsettet er allerede fullført. Last inn siden på nytt for å logge på.",
+      "token_rejected": "Token avvist (HTTP {status})",
+      "step_failed": "Kunne ikke lagre dette trinnet (HTTP {status})",
+      "upload_failed": "Opplasting mislyktes (HTTP {status})",
+      "finish_failed": "Kunne ikke fullføre oppsettet (HTTP {status})"
+    },
+    "welcome": {
+      "title": "Velkommen",
+      "body": "Lim inn oppsettstokenet fra containerloggen for å fortsette. Tokenet utløper etter 1 time.",
+      "token_label": "Oppsettstoken",
+      "token_placeholder": "32-byte heks-token",
+      "verifying": "Bekrefter…",
+      "continue": "Fortsett"
+    },
+    "server": {
+      "title": "Server",
+      "subtitle": "Der e-posten din ligger.",
+      "app_name": "Navn på programmet",
+      "url_label": "URL til JMAP-serveren",
+      "url_hint": "Standardserveren brukerne kobler til. Eksempel: https://mail.example.com",
+      "test": "Test",
+      "testing": "Tester…",
+      "probe_ok": "Tilkoblet: dette ser ut som en JMAP-server.",
+      "probe_not_jmap": "Serveren svarer, men ser ikke ut som et JMAP-endepunkt.",
+      "probe_invalid": "URL-en er ugyldig. Den må begynne med http:// eller https://.",
+      "probe_unreachable": "Kunne ikke koble til adressen. Sjekk URL-en og at serveren er tilgjengelig.",
+      "not_jmap_hint": "Dette kan skje når en omvendt proxy ruter JMAP separat på samme domene. Ellers er URL-en som regel feil.",
+      "not_jmap_confirm": "Jeg er sikker på at URL-en er riktig, fortsett likevel.",
+      "http_title": "Denne URL-en bruker ukryptert HTTP.",
+      "http_body": "Passord og e-postinnhold sendes ukryptert mellom brukerne og serveren din. Bruk {https} i produksjon: avslutt TLS på e-postserveren eller i en omvendt proxy foran den.",
+      "local_title": "Denne URL-en virker bare lokalt.",
+      "local_body": "E-post hentes direkte fra brukerens nettleser, så JMAP-URL-en må kunne nås overalt der brukerne logger på, ikke bare fra denne maskinen eller det lokale nettverket. Bruk et offentlig vertsnavn (f.eks. {example}) i produksjon.",
+      "additional_title": "Flere JMAP-servere",
+      "additional_hint": "Valgfritt. Vis flere servere i listen ved pålogging, nyttig for leverandører med flere Stalwart-instanser.",
+      "additional_show": "Vis ({count})",
+      "add": "Legg til",
+      "row_title": "Server nr. {index}",
+      "id_label": "ID",
+      "id_hint": "Unikt kortnavn, f.eks. eu-1",
+      "label_label": "Navn",
+      "label_hint": "Vises for brukerne",
+      "row_url": "URL",
+      "domains_label": "Domener",
+      "domains_hint": "Kommaseparert. Brukes til å velge denne serveren ut fra e-postdomenet ved pålogging.",
+      "add_server": "Legg til server",
+      "auto_pick": "Velg server ut fra e-postdomenet",
+      "auto_pick_hint": "Når en bruker skriver e-postadressen sin, velges den tilsvarende serveren fra listen over.",
+      "row_id_required": "Server nr. {index}: ID er påkrevd",
+      "row_id_invalid": "Server nr. {index}: ID kan bare inneholde bokstaver, sifre, - og _ og må begynne med en bokstav eller et siffer",
+      "row_id_duplicate": "Server nr. {index}: ID-en «{id}» brukes to ganger",
+      "row_url_required": "Server nr. {index}: URL-en er påkrevd",
+      "row_url_scheme": "Server nr. {index}: URL-en må begynne med http:// eller https://",
+      "stalwart": "Slå på Stalwart-spesifikke funksjoner",
+      "stalwart_hint": "Legger til endring av passord og administrasjon av Sieve-filtre. Trygt å slå på også for andre servere."
+    },
+    "auth": {
+      "title": "Autentisering",
+      "subtitle": "Pålogging med passord er alltid tilgjengelig. OAuth/OIDC er valgfritt.",
+      "oauth": "Slå på OAuth2 / OpenID Connect",
+      "oauth_only": "Bare OAuth (skjul passordskjemaet)",
+      "client_id": "OAuth-klient-ID",
+      "client_secret": "OAuth-klienthemmelighet",
+      "client_secret_hint": "La stå tomt for offentlige klienter som bare bruker PKCE.",
+      "client_secret_placeholder": "Lim inn hemmeligheten",
+      "issuer": "URL til OAuth-utsteder",
+      "issuer_hint": "For eksterne identitetsleverandører (Keycloak, Authentik, Entra ID osv.)."
+    },
+    "security": {
+      "title": "Sikkerhet og økter",
+      "subtitle": "Økthemmeligheten gjør «Husk meg» og synkronisering av innstillinger mulig.",
+      "generated": "Økthemmelighet opprettet",
+      "customize": "Tilpass",
+      "generated_hint": "En hemmelighet på 32 byte er opprettet for deg. Endre den bare hvis du har en bestemt grunn.",
+      "secret_label": "Økthemmelighet",
+      "secret_hint": "Lim inn din egen verdi eller lag en ny.",
+      "regenerate": "Lag ny",
+      "sync": "Synkroniser brukerinnstillinger mellom enheter",
+      "sync_hint": "Lagrer brukernes innstillinger på serveren, kryptert med økthemmeligheten.",
+      "telemetry": "Send anonym bruksstatistikk for å forbedre Bulwark",
+      "telemetry_hint": "Av som standard. Ett anonymt signal per dag med versjon, plattform og hvilke funksjoner som er på; aldri e-postadresser, vertsnavn eller IP-adresser. Du kan endre dette når som helst i administrasjonsinnstillingene."
+    },
+    "logging": {
+      "title": "Logging",
+      "subtitle": "Format og detaljnivå for programloggene.",
+      "format": "Format",
+      "format_text": "text: i farger, lettlest",
+      "format_json": "json: strukturert, for logginnsamling",
+      "level": "Nivå",
+      "level_info": "info (anbefalt)"
+    },
+    "branding": {
+      "title": "Merkevare",
+      "subtitle": "Alle feltene er valgfrie. Last opp en fil eller lim inn en URL; standardverdier brukes for alt du hopper over.",
+      "company": "Navn på firma eller organisasjon",
+      "favicon": "Favicon",
+      "favicon_hint": "Ikon på nettleserfanen. SVG anbefales.",
+      "login_light": "Påloggingslogo (lys modus)",
+      "login_light_hint": "Vises på påloggingssiden på lys bakgrunn.",
+      "login_dark": "Påloggingslogo (mørk modus)",
+      "login_dark_hint": "Vises på påloggingssiden på mørk bakgrunn.",
+      "sidebar_light": "Logo i sidepanelet (lys modus)",
+      "sidebar_light_hint": "Vises etter pålogging. La stå tomt for ingen logo.",
+      "sidebar_dark": "Logo i sidepanelet (mørk modus)",
+      "sidebar_dark_hint": "Versjon av sidepanellogoen for mørk modus.",
+      "website": "URL til nettstedet",
+      "imprint": "URL til kolofon",
+      "privacy": "URL til personvernerklæringen",
+      "drop": "Klikk eller slipp her",
+      "uploading": "Laster opp…",
+      "uploaded": "Opplastet fil",
+      "formats": "SVG, PNG, JPEG, WebP eller ICO · maks. 2 MB",
+      "use_url": "Bruk URL",
+      "hide_url": "Skjul URL",
+      "url_placeholder": "https://… eller /branding/fil.svg"
+    },
+    "review": {
+      "title": "Nesten ferdig",
+      "subtitle": "Gå gjennom innstillingene, velg et administratorpassord og bruk dem.",
+      "server": "Server",
+      "app_name": "Navn på appen",
+      "jmap_server": "JMAP-server",
+      "additional": "Flere servere",
+      "additional_count": "{count} satt opp",
+      "additional_auto_pick": "{count} satt opp · valgt ut fra domene",
+      "stalwart": "Stalwart-funksjoner",
+      "auth": "Autentisering",
+      "method": "Metode",
+      "oauth_only": "Bare OAuth",
+      "password_oauth": "Passord + OAuth",
+      "password_only": "Bare passord",
+      "client_id": "OAuth-klient-ID",
+      "security": "Sikkerhet",
+      "secret": "Økthemmelighet",
+      "configured": "Satt opp",
+      "not_set": "Ikke angitt",
+      "remember_me": "Husk meg",
+      "available": "Tilgjengelig",
+      "disabled": "Deaktivert",
+      "sync": "Synkronisering av innstillinger",
+      "needs_secret": "Krever en økthemmelighet",
+      "telemetry": "Anonym telemetri",
+      "logging": "Logging",
+      "format": "Format",
+      "level": "Nivå",
+      "branding": "Merkevare",
+      "customizations": "Tilpasninger",
+      "custom_assets": "Egne filer satt opp",
+      "defaults": "Standardverdier",
+      "company": "Firmanavn",
+      "password_title": "Velg et administratorpassord",
+      "password_hint": "Du bruker det til å logge på {path}. Minst 8 tegn.",
+      "new_password": "Nytt passord",
+      "confirm": "Bekreft",
+      "too_short": "Minst 8 tegn.",
+      "mismatch": "Passordene er ikke like.",
+      "looks_good": "Ser bra ut.",
+      "advanced": "Avansert",
+      "lock": "Lås konfigurasjonen etter oppsettet",
+      "lock_hint": "Oppretter en markørfil. Monter deretter konfigurasjonsvolumet skrivebeskyttet, så avviser appen flere endringer i konfigurasjonen. Revisjonslogger og påloggingsstatus kan fortsatt skrives i tilstandsvolumet.",
+      "applying": "Bruker…",
+      "finish": "Bruk og fullfør"
     }
   },
   "errors": {

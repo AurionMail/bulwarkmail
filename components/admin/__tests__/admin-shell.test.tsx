@@ -12,6 +12,7 @@ vi.mock('@/lib/browser-navigation', () => ({
 }));
 
 import { AdminShell } from '../admin-shell';
+import { useUpdateStore } from '@/stores/update-store';
 
 function setDesktop(desktop: boolean) {
   window.matchMedia = vi.fn((query: string) => ({
@@ -55,5 +56,17 @@ describe('AdminShell', () => {
     rerender(shell({ authenticated: true, isStalwartAutoLogin: false }));
     expect(screen.getByText('Sign out of admin')).toBeTruthy();
     expect(screen.getByText('Change password')).toBeTruthy();
+  });
+
+  // The dot next to Version was a span with aria-label, which screen
+  // readers don't announce.
+  it('announces a waiting update on the Version entry', () => {
+    useUpdateStore.setState({
+      status: { updateAvailable: true, severity: 'minor', current: process.env.NEXT_PUBLIC_APP_VERSION ?? '', latest: '9.9.9' },
+      startPolling: () => {},
+    } as never);
+    render(shell({ authenticated: true, isStalwartAutoLogin: false }));
+    const dot = screen.getAllByRole('img', { name: 'Update available' })[0];
+    expect(dot.getAttribute('title')).toBe('Update available');
   });
 });

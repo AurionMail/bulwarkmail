@@ -234,9 +234,9 @@ body[data-theme-skin="builtin-flat-fields"] .flex-col.h-full.bg-secondary {
   background-color: var(--color-background);
 }
 
-/* ── Selection is grey plus a 3px brand edge. The folder row asks for
-   border-primary, but the global \`* { border-color }\` rule wins over
-   utilities, so the edge colour is set here. ── */
+/* ── Selection is grey plus a 3px brand edge: the theme widens the folder
+   row's start border and colours it, the rows that aren't selected keep a
+   transparent one so the names don't shift. ── */
 body[data-theme-skin="builtin-flat-fields"] [data-tour="sidebar"] [data-testid="folder-row"] {
   border-inline-start-color: transparent;
 }
@@ -303,11 +303,18 @@ body[data-theme-skin="builtin-flat-fields"] [role="switch"][aria-checked="false"
 }
 
 /* Things you type into or press carry the control border (3:1 on every
-   ground). The app asks for border-input, but the global \`* { border-color }\`
-   rule outranks utilities, so it is set here. Borderless fields are
-   unaffected because they have no border width. */
+   ground), also the fields that ask for border-border. This rule is not in
+   a layer, so it outranks the border utilities (the app's own
+   \`* { border-color }\` default sits in @layer base and doesn't). Borderless
+   fields are unaffected because they have no border width. */
 body[data-theme-skin="builtin-flat-fields"] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea, .border-input) {
   border-color: var(--color-input);
+}
+
+/* ...except a field that holds an error: it keeps the error colour its
+   page gives it (aria-invalid, border-destructive or a red border). */
+body[data-theme-skin="builtin-flat-fields"] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea, .border-input):is([aria-invalid="true"], .border-destructive, [class*="border-red-"]) {
+  border-color: var(--color-destructive);
 }
 
 body[data-theme-skin="builtin-flat-fields"] :is(input[type="checkbox"], input[type="radio"]) {

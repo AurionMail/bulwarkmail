@@ -1109,6 +1109,7 @@
   "settings": {
     "title": "Configuració",
     "back_to_mail": "Torna al correu",
+    "back_to_settings": "Torna als paràmetres",
     "save_success": "Configuració desada correctament",
     "import_success": "Configuració importada correctament",
     "import_error": "No s'ha pogut importar la configuració",
@@ -1348,6 +1349,7 @@
       "id_exists": "Aquest ID d'etiqueta ja existeix",
       "edit": "Edita l'etiqueta",
       "delete": "Suprimeix l'etiqueta",
+      "deleted": "Etiqueta suprimida",
       "save": "Desa",
       "add": "Afegeix",
       "cancel": "Cancel·la",
@@ -1852,6 +1854,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Els altres dispositius ja no en podran restaurar els comptes.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1957,6 +1960,8 @@
         "removed": "Contrasenya d'aplicació eliminada",
         "add_error": "No s'ha pogut crear la contrasenya d'aplicació",
         "remove_error": "No s'ha pogut eliminar la contrasenya d'aplicació",
+        "delete_title": "Voleu suprimir la contrasenya d'aplicació?",
+        "delete_message": "Les aplicacions que inicien la sessió amb {name} ja no ho podran fer.",
         "none": "No hi ha cap contrasenya d'aplicació configurada"
       },
       "api_keys": {
@@ -1969,6 +1974,8 @@
         "removed": "Clau API eliminada",
         "add_error": "No s'ha pogut crear la clau API",
         "remove_error": "No s'ha pogut eliminar la clau API",
+        "delete_title": "Voleu suprimir la clau d'API?",
+        "delete_message": "Els scripts i les integracions que fan servir {name} perden l'accés.",
         "none": "No hi ha cap clau API configurada"
       },
       "encryption": {
@@ -1988,6 +1995,9 @@
         "configure_title": "Activa el xifratge amb aquesta clau",
         "enable_button": "Activa",
         "disable_tooltip": "Desactiva el xifratge",
+        "disable_title": "Voleu desactivar el xifratge en repòs?",
+        "disable_message": "A partir d'ara, el correu nou es desa sense xifrar.",
+        "disable_button": "Desactiva",
         "enabled_success": "Xifratge en repòs activat"
       },
       "email_client": {
@@ -2036,7 +2046,14 @@
         "name_placeholder": "p. ex. La meva clau",
         "key_label": "Clau pública (S/MIME o PGP en ASCII armor)",
         "key_placeholder": "Enganxeu aquí la vostra clau pública",
-        "none": "No hi ha cap clau pública configurada"
+        "none": "No hi ha cap clau pública configurada",
+        "title": "Claus públiques",
+        "added": "Clau pública afegida",
+        "removed": "Clau pública suprimida",
+        "add_error": "No s'ha pogut afegir la clau pública",
+        "remove_error": "No s'ha pogut suprimir la clau pública",
+        "delete_title": "Voleu suprimir la clau pública?",
+        "delete_message": "{name} es treu del servidor."
       },
       "sections": {
         "devices": "Altres aplicacions i dispositius",
@@ -2096,6 +2113,7 @@
       },
       "save": "Desa els canvis",
       "saving": "Desant...",
+      "saved": "Desat",
       "warnings": {
         "end_before_start": "La data de finalització ha de ser posterior a la data d'inici",
         "invalid_date": "Introdueix una data d'inici i de finalització vàlides amb l'hora, o deixa el camp buit",
@@ -2162,12 +2180,17 @@
       "new_folder_name": "Nom de la carpeta",
       "rename": "Canvia el nom",
       "change_icon": "Canvia la icona",
+      "actions": "Accions per a {name}",
+      "expand": "Desplega {name}",
+      "collapse": "Plega {name}",
+      "counter": "Comptador",
       "count_mode": "Comptador per a {name}",
       "count_mode_default": "Comptador: per defecte",
       "count_mode_unread": "Només no llegits",
       "count_mode_all": "No llegits i total",
       "count_mode_none": "Sense comptador",
       "delete": "Suprimeix",
+      "delete_title": "Voleu suprimir la carpeta?",
       "confirm_delete": "Segur que voleu suprimir «{name}»? Els correus d'aquesta carpeta es mouran a la paperera.",
       "create": "Crea",
       "cancel": "Cancel·la",
@@ -2187,7 +2210,8 @@
     "advanced": {
       "debug_mode": {
         "label": "Mode de depuració",
-        "description": "Activa el registre detallat per a la resolució de problemes"
+        "description": "Activa el registre detallat per a la resolució de problemes",
+        "toggle": "Registre detallat"
       },
       "debug_categories": {
         "description": "Seleccioneu quines categories registrar. Desactiveu les que no necessiteu per reduir el soroll a la consola.",
@@ -2232,12 +2256,15 @@
       "refresh_cache": {
         "label": "Actualitza les dades emmagatzemades",
         "description": "Torna a carregar els contactes, els calendaris i les carpetes des del servidor. Manté els comptes i les sessions — soluciona una vista obsoleta o incorrecta sense tancar la sessió.",
-        "button": "Actualitza"
+        "button": "Actualitza",
+        "confirm_title": "Voleu actualitzar les dades de la memòria cau?"
       },
       "reset_settings": {
         "label": "Restableix la configuració",
         "description": "Restaura tota la configuració als valors per defecte",
-        "button": "Restableix als valors per defecte"
+        "button": "Restableix als valors per defecte",
+        "confirm_title": "Voleu restablir tots els paràmetres?",
+        "done": "Paràmetres restablerts"
       },
       "export_settings": {
         "label": "Exporta la configuració",
@@ -2312,7 +2339,15 @@
       "no_address_books": "No s'ha trobat cap llibreta d'adreces",
       "categories_title": "Categories",
       "categories_description": "Canvieu el nom de les categories de contactes",
-      "no_categories": "No s'ha trobat cap categoria"
+      "no_categories": "No s'ha trobat cap categoria",
+      "delete_category": "Suprimeix la categoria",
+      "category_deleted": "Categoria suprimida",
+      "category_delete_failed": "No s'ha pogut suprimir la categoria"
+    },
+    "calendar_management": {
+      "delete_title": "Voleu suprimir el calendari?",
+      "clear_title": "Voleu esborrar tots els esdeveniments?",
+      "unsubscribe_title": "Voleu cancel·lar la subscripció a aquest calendari?"
     },
     "downloads": {
       "title": "Baixades",
@@ -2378,7 +2413,7 @@
       "validate": "Valida",
       "validation_success": "L'script és vàlid",
       "validation_error": "L'script té errors",
-      "save": "Desa les regles",
+      "save": "Desa",
       "saving": "Desant...",
       "saved": "Filtres desats correctament",
       "save_failed": "No s'han pogut desar els filtres",
@@ -2392,6 +2427,8 @@
       "add_condition": "Afegeix una condició",
       "actions": "Accions",
       "add_action": "Afegeix una acció",
+      "remove_condition": "Treu la condició",
+      "remove_action": "Treu l'acció",
       "stop_processing": "Atura el processament de les regles següents",
       "include_spam": "Mou també els missatges marcats com a correu brossa",
       "attachment_type_placeholder": "p. ex. pdf, doc, jpg",
@@ -2468,6 +2505,7 @@
       "match_type": "Tipus de coincidència",
       "reset_to_visual": "Torna al constructor visual",
       "reset_warning": "Això descartarà l'script actual i començarà de nou.",
+      "reset_title": "Voleu tornar a l'editor visual?",
       "confirm_reset": "Reinicia",
       "validation_empty_name": "El nom de la regla és obligatori",
       "validation_empty_conditions": "Cal com a mínim una condició amb un valor",
@@ -2649,6 +2687,217 @@
         "sending": "Abans d'enviar",
         "receipts": "Confirmacions de lectura"
       }
+    }
+  },
+  "setup": {
+    "title": "Configuració de Bulwark Webmail",
+    "subtitle": "Configureu la vostra instància de correu web des del navegador.",
+    "loading": "S’està carregant…",
+    "back": "Enrere",
+    "next": "Següent",
+    "saving": "S’està desant…",
+    "show": "Mostra",
+    "hide": "Amaga",
+    "remove": "Treu",
+    "on": "Activat",
+    "off": "Desactivat",
+    "dismiss": "Tanca",
+    "unknown_error": "Error desconegut",
+    "steps": {
+      "welcome": "Benvinguda",
+      "server": "Servidor",
+      "auth": "Inici de sessió",
+      "security": "Seguretat",
+      "logging": "Registres",
+      "branding": "Marca",
+      "review": "Revisió"
+    },
+    "read_only": {
+      "title": "La configuració és només de lectura",
+      "body": "El volum de configuració està muntat només de lectura o la variable {variable} està definida. Torneu-lo a muntar amb escriptura o elimineu la variable i reinicieu el contenidor."
+    },
+    "done": {
+      "title": "Tot a punt",
+      "body": "{appName} està configurat i a punt per fer servir.",
+      "admin_sign_in": "Inicia la sessió al tauler d’administració",
+      "webmail_login": "Obre l’inici de sessió del correu web",
+      "redirecting": "Us portem al tauler d’administració…"
+    },
+    "already": {
+      "title": "La configuració ja s’ha completat",
+      "body": "{appName} està configurat. Inicieu la sessió per continuar."
+    },
+    "insecure": {
+      "title": "Esteu executant la configuració per HTTP sense xifrar",
+      "body": "El testimoni de configuració i la contrasenya d’administrador que introduïu aquí viatjaran en text pla. Feu servir HTTPS sempre que pugueu: acabeu el TLS al contenidor o en un servidor intermediari invers al davant.",
+      "try_https": "Prova HTTPS",
+      "continue_http": "Continua per HTTP"
+    },
+    "errors": {
+      "token_expired": "Aquest testimoni de configuració ja no és vàlid. Reinicieu el contenidor per obtenir-ne un de nou als registres.",
+      "session_expired": "La sessió de configuració ha caducat. Torneu a enganxar el testimoni de configuració per continuar.",
+      "token_required": "Enganxeu el testimoni de configuració que apareix als registres del contenidor per continuar.",
+      "already_finished": "La configuració ja ha acabat. Recarregueu per iniciar la sessió.",
+      "token_rejected": "Testimoni rebutjat (HTTP {status})",
+      "step_failed": "No s’ha pogut desar aquest pas (HTTP {status})",
+      "upload_failed": "No s’ha pogut pujar (HTTP {status})",
+      "finish_failed": "No s’ha pogut acabar la configuració (HTTP {status})"
+    },
+    "welcome": {
+      "title": "Benvinguda",
+      "body": "Enganxeu el testimoni de configuració que apareix als registres del contenidor per continuar. El testimoni caduca al cap d’1 hora.",
+      "token_label": "Testimoni de configuració",
+      "token_placeholder": "Testimoni hexadecimal de 32 bytes",
+      "verifying": "S’està verificant…",
+      "continue": "Continua"
+    },
+    "server": {
+      "title": "Servidor",
+      "subtitle": "On és el vostre correu.",
+      "app_name": "Nom de l’aplicació",
+      "url_label": "URL del servidor JMAP",
+      "url_hint": "El servidor predeterminat al qual es connecten els usuaris. Exemple: https://mail.example.com",
+      "test": "Prova",
+      "testing": "S’està provant…",
+      "probe_ok": "Connectat: sembla un servidor JMAP.",
+      "probe_not_jmap": "El servidor respon, però no sembla un punt d’accés JMAP.",
+      "probe_invalid": "Aquest URL no és vàlid. Ha de començar per http:// o https://.",
+      "probe_unreachable": "No s’ha pogut connectar a aquesta adreça. Comproveu l’URL i que el servidor estigui en línia.",
+      "not_jmap_hint": "Pot passar quan un servidor intermediari invers encamina JMAP per separat al mateix domini. Si no, normalment l’URL és incorrecte.",
+      "not_jmap_confirm": "Estic segur que l’URL és correcte, continua igualment.",
+      "http_title": "Aquest URL fa servir HTTP sense xifrar.",
+      "http_body": "Les contrasenyes i el contingut dels correus viatjaran sense xifrar entre els usuaris i el vostre servidor. En producció feu servir {https}: acabeu el TLS al servidor de correu o en un servidor intermediari invers al davant.",
+      "local_title": "Aquest URL només funciona en local.",
+      "local_body": "El correu s’obté directament des del navegador de l’usuari, per tant l’URL de JMAP ha de ser accessible des de qualsevol lloc on els usuaris iniciïn la sessió, no només des d’aquest ordinador o xarxa local. En producció feu servir un nom d’amfitrió públic (p. ex. {example}).",
+      "additional_title": "Servidors JMAP addicionals",
+      "additional_hint": "Opcional. Oferiu diversos servidors a la llista d’inici de sessió, útil per a proveïdors amb diverses instàncies de Stalwart.",
+      "additional_show": "Mostra ({count})",
+      "add": "Afegeix",
+      "row_title": "Servidor núm. {index}",
+      "id_label": "ID",
+      "id_hint": "Identificador únic, p. ex. eu-1",
+      "label_label": "Etiqueta",
+      "label_hint": "Visible per als usuaris",
+      "row_url": "URL",
+      "domains_label": "Dominis",
+      "domains_hint": "Separats per comes. Serveixen per triar aquest servidor segons el domini del correu en iniciar la sessió.",
+      "add_server": "Afegeix un servidor",
+      "auto_pick": "Tria el servidor segons el domini del correu",
+      "auto_pick_hint": "Quan un usuari escriu el seu correu, se selecciona el servidor corresponent de la llista de dalt.",
+      "row_id_required": "Servidor núm. {index}: l’ID és obligatori",
+      "row_id_invalid": "Servidor núm. {index}: l’ID només pot tenir lletres, xifres, - i _, i ha de començar per una lletra o una xifra",
+      "row_id_duplicate": "Servidor núm. {index}: l’ID «{id}» està repetit",
+      "row_url_required": "Servidor núm. {index}: l’URL és obligatori",
+      "row_url_scheme": "Servidor núm. {index}: l’URL ha de començar per http:// o https://",
+      "stalwart": "Activa les funcions pròpies de Stalwart",
+      "stalwart_hint": "Afegeix el canvi de contrasenya i la gestió de filtres Sieve. Es pot activar sense risc en altres servidors."
+    },
+    "auth": {
+      "title": "Autenticació",
+      "subtitle": "L’inici de sessió amb contrasenya sempre està disponible. OAuth/OIDC és opcional.",
+      "oauth": "Activa OAuth2 / OpenID Connect",
+      "oauth_only": "Només OAuth (amaga el formulari de contrasenya)",
+      "client_id": "ID de client OAuth",
+      "client_secret": "Secret de client OAuth",
+      "client_secret_hint": "Deixeu-ho en blanc per a clients públics que només fan servir PKCE.",
+      "client_secret_placeholder": "Enganxeu el secret",
+      "issuer": "URL de l’emissor OAuth",
+      "issuer_hint": "Per a proveïdors d’identitat externs (Keycloak, Authentik, Entra ID, etc.)."
+    },
+    "security": {
+      "title": "Seguretat i sessions",
+      "subtitle": "El secret de sessió permet «Recorda’m» i la sincronització de paràmetres.",
+      "generated": "Secret de sessió generat",
+      "customize": "Personalitza",
+      "generated_hint": "S’ha creat un secret de 32 bytes. Canvieu-lo només si teniu un motiu concret.",
+      "secret_label": "Secret de sessió",
+      "secret_hint": "Enganxeu el vostre propi valor o genereu-ne un de nou.",
+      "regenerate": "Torna a generar",
+      "sync": "Sincronitza els paràmetres dels usuaris entre dispositius",
+      "sync_hint": "Desa les preferències dels usuaris al servidor, xifrades amb el secret de sessió.",
+      "telemetry": "Envia estadístiques d’ús anònimes per ajudar a millorar Bulwark",
+      "telemetry_hint": "Desactivat per defecte. Un senyal anònim al dia amb la versió, la plataforma i les funcions activades; mai adreces de correu, noms d’amfitrió ni IP. Ho podeu canviar quan vulgueu als paràmetres d’administració."
+    },
+    "logging": {
+      "title": "Registres",
+      "subtitle": "Format i nivell de detall dels registres de l’aplicació.",
+      "format": "Format",
+      "format_text": "text: amb colors, fàcil de llegir",
+      "format_json": "json: estructurat, per a l’agregació de registres",
+      "level": "Nivell",
+      "level_info": "info (recomanat)"
+    },
+    "branding": {
+      "title": "Marca",
+      "subtitle": "Tots els camps són opcionals. Pugeu un fitxer o enganxeu un URL; per al que ometeu es fan servir els valors predeterminats.",
+      "company": "Nom de l’empresa o organització",
+      "favicon": "Favicon",
+      "favicon_hint": "Icona de la pestanya del navegador. Es recomana SVG.",
+      "login_light": "Logotip d’inici de sessió (mode clar)",
+      "login_light_hint": "Es mostra a la pàgina d’inici de sessió, sobre fons clar.",
+      "login_dark": "Logotip d’inici de sessió (mode fosc)",
+      "login_dark_hint": "Es mostra a la pàgina d’inici de sessió, sobre fons fosc.",
+      "sidebar_light": "Logotip de la barra lateral (mode clar)",
+      "sidebar_light_hint": "Es mostra després d’iniciar la sessió. Deixeu-ho en blanc per no mostrar-ne cap.",
+      "sidebar_dark": "Logotip de la barra lateral (mode fosc)",
+      "sidebar_dark_hint": "Versió per al mode fosc del logotip de la barra lateral.",
+      "website": "URL del lloc web",
+      "imprint": "URL de l’avís legal",
+      "privacy": "URL de la política de privadesa",
+      "drop": "Feu clic o deixeu anar aquí",
+      "uploading": "S’està pujant…",
+      "uploaded": "Fitxer pujat",
+      "formats": "SVG, PNG, JPEG, WebP o ICO · màx. 2 MB",
+      "use_url": "Fes servir un URL",
+      "hide_url": "Amaga l’URL",
+      "url_placeholder": "https://… o /branding/fitxer.svg"
+    },
+    "review": {
+      "title": "Gairebé fet",
+      "subtitle": "Reviseu els paràmetres, trieu una contrasenya d’administrador i apliqueu-los.",
+      "server": "Servidor",
+      "app_name": "Nom de l’aplicació",
+      "jmap_server": "Servidor JMAP",
+      "additional": "Servidors addicionals",
+      "additional_count": "{count} configurats",
+      "additional_auto_pick": "{count} configurats · triats per domini",
+      "stalwart": "Funcions de Stalwart",
+      "auth": "Autenticació",
+      "method": "Mètode",
+      "oauth_only": "Només OAuth",
+      "password_oauth": "Contrasenya + OAuth",
+      "password_only": "Només contrasenya",
+      "client_id": "ID de client OAuth",
+      "security": "Seguretat",
+      "secret": "Secret de sessió",
+      "configured": "Configurat",
+      "not_set": "Sense definir",
+      "remember_me": "Recorda’m",
+      "available": "Disponible",
+      "disabled": "Desactivat",
+      "sync": "Sincronització de paràmetres",
+      "needs_secret": "Necessita un secret de sessió",
+      "telemetry": "Telemetria anònima",
+      "logging": "Registres",
+      "format": "Format",
+      "level": "Nivell",
+      "branding": "Marca",
+      "customizations": "Personalitzacions",
+      "custom_assets": "Fitxers propis configurats",
+      "defaults": "Valors predeterminats",
+      "company": "Nom de l’empresa",
+      "password_title": "Trieu una contrasenya d’administrador",
+      "password_hint": "La fareu servir per iniciar la sessió a {path}. Mínim 8 caràcters.",
+      "new_password": "Contrasenya nova",
+      "confirm": "Confirma",
+      "too_short": "Almenys 8 caràcters.",
+      "mismatch": "Les contrasenyes no coincideixen.",
+      "looks_good": "Tot correcte.",
+      "advanced": "Avançat",
+      "lock": "Bloqueja la configuració després de la instal·lació",
+      "lock_hint": "Crea un fitxer marcador. Després, munteu el volum de configuració només de lectura i l’aplicació rebutjarà més canvis de configuració. Els registres d’auditoria i l’estat d’inici de sessió continuen sent editables al volum d’estat.",
+      "applying": "S’està aplicant…",
+      "finish": "Aplica i acaba"
     }
   },
   "errors": {

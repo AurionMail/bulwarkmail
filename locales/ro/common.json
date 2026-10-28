@@ -1109,6 +1109,7 @@
   "settings": {
     "title": "Setări",
     "back_to_mail": "Înapoi la Mail",
+    "back_to_settings": "Înapoi la setări",
     "save_success": "Setările au fost salvate cu succes",
     "import_success": "Setările au fost importate cu succes",
     "import_error": "Nu s-au putut importa setările",
@@ -1348,6 +1349,7 @@
       "id_exists": "Această etichetă ID există deja",
       "edit": "Editați eticheta",
       "delete": "Șterge eticheta",
+      "deleted": "Eticheta a fost ștearsă",
       "save": "Salvare",
       "add": "Adăugați",
       "cancel": "Anulează",
@@ -1852,6 +1854,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Alte dispozitive nu vor mai putea restaura conturile din ea.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1957,6 +1960,8 @@
         "removed": "Parola aplicației a fost eliminată",
         "add_error": "Nu s-a putut crea parola aplicației",
         "remove_error": "Nu s-a reușit eliminarea parolei aplicației",
+        "delete_title": "Ștergeți parola de aplicație?",
+        "delete_message": "Aplicațiile care se conectează cu {name} nu se vor mai putea conecta.",
         "none": "Nu sunt configurate parole pentru aplicații"
       },
       "api_keys": {
@@ -1969,6 +1974,8 @@
         "removed": "API cheie eliminată",
         "add_error": "Nu s-a putut crea cheia dAPI",
         "remove_error": "Nu s-a putut elimina cheia „API”",
+        "delete_title": "Ștergeți cheia API?",
+        "delete_message": "Scripturile și integrările care folosesc {name} pierd accesul.",
         "none": "Nu sunt configurate tastele „API”"
       },
       "encryption": {
@@ -1988,6 +1995,9 @@
         "configure_title": "Activați criptarea cu această cheie",
         "enable_button": "Activați",
         "disable_tooltip": "Dezactivați criptarea",
+        "disable_title": "Dezactivați criptarea datelor stocate?",
+        "disable_message": "E-mailurile noi vor fi stocate de acum fără criptare.",
+        "disable_button": "Dezactivează",
         "enabled_success": "Criptarea datelor stocate este activată"
       },
       "email_client": {
@@ -2036,7 +2046,14 @@
         "name_placeholder": "de ex. Cheia mea",
         "key_label": "Cheie publică (S/MIME sau PGP în format ASCII)",
         "key_placeholder": "Lipiți aici cheia dvs. publică",
-        "none": "Nicio cheie publică configurată"
+        "none": "Nicio cheie publică configurată",
+        "title": "Chei publice",
+        "added": "Cheie publică adăugată",
+        "removed": "Cheie publică ștearsă",
+        "add_error": "Cheia publică nu a putut fi adăugată",
+        "remove_error": "Cheia publică nu a putut fi ștearsă",
+        "delete_title": "Ștergeți cheia publică?",
+        "delete_message": "{name} este eliminată de pe server."
       },
       "sections": {
         "devices": "Alte aplicații și dispozitive",
@@ -2096,6 +2113,7 @@
       },
       "save": "Salvați modificările",
       "saving": "Se salvează...",
+      "saved": "Salvat",
       "warnings": {
         "end_before_start": "Data de încheiere trebuie să fie ulterioară datei de începere",
         "invalid_date": "Introduceți o dată de început și de sfârșit validă, cu oră, sau lăsați câmpul gol",
@@ -2162,12 +2180,17 @@
       "new_folder_name": "Numele folderului",
       "rename": "Redenumire",
       "change_icon": "Schimbă pictograma",
+      "actions": "Acțiuni pentru {name}",
+      "expand": "Extinde {name}",
+      "collapse": "Restrânge {name}",
+      "counter": "Contor",
       "count_mode": "Contor pentru {name}",
       "count_mode_default": "Contor: implicit",
       "count_mode_unread": "Doar necitite",
       "count_mode_all": "Necitite și total",
       "count_mode_none": "Fără contor",
       "delete": "Șterge",
+      "delete_title": "Ștergeți dosarul?",
       "confirm_delete": "Sunteți sigur că doriți să ștergeți „{name}”? E-mailurile din acest folder vor fi mutate în Coșul de gunoi.",
       "create": "Creați",
       "cancel": "Anulează",
@@ -2187,7 +2210,8 @@
     "advanced": {
       "debug_mode": {
         "label": "Modul de depanare",
-        "description": "Activați înregistrarea detaliată a evenimentelor pentru depanare"
+        "description": "Activați înregistrarea detaliată a evenimentelor pentru depanare",
+        "toggle": "Jurnalizare detaliată"
       },
       "debug_categories": {
         "description": "Selectați categoriile pe care doriți să le înregistrați. Dezactivați categoriile de care nu aveți nevoie pentru a reduce zgomotul din consolă.",
@@ -2232,12 +2256,15 @@
       "refresh_cache": {
         "label": "Refresh cached data",
         "description": "Reload contacts, calendars, and folders from the server. Keeps your accounts and sessions — fixes a stale or wrong view without signing out.",
-        "button": "Refresh"
+        "button": "Refresh",
+        "confirm_title": "Reîmprospătați datele din cache?"
       },
       "reset_settings": {
         "label": "Resetare setări",
         "description": "Restabiliți toate setările la valorile implicite",
-        "button": "Resezare la setările implicite"
+        "button": "Resezare la setările implicite",
+        "confirm_title": "Resetați toate setările?",
+        "done": "Setări resetate"
       },
       "export_settings": {
         "label": "Setări de export",
@@ -2312,7 +2339,15 @@
       "no_address_books": "Nu s-au găsit agende de adrese",
       "categories_title": "Categorii",
       "categories_description": "Redenumiți categoriile de contacte",
-      "no_categories": "Nu s-au găsit categorii"
+      "no_categories": "Nu s-au găsit categorii",
+      "delete_category": "Șterge categoria",
+      "category_deleted": "Categorie ștearsă",
+      "category_delete_failed": "Categoria nu a putut fi ștearsă"
+    },
+    "calendar_management": {
+      "delete_title": "Ștergeți calendarul?",
+      "clear_title": "Ștergeți toate evenimentele?",
+      "unsubscribe_title": "Vă dezabonați de la acest calendar?"
     },
     "downloads": {
       "title": "Descărcări",
@@ -2378,7 +2413,7 @@
       "validate": "Validați",
       "validation_success": "Scriptul este valid",
       "validation_error": "Scriptul conține erori",
-      "save": "Salvați regulile",
+      "save": "Salvare",
       "saving": "Se salvează...",
       "saved": "Filtrele au fost salvate cu succes",
       "save_failed": "Nu s-au putut salva filtrele",
@@ -2392,6 +2427,8 @@
       "add_condition": "Adăugați condiție",
       "actions": "Acțiuni",
       "add_action": "Adăugare acțiune",
+      "remove_condition": "Elimină condiția",
+      "remove_action": "Elimină acțiunea",
       "stop_processing": "Opriți procesarea regulilor următoare",
       "include_spam": "Mută și mesajele marcate ca spam",
       "attachment_type_placeholder": "de ex. pdf, doc, jpg",
@@ -2468,6 +2505,7 @@
       "match_type": "Potriviți tipul",
       "reset_to_visual": "Reveniți la editorul vizual",
       "reset_warning": "Aceasta va anula scriptul curent și va începe de la zero.",
+      "reset_title": "Reveniți la editorul vizual?",
       "confirm_reset": "Resetare",
       "validation_empty_name": "Numele regulii este obligatoriu",
       "validation_empty_conditions": "Este necesară cel puțin o condiție cu o valoare",
@@ -2649,6 +2687,217 @@
         "sending": "Înainte de trimitere",
         "receipts": "Confirmări de citire"
       }
+    }
+  },
+  "setup": {
+    "title": "Configurarea Bulwark Webmail",
+    "subtitle": "Configurați instanța de webmail din browser.",
+    "loading": "Se încarcă…",
+    "back": "Înapoi",
+    "next": "Înainte",
+    "saving": "Se salvează…",
+    "show": "Afișează",
+    "hide": "Ascunde",
+    "remove": "Elimină",
+    "on": "Activat",
+    "off": "Dezactivat",
+    "dismiss": "Închide",
+    "unknown_error": "Eroare necunoscută",
+    "steps": {
+      "welcome": "Bun venit",
+      "server": "Server",
+      "auth": "Autentificare",
+      "security": "Securitate",
+      "logging": "Jurnale",
+      "branding": "Identitate vizuală",
+      "review": "Verificare"
+    },
+    "read_only": {
+      "title": "Configurația este doar în citire",
+      "body": "Volumul de configurare este montat doar în citire sau este setată variabila {variable}. Montați-l cu drept de scriere sau eliminați variabila, apoi reporniți containerul."
+    },
+    "done": {
+      "title": "Totul este gata",
+      "body": "{appName} este configurat și gata de utilizare.",
+      "admin_sign_in": "Conectați-vă la panoul de administrare",
+      "webmail_login": "Deschideți autentificarea în webmail",
+      "redirecting": "Vă ducem la panoul de administrare…"
+    },
+    "already": {
+      "title": "Configurarea este deja finalizată",
+      "body": "{appName} este configurat. Conectați-vă pentru a continua."
+    },
+    "insecure": {
+      "title": "Rulați configurarea prin HTTP necriptat",
+      "body": "Tokenul de configurare și parola de administrator introduse aici vor circula în text clar. Folosiți HTTPS dacă este posibil: terminați TLS în container sau într-un proxy invers aflat în fața lui.",
+      "try_https": "Încercați HTTPS",
+      "continue_http": "Continuați prin HTTP"
+    },
+    "errors": {
+      "token_expired": "Tokenul de configurare nu mai este valid. Reporniți containerul pentru a obține unul nou din jurnale.",
+      "session_expired": "Sesiunea de configurare a expirat. Lipiți din nou tokenul de configurare pentru a continua.",
+      "token_required": "Lipiți tokenul de configurare afișat în jurnalele containerului pentru a continua.",
+      "already_finished": "Configurarea s-a încheiat deja. Reîncărcați pentru a vă conecta.",
+      "token_rejected": "Token respins (HTTP {status})",
+      "step_failed": "Pasul nu a putut fi salvat (HTTP {status})",
+      "upload_failed": "Încărcarea a eșuat (HTTP {status})",
+      "finish_failed": "Configurarea nu a putut fi finalizată (HTTP {status})"
+    },
+    "welcome": {
+      "title": "Bun venit",
+      "body": "Lipiți tokenul de configurare afișat în jurnalele containerului pentru a continua. Tokenul expiră după 1 oră.",
+      "token_label": "Token de configurare",
+      "token_placeholder": "Token hexazecimal de 32 de octeți",
+      "verifying": "Se verifică…",
+      "continue": "Continuați"
+    },
+    "server": {
+      "title": "Server",
+      "subtitle": "Unde se află e-mailul dvs.",
+      "app_name": "Numele aplicației",
+      "url_label": "URL-ul serverului JMAP",
+      "url_hint": "Serverul implicit la care se conectează utilizatorii. Exemplu: https://mail.example.com",
+      "test": "Testează",
+      "testing": "Se testează…",
+      "probe_ok": "Conectat: pare un server JMAP.",
+      "probe_not_jmap": "Serverul răspunde, dar nu pare un punct de acces JMAP.",
+      "probe_invalid": "URL-ul nu este valid. Trebuie să înceapă cu http:// sau https://.",
+      "probe_unreachable": "Nu s-a putut face conexiunea la această adresă. Verificați URL-ul și dacă serverul este online.",
+      "not_jmap_hint": "Se poate întâmpla când un proxy invers direcționează separat JMAP pe același domeniu. Altfel, de obicei URL-ul este greșit.",
+      "not_jmap_confirm": "Sunt sigur că URL-ul este corect, continuă oricum.",
+      "http_title": "Acest URL folosește HTTP necriptat.",
+      "http_body": "Parolele și conținutul e-mailurilor vor circula necriptat între utilizatori și serverul dvs. În producție folosiți {https}: terminați TLS pe serverul de e-mail sau într-un proxy invers aflat în fața lui.",
+      "local_title": "Acest URL funcționează doar local.",
+      "local_body": "E-mailul este preluat direct din browserul utilizatorului, așa că URL-ul JMAP trebuie să fie accesibil de oriunde se conectează utilizatorii, nu doar de pe acest calculator sau din rețeaua locală. În producție folosiți un nume de gazdă public (de ex. {example}).",
+      "additional_title": "Servere JMAP suplimentare",
+      "additional_hint": "Opțional. Oferiți mai multe servere în lista de autentificare, util pentru furnizorii cu mai multe instanțe Stalwart.",
+      "additional_show": "Afișează ({count})",
+      "add": "Adaugă",
+      "row_title": "Serverul nr. {index}",
+      "id_label": "ID",
+      "id_hint": "Identificator unic, de ex. eu-1",
+      "label_label": "Etichetă",
+      "label_hint": "Vizibilă pentru utilizatori",
+      "row_url": "URL",
+      "domains_label": "Domenii",
+      "domains_hint": "Separate prin virgule. Folosite pentru a alege acest server după domeniul e-mailului la autentificare.",
+      "add_server": "Adaugă server",
+      "auto_pick": "Alege serverul după domeniul e-mailului",
+      "auto_pick_hint": "Când un utilizator își scrie adresa de e-mail, se selectează serverul potrivit din lista de mai sus.",
+      "row_id_required": "Serverul nr. {index}: ID-ul este obligatoriu",
+      "row_id_invalid": "Serverul nr. {index}: ID-ul poate conține doar litere, cifre, - și _ și trebuie să înceapă cu o literă sau o cifră",
+      "row_id_duplicate": "Serverul nr. {index}: ID-ul „{id}” apare de două ori",
+      "row_url_required": "Serverul nr. {index}: URL-ul este obligatoriu",
+      "row_url_scheme": "Serverul nr. {index}: URL-ul trebuie să înceapă cu http:// sau https://",
+      "stalwart": "Activați funcțiile specifice Stalwart",
+      "stalwart_hint": "Adaugă schimbarea parolei și gestionarea filtrelor Sieve. Poate fi activat fără risc și pe alte servere."
+    },
+    "auth": {
+      "title": "Autentificare",
+      "subtitle": "Autentificarea cu parolă este mereu disponibilă. OAuth/OIDC este opțional.",
+      "oauth": "Activați OAuth2 / OpenID Connect",
+      "oauth_only": "Doar OAuth (ascunde formularul de parolă)",
+      "client_id": "ID client OAuth",
+      "client_secret": "Secret client OAuth",
+      "client_secret_hint": "Lăsați gol pentru clienții publici care folosesc doar PKCE.",
+      "client_secret_placeholder": "Lipiți secretul",
+      "issuer": "URL-ul emitentului OAuth",
+      "issuer_hint": "Pentru furnizori de identitate externi (Keycloak, Authentik, Entra ID etc.)."
+    },
+    "security": {
+      "title": "Securitate și sesiuni",
+      "subtitle": "Secretul de sesiune permite „Ține-mă minte” și sincronizarea setărilor.",
+      "generated": "Secret de sesiune generat",
+      "customize": "Personalizează",
+      "generated_hint": "A fost creat pentru dvs. un secret de 32 de octeți. Schimbați-l doar dacă aveți un motiv anume.",
+      "secret_label": "Secret de sesiune",
+      "secret_hint": "Lipiți propria valoare sau generați una nouă.",
+      "regenerate": "Generează din nou",
+      "sync": "Sincronizează setările utilizatorilor între dispozitive",
+      "sync_hint": "Stochează preferințele utilizatorilor pe server, criptate cu secretul de sesiune.",
+      "telemetry": "Trimite statistici anonime de utilizare pentru a îmbunătăți Bulwark",
+      "telemetry_hint": "Dezactivat implicit. Un semnal anonim pe zi cu versiunea, platforma și funcțiile activate; niciodată adrese de e-mail, nume de gazdă sau IP-uri. Puteți schimba oricând în setările de administrare."
+    },
+    "logging": {
+      "title": "Jurnale",
+      "subtitle": "Formatul și nivelul de detaliu al jurnalelor aplicației.",
+      "format": "Format",
+      "format_text": "text: colorat, ușor de citit",
+      "format_json": "json: structurat, pentru agregarea jurnalelor",
+      "level": "Nivel",
+      "level_info": "info (recomandat)"
+    },
+    "branding": {
+      "title": "Identitate vizuală",
+      "subtitle": "Toate câmpurile sunt opționale. Încărcați un fișier sau lipiți un URL; pentru ce omiteți se folosesc valorile implicite.",
+      "company": "Numele companiei sau al organizației",
+      "favicon": "Favicon",
+      "favicon_hint": "Pictograma filei din browser. Recomandat SVG.",
+      "login_light": "Logo de autentificare (mod luminos)",
+      "login_light_hint": "Afișat pe pagina de autentificare, pe fundal deschis.",
+      "login_dark": "Logo de autentificare (mod întunecat)",
+      "login_dark_hint": "Afișat pe pagina de autentificare, pe fundal închis.",
+      "sidebar_light": "Logo bară laterală (mod luminos)",
+      "sidebar_light_hint": "Afișat după autentificare. Lăsați gol pentru niciunul.",
+      "sidebar_dark": "Logo bară laterală (mod întunecat)",
+      "sidebar_dark_hint": "Versiunea pentru modul întunecat a logoului din bara laterală.",
+      "website": "URL-ul site-ului",
+      "imprint": "URL-ul paginii cu informații legale",
+      "privacy": "URL-ul politicii de confidențialitate",
+      "drop": "Faceți clic sau plasați aici",
+      "uploading": "Se încarcă…",
+      "uploaded": "Fișier încărcat",
+      "formats": "SVG, PNG, JPEG, WebP sau ICO · max. 2 MB",
+      "use_url": "Folosește URL",
+      "hide_url": "Ascunde URL",
+      "url_placeholder": "https://… sau /branding/fisier.svg"
+    },
+    "review": {
+      "title": "Aproape gata",
+      "subtitle": "Verificați setările, alegeți o parolă de administrator și aplicați.",
+      "server": "Server",
+      "app_name": "Numele aplicației",
+      "jmap_server": "Server JMAP",
+      "additional": "Servere suplimentare",
+      "additional_count": "{count} configurate",
+      "additional_auto_pick": "{count} configurate · alese după domeniu",
+      "stalwart": "Funcții Stalwart",
+      "auth": "Autentificare",
+      "method": "Metodă",
+      "oauth_only": "Doar OAuth",
+      "password_oauth": "Parolă + OAuth",
+      "password_only": "Doar parolă",
+      "client_id": "ID client OAuth",
+      "security": "Securitate",
+      "secret": "Secret de sesiune",
+      "configured": "Configurat",
+      "not_set": "Nesetat",
+      "remember_me": "Ține-mă minte",
+      "available": "Disponibil",
+      "disabled": "Dezactivat",
+      "sync": "Sincronizarea setărilor",
+      "needs_secret": "Necesită un secret de sesiune",
+      "telemetry": "Telemetrie anonimă",
+      "logging": "Jurnale",
+      "format": "Format",
+      "level": "Nivel",
+      "branding": "Identitate vizuală",
+      "customizations": "Personalizări",
+      "custom_assets": "Fișiere proprii configurate",
+      "defaults": "Valori implicite",
+      "company": "Numele companiei",
+      "password_title": "Alegeți o parolă de administrator",
+      "password_hint": "O veți folosi pentru a vă conecta la {path}. Minimum 8 caractere.",
+      "new_password": "Parolă nouă",
+      "confirm": "Confirmați",
+      "too_short": "Cel puțin 8 caractere.",
+      "mismatch": "Parolele nu se potrivesc.",
+      "looks_good": "Arată bine.",
+      "advanced": "Avansat",
+      "lock": "Blochează configurația după instalare",
+      "lock_hint": "Creează un fișier marcaj. Apoi montați volumul de configurare doar în citire, iar aplicația va refuza alte modificări ale configurației. Jurnalele de audit și starea autentificării rămân editabile în volumul de stare.",
+      "applying": "Se aplică…",
+      "finish": "Aplică și finalizează"
     }
   },
   "errors": {

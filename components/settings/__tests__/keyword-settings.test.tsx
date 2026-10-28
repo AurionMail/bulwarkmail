@@ -390,3 +390,19 @@ describe('KeywordSettings unrecognized tags', () => {
     expect(screen.queryByText('unrecognized.none')).not.toBeInTheDocument();
   });
 });
+
+// SET-20: Escape cancels editing a tag, as it does for folders, calendars
+// and address books.
+describe('KeywordSettings editing', () => {
+  it('cancels the edit form on Escape without saving', () => {
+    useSettingsStore.setState({ emailKeywords: [...DEFAULT_KEYWORDS], nestedTags: false });
+    render(<KeywordSettings />);
+    fireEvent.click(screen.getAllByTitle('edit')[0]);
+    const input = screen.getByDisplayValue(DEFAULT_KEYWORDS[0].label);
+    fireEvent.change(input, { target: { value: 'Changed' } });
+    fireEvent.keyDown(input, { key: 'Escape' });
+
+    expect(screen.queryByDisplayValue('Changed')).toBeNull();
+    expect(useSettingsStore.getState().emailKeywords[0].label).toBe(DEFAULT_KEYWORDS[0].label);
+  });
+});

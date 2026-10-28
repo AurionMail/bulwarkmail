@@ -1109,6 +1109,7 @@
   "settings": {
     "title": "Nastavení",
     "back_to_mail": "Zpět na poštu",
+    "back_to_settings": "Zpět do nastavení",
     "save_success": "Nastavení bylo uloženo",
     "import_success": "Nastavení bylo importováno",
     "import_error": "Import nastavení selhal",
@@ -1345,6 +1346,7 @@
       "id_exists": "Toto ID štítku již existuje",
       "edit": "Upravit štítek",
       "delete": "Odstranit štítek",
+      "deleted": "Štítek byl odstraněn",
       "save": "Uložit",
       "add": "Přidat",
       "cancel": "Zrušit",
@@ -1849,6 +1851,7 @@
         "delete": "Delete saved list",
         "cancel": "Cancel",
         "delete_confirm": "Delete the saved account list from the server?",
+        "delete_message": "Jiná zařízení z něj už účty neobnoví.",
         "password": "Backup password",
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
@@ -1950,6 +1953,8 @@
         "removed": "Heslo aplikace smazáno",
         "add_error": "Chyba při vytváření hesla aplikace",
         "remove_error": "Chyba při mazání hesla aplikace",
+        "delete_title": "Odstranit heslo aplikace?",
+        "delete_message": "Aplikace, které se přihlašují pomocí {name}, se už nepřihlásí.",
         "none": "Žádná hesla aplikací"
       },
       "api_keys": {
@@ -1962,6 +1967,8 @@
         "removed": "API klíč smazán",
         "add_error": "Chyba při vytváření API klíče",
         "remove_error": "Chyba při mazání API klíče",
+        "delete_title": "Odstranit klíč API?",
+        "delete_message": "Skripty a integrace, které používají {name}, ztratí přístup.",
         "none": "Žádné API klíče"
       },
       "encryption": {
@@ -1981,6 +1988,9 @@
         "configure_title": "Zapnout šifrování tímto klíčem",
         "enable_button": "Zapnout",
         "disable_tooltip": "Vypnout šifrování",
+        "disable_title": "Vypnout šifrování uložených dat?",
+        "disable_message": "Nová pošta se od teď ukládá bez šifrování.",
+        "disable_button": "Vypnout",
         "enabled_success": "Šifrování dat v klidu zapnuto"
       },
       "email_client": {
@@ -2029,7 +2039,14 @@
         "name_placeholder": "např. Můj klíč",
         "key_label": "Veřejný klíč (S/MIME nebo PGP ve formátu ASCII)",
         "key_placeholder": "Sem vložte svůj veřejný klíč",
-        "none": "Nejsou nastaveny žádné veřejné klíče"
+        "none": "Nejsou nastaveny žádné veřejné klíče",
+        "title": "Veřejné klíče",
+        "added": "Veřejný klíč byl přidán",
+        "removed": "Veřejný klíč byl odstraněn",
+        "add_error": "Veřejný klíč se nepodařilo přidat",
+        "remove_error": "Veřejný klíč se nepodařilo odstranit",
+        "delete_title": "Odstranit veřejný klíč?",
+        "delete_message": "{name} bude odebrán ze serveru."
       },
       "sections": {
         "devices": "Další aplikace a zařízení",
@@ -2089,6 +2106,7 @@
       },
       "save": "Uložit změny",
       "saving": "Ukládání...",
+      "saved": "Uloženo",
       "warnings": {
         "end_before_start": "Datum ukončení musí být po datu zahájení",
         "invalid_date": "Zadejte platné datum zahájení a ukončení včetně času, nebo pole nechte prázdné",
@@ -2155,12 +2173,17 @@
       "new_folder_name": "Název složky",
       "rename": "Přejmenovat",
       "change_icon": "Změnit ikonu",
+      "actions": "Akce pro {name}",
+      "expand": "Rozbalit {name}",
+      "collapse": "Sbalit {name}",
+      "counter": "Počítadlo",
       "count_mode": "Počítadlo pro {name}",
       "count_mode_default": "Počítadlo: výchozí",
       "count_mode_unread": "Jen nepřečtené",
       "count_mode_all": "Nepřečtené a celkem",
       "count_mode_none": "Bez počítadla",
       "delete": "Odstranit",
+      "delete_title": "Odstranit složku?",
       "confirm_delete": "Opravdu chcete odstranit složku „{name}“? Zprávy v této složce budou přesunuty do Koše.",
       "create": "Vytvořit",
       "cancel": "Zrušit",
@@ -2180,7 +2203,8 @@
     "advanced": {
       "debug_mode": {
         "label": "Režim ladění",
-        "description": "Povolit podrobné protokolování pro řešení problémů"
+        "description": "Povolit podrobné protokolování pro řešení problémů",
+        "toggle": "Podrobné protokolování"
       },
       "debug_categories": {
         "description": "Vyberte kategorie pro protokolování. Vypněte kategorie, které nepotřebujete, pro snížení množství záznamů v konzoli.",
@@ -2225,12 +2249,15 @@
       "refresh_cache": {
         "label": "Obnovit data z mezipaměti",
         "description": "Znovu načíst kontakty, kalendáře a složky ze serveru. Účty a přihlášení zůstanou zachovány – opraví zastaralé nebo chybné zobrazení bez odhlášení.",
-        "button": "Obnovit"
+        "button": "Obnovit",
+        "confirm_title": "Obnovit data v mezipaměti?"
       },
       "reset_settings": {
         "label": "Resetovat nastavení",
         "description": "Obnovit všechna nastavení na výchozí hodnoty",
-        "button": "Obnovit výchozí"
+        "button": "Obnovit výchozí",
+        "confirm_title": "Obnovit všechna nastavení?",
+        "done": "Nastavení byla obnovena"
       },
       "export_settings": {
         "label": "Exportovat nastavení",
@@ -2305,7 +2332,15 @@
       "no_address_books": "Nenalezeny žádné adresáře",
       "categories_title": "Kategorie",
       "categories_description": "Přejmenovat kategorie kontaktů",
-      "no_categories": "Nenalezeny žádné kategorie"
+      "no_categories": "Nenalezeny žádné kategorie",
+      "delete_category": "Odstranit kategorii",
+      "category_deleted": "Kategorie byla odstraněna",
+      "category_delete_failed": "Kategorii se nepodařilo odstranit"
+    },
+    "calendar_management": {
+      "delete_title": "Odstranit kalendář?",
+      "clear_title": "Vymazat všechny události?",
+      "unsubscribe_title": "Zrušit odběr tohoto kalendáře?"
     },
     "downloads": {
       "title": "Stažené",
@@ -2371,7 +2406,7 @@
       "validate": "Ověřit",
       "validation_success": "Skript je platný",
       "validation_error": "Skript obsahuje chyby",
-      "save": "Uložit pravidla",
+      "save": "Uložit",
       "saving": "Ukládání...",
       "saved": "Filtry byly uloženy",
       "save_failed": "Uložení filtrů selhalo",
@@ -2385,6 +2420,8 @@
       "add_condition": "Přidat podmínku",
       "actions": "Akce",
       "add_action": "Přidat akci",
+      "remove_condition": "Odebrat podmínku",
+      "remove_action": "Odebrat akci",
       "stop_processing": "Zastavit zpracování dalších pravidel",
       "include_spam": "Přesouvat i zprávy označené jako spam",
       "attachment_type_placeholder": "např. pdf, doc, jpg",
@@ -2461,6 +2498,7 @@
       "match_type": "Typ shody",
       "reset_to_visual": "Resetovat na vizuálního průvodce",
       "reset_warning": "Tímto zahodíte aktuální skript a začnete znovu.",
+      "reset_title": "Obnovit vizuální editor?",
       "confirm_reset": "Resetovat",
       "validation_empty_name": "Název pravidla je vyžadován",
       "validation_empty_conditions": "Je vyžadována alespoň jedna podmínka s hodnotou",
@@ -2649,6 +2687,217 @@
         "sending": "Před odesláním",
         "receipts": "Potvrzení o přečtení"
       }
+    }
+  },
+  "setup": {
+    "title": "Nastavení Bulwark Webmail",
+    "subtitle": "Nastavte svou instanci webmailu v prohlížeči.",
+    "loading": "Načítání…",
+    "back": "Zpět",
+    "next": "Další",
+    "saving": "Ukládání…",
+    "show": "Zobrazit",
+    "hide": "Skrýt",
+    "remove": "Odebrat",
+    "on": "Zapnuto",
+    "off": "Vypnuto",
+    "dismiss": "Zavřít",
+    "unknown_error": "Neznámá chyba",
+    "steps": {
+      "welcome": "Vítejte",
+      "server": "Server",
+      "auth": "Přihlášení",
+      "security": "Zabezpečení",
+      "logging": "Protokol",
+      "branding": "Vzhled značky",
+      "review": "Kontrola"
+    },
+    "read_only": {
+      "title": "Konfigurace je jen pro čtení",
+      "body": "Svazek s konfigurací je připojen jen pro čtení nebo je nastavena proměnná {variable}. Připojte ho pro zápis nebo proměnnou odstraňte a restartujte kontejner."
+    },
+    "done": {
+      "title": "Vše je připraveno",
+      "body": "{appName} je nastaven a připraven k použití.",
+      "admin_sign_in": "Přihlásit se do administrace",
+      "webmail_login": "Otevřít přihlášení k webmailu",
+      "redirecting": "Přesměrování do administrace…"
+    },
+    "already": {
+      "title": "Nastavení je už dokončeno",
+      "body": "{appName} je nastaven. Pokračujte přihlášením."
+    },
+    "insecure": {
+      "title": "Nastavení spouštíte přes nešifrované HTTP",
+      "body": "Token pro nastavení a heslo správce, které zde zadáte, se přenesou jako prostý text. Pokud to jde, použijte HTTPS: ukončete TLS v kontejneru nebo v reverzní proxy před ním.",
+      "try_https": "Zkusit HTTPS",
+      "continue_http": "Pokračovat přes HTTP"
+    },
+    "errors": {
+      "token_expired": "Tento token pro nastavení už neplatí. Restartujte kontejner a v protokolech najdete nový.",
+      "session_expired": "Relace nastavení vypršela. Pokračujte opětovným vložením tokenu.",
+      "token_required": "Pokračujte vložením tokenu pro nastavení z protokolů kontejneru.",
+      "already_finished": "Nastavení je už dokončeno. Pro přihlášení stránku obnovte.",
+      "token_rejected": "Token odmítnut (HTTP {status})",
+      "step_failed": "Tento krok se nepodařilo uložit (HTTP {status})",
+      "upload_failed": "Nahrání se nezdařilo (HTTP {status})",
+      "finish_failed": "Nastavení se nepodařilo dokončit (HTTP {status})"
+    },
+    "welcome": {
+      "title": "Vítejte",
+      "body": "Pokračujte vložením tokenu pro nastavení z protokolů kontejneru. Token vyprší po 1 hodině.",
+      "token_label": "Token pro nastavení",
+      "token_placeholder": "32bajtový hexadecimální token",
+      "verifying": "Ověřování…",
+      "continue": "Pokračovat"
+    },
+    "server": {
+      "title": "Server",
+      "subtitle": "Kde je vaše pošta.",
+      "app_name": "Název aplikace",
+      "url_label": "URL serveru JMAP",
+      "url_hint": "Výchozí server, ke kterému se uživatelé připojují. Příklad: https://mail.example.com",
+      "test": "Otestovat",
+      "testing": "Testování…",
+      "probe_ok": "Připojeno: vypadá to na server JMAP.",
+      "probe_not_jmap": "Server odpovídá, ale nevypadá jako koncový bod JMAP.",
+      "probe_invalid": "Tato URL není platná. Musí začínat http:// nebo https://.",
+      "probe_unreachable": "K této adrese se nepodařilo připojit. Zkontrolujte URL a zda je server online.",
+      "not_jmap_hint": "To se stává, když reverzní proxy směruje JMAP na stejné doméně zvlášť. Jinak je URL obvykle chybná.",
+      "not_jmap_confirm": "Jsem si jistý, že URL je správná, přesto pokračovat.",
+      "http_title": "Tato URL používá nešifrované HTTP.",
+      "http_body": "Hesla a obsah e-mailů se budou mezi uživateli a vaším serverem přenášet nešifrovaně. V provozu použijte {https}: ukončete TLS na poštovním serveru nebo v reverzní proxy před ním.",
+      "local_title": "Tato URL funguje jen lokálně.",
+      "local_body": "Pošta se načítá přímo v prohlížeči uživatele, takže URL JMAP musí být dostupná odkudkoli, kde se uživatelé přihlašují, nejen z tohoto počítače nebo místní sítě. V provozu použijte veřejný název hostitele (např. {example}).",
+      "additional_title": "Další servery JMAP",
+      "additional_hint": "Volitelné. Nabídněte při přihlášení více serverů, užitečné pro hostingy s několika instancemi Stalwart.",
+      "additional_show": "Zobrazit ({count})",
+      "add": "Přidat",
+      "row_title": "Server č. {index}",
+      "id_label": "ID",
+      "id_hint": "Jedinečný identifikátor, např. eu-1",
+      "label_label": "Popisek",
+      "label_hint": "Zobrazí se uživatelům",
+      "row_url": "URL",
+      "domains_label": "Domény",
+      "domains_hint": "Oddělené čárkami. Podle domény e-mailu se při přihlášení zvolí tento server.",
+      "add_server": "Přidat server",
+      "auto_pick": "Volit server podle domény e-mailu",
+      "auto_pick_hint": "Když uživatel zadá svůj e-mail, zvolí se odpovídající server ze seznamu výše.",
+      "row_id_required": "Server č. {index}: ID je povinné",
+      "row_id_invalid": "Server č. {index}: ID smí obsahovat jen písmena, číslice, - a _ a musí začínat písmenem nebo číslicí",
+      "row_id_duplicate": "Server č. {index}: ID „{id}“ se opakuje",
+      "row_url_required": "Server č. {index}: URL je povinná",
+      "row_url_scheme": "Server č. {index}: URL musí začínat http:// nebo https://",
+      "stalwart": "Zapnout funkce specifické pro Stalwart",
+      "stalwart_hint": "Přidá změnu hesla a správu filtrů Sieve. Bezpečně lze zapnout i u jiných serverů."
+    },
+    "auth": {
+      "title": "Ověřování",
+      "subtitle": "Přihlášení heslem je vždy k dispozici. OAuth/OIDC je volitelné.",
+      "oauth": "Zapnout OAuth2 / OpenID Connect",
+      "oauth_only": "Jen OAuth (skrýt formulář hesla)",
+      "client_id": "ID klienta OAuth",
+      "client_secret": "Tajný klíč klienta OAuth",
+      "client_secret_hint": "U veřejných klientů, kteří používají jen PKCE, nechte prázdné.",
+      "client_secret_placeholder": "Vložte tajný klíč",
+      "issuer": "URL vydavatele OAuth",
+      "issuer_hint": "Pro externí poskytovatele identit (Keycloak, Authentik, Entra ID atd.)."
+    },
+    "security": {
+      "title": "Zabezpečení a relace",
+      "subtitle": "Tajný klíč relace umožní „Zapamatovat si mě“ a synchronizaci nastavení.",
+      "generated": "Tajný klíč relace vygenerován",
+      "customize": "Upravit",
+      "generated_hint": "Byl pro vás vytvořen 32bajtový tajný klíč. Měňte ho jen z konkrétního důvodu.",
+      "secret_label": "Tajný klíč relace",
+      "secret_hint": "Vložte vlastní hodnotu nebo vygenerujte novou.",
+      "regenerate": "Vygenerovat znovu",
+      "sync": "Synchronizovat nastavení uživatelů mezi zařízeními",
+      "sync_hint": "Ukládá předvolby uživatelů na server, šifrované tajným klíčem relace.",
+      "telemetry": "Odesílat anonymní statistiky používání pro zlepšení Bulwarku",
+      "telemetry_hint": "Ve výchozím stavu vypnuto. Jeden anonymní signál denně s verzí, platformou a zapnutými funkcemi; nikdy e-mailové adresy, názvy hostitelů ani IP adresy. Kdykoli to můžete změnit v nastavení administrace."
+    },
+    "logging": {
+      "title": "Protokol",
+      "subtitle": "Formát a podrobnost protokolů aplikace.",
+      "format": "Formát",
+      "format_text": "text: barevný, čitelný",
+      "format_json": "json: strukturovaný, pro sběr protokolů",
+      "level": "Úroveň",
+      "level_info": "info (doporučeno)"
+    },
+    "branding": {
+      "title": "Vzhled značky",
+      "subtitle": "Všechna pole jsou volitelná. Nahrajte soubor nebo vložte URL; pro vše, co vynecháte, platí výchozí hodnoty.",
+      "company": "Název firmy nebo organizace",
+      "favicon": "Favicon",
+      "favicon_hint": "Ikona karty prohlížeče. Doporučeno SVG.",
+      "login_light": "Logo přihlášení (světlý režim)",
+      "login_light_hint": "Na přihlašovací stránce, na světlém pozadí.",
+      "login_dark": "Logo přihlášení (tmavý režim)",
+      "login_dark_hint": "Na přihlašovací stránce, na tmavém pozadí.",
+      "sidebar_light": "Logo postranního panelu (světlý režim)",
+      "sidebar_light_hint": "Zobrazí se po přihlášení. Nechte prázdné pro žádné.",
+      "sidebar_dark": "Logo postranního panelu (tmavý režim)",
+      "sidebar_dark_hint": "Verze loga postranního panelu pro tmavý režim.",
+      "website": "URL webu",
+      "imprint": "URL tiráže",
+      "privacy": "URL zásad ochrany osobních údajů",
+      "drop": "Klikněte nebo přetáhněte",
+      "uploading": "Nahrávání…",
+      "uploaded": "Nahraný soubor",
+      "formats": "SVG, PNG, JPEG, WebP nebo ICO · max. 2 MB",
+      "use_url": "Použít URL",
+      "hide_url": "Skrýt URL",
+      "url_placeholder": "https://… nebo /branding/soubor.svg"
+    },
+    "review": {
+      "title": "Skoro hotovo",
+      "subtitle": "Zkontrolujte nastavení, zvolte heslo správce a použijte je.",
+      "server": "Server",
+      "app_name": "Název aplikace",
+      "jmap_server": "Server JMAP",
+      "additional": "Další servery",
+      "additional_count": "Nastaveno: {count}",
+      "additional_auto_pick": "Nastaveno: {count} · volba podle domény",
+      "stalwart": "Funkce Stalwart",
+      "auth": "Ověřování",
+      "method": "Metoda",
+      "oauth_only": "Jen OAuth",
+      "password_oauth": "Heslo + OAuth",
+      "password_only": "Jen heslo",
+      "client_id": "ID klienta OAuth",
+      "security": "Zabezpečení",
+      "secret": "Tajný klíč relace",
+      "configured": "Nastaveno",
+      "not_set": "Nenastaveno",
+      "remember_me": "Zapamatovat si mě",
+      "available": "K dispozici",
+      "disabled": "Vypnuto",
+      "sync": "Synchronizace nastavení",
+      "needs_secret": "Vyžaduje tajný klíč relace",
+      "telemetry": "Anonymní telemetrie",
+      "logging": "Protokol",
+      "format": "Formát",
+      "level": "Úroveň",
+      "branding": "Vzhled značky",
+      "customizations": "Úpravy",
+      "custom_assets": "Vlastní soubory nastaveny",
+      "defaults": "Výchozí hodnoty",
+      "company": "Název firmy",
+      "password_title": "Zvolte heslo správce",
+      "password_hint": "Budete se jím přihlašovat na {path}. Nejméně 8 znaků.",
+      "new_password": "Nové heslo",
+      "confirm": "Potvrdit",
+      "too_short": "Nejméně 8 znaků.",
+      "mismatch": "Hesla se neshodují.",
+      "looks_good": "V pořádku.",
+      "advanced": "Pokročilé",
+      "lock": "Po nastavení zamknout konfiguraci",
+      "lock_hint": "Vytvoří značkovací soubor. Poté připojte svazek s konfigurací jen pro čtení a aplikace odmítne další zápisy do konfigurace. Auditní protokoly a stav přihlášení zůstanou zapisovatelné ve svazku se stavem.",
+      "applying": "Používání…",
+      "finish": "Použít a dokončit"
     }
   },
   "errors": {

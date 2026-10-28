@@ -18,8 +18,10 @@ import { AdminButtonLink } from '@/components/admin/button-link';
 import { AdminList, AdminListRow } from '@/components/admin/list';
 import { Badge } from '@/components/admin/badge';
 import { EmptyState } from '@/components/admin/empty-state';
-import { Flash, useFlash } from '@/components/admin/flash-message';
+import { useAdminFeedback } from '@/components/admin/feedback';
 import { ConfigNote, inputClass } from '@/components/admin/config-items';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 
 const CURRENT_APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '0.0.0';
 
@@ -78,12 +80,19 @@ const pillClass = (active: boolean) => cn(
 /**
  * Installs one version of an extension. A version the publisher withdrew,
  * or one older than the installed version, comes back as 409; the admin is
- * asked, and the install is repeated with `force` if they insist. Returns
- * the error text to show, or null.
+ * asked (in the page's ConfirmDialog), and the install is repeated with
+ * `force` if they insist. Returns the error text to show, or null.
  */
+export interface InstallQuestion {
+  title: string;
+  message: string;
+  confirmText: string;
+  cancelText: string;
+}
+
 export async function installVersion(
   body: { slug: string; version: string; type: 'plugin' | 'theme' },
-  confirm: (message: string) => boolean = (m) => window.confirm(m),
+  confirm: (question: InstallQuestion) => boolean | Promise<boolean>,
 ): Promise<{ ok: true; warnings: string[]; signature: string | null; updated: boolean } | { ok: false; error: string }> {
   const send = (force: boolean) => apiFetch('/api/admin/marketplace', {
     method: 'POST',
@@ -95,10 +104,14 @@ export async function installVersion(
     if (res.status === 409) {
       const data = await res.json().catch(() => ({}));
       if (data.yanked) {
-        if (!confirm(`${data.error}\n\nInstall it anyway?`)) return { ok: false, error: 'Not installed.' };
+        if (!(await confirm({ title: 'Install it anyway?', message: data.error, confirmText: 'Install', cancelText: 'Cancel' }))) {
+          return { ok: false, error: 'Not installed.' };
+        }
         res = await send(true);
       } else if (data.downgrade) {
-        if (!confirm(`${data.error}\n\nInstall the older version anyway?`)) return { ok: false, error: 'Not installed.' };
+        if (!(await confirm({ title: 'Install the older version anyway?', message: data.error, confirmText: 'Install', cancelText: 'Cancel' }))) {
+          return { ok: false, error: 'Not installed.' };
+        }
         res = await send(true);
       } else {
         return { ok: false, error: data.error || 'Installation failed' };
@@ -113,6 +126,7 @@ export async function installVersion(
 }
 
 export function MarketplacePage() {
+  const { dialogProps: confirmProps, confirm } = useConfirmDialog();
   const [extensions, setExtensions] = useState<MarketplaceListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
@@ -125,7 +139,7 @@ export function MarketplacePage() {
   const [directoryUrl, setDirectoryUrl] = useState<string | null>(null);
   const [channel, setChannel] = useState<'stable' | 'beta'>('stable');
   const [installing, setInstalling] = useState<Set<string>>(new Set());
-  const [message, setMessage] = useFlash();
+  const setMessage = useAdminFeedback();
   const [error, setError] = useState<string | null>(null);
   const [updates, setUpdates] = useState<UpdatesResult | null>(null);
   const [updatesLoading, setUpdatesLoading] = useState(true);
@@ -194,7 +208,7 @@ export function MarketplacePage() {
   async function install(ext: { slug: string; name: string; type: 'plugin' | 'theme' }, version: string, isUpdate: boolean) {
     markInstalling(ext.slug, true);
     setMessage(null);
-    const result = await installVersion({ slug: ext.slug, version, type: ext.type });
+    const result = await installVersion({ slug: ext.slug, version, type: ext.type }, confirm);
     markInstalling(ext.slug, false);
     if (!result.ok) {
       setMessage({ type: 'error', text: result.error });
@@ -256,7 +270,7 @@ export function MarketplacePage() {
         )}
       />
 
-      <Flash message={message} onDismiss={() => setMessage(null)} />
+      <ConfirmDialog {...confirmProps} />
 
       <div className="space-y-10">
         {updates && noticeCount > 0 && (
