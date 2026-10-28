@@ -119,7 +119,9 @@ describe('config', () => {
   it('reads noThirdPartyTraffic from the Lite config.json', () => {
     expect(applyLiteConfig({}).noThirdPartyTraffic).toBe(false);
     expect(applyLiteConfig({ noThirdPartyTraffic: true }).noThirdPartyTraffic).toBe(true);
-    expect(applyLiteConfig({ noThirdPartyTraffic: 'yes' }).noThirdPartyTraffic).toBe(false);
+    // A string as in env counts too (#903 review).
+    expect(applyLiteConfig({ noThirdPartyTraffic: 'yes' }).noThirdPartyTraffic).toBe(true);
+    expect(applyLiteConfig({ noThirdPartyTraffic: 'off' }).noThirdPartyTraffic).toBe(false);
   });
 
   it('turns the browser switches on once the runtime config is fetched', async () => {
@@ -147,5 +149,41 @@ describe('host helpers', () => {
     expect(isBuiltInHost('not a url')).toBe(false);
     expect(['mail.example.com', 'x', 'stalwart.internal:8080', '10.0.0.5', '*.vimeo.com', 'acme.test'].every(isPlaceholderHost)).toBe(true);
     expect(['github.com', 'icons.duckduckgo.com', 'api.example.io'].some(isPlaceholderHost)).toBe(false);
+  });
+});
+
+describe('before the config is known (#903 review)', () => {
+  it('treats the mode as on', async () => {
+    vi.resetModules();
+    const mode = await import('@/lib/third-party-mode');
+    const hosts = await import('@/lib/outgoing-hosts');
+    expect(mode.thirdPartyModeState()).toBe('unknown');
+    expect(mode.noThirdPartyTraffic()).toBe(true);
+    expect(hosts.relayAllowed('https://notifications.relay.bulwarkmail.org')).toBe(false);
+    expect(hosts.senderFaviconsAllowed()).toBe(false);
+    expect(hosts.mapsLinksAllowed()).toBe(false);
+    expect(hosts.pluginAllowed({ permissions: ['http:fetch'] })).toBe(false);
+    mode.setNoThirdPartyTraffic(false);
+    expect(hosts.relayAllowed('https://notifications.relay.bulwarkmail.org')).toBe(true);
+  });
+
+  it.each([
+    ['missing', async () => new Response('', { status: 404 })],
+    ['not JSON', async () => new Response('{ this is not json', { status: 200 })],
+  ])('turns the mode on in Lite when config.json is %s', async (_label, answer) => {
+    vi.resetModules();
+    vi.doMock('@/lib/lite', async (importOriginal) => ({ ...(await importOriginal<typeof import('@/lib/lite')>()), IS_LITE: true, IS_LITE_STALWART: false }));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    fetchSpy.mockImplementation(answer as never);
+    try {
+      const mode = await import('@/lib/third-party-mode');
+      const { fetchConfig } = await import('@/hooks/use-config');
+      expect((await fetchConfig()).noThirdPartyTraffic).toBe(true);
+      expect(mode.thirdPartyModeState()).toBe('on');
+      expect(String(warn.mock.calls[0]?.[0])).toMatch(/no third-party traffic/);
+    } finally {
+      vi.doUnmock('@/lib/lite');
+      warn.mockRestore();
+    }
   });
 });

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { configManager } from './config-manager';
-import { parseNoThirdPartyEnv } from '@/lib/third-party-mode';
+import { parseNoThirdPartyEnv, parseNoThirdPartyValue } from '@/lib/third-party-mode';
 
 /**
  * The "no third-party traffic" switch (#903) on the server.
@@ -17,7 +17,8 @@ export type NoThirdPartySource = 'env' | 'admin' | 'default';
 export function noThirdPartyTrafficState(): { on: boolean; source: NoThirdPartySource } {
   if (parseNoThirdPartyEnv(process.env.NO_THIRD_PARTY_TRAFFIC)) return { on: true, source: 'env' };
   const entry = configManager.getAllWithSources().noThirdPartyTraffic;
-  const on = entry?.value === true;
+  // config.json may hold "true", "1", "yes" or "on" as a string.
+  const on = parseNoThirdPartyValue(entry?.value);
   return { on, source: entry?.source === 'admin' ? 'admin' : on ? 'env' : 'default' };
 }
 
@@ -25,7 +26,7 @@ export function noThirdPartyTrafficState(): { on: boolean; source: NoThirdPartyS
 export async function isNoThirdPartyTrafficOn(): Promise<boolean> {
   if (parseNoThirdPartyEnv(process.env.NO_THIRD_PARTY_TRAFFIC)) return true;
   await configManager.ensureLoaded();
-  return configManager.get<boolean>('noThirdPartyTraffic', false) === true;
+  return parseNoThirdPartyValue(configManager.get<unknown>('noThirdPartyTraffic', false));
 }
 
 /** The answer a route gives instead of contacting an outside host. */

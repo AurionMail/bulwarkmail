@@ -29,7 +29,7 @@ import {
 } from '@/lib/web-push';
 import type { PushDevice } from '@/lib/web-push';
 import { IS_LITE } from '@/lib/lite';
-import { noThirdPartyTraffic } from '@/lib/third-party-mode';
+import { useNoThirdPartyTraffic } from '@/hooks/use-third-party-mode';
 import {
   resolveActiveRelayUrl,
   resolvePushRelayOptions,
@@ -52,6 +52,8 @@ export function NotificationSettings() {
   const t = useTranslations('settings.notifications');
   const tAppearance = useTranslations('settings.appearance');
   const tThirdParty = useTranslations('third_party');
+  // The relay list depends on it; re-render once the config is known (#903).
+  const noThirdParty = useNoThirdPartyTraffic();
   const {
     emailNotificationsEnabled,
     emailNotificationSound,
@@ -438,7 +440,7 @@ export function NotificationSettings() {
         <SettingItem
           advanced
           label={t('push.relay_label')}
-          description={pushRelayLocked ? t('push.relay_locked_desc') : noThirdPartyTraffic() ? tThirdParty('relay_desc') : t('push.relay_desc')}
+          description={pushRelayLocked ? t('push.relay_locked_desc') : noThirdParty ? tThirdParty('relay_desc') : t('push.relay_desc')}
           locked={pushRelayLocked}
         >
           {relayChoiceFixed ? (

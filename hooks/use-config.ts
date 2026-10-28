@@ -74,8 +74,10 @@ async function fetchLiteConfig(): Promise<ConfigData> {
     if (!res.ok) throw new Error(`config.json answered ${res.status}`);
     return applyLiteConfig(await res.json(), defaults);
   } catch (err) {
-    console.warn('[lite] config.json missing or invalid, using defaults:', err);
-    return applyLiteConfig({}, defaults);
+    // Fail closed (#903): without a readable config.json nobody said outside
+    // hosts may be used, so the no-third-party switches stay on.
+    console.warn('[lite] config.json missing or invalid, using defaults with no third-party traffic:', err);
+    return applyLiteConfig({ noThirdPartyTraffic: true }, defaults);
   }
 }
 

@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
-import { afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, vi } from 'vitest';
+import { setNoThirdPartyTraffic } from '@/lib/third-party-mode';
 
 // jsdom does not implement matchMedia; components that read media queries
 // (e.g. responsive layout hooks) call it during render. Provide a minimal
@@ -66,6 +67,13 @@ vi.mock('@/i18n/navigation', () => ({
   usePathname: () => '/en',
   Link: ({ children }: { children: React.ReactNode }) => children,
 }));
+
+// The browser treats the no-third-party mode as on until the config says
+// otherwise (#903). Tests start from a config that says off; the tests of
+// the mode set it themselves.
+beforeEach(() => {
+  setNoThirdPartyTraffic(false);
+});
 
 afterEach(() => {
   cleanup();

@@ -2,6 +2,7 @@ import type { ConfigData } from '@/hooks/use-config';
 import type { SettingsPolicy } from '@/lib/admin/types';
 import { DEFAULT_POLICY } from '@/lib/admin/types';
 import { httpUrlOrEmpty } from '@/lib/config-validation';
+import { parseNoThirdPartyValue } from '@/lib/third-party-mode';
 import { sanitizeOrganisationPolicy } from '@/lib/admin/organisation-policy';
 import { sanitizeRestrictions, sanitizeScopes } from '@/lib/admin/policy-scopes';
 
@@ -96,7 +97,7 @@ export function applyLiteConfig(raw: unknown, defaults?: { jmapServerUrl?: strin
     parentOrigin: str(input.parentOrigin, ''),
     sourceCodeUrl: httpUrlOrEmpty(input.sourceCodeUrl),
     // Same browser-side switches as the server build (lib/outgoing-hosts.ts).
-    noThirdPartyTraffic: bool(input.noThirdPartyTraffic, false),
+    noThirdPartyTraffic: parseNoThirdPartyValue(input.noThirdPartyTraffic),
     ...LITE_FORCED_FLAGS,
   };
 }
