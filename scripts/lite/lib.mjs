@@ -297,8 +297,13 @@ export function buildRootRedirect({ basePath = "", locales, defaultLocale = "en"
  * hands the link over (hooks/use-lite-link-segments.ts). Only `<locale>` and
  * `<surface>` from the allowlists ever reach `location.replace`, so a crafted
  * URL cannot turn this into an open redirect.
+ *
+ * A path without a locale (/login, /mail/...) goes to the same path under
+ * the reader's locale, picked as the root index.html picks it; the target
+ * stays on this origin and starts with an allowlisted locale.
  */
-export function buildNotFoundShim({ basePath = "", locales, surfaces = LITE_SURFACES }) {
+export function buildNotFoundShim({ basePath = "", locales, surfaces = LITE_SURFACES, defaultLocale = "en" }) {
+  const fallback = locales.includes(defaultLocale) ? defaultLocale : locales[0];
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -317,6 +322,31 @@ export function buildNotFoundShim({ basePath = "", locales, surfaces = LITE_SURF
     path = path.slice(base.length) || "/";
   }
   var parts = path.split("/").filter(Boolean);
+  if (parts.length > 0 && locales.indexOf(parts[0]) === -1) {
+    var fallback = ${JSON.stringify(fallback)};
+    var pick = function (tag) {
+      if (!tag) return null;
+      tag = String(tag);
+      if (locales.indexOf(tag) !== -1) return tag;
+      var lower = tag.toLowerCase();
+      if (lower.indexOf("zh") === 0) {
+        if (/zh-(tw|hk|mo|hant)/.test(lower) && locales.indexOf("zh-TW") !== -1) return "zh-TW";
+        if (locales.indexOf("zh") !== -1) return "zh";
+      }
+      var short = lower.split("-")[0];
+      for (var i = 0; i < locales.length; i++) if (locales[i].toLowerCase() === short) return locales[i];
+      return null;
+    };
+    var chosen = null;
+    try {
+      var stored = JSON.parse(localStorage.getItem(${JSON.stringify(LOCALE_STORAGE_KEY)}) || "null");
+      chosen = pick(stored && stored.state && stored.state.locale);
+    } catch (e) {}
+    var langs = navigator.languages || [navigator.language];
+    for (var j = 0; !chosen && j < langs.length; j++) chosen = pick(langs[j]);
+    location.replace(base + "/" + (chosen || fallback) + "/" + parts.join("/") + location.search + location.hash);
+    return;
+  }
   if (parts.length < 2 || locales.indexOf(parts[0]) === -1 || surfaces.indexOf(parts[1]) === -1) return;
   var target = base + "/" + parts[0] + "/" + parts[1] + "/";
   // The shell itself is missing (host misconfigured): show the 404 instead of looping.
@@ -326,12 +356,12 @@ export function buildNotFoundShim({ basePath = "", locales, surfaces = LITE_SURF
 })();
 </script>
 <style>
-  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: system-ui, sans-serif; background: #fff; color: #111; }
-  @media (prefers-color-scheme: dark) { body { background: #0a0a0a; color: #ededed; } }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: system-ui, sans-serif; background: #fff; color: #0a0a0a; }
+  @media (prefers-color-scheme: dark) { body { background: #0a0a0a; color: #fafafa; } a { background: #fafafa; color: #0a0a0a; } }
   main { text-align: center; padding: 1rem; }
-  h1 { font-size: 2.25rem; margin: 0 0 .5rem; }
-  p { margin: 0 0 1.5rem; opacity: .7; }
-  a { color: inherit; }
+  h1 { font-size: 2.25rem; font-weight: 700; margin: 0 0 .5rem; }
+  p { margin: 0 0 1.5rem; color: #737373; }
+  a { display: inline-block; padding: .5rem 1rem; border-radius: .375rem; background: #0a0a0a; color: #fafafa; font-size: .875rem; font-weight: 500; text-decoration: none; }
 </style>
 </head>
 <body>
