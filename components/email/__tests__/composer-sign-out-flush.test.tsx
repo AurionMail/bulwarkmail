@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import React from 'react';
 import { EmailComposer, type ComposerDraftData } from '../email-composer';
@@ -70,7 +70,6 @@ vi.mock('@/stores/account-store', () => {
 
 vi.mock('@/stores/email-store', () => {
   const state = {
-    draftSaveEnabled: false,
     sendRawEmail: async () => ({ sent: true }),
   };
   const hook = (sel?: (s: typeof state) => unknown) =>
@@ -245,6 +244,50 @@ describe('composer flush before an automatic sign-out', () => {
 
     expect(createDraft).toHaveBeenCalledTimes(1);
     expect(createDraft.mock.calls[0][1]).toBe('Half-written');
+  });
+
+  it('waits for a send in flight and saves no draft of the sent message', async () => {
+    let finishSend!: () => void;
+    const onSend = vi.fn(() => new Promise<void>((resolve) => { finishSend = resolve; }));
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} onSend={onSend} />);
+    fireEvent.change(screen.getByDisplayValue('Half-written'), { target: { value: 'Half-written more' } });
+    fireEvent.click(screen.getAllByTestId('composer-send')[0]);
+    await waitFor(() => expect(onSend).toHaveBeenCalled());
+    const savesBeforeSignOut = createDraft.mock.calls.length;
+
+    let done = false;
+    const flushed = flushComposers(5000).then((r) => { done = true; return r; });
+    await new Promise((r) => setTimeout(r, 300));
+    expect(done).toBe(false);
+
+    await act(async () => { finishSend(); });
+    await expect(flushed).resolves.toMatchObject({ total: 1, failed: 0, timedOut: false });
+    expect(createDraft).toHaveBeenCalledTimes(savesBeforeSignOut);
+  });
+
+  it('reports a save the server refused, so the login page can say so', async () => {
+    createDraft.mockRejectedValue(new Error('refused'));
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+      fireEvent.change(screen.getByDisplayValue('Half-written'), { target: { value: 'Half-written more' } });
+
+      let result: Awaited<ReturnType<typeof flushComposers>> | undefined;
+      await act(async () => { result = await flushComposers(5000); });
+      expect(result).toMatchObject({ total: 1, failed: 1 });
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it('hands an already-saved state back as saved', async () => {
+    const onSaveState = vi.fn();
+    const view = render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} onSaveState={onSaveState} />);
+    fireEvent.change(screen.getByDisplayValue('Half-written'), { target: { value: 'Half-written more' } });
+    await act(async () => { await flushComposers(5000); });
+    view.unmount();
+
+    expect(onSaveState).toHaveBeenCalledWith(expect.objectContaining({ subject: 'Half-written more', unsaved: false }));
   });
 
   it('marks the state it hands to the host on unmount as unsaved', () => {

@@ -115,8 +115,7 @@ import { isFilePreviewable } from "@/lib/file-preview";
 import { prepareQuickReply } from "@/lib/outgoing/quick-reply";
 import { computeReplyThreadingHeaders } from "@/lib/email-threading";
 import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
-import { findDraftIdentityId, findReplyIdentityId, resolveComposeAccountEmail } from "@/lib/reply-identity";
-import { buildReplyRecipients, isSelfSent } from "@/lib/reply-recipients";
+import { resolveComposeAccountEmail } from "@/lib/reply-identity";
 import { useProMultiAccountIdentities } from "@/hooks/use-pro-multi-account-identities";
 import { Filter, ChevronDown, X, Paperclip, Star, Mail, MailOpen, RotateCcw, PenSquare, PenLine, CheckSquare, Square, AlertTriangle, ArrowLeft } from "@/components/icons";
 import { ResizeHandle } from "@/components/layout/resize-handle";
@@ -159,7 +158,8 @@ import { consumePendingDeepLink, subscribePendingDeepLink } from "@/lib/deep-lin
 import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
 import type { QuoteHeader } from "@/lib/plugin-types";
 import { initialLinkSearch, useLiteLinkSegments } from "@/hooks/use-lite-link-segments";
-import { registerComposeFlush, waitForComposeFlush } from "@/lib/compose-flush-registry";
+import { useMinimisedComposerFlush } from "@/hooks/use-minimised-composer-flush";
+import { quickReplyEnvelope, saveQuickReplyDraft } from "@/lib/outgoing/quick-reply-envelope";
 
 export interface MailAppProps {
   /**
@@ -198,9 +198,6 @@ function freshMailboxes(previous: Mailbox[], timeoutMs = 10_000): Promise<Mailbo
  * message itself has loaded, before showing it with a placeholder. (#1223)
  */
 const MV_CONVERSATION_WAIT_MS = 800;
-
-/** How long an automatic sign-out waits for a minimised composer to open again and register. */
-const MINIMISED_COMPOSER_REOPEN_MS = 3000;
 
 /** Plugin buttons in the top bar are not about any one item. */
 const TOP_BAR_CONTEXT: Record<string, unknown> = {};
@@ -2272,16 +2269,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
   // A minimised composer's edits live only in pendingDraft. Before an
   // automatic sign-out it is opened again and saves them itself.
-  const minimisedUnsaved = !showComposer && pendingDraft?.unsaved === true;
-  useEffect(() => {
-    if (!minimisedUnsaved) return;
-    return registerComposeFlush(async () => {
-      const reopened = waitForComposeFlush(MINIMISED_COMPOSER_REOPEN_MS);
-      setShowComposer(true);
-      const flush = await reopened;
-      await flush?.();
-    });
-  }, [minimisedUnsaved]);
+  useMinimisedComposerFlush(!showComposer && pendingDraft?.unsaved === true, () => setShowComposer(true));
 
   const handleReply = async (draftText?: string) => {
     if (selectedEmail) {
@@ -3864,49 +3852,21 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     };
   }, [previewAttachment]);
 
+  // Before an automatic sign-out: the typed quick reply is kept as a draft.
+  const handleSaveQuickReplyDraft = async (body: string) => {
+    if (!client || !selectedEmail) return;
+    await saveQuickReplyDraft({ client, email: selectedEmail, identities, body, replyPrefix: t('email_composer.prefix.reply') });
+  };
+
   const handleQuickReply = async (body: string) => {
     if (!client || !selectedEmail) return;
 
-    // Quick reply follows the same addressing rules as the composer: Reply-To
-    // over From, and for our own messages in a thread the original recipients
-    // instead of ourselves (#703).
-    const ownIdentityEmails = identities.map(i => i.email).filter(Boolean);
-    const replySource = {
-      from: selectedEmail.from,
-      replyToAddresses: selectedEmail.replyTo,
-      to: selectedEmail.to,
-      cc: selectedEmail.cc,
-    };
-    const recipients = buildReplyRecipients(replySource, 'reply', ownIdentityEmails).to
-      .map(r => r.email)
-      .filter((email): email is string => Boolean(email));
+    // Quick reply follows the composer's addressing rules and sends from the
+    // address the message was delivered to (lib/outgoing/quick-reply-envelope.ts).
+    const { recipients, sendingIdentity, primaryIdentity } = quickReplyEnvelope(selectedEmail, identities);
     if (recipients.length === 0) {
       throw new Error("No sender email found");
     }
-
-    const primaryIdentity = identities[0];
-
-    // Send from the address the message was delivered to, so a reply out of a
-    // shared or aliased mailbox does not go out as the account owner. Our own
-    // message keeps the identity it was sent from - the recipients are the
-    // other party, so resolving from them would send as their address.
-    //
-    // Quick reply resolves the user's OWN identities only. It deliberately does
-    // NOT take the domain catch-all `From:` rewrite that the full composer
-    // offers: this surface is a bare text box with no From row, so a rewritten
-    // From would be applied with nothing on screen to show it - or to correct
-    // it. A catch-all delivery quick-replies as the matching own identity, and
-    // the user can open the full composer when they need the rewrite.
-    const selfSentIdentityId = isSelfSent(replySource, ownIdentityEmails)
-      ? findDraftIdentityId(identities, selectedEmail.from?.[0])
-      : null;
-    const sendingIdentityId = selfSentIdentityId ?? findReplyIdentityId(identities, {
-      to: selectedEmail.to,
-      cc: selectedEmail.cc,
-      bcc: selectedEmail.bcc,
-    });
-    const sendingIdentity =
-      (sendingIdentityId ? identities.find((i) => i.id === sendingIdentityId) : undefined) || primaryIdentity;
     const headerFromEmail = sendingIdentity?.email;
     const headerFromName = sendingIdentity?.name || undefined;
 
@@ -5465,6 +5425,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     }}
                     onDownloadAttachment={handleDownloadAttachment}
                     onQuickReply={handleQuickReply}
+                    onSaveQuickReplyDraft={handleSaveQuickReplyDraft}
                     onBack={handleMobileBack}
                     onNavigateNext={handleNavigateNext}
                     onNavigatePrev={handleNavigatePrev}

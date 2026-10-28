@@ -142,6 +142,9 @@ import { toUnicodeEmail } from "@/lib/idn";
  * <p> blocks are separated by a blank line, matching their visual rendering (#421).
  * Quotes get "> " and list items their markers, like any plain-text mail.
  */
+/** How often an automatic sign-out looks whether a send in flight has finished. */
+const SEND_WAIT_POLL_MS = 100;
+
 function htmlToPlainText(html: string): string {
   return htmlToPlainTextShared(html, { paragraphSpacing: true, mailMarkup: true });
 }
@@ -1656,7 +1659,9 @@ export function EmailComposer({
           mode,
           replyTo,
           priority: priorityRef.current,
-          unsaved: true,
+          // Edits the last save didn't cover; a minimised composer with
+          // none needs no save before an automatic sign-out.
+          unsaved: changeVersionRef.current !== savedVersionRef.current || saveFailedRef.current,
         });
       }
     };
@@ -2709,8 +2714,13 @@ export function EmailComposer({
   saveDraftRef.current = saveDraft;
 
   // An automatic sign-out saves what the server doesn't have yet, with the
-  // same save the close and send paths use.
+  // same save the close and send paths use. A send in flight goes first:
+  // the sign-out waits for it (within its own time limit), and a message
+  // that went out needs no draft. A save the server refused throws, so the
+  // login page can say a draft wasn't saved.
   useEffect(() => registerComposeFlush(async () => {
+    while (isSendingRef.current) await new Promise((resolve) => setTimeout(resolve, SEND_WAIT_POLL_MS));
+    if (sentRef.current) return;
     const unsaved = changeVersionRef.current !== savedVersionRef.current || saveFailedRef.current;
     if (!unsaved) return;
     if (saveTimeoutRef.current) {
@@ -2718,6 +2728,7 @@ export function EmailComposer({
       saveTimeoutRef.current = null;
     }
     await saveDraftRef.current();
+    if (saveFailedRef.current) throw new Error('The draft was not saved');
   }), []);
 
   // The draft as plugins see it: onDraftChange, the frames above and below
