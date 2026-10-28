@@ -14,7 +14,7 @@
 
 import { debug } from '@/lib/debug';
 
-export type SendSurface = 'composer' | 'quick-reply';
+export type SendSurface = 'composer' | 'quick-reply' | 'calendar-invitation';
 
 export interface OutgoingContext {
   surface: SendSurface;

@@ -80,7 +80,36 @@ export async function externalRecipientCheck(
   return ask(recipients);
 }
 
+/** Dialog hosts mounted now; without one nobody could answer, so nothing asks. */
+let hosts = 0;
+
 /** Called by the dialog host once it is mounted; returns the unregister function. */
 export function registerExternalRecipientCheck(): () => void {
-  return registerPreSendCheck(EXTERNAL_RECIPIENT_CHECK_ID, ORDER, (context) => externalRecipientCheck(context));
+  hosts += 1;
+  const unregister = registerPreSendCheck(EXTERNAL_RECIPIENT_CHECK_ID, ORDER, (context) => externalRecipientCheck(context));
+  let done = false;
+  return () => {
+    if (done) return;
+    done = true;
+    hosts -= 1;
+    unregister();
+  };
+}
+
+/**
+ * The same question for calendar invitations, which the server sends when an
+ * event is saved: true to save and send, false to go back to the event.
+ * Only the newly invited attendees are asked about; people already invited
+ * know of the event.
+ */
+export async function confirmInvitationRecipients(invited: string[]): Promise<boolean> {
+  if (hosts === 0 || invited.length === 0) return true;
+  return externalRecipientCheck({
+    surface: 'calendar-invitation',
+    to: invited,
+    cc: [],
+    bcc: [],
+    mode: 'compose',
+    plainText: false,
+  });
 }
