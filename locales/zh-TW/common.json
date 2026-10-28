@@ -296,6 +296,17 @@
       "more": "所選項目的更多動作"
     },
     "skip_to_list": "跳到郵件清單",
+    "sort": {
+      "title": "排序",
+      "newest": "最新優先",
+      "oldest": "最舊優先",
+      "unread": "未讀優先",
+      "starred": "已加星號優先",
+      "sender": "寄件者（A–Z）",
+      "subject": "主旨（A–Z）",
+      "largest": "最大優先",
+      "custom": "自訂順序（在設定中）"
+    },
     "permanent_delete": "永久刪除",
     "permanent_delete_confirm_title": "永久刪除",
     "permanent_delete_confirm_message": "這封郵件將永久刪除。此動作無法復原。",

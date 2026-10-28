@@ -296,6 +296,17 @@
       "more": "Vairāk darbību atlasei"
     },
     "skip_to_list": "Pāriet uz vēstuļu sarakstu",
+    "sort": {
+      "title": "Kārtot",
+      "newest": "Jaunākās vispirms",
+      "oldest": "Vecākās vispirms",
+      "unread": "Nelasītās vispirms",
+      "starred": "Ar zvaigznīti vispirms",
+      "sender": "Sūtītājs (A–Z)",
+      "subject": "Temats (A–Z)",
+      "largest": "Lielākās vispirms",
+      "custom": "Pielāgota secība (iestatījumos)"
+    },
     "permanent_delete": "Dzēst neatgriezeniski",
     "permanent_delete_confirm_title": "Dzēst neatgriezeniski",
     "permanent_delete_confirm_message": "Šī vēstule tiks dzēsta neatgriezeniski. Šo darbību nevar atcelt.",

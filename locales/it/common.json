@@ -296,6 +296,17 @@
       "more": "Altre azioni per la selezione"
     },
     "skip_to_list": "Vai all'elenco dei messaggi",
+    "sort": {
+      "title": "Ordina",
+      "newest": "Più recenti prima",
+      "oldest": "Meno recenti prima",
+      "unread": "Non letti prima",
+      "starred": "Speciali prima",
+      "sender": "Mittente (A–Z)",
+      "subject": "Oggetto (A–Z)",
+      "largest": "Più grandi prima",
+      "custom": "Ordine personalizzato (nelle impostazioni)"
+    },
     "permanent_delete": "Elimina definitivamente",
     "permanent_delete_confirm_title": "Elimina definitivamente",
     "permanent_delete_confirm_message": "Questa e-mail verrà eliminata definitivamente. Questa azione non può essere annullata.",

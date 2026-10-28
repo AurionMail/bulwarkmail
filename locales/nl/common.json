@@ -296,6 +296,17 @@
       "more": "Meer acties voor de selectie"
     },
     "skip_to_list": "Naar de berichtenlijst",
+    "sort": {
+      "title": "Sorteren",
+      "newest": "Nieuwste eerst",
+      "oldest": "Oudste eerst",
+      "unread": "Ongelezen eerst",
+      "starred": "Met ster eerst",
+      "sender": "Afzender (A–Z)",
+      "subject": "Onderwerp (A–Z)",
+      "largest": "Grootste eerst",
+      "custom": "Eigen volgorde (in Instellingen)"
+    },
     "permanent_delete": "Definitief verwijderen",
     "permanent_delete_confirm_title": "Definitief verwijderen",
     "permanent_delete_confirm_message": "Deze e-mail wordt definitief verwijderd. Deze actie kan niet ongedaan worden gemaakt.",

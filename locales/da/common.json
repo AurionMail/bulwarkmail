@@ -296,6 +296,17 @@
       "more": "Flere handlinger for markeringen"
     },
     "skip_to_list": "Spring til meddelelseslisten",
+    "sort": {
+      "title": "Sortér",
+      "newest": "Nyeste først",
+      "oldest": "Ældste først",
+      "unread": "Ulæste først",
+      "starred": "Stjernemarkerede først",
+      "sender": "Afsender (A–Å)",
+      "subject": "Emne (A–Å)",
+      "largest": "Største først",
+      "custom": "Brugerdefineret rækkefølge (i indstillinger)"
+    },
     "permanent_delete": "Slet permanent",
     "permanent_delete_confirm_title": "Slet permanent",
     "permanent_delete_confirm_message": "Denne e-mail vil blive slettet permanent. Denne handling kan ikke fortrydes.",

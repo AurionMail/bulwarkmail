@@ -296,6 +296,17 @@
       "more": "Mai multe acțiuni pentru selecție"
     },
     "skip_to_list": "Salt la lista de mesaje",
+    "sort": {
+      "title": "Sortează",
+      "newest": "Cele mai noi primele",
+      "oldest": "Cele mai vechi primele",
+      "unread": "Necitite primele",
+      "starred": "Cu stea primele",
+      "sender": "Expeditor (A–Z)",
+      "subject": "Subiect (A–Z)",
+      "largest": "Cele mai mari primele",
+      "custom": "Ordine personalizată (în Setări)"
+    },
     "permanent_delete": "Șterge definitiv",
     "permanent_delete_confirm_title": "Șterge definitiv",
     "permanent_delete_confirm_message": "Acest e-mail va fi șters definitiv. Această acțiune nu poate fi anulată.",

@@ -81,6 +81,7 @@ import {
 } from "@/components/error";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ScheduleSendDialog } from "@/components/email/schedule-send-dialog";
+import { MailSortMenu } from "@/components/email/mail-list-menus";
 import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { TotpReauthDialog } from "@/components/totp-reauth-dialog";
 import { DragDropProvider } from "@/contexts/drag-drop-context";
@@ -4939,6 +4940,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                       </span>
                     )}
                   </button>
+                  <MailSortMenu folderRole={conversationRole} disabled={isScheduledView} className="flex-shrink-0 text-muted-foreground" />
                   <button
                     type="button"
                     onClick={handleManualRefresh}

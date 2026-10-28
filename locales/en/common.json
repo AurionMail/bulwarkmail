@@ -296,6 +296,17 @@
       "more": "More actions for the selection"
     },
     "skip_to_list": "Skip to message list",
+    "sort": {
+      "title": "Sort",
+      "newest": "Newest first",
+      "oldest": "Oldest first",
+      "unread": "Unread first",
+      "starred": "Starred first",
+      "sender": "Sender (A–Z)",
+      "subject": "Subject (A–Z)",
+      "largest": "Largest first",
+      "custom": "Custom order (in Settings)"
+    },
     "permanent_delete": "Delete permanently",
     "permanent_delete_confirm_title": "Permanently delete",
     "permanent_delete_confirm_message": "This email will be permanently deleted. This action cannot be undone.",

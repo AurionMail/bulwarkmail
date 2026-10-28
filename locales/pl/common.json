@@ -296,6 +296,17 @@
       "more": "Więcej działań dla zaznaczenia"
     },
     "skip_to_list": "Przejdź do listy wiadomości",
+    "sort": {
+      "title": "Sortuj",
+      "newest": "Od najnowszych",
+      "oldest": "Od najstarszych",
+      "unread": "Najpierw nieprzeczytane",
+      "starred": "Najpierw oznaczone gwiazdką",
+      "sender": "Nadawca (A–Z)",
+      "subject": "Temat (A–Z)",
+      "largest": "Od największych",
+      "custom": "Własna kolejność (w ustawieniach)"
+    },
     "permanent_delete": "Usuń trwale",
     "permanent_delete_confirm_title": "Trwałe usunięcie",
     "permanent_delete_confirm_message": "Ta wiadomość zostanie trwale usunięta. Tej operacji nie można cofnąć.",

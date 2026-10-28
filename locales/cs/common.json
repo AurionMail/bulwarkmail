@@ -296,6 +296,17 @@
       "more": "Další akce pro výběr"
     },
     "skip_to_list": "Přeskočit na seznam zpráv",
+    "sort": {
+      "title": "Řazení",
+      "newest": "Nejnovější nahoře",
+      "oldest": "Nejstarší nahoře",
+      "unread": "Nepřečtené nahoře",
+      "starred": "S hvězdičkou nahoře",
+      "sender": "Odesílatel (A–Z)",
+      "subject": "Předmět (A–Z)",
+      "largest": "Největší nahoře",
+      "custom": "Vlastní řazení (v nastavení)"
+    },
     "permanent_delete": "Trvale odstranit",
     "permanent_delete_confirm_title": "Trvalé odstranění",
     "permanent_delete_confirm_message": "Tato zpráva bude trvale odstraněna. Tuto akci nelze vrátit zpět.",

@@ -261,6 +261,17 @@
       "selected_messages": "{count, plural, one {דוא״ל 1} other {# דוא״ל}} שנבחרו"
     },
     "skip_to_list": "דילוג לרשימת ההודעות",
+    "sort": {
+      "title": "מיון",
+      "newest": "החדשות ביותר קודם",
+      "oldest": "הישנות ביותר קודם",
+      "unread": "שלא נקראו קודם",
+      "starred": "מסומנות בכוכב קודם",
+      "sender": "שולח (א–ת)",
+      "subject": "נושא (א–ת)",
+      "largest": "הגדולות ביותר קודם",
+      "custom": "סדר מותאם (בהגדרות)"
+    },
     "permanent_delete": "מחק לצמיתות",
     "permanent_delete_confirm_title": "מחק לצמיתות",
     "permanent_delete_confirm_message": "אימייל זה יימחק לצמיתות. לא ניתן לבטל פעולה זו.",

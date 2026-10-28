@@ -296,6 +296,17 @@
       "more": "所选项目的更多操作"
     },
     "skip_to_list": "跳到邮件列表",
+    "sort": {
+      "title": "排序",
+      "newest": "最新优先",
+      "oldest": "最早优先",
+      "unread": "未读优先",
+      "starred": "星标优先",
+      "sender": "发件人（A–Z）",
+      "subject": "主题（A–Z）",
+      "largest": "最大优先",
+      "custom": "自定义顺序（在设置中）"
+    },
     "permanent_delete": "永久删除",
     "permanent_delete_confirm_title": "永久删除",
     "permanent_delete_confirm_message": "该邮件将被永久删除。此操作无法撤销。",

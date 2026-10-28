@@ -296,6 +296,17 @@
       "more": "選択項目のその他の操作"
     },
     "skip_to_list": "メッセージ一覧へ移動",
+    "sort": {
+      "title": "並べ替え",
+      "newest": "新しい順",
+      "oldest": "古い順",
+      "unread": "未読を先頭",
+      "starred": "スター付きを先頭",
+      "sender": "差出人（A–Z）",
+      "subject": "件名（A–Z）",
+      "largest": "サイズの大きい順",
+      "custom": "カスタムの並び順（設定）"
+    },
     "permanent_delete": "完全に削除",
     "permanent_delete_confirm_title": "完全に削除",
     "permanent_delete_confirm_message": "このメールは完全に削除されます。この操作は取り消せません。",

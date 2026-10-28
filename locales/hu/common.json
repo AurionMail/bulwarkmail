@@ -296,6 +296,17 @@
       "more": "További műveletek a kijelöléshez"
     },
     "skip_to_list": "Ugrás az üzenetlistára",
+    "sort": {
+      "title": "Rendezés",
+      "newest": "Legújabb elöl",
+      "oldest": "Legrégebbi elöl",
+      "unread": "Olvasatlanok elöl",
+      "starred": "Csillagozottak elöl",
+      "sender": "Feladó (A–Z)",
+      "subject": "Tárgy (A–Z)",
+      "largest": "Legnagyobb elöl",
+      "custom": "Egyéni sorrend (a beállításokban)"
+    },
     "permanent_delete": "Végleges törlés",
     "permanent_delete_confirm_title": "Végleges törlés",
     "permanent_delete_confirm_message": "Ez az e-mail véglegesen törlődik. Ez a művelet nem vonható vissza.",

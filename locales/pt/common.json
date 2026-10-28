@@ -296,6 +296,17 @@
       "more": "Mais ações para a seleção"
     },
     "skip_to_list": "Ir para a lista de mensagens",
+    "sort": {
+      "title": "Ordenar",
+      "newest": "Mais recentes primeiro",
+      "oldest": "Mais antigos primeiro",
+      "unread": "Não lidos primeiro",
+      "starred": "Com estrela primeiro",
+      "sender": "Remetente (A–Z)",
+      "subject": "Assunto (A–Z)",
+      "largest": "Maiores primeiro",
+      "custom": "Ordem personalizada (nas Definições)"
+    },
     "permanent_delete": "Excluir permanentemente",
     "permanent_delete_confirm_title": "Excluir permanentemente",
     "permanent_delete_confirm_message": "Este e-mail será permanentemente excluído. Esta ação não pode ser desfeita.",

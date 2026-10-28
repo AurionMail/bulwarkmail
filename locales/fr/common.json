@@ -296,6 +296,17 @@
       "more": "Plus d'actions pour la sélection"
     },
     "skip_to_list": "Aller à la liste des messages",
+    "sort": {
+      "title": "Trier",
+      "newest": "Plus récents d'abord",
+      "oldest": "Plus anciens d'abord",
+      "unread": "Non lus d'abord",
+      "starred": "Suivis d'abord",
+      "sender": "Expéditeur (A–Z)",
+      "subject": "Objet (A–Z)",
+      "largest": "Plus volumineux d'abord",
+      "custom": "Ordre personnalisé (dans les paramètres)"
+    },
     "permanent_delete": "Supprimer définitivement",
     "permanent_delete_confirm_title": "Supprimer définitivement",
     "permanent_delete_confirm_message": "Cet e-mail sera définitivement supprimé. Cette action est irréversible.",

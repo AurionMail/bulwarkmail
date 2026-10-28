@@ -296,6 +296,17 @@
       "more": "Seçim için diğer işlemler"
     },
     "skip_to_list": "İleti listesine atla",
+    "sort": {
+      "title": "Sırala",
+      "newest": "Önce en yeni",
+      "oldest": "Önce en eski",
+      "unread": "Önce okunmamış",
+      "starred": "Önce yıldızlı",
+      "sender": "Gönderen (A–Z)",
+      "subject": "Konu (A–Z)",
+      "largest": "Önce en büyük",
+      "custom": "Özel sıralama (Ayarlar'da)"
+    },
     "permanent_delete": "Kalıcı olarak sil",
     "permanent_delete_confirm_title": "Kalıcı olarak sil",
     "permanent_delete_confirm_message": "Bu e-posta kalıcı olarak silinecek. Bu işlem geri alınamaz.",

@@ -296,6 +296,17 @@
       "more": "Més accions per a la selecció"
     },
     "skip_to_list": "Salta a la llista de missatges",
+    "sort": {
+      "title": "Ordena",
+      "newest": "Primer els més nous",
+      "oldest": "Primer els més antics",
+      "unread": "Primer els no llegits",
+      "starred": "Primer els destacats",
+      "sender": "Remitent (A–Z)",
+      "subject": "Assumpte (A–Z)",
+      "largest": "Primer els més grans",
+      "custom": "Ordre personalitzat (a la configuració)"
+    },
     "permanent_delete": "Suprimeix definitivament",
     "permanent_delete_confirm_title": "Suprimeix definitivament",
     "permanent_delete_confirm_message": "Aquest correu se suprimirà definitivament. Aquesta acció no es pot desfer.",

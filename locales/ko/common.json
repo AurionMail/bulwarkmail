@@ -296,6 +296,17 @@
       "more": "선택 항목에 대한 추가 작업"
     },
     "skip_to_list": "메시지 목록으로 건너뛰기",
+    "sort": {
+      "title": "정렬",
+      "newest": "최신순",
+      "oldest": "오래된순",
+      "unread": "읽지 않은 메일 먼저",
+      "starred": "별표 메일 먼저",
+      "sender": "보낸 사람 (가–하)",
+      "subject": "제목 (가–하)",
+      "largest": "큰 메일 먼저",
+      "custom": "사용자 지정 순서 (설정)"
+    },
     "permanent_delete": "영구 삭제",
     "permanent_delete_confirm_title": "영구 삭제",
     "permanent_delete_confirm_message": "이 메일은 영구적으로 삭제되며, 다시 복구할 수 없어요.",

@@ -296,6 +296,17 @@
       "more": "Flere handlinger for utvalget"
     },
     "skip_to_list": "Hopp til meldingslisten",
+    "sort": {
+      "title": "Sorter",
+      "newest": "Nyeste først",
+      "oldest": "Eldste først",
+      "unread": "Uleste først",
+      "starred": "Stjernemerkede først",
+      "sender": "Avsender (A–Å)",
+      "subject": "Emne (A–Å)",
+      "largest": "Største først",
+      "custom": "Egendefinert rekkefølge (i innstillingene)"
+    },
     "permanent_delete": "Slett permanent",
     "permanent_delete_confirm_title": "Slett permanent",
     "permanent_delete_confirm_message": "Denne e-posten slettes permanent. Denne handlingen kan ikke angres.",

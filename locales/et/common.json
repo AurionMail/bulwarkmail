@@ -296,6 +296,17 @@
       "more": "Rohkem toiminguid valiku jaoks"
     },
     "skip_to_list": "Mine kirjade loendisse",
+    "sort": {
+      "title": "Sorteeri",
+      "newest": "Uuemad eespool",
+      "oldest": "Vanemad eespool",
+      "unread": "Lugemata eespool",
+      "starred": "Tärniga eespool",
+      "sender": "Saatja (A–Z)",
+      "subject": "Teema (A–Z)",
+      "largest": "Suuremad eespool",
+      "custom": "Kohandatud järjestus (seadetes)"
+    },
     "permanent_delete": "Kustuta jäädavalt",
     "permanent_delete_confirm_title": "Jäädav kustutamine",
     "permanent_delete_confirm_message": "See kiri kustutatakse jäädavalt. Seda toimingut ei saa tagasi võtta.",

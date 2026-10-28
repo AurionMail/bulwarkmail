@@ -296,6 +296,17 @@
       "more": "Ďalšie akcie pre výber"
     },
     "skip_to_list": "Preskočiť na zoznam správ",
+    "sort": {
+      "title": "Zoradiť",
+      "newest": "Najnovšie hore",
+      "oldest": "Najstaršie hore",
+      "unread": "Neprečítané hore",
+      "starred": "S hviezdičkou hore",
+      "sender": "Odosielateľ (A–Z)",
+      "subject": "Predmet (A–Z)",
+      "largest": "Najväčšie hore",
+      "custom": "Vlastné poradie (v nastaveniach)"
+    },
     "permanent_delete": "Trvalo odstrániť",
     "permanent_delete_confirm_title": "Trvalo odstrániť",
     "permanent_delete_confirm_message": "Tento e-mail bude trvalo odstránený. Túto akciu nie je možné vrátiť.",
