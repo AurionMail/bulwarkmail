@@ -387,7 +387,7 @@ export function NavigationRail({
               )}>
                 <Icon className="w-5 h-5" />
                 {item.badge != null && item.badge > 0 && (
-                  <span aria-hidden="true" className="absolute -top-1.5 -right-2.5 flex items-center justify-center min-w-[16px] h-4 text-[10px] font-bold rounded-full bg-red-500 text-white px-1">
+                  <span aria-hidden="true" className="absolute -top-1.5 -end-2.5 flex items-center justify-center min-w-[16px] h-4 text-[10px] font-bold rounded-full bg-red-500 text-white px-1">
                     {item.badge > 99 ? "99+" : item.badge}
                   </span>
                 )}
@@ -488,7 +488,7 @@ export function NavigationRail({
               {hasUpdate && (
                 <span
                   className={cn(
-                    "absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ring-2 ring-background",
+                    "absolute -top-0.5 -end-0.5 w-2 h-2 rounded-full ring-2 ring-background",
                     updateImportant ? "bg-red-500" : "bg-amber-500",
                   )}
                   aria-label={updateImportant ? "Important update available" : "Update available"}
@@ -602,7 +602,7 @@ export function NavigationRail({
               {item.badge != null && item.badge > 0 && (
                 <span aria-hidden="true" className={cn(
                   "absolute flex items-center justify-center min-w-[16px] h-4 text-[10px] font-bold rounded-full bg-red-500 text-white px-1",
-                  collapsed ? "-top-0.5 -right-0.5" : "right-1.5"
+                  collapsed ? "-top-0.5 -end-0.5" : "end-1.5"
                 )}>
                   {item.badge > 99 ? "99+" : item.badge}
                 </span>
@@ -725,7 +725,7 @@ export function NavigationRail({
             {hasUpdate && (
               <span
                 className={cn(
-                  "absolute top-2 right-2 w-2 h-2 rounded-full ring-2 ring-background",
+                  "absolute top-2 end-2 w-2 h-2 rounded-full ring-2 ring-background",
                   updateImportant ? "bg-red-500" : "bg-amber-500",
                 )}
                 aria-label={updateImportant ? "Important update available" : "Update available"}
@@ -817,7 +817,7 @@ export function NavigationRail({
                     fallbackColor={account.avatarColor}
                   />
                   {isActive && (
-                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-primary flex items-center justify-center">
+                    <span className="absolute -bottom-0.5 -end-0.5 w-3 h-3 rounded-full bg-primary flex items-center justify-center">
                       <Check className="w-2 h-2 text-primary-foreground" />
                     </span>
                   )}

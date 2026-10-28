@@ -1017,7 +1017,7 @@ function LoginPageContent() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-muted/10 to-muted/30 relative px-4">
         {/* Theme toggle, hidden while the theme policy locks the mode (#1280) */}
-        <div className="absolute top-5 right-5" ref={themeMenuRef} hidden={colorModeLocked} suppressHydrationWarning>
+        <div className="absolute top-5 end-5" ref={themeMenuRef} hidden={colorModeLocked} suppressHydrationWarning>
           <button
             type="button"
             ref={themeButtonRef}
@@ -1040,7 +1040,7 @@ function LoginPageContent() {
             <div
               ref={themeListRef}
               onKeyDown={onThemeMenuKeyDown}
-              className="absolute right-0 top-full mt-2 w-40 rounded-xl border border-border bg-background shadow-lg overflow-hidden animate-fade-in z-50"
+              className="absolute end-0 top-full mt-2 w-40 rounded-xl border border-border bg-background shadow-lg overflow-hidden animate-fade-in z-50"
               role="menu"
               aria-label={tTheme("label")}
             >
@@ -1177,7 +1177,7 @@ function LoginPageContent() {
         }}
       />
       {/* Theme toggle - top right, dropdown style; hidden while the theme policy locks the mode (#1280) */}
-      <div className="absolute top-5 right-5" ref={themeMenuRef} hidden={colorModeLocked} suppressHydrationWarning>
+      <div className="absolute top-5 end-5" ref={themeMenuRef} hidden={colorModeLocked} suppressHydrationWarning>
         <button
           type="button"
           ref={themeButtonRef}
@@ -1200,7 +1200,7 @@ function LoginPageContent() {
           <div
             ref={themeListRef}
             onKeyDown={onThemeMenuKeyDown}
-            className="absolute right-0 top-full mt-2 w-40 rounded-xl border border-border bg-background shadow-lg overflow-hidden animate-fade-in z-50"
+            className="absolute end-0 top-full mt-2 w-40 rounded-xl border border-border bg-background shadow-lg overflow-hidden animate-fade-in z-50"
             role="menu"
             aria-label={tTheme("label")}
           >
@@ -1470,7 +1470,7 @@ function LoginPageContent() {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                        className="absolute end-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
                         aria-label={showPassword ? t("hide_password") : t("show_password")}
                         tabIndex={-1}
                       >

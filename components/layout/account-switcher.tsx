@@ -411,7 +411,7 @@ export function AccountSwitcher({
                   <div className="relative flex-shrink-0">
                     <AccountAvatar account={account} size="md" />
                     {isActive && (
-                      <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                      <div className="absolute -bottom-0.5 -end-0.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
                         <Check className="w-2.5 h-2.5 text-primary-foreground" />
                       </div>
                     )}
