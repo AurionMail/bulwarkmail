@@ -112,27 +112,46 @@ export function Dialog({
 
   const blockOutside = preventOutsideClose || dirty;
 
-  const body = (
+  const heading = (
+    <>
+      <h2 id={titleId} className={cn("text-lg font-semibold text-foreground", showClose && "pe-8")}>
+        {title}
+      </h2>
+      {description && (
+        <p id={descriptionId} className="mt-2 text-sm text-muted-foreground">
+          {description}
+        </p>
+      )}
+    </>
+  );
+
+  const footerRow = footer && (
+    <div className="flex items-center justify-end gap-3 px-6 pb-6 shrink-0">{footer}</div>
+  );
+
+  // With an icon the title, text and body sit in one column beside it (a
+  // destructive confirm). Without one, the title stays put while a long
+  // body scrolls under it. The spacing is the same either way.
+  const body = icon ? (
     <>
       <div className={cn("p-6 overflow-y-auto min-h-0", size === "full-on-phone" && "max-sm:flex-1", bodyClassName)}>
-        <div className={cn(icon && "flex items-start gap-4")}>
+        <div className="flex items-start gap-4">
           {icon}
-          <div className={cn(icon && "flex-1 min-w-0")}>
-            <h2 id={titleId} className={cn("text-lg font-semibold text-foreground", showClose && "pe-8")}>
-              {title}
-            </h2>
-            {description && (
-              <p id={descriptionId} className="mt-2 text-sm text-muted-foreground">
-                {description}
-              </p>
-            )}
+          <div className="flex-1 min-w-0">
+            {heading}
             {children}
           </div>
         </div>
       </div>
-      {footer && (
-        <div className="flex items-center justify-end gap-3 px-6 pb-6">{footer}</div>
-      )}
+      {footerRow}
+    </>
+  ) : (
+    <>
+      <div className="px-6 pt-6 shrink-0">{heading}</div>
+      <div className={cn("px-6 pb-6 overflow-y-auto min-h-0", size === "full-on-phone" && "max-sm:flex-1", bodyClassName)}>
+        {children}
+      </div>
+      {footerRow}
     </>
   );
 
