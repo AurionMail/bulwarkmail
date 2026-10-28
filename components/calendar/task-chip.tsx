@@ -31,11 +31,11 @@ export function CalendarTaskChip({ task, calendar, onToggleComplete, onSelect, t
     <div
       data-calendar-task={task.id}
       className={cn(
-        "rounded font-medium flex items-center overflow-hidden",
+        "start-bar ps-[3px] rounded font-medium flex items-center overflow-hidden",
         touch ? "min-h-11 text-xs" : "h-full text-[10px]",
         className,
       )}
-      style={{ backgroundColor: `${color}20`, borderInlineStart: `3px solid ${color}` }}
+      style={{ backgroundColor: `${color}20`, "--start-bar": color } as React.CSSProperties}
     >
       <button
         type="button"

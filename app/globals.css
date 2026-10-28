@@ -151,6 +151,23 @@
   --color-chart-5: #a78bfa;
 }
 
+/* A colour bar along an element's start edge: --start-bar is its colour,
+   --start-bar-width its width (3px). A thick border on a rounded element
+   curves on its inner side too; this bar is a background stripe, so only the
+   element's own outer corners round it and its inner edge stays straight.
+   It lies over the element's padding (and a transparent start border). */
+@utility start-bar {
+  background-image: linear-gradient(var(--start-bar), var(--start-bar));
+  background-origin: border-box;
+  background-position: left top;
+  background-repeat: no-repeat;
+  background-size: var(--start-bar-width, 3px) 100%;
+
+  &:dir(rtl) {
+    background-position: right top;
+  }
+}
+
 
 /* The default border colour. In the base layer, so a border colour utility
    (border-primary, border-transparent, border-destructive, border-input)

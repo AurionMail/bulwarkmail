@@ -138,7 +138,7 @@ export function ConfigNote({ tone = 'info', children }: { tone?: 'info' | 'warni
       className={cn(
         'rounded-md px-3 py-2.5 text-xs leading-relaxed',
         tone === 'warning'
-          ? 'border-s-2 border-amber-400 bg-amber-50 text-amber-800 dark:border-amber-600 dark:bg-amber-950/30 dark:text-amber-300'
+          ? 'start-bar ps-3.5 [--start-bar-width:2px] [--start-bar:var(--color-amber-400)] bg-amber-50 text-amber-800 dark:[--start-bar:var(--color-amber-600)] dark:bg-amber-950/30 dark:text-amber-300'
           : 'bg-muted/50 text-muted-foreground',
       )}
     >

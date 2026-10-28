@@ -376,7 +376,7 @@ function EmailCard({
     <div className={cn(
       "rounded-lg border border-border overflow-hidden transition-all duration-200",
       isExpanded ? "bg-background shadow-sm" : "bg-muted/30",
-      isUnread && !isExpanded && "border-s-2 border-l-primary"
+      isUnread && !isExpanded && "start-bar border-s-transparent [--start-bar-width:2px] [--start-bar:var(--color-primary)]"
     )}>
       {isExpanded && <PluginSlot name="reader-header" className="w-full" extraProps={plugin.emailProps} />}
       {/* Card Header - Always visible */}

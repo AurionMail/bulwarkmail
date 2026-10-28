@@ -125,26 +125,37 @@
 /* ---- Event chips --------------------------------------------------------- */
 
 /* The calendar colour as a bar at the start, a light tint of it behind dark
-   text: readable in colour and in greyscale. */
+   text: readable in colour and in greyscale. The bar is a background stripe
+   over a transparent border: a coloured border on a rounded box would curve
+   on its inner edge too, the stripe is only rounded on the outside. */
 .pr-chip {
   --chip: #3b82f6;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--pr-ink);
-  border-inline-start: 0.9mm solid var(--chip);
+  border-inline-start: 0.9mm solid transparent;
   border-radius: 0.6mm;
-  background: color-mix(in srgb, var(--chip) 15%, #fff);
+  background-color: color-mix(in srgb, var(--chip) 15%, #fff);
+  background-image: linear-gradient(var(--chip), var(--chip));
+  background-origin: border-box;
+  background-position: left top;
+  background-repeat: no-repeat;
+  background-size: 0.9mm 100%;
   print-color-adjust: exact;
   -webkit-print-color-adjust: exact;
 }
 
+[dir="rtl"] .pr-chip {
+  background-position: right top;
+}
+
 .pr-chip.is-timed {
-  background: #fff;
+  background-color: #fff;
 }
 
 .pr-chip.is-inactive {
-  background: #fff;
+  background-color: #fff;
   color: var(--pr-muted);
 }
 
