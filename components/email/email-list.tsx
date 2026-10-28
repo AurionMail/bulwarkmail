@@ -256,6 +256,7 @@ export function EmailList({
   const listHold = useEmailStore((state) => state.listHold);
   const viewingAccountId = useEmailStore((state) => state.viewingAccountId);
   const selectedKeyword = useEmailStore((state) => state.selectedKeyword);
+  const selectedKeywordAccountId = useEmailStore((state) => state.selectedKeywordAccountId);
   const searchMailboxId = useEmailStore((state) => state.searchMailboxId);
   const activeAccountId = useAuthStore((state) => state.activeAccountId);
   const activeTabId = useMessageListTabsStore((state) => state.activeTabId);
@@ -511,6 +512,7 @@ export function EmailList({
     viewingAccountId,
     selectedMailbox,
     selectedKeyword,
+    selectedKeywordAccountId,
     isUnifiedView && (crossView ?? unifiedRole),
     isScheduledView,
     activeTabId,
