@@ -52,7 +52,9 @@ const adminStatePath = () => path.join(stateDir, `org-admin-${new URL(WEBMAIL_UR
 
 /**
  * A browser context signed in to /admin. Admin login is rate limited (5 per
- * 15 minutes), so the session is stored once and reused across specs.
+ * 15 minutes), so the session is stored once and reused across specs. It
+ * signs in through the API, not the form: while next dev recompiles, the
+ * form can lose the typed password, and each lost attempt counts.
  */
 export async function adminContext(browser: Browser, phone = false): Promise<BrowserContext> {
   if (!existsSync(stateDir)) mkdirSync(stateDir, { recursive: true });
@@ -63,13 +65,12 @@ export async function adminContext(browser: Browser, phone = false): Promise<Bro
     await context.close();
   }
   const context = await browser.newContext(contextOptions(phone));
-  const page = await context.newPage();
-  await page.goto('/admin/login');
-  await page.fill('#password', ADMIN_PASSWORD);
-  await page.click('button[type="submit"]');
-  await page.waitForURL((url) => !url.pathname.endsWith('/admin/login'), { timeout: 30000 });
+  const res = await context.request.post('/api/admin/auth', {
+    data: { password: ADMIN_PASSWORD },
+    headers: { Origin: new URL(WEBMAIL_URL).origin },
+  });
+  expect(res.ok(), `admin sign-in: ${res.status()} ${await res.text()}`).toBe(true);
   await context.storageState({ path: adminStatePath() });
-  await page.close();
   return context;
 }
 
