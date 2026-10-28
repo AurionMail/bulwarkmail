@@ -96,6 +96,9 @@ import { MvTopBar } from "@/components/layout/mv-top-bar";
 import { useMountainViewShell } from "@/hooks/use-mountain-view-shell";
 import { calendarHooks } from "@/lib/plugin-hooks";
 import { eventToView } from "@/lib/plugin-projection";
+import { calendarShortcutAction } from "@/lib/calendar-shortcuts";
+import { isEditableEventTarget } from "@/lib/keyboard";
+import { isContextMenuOpen } from "@/components/ui/context-menu";
 
 type PendingScopeAction =
   | { type: "edit"; event: CalendarEvent; updates: Partial<CalendarEvent>; editor?: EventEditorState; sendScheduling?: boolean }
@@ -1327,26 +1330,31 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT") return;
-      if (target.getAttribute("contenteditable") === "true") return;
-      if (showEventModal || detailEvent) return;
+      if (e.defaultPrevented) return;
+      if (isEditableEventTarget(e)) return;
+      // An open menu or dialog owns the keyboard; a hover preview doesn't,
+      // only a card the user opened.
+      if (isContextMenuOpen()) return;
+      if (document.querySelector('[aria-modal="true"]')) return;
+      if (showEventModal || showTaskModal || detailPinned) return;
 
-      switch (e.key) {
-        case "ArrowLeft": e.preventDefault(); navigatePrev(); break;
-        case "ArrowRight": e.preventDefault(); navigateNext(); break;
-        case "t": goToToday(); break;
-        case "m": setViewMode("month"); break;
-        case "w": setViewMode("week"); break;
-        case "d": setViewMode("day"); break;
-        case "a": setViewMode("agenda"); break;
-        case "k": if (enableCalendarTasks) setViewMode("tasks"); break;
-        case "n": openCreateModal(); break;
+      const action = calendarShortcutAction(e);
+      if (!action) return;
+      switch (action) {
+        case "prev": e.preventDefault(); navigatePrev(); break;
+        case "next": e.preventDefault(); navigateNext(); break;
+        case "today": goToToday(); break;
+        case "month": setViewMode("month"); break;
+        case "week": setViewMode("week"); break;
+        case "day": setViewMode("day"); break;
+        case "agenda": setViewMode("agenda"); break;
+        case "tasks": if (enableCalendarTasks) setViewMode("tasks"); break;
+        case "new": openCreateModal(); break;
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [navigatePrev, navigateNext, goToToday, setViewMode, openCreateModal, showEventModal, detailEvent, enableCalendarTasks]);
+  }, [navigatePrev, navigateNext, goToToday, setViewMode, openCreateModal, showEventModal, showTaskModal, detailPinned, enableCalendarTasks]);
 
   const birthdayEvents = useMemo(() => {
     if (!showBirthdayCalendar || !dateRange) return [];
