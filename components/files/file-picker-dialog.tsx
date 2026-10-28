@@ -175,7 +175,7 @@ export function FilePickerDialog({ client, onClose, onPick }: FilePickerDialogPr
           <span className="block truncate">{node.name}</span>
           {detail && <span className="block truncate text-xs text-muted-foreground">{detail}</span>}
         </span>
-        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{formatFileSize(node.size)}</span>
+        <bdi dir="ltr" className="shrink-0 text-xs text-muted-foreground tabular-nums">{formatFileSize(node.size)}</bdi>
       </button>
     );
   };
