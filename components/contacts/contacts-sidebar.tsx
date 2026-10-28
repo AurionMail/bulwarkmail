@@ -307,12 +307,12 @@ export function ContactsSidebar({
         <button
           onClick={() => onSelectCategory("all")}
           className={cn(
-            "w-full flex items-center gap-2 px-3 text-sm transition-colors",
+            "w-full flex items-center gap-2 px-3 text-sm transition-colors min-h-8 pointer-coarse:min-h-11",
             isAllActive
               ? "bg-accent text-accent-foreground font-medium"
               : "text-foreground/80 hover:bg-muted"
           )}
-          style={{ paddingBlock: 'var(--density-sidebar-py, 4px)', minHeight: '32px' }}
+          style={{ paddingBlock: 'var(--density-sidebar-py, 4px)' }}
         >
           <BookUser className="w-4 h-4 flex-shrink-0" />
           <span className="truncate">{t("tabs.all")}</span>
@@ -326,12 +326,12 @@ export function ContactsSidebar({
           <button
             onClick={() => onSelectCategory("directory")}
             className={cn(
-              "w-full flex items-center gap-2 px-3 text-sm transition-colors",
+              "w-full flex items-center gap-2 px-3 text-sm transition-colors min-h-8 pointer-coarse:min-h-11",
               activeCategory === "directory"
                 ? "bg-accent text-accent-foreground font-medium"
                 : "text-foreground/80 hover:bg-muted"
             )}
-            style={{ paddingBlock: 'var(--density-sidebar-py, 4px)', minHeight: '32px' }}
+            style={{ paddingBlock: 'var(--density-sidebar-py, 4px)' }}
             data-testid="contacts-directory-entry"
           >
             <Building2 className="w-4 h-4 flex-shrink-0" />
@@ -517,12 +517,12 @@ export function ContactsSidebar({
               <button
                 onClick={() => onSelectCategory("uncategorized")}
                 className={cn(
-                  "w-full flex items-center gap-2 ps-5 pe-3 text-sm transition-colors",
+                  "w-full flex items-center gap-2 ps-5 pe-3 text-sm transition-colors min-h-8 pointer-coarse:min-h-11",
                   activeCategory === "uncategorized"
                     ? "bg-accent text-accent-foreground font-medium"
                     : "text-foreground/80 hover:bg-muted"
                 )}
-                style={{ paddingBlock: 'var(--density-sidebar-py, 4px)', minHeight: '32px' }}
+                style={{ paddingBlock: 'var(--density-sidebar-py, 4px)' }}
               >
                 <Tag className="w-3.5 h-3.5 flex-shrink-0 opacity-50" />
                 <span className="truncate italic">{t("no_category")}</span>
@@ -751,7 +751,7 @@ export function ContactsSidebar({
   );
 }
 
-const ROW_STYLE = { paddingBlock: "var(--density-sidebar-py, 4px)", minHeight: "32px" } as const;
+const ROW_STYLE = { paddingBlock: "var(--density-sidebar-py, 4px)" } as const;
 
 interface RowMenuProps {
   /** Right-click: the menu at the pointer. */
@@ -791,7 +791,8 @@ function SidebarRow({
       {...(onOpenMenu ? longPress : {})}
       onContextMenu={onContextMenu}
       className={cn(
-        "group w-full flex items-center ps-5 pe-1 text-sm transition-colors select-none",
+        // 32px rows, 44px on touch (R1).
+        "group w-full flex items-center ps-5 pe-1 text-sm transition-colors select-none min-h-8 pointer-coarse:min-h-11",
         isActive ? "bg-accent text-accent-foreground font-medium" : "text-foreground/80 hover:bg-muted",
         isDragOver && "bg-primary/20 ring-2 ring-primary/50",
       )}

@@ -371,17 +371,12 @@ export function ContactList({
         <div className="px-3 h-14 flex items-center">
           <div className="flex items-center gap-1.5 w-full">
             {onMenuClick && (
-              <button
-                type="button"
-                onClick={onMenuClick}
-                className="flex-shrink-0 p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                aria-label={t("open_categories")}
-              >
-                <Menu className="w-4 h-4" />
-              </button>
+              <IconButton label={t("open_categories")} onClick={onMenuClick} className="flex-shrink-0 text-muted-foreground hover:text-foreground">
+                <Menu />
+              </IconButton>
             )}
-            <button
-              type="button"
+            <IconButton
+              label={hasSelection ? (allSelected ? t("bulk.clear") : t("bulk.select_all")) : t("filters.select")}
               onClick={() => {
                 if (hasSelection) {
                   if (allSelected) onClearSelection();
@@ -394,16 +389,14 @@ export function ContactList({
                 }
               }}
               className={cn(
-                "flex-shrink-0 p-2 rounded-md transition-colors",
+                "flex-shrink-0",
                 hasSelection
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                  ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+                  : "text-muted-foreground hover:text-foreground",
               )}
-              title={hasSelection ? (allSelected ? t("bulk.clear") : t("bulk.select_all")) : t("filters.select")}
-              aria-label={hasSelection ? (allSelected ? t("bulk.clear") : t("bulk.select_all")) : t("filters.select")}
             >
-              {hasSelection ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-            </button>
+              {hasSelection ? <CheckSquare /> : <Square />}
+            </IconButton>
             <div className="relative flex-1">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -425,25 +418,24 @@ export function ContactList({
                 </button>
               )}
             </div>
-            <button
-              type="button"
+            <IconButton
+              label={t("filters.toggle")}
               onClick={() => setFiltersOpen((v) => !v)}
+              aria-expanded={filtersOpen}
               className={cn(
-                "relative flex-shrink-0 p-2 rounded-md transition-colors",
+                "flex-shrink-0",
                 filtersOpen || activeFilters > 0
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                  ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+                  : "text-muted-foreground hover:text-foreground",
               )}
-              title={t("filters.toggle")}
-              aria-label={t("filters.toggle")}
             >
-              <Filter className="w-4 h-4" />
+              <Filter />
               {!filtersOpen && activeFilters > 0 && (
                 <span className="absolute -top-1 -end-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
                   {activeFilters}
                 </span>
               )}
-            </button>
+            </IconButton>
           </div>
         </div>
 
@@ -457,22 +449,15 @@ export function ContactList({
               <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="xs"
                   onClick={() => setFilters(EMPTY_FILTERS)}
-                  className="h-7 px-2 text-xs"
                 >
                   <RotateCcw className="w-3 h-3 me-1" />
                   {t("filters.clear")}
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setFiltersOpen(false)}
-                  className="h-7 w-7"
-                  aria-label={t("filters.close")}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+                <IconButton label={t("filters.close")} onClick={() => setFiltersOpen(false)}>
+                  <X />
+                </IconButton>
               </div>
             </div>
 
@@ -605,17 +590,17 @@ export function ContactList({
             {t("bulk.selected", { count: selectedContactIds.size })}
           </span>
           <div className="flex-1" />
-          <Button variant="ghost" size="sm" onClick={onBulkAddToGroup} className="h-7 text-xs">
+          <Button variant="ghost" size="xs" onClick={onBulkAddToGroup}>
             <Users className="w-3.5 h-3.5 me-1" />
             {t("bulk.add_to_group")}
           </Button>
           {onMoveContacts && (
-            <Button variant="ghost" size="sm" onClick={() => onMoveContacts([...selectedContactIds])} className="h-7 text-xs">
+            <Button variant="ghost" size="xs" onClick={() => onMoveContacts([...selectedContactIds])}>
               <FolderInput className="w-3.5 h-3.5 me-1" />
               {t("address_books.move_to")}
             </Button>
           )}
-          <Button variant="ghost" size="sm" onClick={onBulkExport} disabled={exporting} aria-busy={exporting} className="h-7 text-xs">
+          <Button variant="ghost" size="xs" onClick={onBulkExport} disabled={exporting} aria-busy={exporting}>
             {exporting
               ? <Loader2 className="w-3.5 h-3.5 me-1 animate-spin" />
               : <Download className="w-3.5 h-3.5 me-1" />}
@@ -623,9 +608,9 @@ export function ContactList({
           </Button>
           <Button
             variant="ghost"
-            size="sm"
+            size="xs"
             onClick={onBulkDelete}
-            className="h-7 text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
           >
             <Trash2 className="w-3.5 h-3.5 me-1" />
             {t("bulk.delete")}

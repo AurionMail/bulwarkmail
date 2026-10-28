@@ -8,6 +8,7 @@ import {
   MoreHorizontal, FolderOpen, Folder, ArrowUp, ArrowDown, RefreshCw, RotateCcw, FolderInput,
 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { cn } from "@/lib/utils";
@@ -123,9 +124,9 @@ export function FilesHeader({
   if (selection) {
     return (
       <div role="toolbar" aria-label={t("selection_actions")} className={cn(headerClass, "bg-accent/40")}>
-        <Button variant="ghost" size="icon" className="h-8 w-8 -ms-1" onClick={selection.onClear} aria-label={t("clear_selection")} title={t("clear_selection")}>
-          <X className="w-4 h-4" />
-        </Button>
+        <IconButton label={t("clear_selection")} className="-ms-1" onClick={selection.onClear}>
+          <X />
+        </IconButton>
         <span className="text-sm font-medium me-2 whitespace-nowrap" aria-live="polite">
           {t("selected_count", { count: selection.count })}
         </span>
@@ -256,16 +257,14 @@ export function FilesHeader({
   return (
     <div role="toolbar" aria-label={t("toolbar")} className={headerClass}>
       {onMenuClick && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 -ms-1 shrink-0"
+        <IconButton
+          label={t("open_folder_tree")}
+          className="-ms-1 shrink-0"
           onClick={onMenuClick}
-          aria-label={t("open_folder_tree")}
           aria-expanded={menuOpen}
         >
-          <Menu className="w-4 h-4" />
-        </Button>
+          <Menu />
+        </IconButton>
       )}
 
       <nav aria-label={t("breadcrumbs")} className="flex-1 min-w-0">
@@ -306,8 +305,8 @@ export function FilesHeader({
           {emptyTrash && (
             <Button
               variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 text-destructive hover:text-destructive"
+              size="xs"
+              className="gap-1.5 text-destructive hover:text-destructive"
               onClick={emptyTrash.onEmpty}
               disabled={emptyTrash.disabled}
               title={t("empty_trash")}
@@ -317,22 +316,19 @@ export function FilesHeader({
             </Button>
           )}
           {clipboardCount > 0 && (
-            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={onPaste} title={t("paste_here")}>
+            <Button variant="outline" size="xs" className="gap-1.5" onClick={onPaste} title={t("paste_here")}>
               <Clipboard className="w-4 h-4" />
               <span className={cn(compact && "sr-only")}>{t("paste_count", { count: clipboardCount })}</span>
             </Button>
           )}
           {compact ? (
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSearchOpen(true)} aria-label={t("search_placeholder")}>
-              <Search className="w-4 h-4" />
-            </Button>
+            <IconButton label={t("search_placeholder")} onClick={() => setSearchOpen(true)}>
+              <Search />
+            </IconButton>
           ) : searchField}
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn("h-8 w-8", sortMenu.contextMenu.isOpen && "bg-accent")}
-            aria-label={t("sort_by")}
-            title={t("sort_by")}
+          <IconButton
+            label={t("sort_by")}
+            className={cn(sortMenu.contextMenu.isOpen && "bg-accent")}
             aria-haspopup="menu"
             aria-expanded={sortMenu.contextMenu.isOpen}
             onMouseDown={(e) => { if (sortMenu.contextMenu.isOpen) e.stopPropagation(); }}
@@ -341,8 +337,8 @@ export function FilesHeader({
               else sortMenu.openContextMenu(anchorEvent(e.currentTarget, "end"), null);
             }}
           >
-            <ArrowUpDown className="w-4 h-4" />
-          </Button>
+            <ArrowUpDown />
+          </IconButton>
           <div className="flex items-center rounded-md border border-border p-0.5" role="radiogroup" aria-label={t("view_mode")}>
             {([["list", LayoutList, t("list_view")], ["grid", LayoutGrid, t("grid_view")]] as const).map(([mode, Icon, label]) => (
               <button
@@ -355,6 +351,8 @@ export function FilesHeader({
                 onClick={() => onViewModeChange(mode)}
                 className={cn(
                   "h-6 w-7 flex items-center justify-center rounded transition-colors",
+                  // A 44px hit area on touch, as every Button has (R1).
+                  "relative pointer-coarse:after:absolute pointer-coarse:after:top-1/2 pointer-coarse:after:left-1/2 pointer-coarse:after:size-full pointer-coarse:after:min-h-11 pointer-coarse:after:min-w-11 pointer-coarse:after:-translate-x-1/2 pointer-coarse:after:-translate-y-1/2",
                   viewMode === mode ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -363,9 +361,9 @@ export function FilesHeader({
             ))}
           </div>
           {!compact && (
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onRefresh} disabled={isLoading} aria-label={t("refresh")} title={t("refresh")}>
-              <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
-            </Button>
+            <IconButton label={t("refresh")} onClick={onRefresh} disabled={isLoading}>
+              <RefreshCw className={cn(isLoading && "animate-spin")} />
+            </IconButton>
           )}
           <DetailsToggle showDetails={showDetails} onToggle={onToggleDetails} label={t("details")} />
         </div>
@@ -419,8 +417,8 @@ function ToolButton({ icon: Icon, label, onClick, compact, destructive }: {
   return (
     <Button
       variant="ghost"
-      size={compact ? "icon" : "sm"}
-      className={cn("h-8 shrink-0", compact ? "w-8" : "gap-1.5 px-2.5", destructive && "text-destructive hover:text-destructive hover:bg-destructive/10")}
+      size={compact ? "icon-sm" : "xs"}
+      className={cn("shrink-0", !compact && "gap-1.5", destructive && "text-destructive hover:text-destructive hover:bg-destructive/10")}
       onClick={onClick}
       aria-label={label}
       title={label}
@@ -433,17 +431,14 @@ function ToolButton({ icon: Icon, label, onClick, compact, destructive }: {
 
 function DetailsToggle({ showDetails, onToggle, label }: { showDetails: boolean; onToggle: () => void; label: string }) {
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className={cn("h-8 w-8 shrink-0", showDetails && "bg-accent text-accent-foreground")}
+    <IconButton
+      label={label}
+      className={cn("shrink-0", showDetails && "bg-accent text-accent-foreground")}
       onClick={onToggle}
-      aria-label={label}
       aria-pressed={showDetails}
-      title={label}
     >
-      <PanelRight className="w-4 h-4" />
-    </Button>
+      <PanelRight />
+    </IconButton>
   );
 }
 

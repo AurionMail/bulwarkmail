@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { useTranslations } from "next-intl";
 import { ArrowUp, ArrowDown, MoreHorizontal, Download, Share2, Star, Check } from "@/components/icons";
 import { cn, formatFileSize } from "@/lib/utils";
+import { IconButton } from "@/components/ui/icon-button";
 import type { FileResource } from "@/stores/file-store";
 import {
   ResourceIcon, ShareBadge, Thumbnail, canShowThumbnail, formatFullDate, formatShortDate,
@@ -104,6 +105,8 @@ function SelectBox({ checked, visible, onToggle, label }: {
       onDoubleClick={(e) => e.stopPropagation()}
       className={cn(
         "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-opacity",
+        // A 44px hit area on touch, as every Button has (R1).
+        "relative pointer-coarse:after:absolute pointer-coarse:after:top-1/2 pointer-coarse:after:left-1/2 pointer-coarse:after:size-full pointer-coarse:after:min-h-11 pointer-coarse:after:min-w-11 pointer-coarse:after:-translate-x-1/2 pointer-coarse:after:-translate-y-1/2",
         checked ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/50 bg-background",
         visible || checked ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
       )}
@@ -286,17 +289,16 @@ function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isS
         {!touch && handlers.canShare(resource) && (
           <RowAction icon={Share2} label={t("share")} onClick={() => handlers.onShare(resource)} />
         )}
-        <button
-          type="button"
+        <IconButton
           data-item-action
-          aria-label={t("more_actions", { name: resource.name })}
+          label={t("more_actions", { name: resource.name })}
           title={t("context_menu")}
           onClick={(e) => { e.stopPropagation(); handlers.onContextMenu(e, resource); }}
           onDoubleClick={(e) => e.stopPropagation()}
-          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-colors"
+          className="text-muted-foreground hover:text-foreground"
         >
-          <MoreHorizontal className="w-4 h-4" />
-        </button>
+          <MoreHorizontal />
+        </IconButton>
       </div>
     </div>
   );
@@ -304,17 +306,15 @@ function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isS
 
 function RowAction({ icon: Icon, label, onClick }: { icon: React.ComponentType<{ className?: string }>; label: string; onClick: () => void }) {
   return (
-    <button
-      type="button"
+    <IconButton
       data-item-action
-      aria-label={label}
-      title={label}
+      label={label}
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       onDoubleClick={(e) => e.stopPropagation()}
-      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+      className="text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
     >
-      <Icon className="w-4 h-4" />
-    </button>
+      <Icon />
+    </IconButton>
   );
 }
 
@@ -418,16 +418,15 @@ function FolderTile({ resource, isSelected, isFocused, isDropTarget, isCut, isSt
       </button>
       {isStarred && <Star className="w-3.5 h-3.5 shrink-0 text-amber-500 fill-current" aria-label={t("favorites")} />}
       <ShareBadge resource={resource} t={t} />
-      <button
-        type="button"
+      <IconButton
         data-item-action
-        aria-label={t("more_actions", { name: resource.name })}
+        label={t("more_actions", { name: resource.name })}
         onClick={(e) => { e.stopPropagation(); handlers.onContextMenu(e, resource); }}
         onDoubleClick={(e) => e.stopPropagation()}
-        className={cn("p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/10", !touch && "opacity-0 group-hover:opacity-100 focus-visible:opacity-100")}
+        className={cn("text-muted-foreground hover:text-foreground", !touch && "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100")}
       >
-        <MoreHorizontal className="w-4 h-4" />
-      </button>
+        <MoreHorizontal />
+      </IconButton>
     </div>
   );
 }
@@ -488,16 +487,15 @@ function FileTile({ resource, isSelected, isFocused, isCut, selecting, touch, ic
             <ShareBadge resource={resource} t={t} className="w-3 h-3" />
           </div>
         </div>
-        <button
-          type="button"
+        <IconButton
           data-item-action
-          aria-label={t("more_actions", { name: resource.name })}
+          label={t("more_actions", { name: resource.name })}
           onClick={(e) => { e.stopPropagation(); handlers.onContextMenu(e, resource); }}
           onDoubleClick={(e) => e.stopPropagation()}
-          className={cn("p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/10 shrink-0", !touch && "opacity-0 group-hover:opacity-100 focus-visible:opacity-100")}
+          className={cn("text-muted-foreground hover:text-foreground shrink-0", !touch && "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100")}
         >
-          <MoreHorizontal className="w-4 h-4" />
-        </button>
+          <MoreHorizontal />
+        </IconButton>
       </div>
     </div>
   );

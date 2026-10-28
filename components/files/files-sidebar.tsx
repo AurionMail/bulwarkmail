@@ -7,7 +7,7 @@ import {
   Clock, Share2, Upload, FolderUp, FolderPlus, FilePlus, Pencil, Trash2, Download, Eye, X, FolderSearch, FolderInput,
 } from "@/components/icons";
 import { isTrashLocation } from "@/lib/files-trash";
-import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { cn } from "@/lib/utils";
@@ -27,11 +27,12 @@ function loadCollapsed(): Record<string, boolean> {
   }
 }
 
-const ROW_STYLE = { paddingBlock: "var(--density-sidebar-py, 4px)", minHeight: "32px" } as const;
+const ROW_STYLE = { paddingBlock: "var(--density-sidebar-py, 4px)" } as const;
 
 function rowClass(active: boolean, dropTarget: boolean) {
   return cn(
-    "group w-full flex items-center gap-2 pe-3 text-sm transition-colors text-start",
+    // 32px rows, 44px on touch (R1).
+    "group w-full flex items-center gap-2 pe-3 text-sm transition-colors text-start min-h-8 pointer-coarse:min-h-11",
     active
       ? "bg-accent text-accent-foreground font-medium"
       : dropTarget
@@ -280,13 +281,10 @@ export function FilesSidebar({
       <div className="px-3 h-14 box-content border-b border-border flex items-center justify-between flex-shrink-0">
         <span className="text-sm font-semibold truncate">{t("title")}</span>
         {canCreate && (
-          <Button
+          <IconButton
             ref={newButtonRef}
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8 flex-shrink-0"
-            aria-label={t("new")}
-            title={t("new")}
+            label={t("new")}
+            className="flex-shrink-0"
             aria-haspopup="menu"
             aria-expanded={newMenu.contextMenu.isOpen}
             onMouseDown={(e) => { if (newMenu.contextMenu.isOpen) e.stopPropagation(); }}
@@ -295,8 +293,8 @@ export function FilesSidebar({
               else newMenu.openContextMenu(anchorEvent(e.currentTarget, "end"), null);
             }}
           >
-            <Plus className="w-4 h-4" />
-          </Button>
+            <Plus />
+          </IconButton>
         )}
       </div>
 

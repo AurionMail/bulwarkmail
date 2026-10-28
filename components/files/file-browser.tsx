@@ -1241,7 +1241,7 @@ export function FileBrowser({
           <div role="alert" className="mx-4 mt-3 px-3 py-2 rounded-md bg-destructive/10 text-destructive text-sm flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span className="flex-1">{error}</span>
-            <Button variant="ghost" size="sm" className="h-7 text-destructive hover:text-destructive shrink-0" onClick={() => void onRefresh()}>
+            <Button variant="ghost" size="xs" className="text-destructive hover:text-destructive shrink-0" onClick={() => void onRefresh()}>
               <RefreshCw className="w-3.5 h-3.5 me-1" />
               {t("retry")}
             </Button>
@@ -1296,8 +1296,8 @@ export function FileBrowser({
 
           {isNarrow && canCreate && !selectionActions && (
             <Button
-              size="icon"
-              className="absolute bottom-4 end-4 z-20 h-12 w-12 rounded-full shadow-lg"
+              size="icon-lg"
+              className="absolute bottom-4 end-4 z-20 rounded-full shadow-lg"
               aria-label={t("new")}
               onClick={(e) => menu.openContextMenu(anchorEvent(e.currentTarget, "end"), { kind: "new" })}
             >
