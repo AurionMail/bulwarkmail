@@ -182,9 +182,9 @@ export const ParticipantInput = forwardRef<ParticipantInputHandle, ParticipantIn
               >
                 <Avatar name={s.name} email={s.email} size="sm" className="shrink-0 w-7 h-7 text-[10px]" />
                 <div className="min-w-0">
-                  <div className="font-medium truncate">{s.name || s.email}</div>
+                  <div className="font-medium truncate" title={s.name || s.email}>{s.name || s.email}</div>
                   {s.name && (
-                    <div className="text-xs text-muted-foreground truncate">{s.email}</div>
+                    <div className="text-xs text-muted-foreground truncate" title={s.email}>{s.email}</div>
                   )}
                 </div>
               </li>
@@ -211,11 +211,12 @@ export const ParticipantInput = forwardRef<ParticipantInputHandle, ParticipantIn
                   }}
                   className="truncate hover:underline focus:outline-none focus:underline cursor-text"
                   aria-label={`${t("edit")} ${p.name || p.email}`}
+                  title={p.email}
                 >
                   {p.name || p.email}
                 </button>
               ) : (
-                <span className="truncate">{p.name || p.email}</span>
+                <span className="truncate" title={p.email}>{p.name || p.email}</span>
               )}
               {!disabled && (
                 <button

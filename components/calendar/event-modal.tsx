@@ -967,7 +967,7 @@ export function EventModal({
     return (
       <div ref={modalRef} role="dialog" aria-modal={isMobile || undefined} aria-label={event.title || t("events.no_title")} className={isMobile ? mobileRootClass : "flex flex-col h-full bg-background"}>
         <div className="flex items-center justify-between gap-2 px-6 py-4 border-b border-border flex-shrink-0">
-          <h2 className="text-lg font-semibold truncate">{event.title || t("events.no_title")}</h2>
+          <h2 className="text-lg font-semibold truncate" title={event.title || t("events.no_title")}>{event.title || t("events.no_title")}</h2>
           {onMore && (
             <IconButton label={t("toolbar.more")} aria-haspopup="menu" className="ms-auto flex-shrink-0" onClick={(e) => onMore(e.currentTarget)}>
               <MoreVertical />
@@ -1048,7 +1048,7 @@ export function EventModal({
                 <div className="space-y-1 ps-5">
                   {participants.map(p => (
                     <div key={p.id} className="flex items-center justify-between text-sm">
-                      <span className="truncate">
+                      <span className="truncate" title={p.email}>
                         {p.name || p.email}
                         {p.isOrganizer && (
                           <span className="text-muted-foreground ms-1">({t("participants.organizer").toLowerCase()})</span>
@@ -1095,7 +1095,7 @@ export function EventModal({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-              <h2 className="text-lg font-semibold truncate">{event.title || t("events.no_title")}</h2>
+              <h2 className="text-lg font-semibold truncate" title={event.title || t("events.no_title")}>{event.title || t("events.no_title")}</h2>
             </div>
             {eventCalendar && (
               <p className="text-xs text-muted-foreground mt-0.5 ps-[18px]">{eventCalendar.name}</p>
@@ -1205,7 +1205,7 @@ export function EventModal({
                   <div className="mt-1 space-y-0.5">
                     {viewParticipants.map((p) => (
                       <div key={p.id} className="flex items-center justify-between gap-2 text-xs">
-                        <span className="truncate text-foreground">
+                        <span className="truncate text-foreground" title={p.email}>
                           {p.name || p.email}
                           {p.isOrganizer && (
                             <span className="text-muted-foreground ms-1">({t("participants.organizer").toLowerCase()})</span>

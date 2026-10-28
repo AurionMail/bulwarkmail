@@ -380,7 +380,7 @@ export function ICalImportModal({ calendars, client, onClose, initialUrl }: ICal
                       className="mt-0.5 rounded border-input"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
+                      <p className="text-sm font-medium truncate" title={event.title || tCal("events.no_title")}>
                         {event.title || tCal("events.no_title")}
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">

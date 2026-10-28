@@ -541,7 +541,7 @@ export function EventDetailPopover({
               <div className="mt-1 space-y-0.5">
                 {participants.slice(0, 5).map((p) => (
                   <div key={p.id} className="flex items-center justify-between gap-2 text-xs">
-                    <span className="truncate text-foreground">
+                    <span className="truncate text-foreground" title={p.email}>
                       {p.name || p.email}
                       {p.isOrganizer && (
                         <span className="text-muted-foreground ms-1">
@@ -582,7 +582,7 @@ export function EventDetailPopover({
         {calendar && (
           <div className="flex items-start gap-2.5">
             <CalendarIcon className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-            <span className="text-sm text-foreground truncate">{calendar.name}</span>
+            <span className="text-sm text-foreground truncate" title={calendar.name}>{calendar.name}</span>
           </div>
         )}
 

@@ -188,7 +188,7 @@ export function ParticipantAvailability({ attendees, start, end }: ParticipantAv
               )}
               aria-hidden="true"
             />
-            <span className="min-w-0 truncate text-foreground/90">{a.name || a.email}</span>
+            <span className="min-w-0 truncate text-foreground/90" title={a.email}>{a.name || a.email}</span>
             <span className="ms-auto flex shrink-0 items-center gap-1 text-muted-foreground">
               {status === "checking" && <Loader2 className="h-3 w-3 animate-spin" />}
               {t(status)}

@@ -264,13 +264,13 @@ export function CalendarAgendaView({
                   />
 
                   <div className="flex-1 min-w-0">
-                    <div className={cn("text-sm font-medium truncate", isInactive && "line-through text-muted-foreground")}>
+                    <div className={cn("text-sm font-medium truncate", isInactive && "line-through text-muted-foreground")} title={ev.title || t("events.no_title")}>
                       {ev.title || t("events.no_title")}
                     </div>
                     {(meta || getParticipantCount(ev) > 0) && (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 min-w-0">
                         {locationName && <MapPin className="w-3 h-3 flex-shrink-0" />}
-                        {meta && <span className="truncate">{meta}</span>}
+                        {meta && <span className="truncate" title={meta}>{meta}</span>}
                         {getParticipantCount(ev) > 0 && (
                           <span className="flex items-center gap-1 flex-shrink-0">
                             <Users className="w-3 h-3" />

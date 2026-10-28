@@ -591,3 +591,12 @@ describe('CalendarApp view menu', () => {
     expect(useCalendarStore.getState().viewMode).toBe('day');
   });
 });
+
+describe('CalendarApp long names', () => {
+  it('shows the full name of a cut-off calendar on hover', () => {
+    const long = { ...calendars[0], name: 'Stalwart Calendar (usera@internal.bulwarkmail.org)' };
+    useCalendarStore.setState({ calendars: [long] } as never);
+    renderApp();
+    expect(screen.getByTestId('calendar-item').querySelector('[title]')).toHaveAttribute('title', long.name);
+  });
+});

@@ -212,7 +212,7 @@ export function CalendarToolbar({
                   <ChevronLeft />
                 </IconButton>
               )}
-              <span className="text-sm font-semibold text-center flex-1 select-none truncate">
+              <span className="text-sm font-semibold text-center flex-1 select-none truncate" title={getDateLabel()}>
                 {getDateLabel()}
               </span>
               {hasDateNav && (
@@ -284,7 +284,7 @@ export function CalendarToolbar({
                                 )}
                                 style={isVisible ? { backgroundColor: color, borderColor: color } : undefined}
                               />
-                              <span className={cn("truncate", !isVisible && "text-muted-foreground")}>
+                              <span className={cn("truncate", !isVisible && "text-muted-foreground")} title={cal.name}>
                                 {cal.name}
                               </span>
                             </button>
@@ -324,7 +324,7 @@ export function CalendarToolbar({
                                       )}
                                       style={isVisible ? { backgroundColor: color, borderColor: color } : undefined}
                                     />
-                                    <span className={cn("truncate", !isVisible && "text-muted-foreground")}>
+                                    <span className={cn("truncate", !isVisible && "text-muted-foreground")} title={cal.name}>
                                       {cal.name}
                                     </span>
                                   </button>
@@ -406,7 +406,7 @@ export function CalendarToolbar({
           </Button>
         </>
       )}
-      <h1 className="ms-2 text-base font-semibold truncate select-none">
+      <h1 className="ms-2 text-base font-semibold truncate select-none" title={getDateLabel()}>
         {getDateLabel()}
       </h1>
 

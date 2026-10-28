@@ -234,7 +234,7 @@ export function TaskListView({
                   <span className={cn(
                     "text-sm font-medium truncate",
                     isCompleted && "line-through text-muted-foreground"
-                  )}>
+                  )} title={task.title || t("tasks.no_title")}>
                     {task.title || t("tasks.no_title")}
                   </span>
                   {priorityIcon}

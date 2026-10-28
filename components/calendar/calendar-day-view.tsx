@@ -415,7 +415,7 @@ export function CalendarDayView({
                                   >
                                     {isCompleted && <Check className="h-2.5 w-2.5" />}
                                   </button>
-                                  <span className={cn("truncate", isCompleted && "line-through text-muted-foreground")}>
+                                  <span className={cn("truncate", isCompleted && "line-through text-muted-foreground")} title={task.title || t("tasks.no_title")}>
                                     {task.title || t("tasks.no_title")}
                                   </span>
                                 </div>
