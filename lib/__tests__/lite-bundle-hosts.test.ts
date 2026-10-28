@@ -1,70 +1,69 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { afterAll, describe, expect, it } from 'vitest';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { NON_REQUEST_HOSTS, isPlaceholderHost, registeredLiterals } from '@/lib/outgoing-hosts';
+import { BUILT_IN_HOSTNAMES } from '@/lib/outgoing-hosts';
+import { isPlaceholderHost as sourcePlaceholder } from '@/lib/admin/outgoing-hosts-registry';
+import { LITE_BUILT_IN_HOSTS, isPlaceholderHost, scanBundleHosts } from '../../scripts/lite/scan-hosts.mjs';
 
-// The built Lite bundle (#903): every http(s) host literal in out/ must be a
-// registered outside host, a known non-request, or one of the strings the
-// bundled libraries, the demo data and the translations carry. Run after
-// `npm run build:lite` with LITE_OUT_DIR pointing at its out/ folder:
+// scripts/lite/scan-hosts.mjs runs in the Lite CI job after build:lite (the
+// build prunes the test trees, so the scan can't be a vitest file there).
+// These tests pin it to the app's host list and show what it catches. With
+// LITE_OUT_DIR set it also scans a real build:
 //
 //   LITE_OUT_DIR=/path/to/out npx vitest run lib/__tests__/lite-bundle-hosts.test.ts
-//
-// Without LITE_OUT_DIR the scan is skipped (the unit test run has no build).
 
-const OUT = process.env.LITE_OUT_DIR ?? '';
-
-/** Strings in the bundle that are never requested, by why they are there. */
-const BUNDLE_NON_REQUEST: Record<string, string[]> = {
-  'error and docs links of bundled libraries': [
-    'nextjs.org', 'react.dev', 'stuk.github.io', 'prosemirror.net', 'github.com', 'foo.bar',
-  ],
-  // Translators localise the example addresses of the login form.
-  'example domains in translations': ['eksempel.dk', 'mail.eksempel.dk', 'piemers.lv', 'pasts.piemers.lv', 'mail.ornek.com', 'ornek.com'],
-  // lib/demo/fixtures: links inside the sample mail of the demo mode.
-  'demo mail content': [
-    'zoom.us', 'notion.so', 'www.figma.com', 'vercel.com', 'i.scdn.co', 'cf.bstatic.com', 'open.spotify.com',
-    'linear.app', 'sentry.io', 'app.docusign.com',
-  ],
-};
-
-function files(dir: string, out: string[] = []): string[] {
-  for (const name of readdirSync(dir)) {
-    const full = path.join(dir, name);
-    if (statSync(full).isDirectory()) files(full, out);
-    else if (/\.(js|html|css|json|txt|webmanifest)$/.test(name)) out.push(full);
+const dirs: string[] = [];
+function fakeOut(files: Record<string, string>): string {
+  const dir = mkdtempSync(path.join(tmpdir(), 'lite-out-'));
+  dirs.push(dir);
+  for (const [name, text] of Object.entries(files)) {
+    mkdirSync(path.dirname(path.join(dir, name)), { recursive: true });
+    writeFileSync(path.join(dir, name), text);
   }
-  return out;
+  return dir;
 }
+afterAll(() => { for (const dir of dirs) rmSync(dir, { recursive: true, force: true }); });
 
-describe.skipIf(!OUT)('Lite bundle outgoing hosts (LITE_OUT_DIR)', () => {
-  it('holds no host that is neither registered nor a known non-request', () => {
-    const config = JSON.parse(readFileSync(path.join(OUT, 'config.json'), 'utf8')) as { jmapServerUrl?: string };
-    const allowed = new Set<string>([
-      ...registeredLiterals(),
-      ...NON_REQUEST_HOSTS.map((h) => h.host),
-      ...Object.values(BUNDLE_NON_REQUEST).flat(),
-    ]);
-    if (config.jmapServerUrl) allowed.add(new URL(config.jmapServerUrl).host);
-
-    const unknown = new Map<string, string>();
-    const all = files(OUT);
-    expect(all.length).toBeGreaterThan(50);
-    for (const file of all) {
-      const text = readFileSync(file, 'utf8');
-      for (const m of text.matchAll(/https?:\/\/([A-Za-z0-9.*_-]+)/g)) {
-        const raw = m[1].toLowerCase();
-        const host = raw.replace(/\.{2,}$/, '');
-        if (allowed.has(raw) || allowed.has(host) || isPlaceholderHost(host)) continue;
-        if (!unknown.has(host)) unknown.set(host, path.relative(OUT, file));
-      }
+describe('Lite bundle host scan', () => {
+  it('knows the same built-in hosts and placeholders as the app', () => {
+    expect((LITE_BUILT_IN_HOSTS as string[]).filter((h) => !h.endsWith('.')).sort()).toEqual([...BUILT_IN_HOSTNAMES].sort());
+    for (const host of ['mail.example.com', 'x', '10.0.0.5', '93.184.216.34', 'acme.test', 'github.com', '*.vimeo.com']) {
+      expect(isPlaceholderHost(host), host).toBe(sourcePlaceholder(host));
     }
-    expect([...unknown].map(([host, file]) => `${file}: ${host}`)).toEqual([]);
   });
 
-  it('ships config.json with the switch', () => {
-    const config = JSON.parse(readFileSync(path.join(OUT, 'config.json'), 'utf8'));
-    expect(config).toHaveProperty('noThirdPartyTraffic');
+  it('passes a bundle with only accounted hosts', () => {
+    const out = fakeOut({
+      'config.json': JSON.stringify({ jmapServerUrl: 'https://mail.corp.example.net' }),
+      '_next/static/chunks/a1.js': 'fetch("https://mail.corp.example.net/jmap");x="https://react.dev/errors/";y="https://icons.duckduckgo.com"',
+      'en/mail/index.html': '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+    });
+    expect(scanBundleHosts(out)).toEqual([]);
+  });
+
+  it('catches a new host, a ws host, a protocol-relative host, a public IP and a listed host in the wrong file', () => {
+    const out = fakeOut({
+      'config.json': '{}',
+      '_next/static/chunks/b2.js': [
+        'fetch("https://beacon.fakecdn.io/x")',
+        'new WebSocket("WSS://Live.FakeCDN.io")',
+        's.src="//cdn.fakecdn.io/lib.js"',
+        'fetch("http://93.184.216.34/")',
+      ].join(';'),
+      'en/mail/index.html': '<img src="https://icons.duckduckgo.com/x.ico">',
+    });
+    expect(scanBundleHosts(out).sort()).toEqual([
+      '_next/static/chunks/b2.js: 93.184.216.34',
+      '_next/static/chunks/b2.js: beacon.fakecdn.io',
+      '_next/static/chunks/b2.js: cdn.fakecdn.io',
+      '_next/static/chunks/b2.js: live.fakecdn.io',
+      'en/mail/index.html: icons.duckduckgo.com',
+    ]);
+  });
+
+  it.skipIf(!process.env.LITE_OUT_DIR)('finds nothing unaccounted in the build at LITE_OUT_DIR', () => {
+    expect(scanBundleHosts(process.env.LITE_OUT_DIR)).toEqual([]);
   });
 });

@@ -6,7 +6,7 @@ import { SettingsSection, SettingItem, ToggleSwitch } from '@/components/setting
 import { ConfigNote, RevertButton, SourceBadge } from '@/components/admin/config-items';
 import { AdminLink } from '@/components/admin/admin-link';
 import { apiFetch } from '@/lib/browser-navigation';
-import type { OutgoingHost } from '@/lib/outgoing-hosts';
+import type { OutgoingHost } from '@/lib/admin/outgoing-hosts-registry';
 import type { ReachableHost } from '@/lib/admin/reachable-hosts';
 import type { OrgPolicyDraft } from '../use-org-policy-draft';
 

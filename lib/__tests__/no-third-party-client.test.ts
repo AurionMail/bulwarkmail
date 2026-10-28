@@ -4,7 +4,8 @@ import { resyncWebPush, revokePushDevice, type PushDevice } from '@/lib/web-push
 import { doGetPublicKeyFromWKD } from '@/lib/plugin-sandbox/host-api';
 import { applyLiteConfig } from '@/lib/lite-config';
 import { setNoThirdPartyTraffic, noThirdPartyTraffic, parseNoThirdPartyEnv } from '@/lib/third-party-mode';
-import { isBuiltInHost, isPlaceholderHost, pluginAllowed, pluginDeclaresNetwork } from '@/lib/outgoing-hosts';
+import { isBuiltInHost, pluginAllowed, pluginDeclaresNetwork } from '@/lib/outgoing-hosts';
+import { isPlaceholderHost } from '@/lib/admin/outgoing-hosts-registry';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 
 // The browser half of the "no third-party traffic" mode (#903).

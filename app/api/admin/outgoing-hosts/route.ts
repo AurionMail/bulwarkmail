@@ -5,7 +5,8 @@ import { isConfigReadOnly } from '@/lib/admin/paths';
 import { getPluginRegistry } from '@/lib/admin/plugin-registry';
 import { noThirdPartyTrafficState } from '@/lib/admin/third-party-mode';
 import { listReachableHosts } from '@/lib/admin/reachable-hosts';
-import { OUTGOING_HOSTS, pluginDeclaresNetwork } from '@/lib/outgoing-hosts';
+import { pluginDeclaresNetwork } from '@/lib/outgoing-hosts';
+import { OUTGOING_HOSTS } from '@/lib/admin/outgoing-hosts-registry';
 import { logger } from '@/lib/logger';
 
 /**

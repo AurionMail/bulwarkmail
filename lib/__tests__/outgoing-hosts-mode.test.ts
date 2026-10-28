@@ -4,8 +4,8 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { NextRequest } from 'next/server';
+import { OUTGOING_HOSTS } from '@/lib/admin/outgoing-hosts-registry';
 import {
-  OUTGOING_HOSTS,
   isBuiltInHost,
   mapsLinksAllowed,
   sampleAvatarsAllowed,
@@ -106,12 +106,12 @@ describe('no third-party traffic mode', () => {
     expect(Object.keys(probes).sort()).toEqual(OUTGOING_HOSTS.map((h) => h.id).sort());
   });
 
-  it.each(OUTGOING_HOSTS.map((h) => [h.id, h] as const))('%s is reachable with the mode off', async (id) => {
+  it.each(OUTGOING_HOSTS.map((h) => h.id))('%s is reachable with the mode off', async (id) => {
     await setMode(false);
     expect(await probes[id]()).toBe(true);
   });
 
-  it.each(OUTGOING_HOSTS.map((h) => [h.id, h] as const))('%s is off with the mode on', async (id) => {
+  it.each(OUTGOING_HOSTS.map((h) => h.id))('%s is off with the mode on', async (id) => {
     await setMode(true);
     expect(await probes[id]()).toBe(false);
   });

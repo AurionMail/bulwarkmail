@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { listReachableHosts } from '@/lib/admin/reachable-hosts';
-import { OUTGOING_HOSTS } from '@/lib/outgoing-hosts';
+import { OUTGOING_HOSTS } from '@/lib/admin/outgoing-hosts-registry';
 import type { OrgPolicyDraft } from '@/components/admin/org/use-org-policy-draft';
 
 const apiFetch = vi.hoisted(() => vi.fn());
