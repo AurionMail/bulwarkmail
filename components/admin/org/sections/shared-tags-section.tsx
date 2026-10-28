@@ -15,7 +15,7 @@ export function SharedTagsSection({ draft }: { draft: OrgPolicyDraft }) {
     <SettingsSection
       id="shared-tags"
       title="Shared tags"
-      description="Members of a group mailbox see the same tag names and colours on its mail, and members who may change the mailbox edit them (Stalwart 1.0 or later)."
+      description="Members of a group mailbox see the same tag names and colours on its mail; members who may change the mailbox can edit them (Stalwart 1.0 or later)."
     >
       <div data-testid="org-shared-tags-section">
         {restrictionKeysForPage('org-sharing')

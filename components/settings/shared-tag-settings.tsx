@@ -237,8 +237,8 @@ function SharedAccountTagEditor({ scope, name }: { scope: TagScope; name: string
               type="button"
               onClick={() => { setEditing({ id: tag.id }); setConfirmDelete(null); }}
               className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-              title={found ? t("name_it") : t("edit")}
-              aria-label={found ? t("name_it") : t("edit")}
+              title={found ? t("name_it") : t("edit_tag")}
+              aria-label={found ? t("name_it") : t("edit_tag")}
             >
               {found ? <Plus className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
             </button>

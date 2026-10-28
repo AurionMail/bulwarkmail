@@ -868,6 +868,7 @@ function SharedAccountTags({
           onToggle={() => setExpanded((open) => !open)}
           onSettings={() => router.push(buildSettingsPath('organize', 'shared-tags'))}
           settingsTitle={t('edit')}
+          testId="section-shared-tags"
           isCollapsed={false}
           sub
         />
