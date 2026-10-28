@@ -28,27 +28,12 @@ const ACTIVITY_THROTTLE_MS = 1000;
 /**
  * Bubbling input events, caught on the way down. Scrolling and focus moves
  * inside the page don't count: the page scrolls and refocuses on its own.
+ * Input inside a frame (the office editor, plugin panels) never reaches this
+ * window and doesn't count either: a focused frame left alone would keep the
+ * session open forever. Users working there see the warning, which sits
+ * above every overlay, and choose to stay.
  */
 const ACTIVITY_EVENTS = ["pointerdown", "pointermove", "keydown", "touchstart", "wheel"] as const;
-/**
- * Input inside a cross-origin frame (the office editor, plugin panels)
- * never reaches this window. While such a frame has the focus, that counts
- * as activity, checked this often.
- */
-export const FRAME_FOCUS_CHECK_MS = 5000;
-
-function crossOriginFrameHasFocus(): boolean {
-  if (typeof document === "undefined" || !document.hasFocus()) return false;
-  const element = document.activeElement;
-  if (!(element instanceof HTMLIFrameElement)) return false;
-  try {
-    // Same-origin frames (the message body) are readable and don't count:
-    // a message clicked into and left would keep the session alive.
-    return element.contentDocument === null;
-  } catch {
-    return true;
-  }
-}
 
 /** Policy subjects per client and connection round; a failed or empty answer is asked again. */
 const subjects = new WeakMap<IJMAPClient, { revision: number; subject: Promise<PolicySubject | null> }>();
@@ -228,9 +213,6 @@ export function SessionTimeoutGuard() {
     const onVisibility = () => {
       if (document.visibilityState === "visible") timerRef.current?.check();
     };
-    const frameCheck = setInterval(() => {
-      if (crossOriginFrameHasFocus()) onActivity();
-    }, FRAME_FOCUS_CHECK_MS);
     for (const event of ACTIVITY_EVENTS) window.addEventListener(event, onActivity, { capture: true, passive: true });
     // The window coming back into focus, not focus moving between elements.
     window.addEventListener("focus", onActivity);
@@ -239,7 +221,6 @@ export function SessionTimeoutGuard() {
       for (const event of ACTIVITY_EVENTS) window.removeEventListener(event, onActivity, { capture: true });
       window.removeEventListener("focus", onActivity);
       document.removeEventListener("visibilitychange", onVisibility);
-      clearInterval(frameCheck);
       channel.close();
       channelRef.current = null;
     };

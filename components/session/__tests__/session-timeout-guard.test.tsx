@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { SessionTimeoutGuard, DRAFT_FLUSH_TIMEOUT_MS, FRAME_FOCUS_CHECK_MS } from '../session-timeout-guard';
+import { SessionTimeoutGuard, DRAFT_FLUSH_TIMEOUT_MS } from '../session-timeout-guard';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAccountStore, type AccountEntry } from '@/stores/account-store';
 import { usePolicyStore } from '@/stores/policy-store';
@@ -271,28 +271,30 @@ describe('session timeout guard', () => {
     expect(screen.getByText('idle_title')).toBeTruthy();
   });
 
-  it('counts the focus on a cross-origin frame as activity, but not on a same-origin one', async () => {
+  it('does not count a focused cross-origin frame as activity, and warns above its overlay', async () => {
     const hasFocus = vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+    // The office editor: a cross-origin frame in a z-[100000] overlay.
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 z-[100000]';
+    const editor = document.createElement('iframe');
+    Object.defineProperty(editor, 'contentDocument', { get: () => null });
+    overlay.appendChild(editor);
+    document.body.appendChild(overlay);
     try {
       await signIn(policyWith({ idleMinutes: 1, maxHours: 0, warnSeconds: 30 }));
-      const editor = document.createElement('iframe');
-      Object.defineProperty(editor, 'contentDocument', { get: () => null });
-      document.body.appendChild(editor);
       editor.focus();
       expect(document.activeElement).toBe(editor);
 
-      await advance(45 * SECOND);
-      expect(screen.queryByText('idle_title')).toBeNull();
-
-      // A message body (same origin) clicked into and left doesn't keep the session.
-      const body = document.createElement('iframe');
-      document.body.appendChild(body);
-      body.focus();
-      await advance(30 * SECOND + FRAME_FOCUS_CHECK_MS);
-      expect(screen.getByText('idle_title')).toBeTruthy();
-      editor.remove();
-      body.remove();
+      // Left focused, the editor keeps nothing alive: warned at 30 s, signed out at 60 s.
+      await advance(30 * SECOND);
+      const warning = screen.getByTestId('session-timeout-dialog');
+      expect(Number(/z-\[(\d+)\]/.exec(warning.className)?.[1])).toBeGreaterThan(100000);
+      // Later in the body than the overlay, so it paints on top at a higher z-index too.
+      expect(overlay.compareDocumentPosition(warning) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      await advance(30 * SECOND);
+      expect(logoutAll).toHaveBeenCalledWith({ endProviderSession: false });
     } finally {
+      overlay.remove();
       hasFocus.mockRestore();
     }
   });
