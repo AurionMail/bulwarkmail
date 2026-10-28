@@ -492,10 +492,10 @@ optgroup {
   opacity: 0.8;
 }
 
-/* Toast animations */
+/* Toast animations. They slide in from the end edge: --toast-slide is -1 in RTL. */
 @keyframes toast-enter {
   from {
-    transform: translateX(calc(100% + 1.25rem));
+    transform: translateX(calc((100% + 1.25rem) * var(--toast-slide, 1)));
     opacity: 0;
   }
   to {
@@ -510,7 +510,7 @@ optgroup {
     opacity: 1;
   }
   to {
-    transform: translateX(calc(100% + 1.25rem));
+    transform: translateX(calc((100% + 1.25rem) * var(--toast-slide, 1)));
     opacity: 0;
   }
 }

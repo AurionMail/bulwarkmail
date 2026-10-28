@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useTranslations } from "next-intl";
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle, Loader2 } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
@@ -74,9 +75,17 @@ const progressBarStyles = {
   warning: "bg-warning",
 };
 
+// A sideways swipe this far (px) on a touch screen dismisses the toast.
+const SWIPE_DISMISS_DISTANCE = 72;
+
 export function ToastItem({ toast, onClose }: ToastProps) {
+  const tCommon = useTranslations("common");
   const Icon = icons[toast.type];
   const [exiting, setExiting] = useState(false);
+  // Swipe to dismiss (touch only): how far it is dragged, and where it flew off to.
+  const [dragX, setDragX] = useState(0);
+  const [flungTo, setFlungTo] = useState<number | null>(null);
+  const swipeRef = useRef<{ id: number; x: number; y: number; horizontal: boolean | null } | null>(null);
   const [paused, setPaused] = useState(false);
   const remainingRef = useRef(toast.duration ?? 5000);
   const startRef = useRef(Date.now());
@@ -120,6 +129,44 @@ export function ToastItem({ toast, onClose }: ToastProps) {
     };
   }, [toast.duration, paused, dismiss, isProgress]);
 
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType !== "touch" || exiting) return;
+    swipeRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY, horizontal: null };
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    const swipe = swipeRef.current;
+    if (!swipe || swipe.id !== e.pointerId) return;
+    const dx = e.clientX - swipe.x;
+    const dy = e.clientY - swipe.y;
+    if (swipe.horizontal === null) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      swipe.horizontal = Math.abs(dx) > Math.abs(dy);
+      if (swipe.horizontal) setPaused(true);
+    }
+    if (swipe.horizontal) setDragX(dx);
+  };
+  const endSwipe = (e: React.PointerEvent) => {
+    const swipe = swipeRef.current;
+    if (!swipe || swipe.id !== e.pointerId) return;
+    swipeRef.current = null;
+    if (!swipe.horizontal) return;
+    const dx = e.clientX - swipe.x;
+    if (Math.abs(dx) >= SWIPE_DISMISS_DISTANCE) {
+      setFlungTo(Math.sign(dx) * window.innerWidth);
+      try {
+        toast.onDismiss?.();
+      } catch {
+        // A failing listener must not keep the toast on screen.
+      }
+      setTimeout(() => onClose(toast.id), 200);
+    } else {
+      setDragX(0);
+      setPaused(false);
+    }
+  };
+  // The click that ends a swipe is not a tap on the toast.
+  const swiped = dragX !== 0 || flungTo !== null;
+
   const actionButton = (action: ToastAction) => (
     <button
       onClick={(e) => {
@@ -147,12 +194,26 @@ export function ToastItem({ toast, onClose }: ToastProps) {
         "bg-popover text-popover-foreground border border-border",
         "shadow-[0_6px_16px_rgb(0,0,0,0.1)] dark:shadow-[0_6px_16px_rgb(0,0,0,0.4)]",
         "overflow-hidden pt-3 pe-2.5 pb-3.5 ps-3.5",
+        // Phone: as wide as the screen allows (the container keeps 12px).
+        "max-sm:w-full max-sm:max-w-none touch-pan-y rtl:[--toast-slide:-1]",
         exiting ? "toast-exit" : "toast-enter",
         toast.onClick && !toast.action && "cursor-pointer"
       )}
+      style={
+        flungTo !== null
+          ? { transform: `translateX(${flungTo}px)`, opacity: 0, transition: "transform 200ms ease-out, opacity 200ms ease-out" }
+          : dragX !== 0
+            ? { transform: `translateX(${dragX}px)`, opacity: Math.max(0.3, 1 - Math.abs(dragX) / 240) }
+            : undefined
+      }
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endSwipe}
+      onPointerCancel={endSwipe}
       onMouseEnter={() => { if (toast.pauseOnHover !== false) setPaused(true); }}
       onMouseLeave={() => setPaused(false)}
       onClick={() => {
+        if (swiped) return;
         if (toast.onClick && !toast.action) {
           toast.onClick();
           dismissByUser();
@@ -190,16 +251,19 @@ export function ToastItem({ toast, onClose }: ToastProps) {
         </div>
       )}
 
-      {/* Close button */}
+      {/* Close button. Phones swipe the toast away instead. */}
       <button
+        type="button"
+        aria-label={tCommon("close")}
+        title={tCommon("close")}
         onClick={(e) => {
           e.stopPropagation();
           dismissByUser();
         }}
         className={cn(
-          "flex-shrink-0 p-1 rounded-md transition-all",
+          "flex-shrink-0 p-1 rounded-md transition-all max-sm:hidden",
           "text-muted-foreground hover:text-foreground hover:bg-foreground/5",
-          "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+          "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100"
         )}
       >
         <X className="w-3.5 h-3.5" />
@@ -248,7 +312,15 @@ export function ToastContainer({ toasts, onClose }: { toasts: Toast[]; onClose: 
 
   return createPortal(
     <div
-      className="fixed bottom-5 right-5 z-[99999] flex flex-col-reverse gap-2.5 [html[data-composer-open]_&]:bottom-20"
+      className={cn(
+        // Newest at the bottom, at the end corner (bottom left in RTL);
+        // lifted over an open composer's footer.
+        "fixed bottom-5 end-5 z-[99999] flex flex-col gap-2.5 [html[data-composer-open]_&]:bottom-20",
+        // Phone: full width with 12px margins, above the bottom controls
+        // (the tab bar, or whichever bar registered with useBottomControls).
+        "max-sm:inset-x-3 max-sm:bottom-[calc(var(--bottom-controls-height,3.75rem)+0.75rem)]",
+        "max-sm:[html[data-composer-open]_&]:bottom-[max(5rem,calc(var(--bottom-controls-height,3.75rem)+0.75rem))]"
+      )}
       role="status"
       aria-live="polite"
       style={{ pointerEvents: "none" }}

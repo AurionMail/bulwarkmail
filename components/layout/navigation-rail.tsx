@@ -31,6 +31,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { toUnicodeEmail } from "@/lib/idn";
 import { usePluginPages, pluginPageHref, isPluginPageActive } from "@/hooks/use-plugin-pages";
 import { NotificationBell } from "@/components/notifications/notification-center";
+import { useBottomControls } from "@/hooks/use-bottom-controls";
 
 interface NavItem {
   id: string;
@@ -213,6 +214,8 @@ export function NavigationRail({
 }: NavigationRailProps) {
   const t = useTranslations("sidebar");
   const tGlobalSearch = useTranslations("global_search");
+  // The phone tab bar: toasts sit above it.
+  const tabBarRef = useBottomControls(orientation === "horizontal");
   const pathname = usePathname();
   const router = useRouter();
   const { appLogoLightUrl, appLogoDarkUrl } = useConfig();
@@ -350,6 +353,7 @@ export function NavigationRail({
   if (orientation === "horizontal") {
     return (
       <nav
+        ref={tabBarRef}
         data-mobile-navigation=""
         className={cn(
           "flex items-center bg-background border-t border-border shrink-0 overflow-x-auto mobile-scroll-hidden pb-[calc(env(safe-area-inset-bottom)/2)]",
