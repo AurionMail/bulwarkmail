@@ -3736,7 +3736,23 @@
     "nav_open_menu": "Menu openen",
     "toolbar": {
       "more": "Meer acties",
-      "select_view": "Weergave wijzigen, nu {view}"
+      "select_view": "Weergave wijzigen, nu {view}",
+      "import": "Agenda importeren…",
+      "subscribe": "Abonneren op agenda…"
+    },
+    "commands": {
+      "day": "Dagweergave",
+      "week": "Weekweergave",
+      "month": "Maandweergave",
+      "agenda": "Agendaweergave",
+      "tasks": "Takenlijst"
+    },
+    "shortcuts": {
+      "views": "Weergaven",
+      "actions": "Acties",
+      "previous": "Vorige dag, week of maand",
+      "next": "Volgende dag, week of maand",
+      "new_item": "Nieuwe afspraak, of een nieuwe taak in Taken"
     },
     "other_calendars": "Andere agenda's",
     "calendar_options": "Opties voor {name}"

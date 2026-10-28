@@ -3736,7 +3736,23 @@
     "nav_open_menu": "メニューを開く",
     "toolbar": {
       "more": "その他の操作",
-      "select_view": "表示を切り替え（現在: {view}）"
+      "select_view": "表示を切り替え（現在: {view}）",
+      "import": "カレンダーをインポート…",
+      "subscribe": "カレンダーを購読…"
+    },
+    "commands": {
+      "day": "日表示",
+      "week": "週表示",
+      "month": "月表示",
+      "agenda": "予定リスト表示",
+      "tasks": "タスク一覧"
+    },
+    "shortcuts": {
+      "views": "表示",
+      "actions": "操作",
+      "previous": "前の日・週・月",
+      "next": "次の日・週・月",
+      "new_item": "新しいイベント（タスク画面では新しいタスク）"
     },
     "other_calendars": "他のカレンダー",
     "calendar_options": "{name} のオプション"

@@ -3736,7 +3736,23 @@
     "nav_open_menu": "打开菜单",
     "toolbar": {
       "more": "更多操作",
-      "select_view": "切换视图，当前为{view}"
+      "select_view": "切换视图，当前为{view}",
+      "import": "导入日历…",
+      "subscribe": "订阅日历…"
+    },
+    "commands": {
+      "day": "日视图",
+      "week": "周视图",
+      "month": "月视图",
+      "agenda": "议程视图",
+      "tasks": "任务列表"
+    },
+    "shortcuts": {
+      "views": "视图",
+      "actions": "操作",
+      "previous": "上一天、周或月",
+      "next": "下一天、周或月",
+      "new_item": "新建事件（在任务中新建任务）"
     },
     "other_calendars": "其他日历",
     "calendar_options": "{name} 的选项"

@@ -3736,7 +3736,23 @@
     },
     "toolbar": {
       "more": "Mai multe acțiuni",
-      "select_view": "Schimbă vizualizarea, acum {view}"
+      "select_view": "Schimbă vizualizarea, acum {view}",
+      "import": "Importă calendar…",
+      "subscribe": "Abonează-te la un calendar…"
+    },
+    "commands": {
+      "day": "Vizualizare zi",
+      "week": "Vizualizare săptămână",
+      "month": "Vizualizare lună",
+      "agenda": "Vizualizare agendă",
+      "tasks": "Listă de sarcini"
+    },
+    "shortcuts": {
+      "views": "Vizualizări",
+      "actions": "Acțiuni",
+      "previous": "Ziua, săptămâna sau luna anterioară",
+      "next": "Ziua, săptămâna sau luna următoare",
+      "new_item": "Eveniment nou sau, în Sarcini, o sarcină nouă"
     },
     "other_calendars": "Alte calendare",
     "calendar_options": "Opțiuni pentru {name}"

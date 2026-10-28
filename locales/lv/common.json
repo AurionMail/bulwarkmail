@@ -3736,7 +3736,23 @@
     "nav_open_menu": "Atvērt izvēlni",
     "toolbar": {
       "more": "Citas darbības",
-      "select_view": "Mainīt skatu, pašlaik {view}"
+      "select_view": "Mainīt skatu, pašlaik {view}",
+      "import": "Importēt kalendāru…",
+      "subscribe": "Abonēt kalendāru…"
+    },
+    "commands": {
+      "day": "Dienas skats",
+      "week": "Nedēļas skats",
+      "month": "Mēneša skats",
+      "agenda": "Darba kārtības skats",
+      "tasks": "Uzdevumu saraksts"
+    },
+    "shortcuts": {
+      "views": "Skati",
+      "actions": "Darbības",
+      "previous": "Iepriekšējā diena, nedēļa vai mēnesis",
+      "next": "Nākamā diena, nedēļa vai mēnesis",
+      "new_item": "Jauns notikums vai, sadaļā Uzdevumi, jauns uzdevums"
     },
     "other_calendars": "Citi kalendāri",
     "calendar_options": "{name} opcijas"

@@ -3736,7 +3736,23 @@
     "nav_open_menu": "Otevřít nabídku",
     "toolbar": {
       "more": "Další akce",
-      "select_view": "Změnit zobrazení, nyní {view}"
+      "select_view": "Změnit zobrazení, nyní {view}",
+      "import": "Importovat kalendář…",
+      "subscribe": "Odebírat kalendář…"
+    },
+    "commands": {
+      "day": "Denní zobrazení",
+      "week": "Týdenní zobrazení",
+      "month": "Měsíční zobrazení",
+      "agenda": "Zobrazení agendy",
+      "tasks": "Seznam úkolů"
+    },
+    "shortcuts": {
+      "views": "Zobrazení",
+      "actions": "Akce",
+      "previous": "Předchozí den, týden nebo měsíc",
+      "next": "Další den, týden nebo měsíc",
+      "new_item": "Nová událost, v Úkolech nový úkol"
     },
     "other_calendars": "Další kalendáře",
     "calendar_options": "Možnosti pro {name}"

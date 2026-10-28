@@ -3736,7 +3736,23 @@
     "nav_open_menu": "Menü öffnen",
     "toolbar": {
       "more": "Weitere Aktionen",
-      "select_view": "Ansicht wechseln, aktuell {view}"
+      "select_view": "Ansicht wechseln, aktuell {view}",
+      "import": "Kalender importieren…",
+      "subscribe": "Kalender abonnieren…"
+    },
+    "commands": {
+      "day": "Tagesansicht",
+      "week": "Wochenansicht",
+      "month": "Monatsansicht",
+      "agenda": "Agendaansicht",
+      "tasks": "Aufgabenliste"
+    },
+    "shortcuts": {
+      "views": "Ansichten",
+      "actions": "Aktionen",
+      "previous": "Zurück um einen Tag, eine Woche oder einen Monat",
+      "next": "Weiter um einen Tag, eine Woche oder einen Monat",
+      "new_item": "Neuer Termin, in Aufgaben eine neue Aufgabe"
     },
     "other_calendars": "Weitere Kalender",
     "calendar_options": "Optionen für {name}"

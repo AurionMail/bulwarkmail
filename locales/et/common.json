@@ -3736,7 +3736,23 @@
     },
     "toolbar": {
       "more": "Rohkem toiminguid",
-      "select_view": "Muuda vaadet, praegu {view}"
+      "select_view": "Muuda vaadet, praegu {view}",
+      "import": "Impordi kalender…",
+      "subscribe": "Telli kalender…"
+    },
+    "commands": {
+      "day": "Päevavaade",
+      "week": "Nädalavaade",
+      "month": "Kuuvaade",
+      "agenda": "Päevakava vaade",
+      "tasks": "Ülesannete loend"
+    },
+    "shortcuts": {
+      "views": "Vaated",
+      "actions": "Toimingud",
+      "previous": "Eelmine päev, nädal või kuu",
+      "next": "Järgmine päev, nädal või kuu",
+      "new_item": "Uus sündmus, ülesannetes uus ülesanne"
     },
     "other_calendars": "Muud kalendrid",
     "calendar_options": "Kalendri {name} valikud"

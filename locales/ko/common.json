@@ -3736,7 +3736,23 @@
     "nav_open_menu": "메뉴 열기",
     "toolbar": {
       "more": "추가 작업",
-      "select_view": "보기 변경, 현재 {view}"
+      "select_view": "보기 변경, 현재 {view}",
+      "import": "캘린더 가져오기…",
+      "subscribe": "캘린더 구독…"
+    },
+    "commands": {
+      "day": "일 보기",
+      "week": "주 보기",
+      "month": "월 보기",
+      "agenda": "일정 목록 보기",
+      "tasks": "할 일 목록"
+    },
+    "shortcuts": {
+      "views": "보기",
+      "actions": "작업",
+      "previous": "이전 일/주/월",
+      "next": "다음 일/주/월",
+      "new_item": "새 이벤트 (할 일 보기에서는 새 작업)"
     },
     "other_calendars": "다른 캘린더",
     "calendar_options": "{name} 옵션"

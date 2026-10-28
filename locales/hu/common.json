@@ -3736,7 +3736,23 @@
     },
     "toolbar": {
       "more": "További műveletek",
-      "select_view": "Nézet váltása, jelenleg {view}"
+      "select_view": "Nézet váltása, jelenleg {view}",
+      "import": "Naptár importálása…",
+      "subscribe": "Feliratkozás naptárra…"
+    },
+    "commands": {
+      "day": "Napi nézet",
+      "week": "Heti nézet",
+      "month": "Havi nézet",
+      "agenda": "Napirend nézet",
+      "tasks": "Feladatlista"
+    },
+    "shortcuts": {
+      "views": "Nézetek",
+      "actions": "Műveletek",
+      "previous": "Előző nap, hét vagy hónap",
+      "next": "Következő nap, hét vagy hónap",
+      "new_item": "Új esemény, a Feladatokban új feladat"
     },
     "other_calendars": "Egyéb naptárak",
     "calendar_options": "{name} beállításai"

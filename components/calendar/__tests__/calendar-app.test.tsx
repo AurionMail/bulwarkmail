@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Calendar, CalendarEvent } from '@/lib/jmap/types';
 import { useCalendarStore } from '@/stores/calendar-store';
@@ -27,6 +27,7 @@ vi.mock('@/hooks/use-account-principal-emails', () => ({ useAccountPrincipalEmai
 vi.mock('../participant-availability', () => ({ ParticipantAvailability: () => null }));
 
 import { CalendarApp } from '../calendar-app';
+import { useRegisteredCommandGroups } from '@/lib/command-registry';
 
 // The first render loads the whole page and is slow under load.
 vi.setConfig({ testTimeout: 30000 });
@@ -122,3 +123,28 @@ describe('CalendarApp keyboard shortcuts', () => {
   });
 });
 
+
+function PaletteGroups() {
+  const groups = useRegisteredCommandGroups();
+  return <ul data-testid="palette">{groups.flatMap((g) => g.commands.map((c) => <li key={`${g.label}:${c.id}`}><button type="button" onClick={c.run}>{`${g.label}: ${c.label}`}</button></li>))}</ul>;
+}
+
+describe('CalendarApp in the command palette', () => {
+  it('offers Calendar commands while the calendar is open', () => {
+    render(<><CalendarApp /><PaletteGroups /></>);
+    const items = screen.getByTestId('palette').textContent ?? '';
+    expect(items).toContain('calendar: events.new_event');
+    expect(items).toContain('calendar: events.go_to_today');
+    expect(items).toContain('calendar: commands.month');
+    expect(items).toContain('calendar: toolbar.import');
+    expect(items).toContain('calendar: refresh');
+    // The view on screen isn't offered again.
+    expect(items).not.toContain('calendar: commands.week');
+  });
+
+  it('runs a view command', () => {
+    render(<><CalendarApp /><PaletteGroups /></>);
+    fireEvent.click(within(screen.getByTestId('palette')).getByText('calendar: commands.day'));
+    expect(useCalendarStore.getState().viewMode).toBe('day');
+  });
+});

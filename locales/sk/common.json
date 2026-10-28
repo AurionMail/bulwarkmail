@@ -3736,7 +3736,23 @@
     },
     "toolbar": {
       "more": "Ďalšie akcie",
-      "select_view": "Zmeniť zobrazenie, teraz {view}"
+      "select_view": "Zmeniť zobrazenie, teraz {view}",
+      "import": "Importovať kalendár…",
+      "subscribe": "Odoberať kalendár…"
+    },
+    "commands": {
+      "day": "Denné zobrazenie",
+      "week": "Týždenné zobrazenie",
+      "month": "Mesačné zobrazenie",
+      "agenda": "Zobrazenie agendy",
+      "tasks": "Zoznam úloh"
+    },
+    "shortcuts": {
+      "views": "Zobrazenia",
+      "actions": "Akcie",
+      "previous": "Predchádzajúci deň, týždeň alebo mesiac",
+      "next": "Nasledujúci deň, týždeň alebo mesiac",
+      "new_item": "Nová udalosť, v Úlohách nová úloha"
     },
     "other_calendars": "Ďalšie kalendáre",
     "calendar_options": "Možnosti pre {name}"

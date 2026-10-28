@@ -3736,7 +3736,23 @@
     },
     "toolbar": {
       "more": "Més accions",
-      "select_view": "Canvia la vista, actualment {view}"
+      "select_view": "Canvia la vista, actualment {view}",
+      "import": "Importa un calendari…",
+      "subscribe": "Subscriu-te a un calendari…"
+    },
+    "commands": {
+      "day": "Vista de dia",
+      "week": "Vista de setmana",
+      "month": "Vista de mes",
+      "agenda": "Vista d'agenda",
+      "tasks": "Llista de tasques"
+    },
+    "shortcuts": {
+      "views": "Vistes",
+      "actions": "Accions",
+      "previous": "Dia, setmana o mes anterior",
+      "next": "Dia, setmana o mes següent",
+      "new_item": "Esdeveniment nou, o una tasca nova a Tasques"
     },
     "other_calendars": "Altres calendaris",
     "calendar_options": "Opcions de {name}"

@@ -3736,7 +3736,23 @@
     },
     "toolbar": {
       "more": "More actions",
-      "select_view": "Change view, currently {view}"
+      "select_view": "Change view, currently {view}",
+      "import": "Import calendar…",
+      "subscribe": "Subscribe to calendar…"
+    },
+    "commands": {
+      "day": "Day view",
+      "week": "Week view",
+      "month": "Month view",
+      "agenda": "Agenda view",
+      "tasks": "Task list"
+    },
+    "shortcuts": {
+      "views": "Views",
+      "actions": "Actions",
+      "previous": "Previous day, week or month",
+      "next": "Next day, week or month",
+      "new_item": "New event, or a task in Tasks"
     },
     "other_calendars": "Other calendars",
     "calendar_options": "Options for {name}"

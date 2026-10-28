@@ -3736,7 +3736,23 @@
     "nav_open_menu": "Menüyü aç",
     "toolbar": {
       "more": "Diğer işlemler",
-      "select_view": "Görünümü değiştir, şu an {view}"
+      "select_view": "Görünümü değiştir, şu an {view}",
+      "import": "Takvimi içe aktar…",
+      "subscribe": "Takvime abone ol…"
+    },
+    "commands": {
+      "day": "Gün görünümü",
+      "week": "Hafta görünümü",
+      "month": "Ay görünümü",
+      "agenda": "Gündem görünümü",
+      "tasks": "Görev listesi"
+    },
+    "shortcuts": {
+      "views": "Görünümler",
+      "actions": "Eylemler",
+      "previous": "Önceki gün, hafta veya ay",
+      "next": "Sonraki gün, hafta veya ay",
+      "new_item": "Yeni etkinlik, Görevler'de yeni görev"
     },
     "other_calendars": "Diğer takvimler",
     "calendar_options": "{name} seçenekleri"

@@ -3736,7 +3736,23 @@
     "nav_open_menu": "Åbn menu",
     "toolbar": {
       "more": "Flere handlinger",
-      "select_view": "Skift visning, aktuelt {view}"
+      "select_view": "Skift visning, aktuelt {view}",
+      "import": "Importér kalender…",
+      "subscribe": "Abonnér på kalender…"
+    },
+    "commands": {
+      "day": "Dagsvisning",
+      "week": "Ugevisning",
+      "month": "Månedsvisning",
+      "agenda": "Agendavisning",
+      "tasks": "Opgaveliste"
+    },
+    "shortcuts": {
+      "views": "Visninger",
+      "actions": "Handlinger",
+      "previous": "Forrige dag, uge eller måned",
+      "next": "Næste dag, uge eller måned",
+      "new_item": "Ny begivenhed, eller en ny opgave i Opgaver"
     },
     "other_calendars": "Andre kalendere",
     "calendar_options": "Indstillinger for {name}"

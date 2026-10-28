@@ -3,13 +3,13 @@
 import { useState, useEffect, useCallback, useRef, useMemo, type TouchEvent as ReactTouchEvent } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { Plus } from "@/components/icons";
+import { Plus, ListTodo, CalendarDays, Upload, Globe, RefreshCw } from "@/components/icons";
 import {
   addMonths, subMonths, addWeeks, subWeeks, addDays, subDays,
   format, parseISO,
 } from "date-fns";
 import { useCalendarStore } from "@/stores/calendar-store";
-import { isCalendarViewMode } from "@/stores/calendar-store";
+import { isCalendarViewMode, type CalendarViewMode } from "@/stores/calendar-store";
 import { useAuthStore, redirectToLogin, saveRedirectAfterLogin } from '@/stores/auth-store';
 import { useEmailStore } from "@/stores/email-store";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -99,6 +99,7 @@ import { eventToView } from "@/lib/plugin-projection";
 import { calendarShortcutAction } from "@/lib/calendar-shortcuts";
 import { isEditableEventTarget } from "@/lib/keyboard";
 import { isContextMenuOpen } from "@/components/ui/context-menu";
+import { useRegisterCommands } from "@/lib/command-registry";
 
 type PendingScopeAction =
   | { type: "edit"; event: CalendarEvent; updates: Partial<CalendarEvent>; editor?: EventEditorState; sendScheduling?: boolean }
@@ -936,19 +937,20 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
 
   // Intercept browser refresh gestures (F5, Ctrl/Cmd+R, pull-to-refresh)
   // and refresh calendar data via JMAP instead of reloading the page.
+  const refreshCalendar = useCallback(async () => {
+    if (!client) return;
+    const calendarRefresh = multiAccountEnabled && accountClients.length > 0 && activeAccountId
+      ? fetchAllAccountsCalendarsFn(accountClients, activeAccountId)
+      : fetchCalendars(client);
+    await Promise.all([
+      calendarRefresh,
+      refetchCurrentRange(),
+      refreshAllSubscriptions(client),
+    ]);
+  }, [client, multiAccountEnabled, accountClients, activeAccountId, fetchAllAccountsCalendarsFn, fetchCalendars, refetchCurrentRange, refreshAllSubscriptions]);
   const { indicator: refreshIndicator } = useRefreshGesture({
     enabled: isAuthenticated && !!client,
-    onRefresh: async () => {
-      if (!client) return;
-      const calendarRefresh = multiAccountEnabled && accountClients.length > 0 && activeAccountId
-        ? fetchAllAccountsCalendarsFn(accountClients, activeAccountId)
-        : fetchCalendars(client);
-      await Promise.all([
-        calendarRefresh,
-        refetchCurrentRange(),
-        refreshAllSubscriptions(client),
-      ]);
-    },
+    onRefresh: refreshCalendar,
   });
 
   // Changes made elsewhere (another device, another session, an invitation)
@@ -1356,6 +1358,33 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     return () => window.removeEventListener("keydown", handleKey);
   }, [navigatePrev, navigateNext, goToToday, setViewMode, openCreateModal, showEventModal, showTaskModal, detailPinned, enableCalendarTasks]);
 
+  // The command palette's Calendar group, while this calendar is the one in
+  // front (in the Pro shell: its focused tab).
+  const tCommon = useTranslations("common");
+  const paletteViews: { mode: CalendarViewMode; key: string }[] = [
+    { mode: "day", key: "d" },
+    { mode: "week", key: "w" },
+    { mode: "month", key: "m" },
+    { mode: "agenda", key: "a" },
+    { mode: "tasks", key: "k" },
+  ];
+  useRegisterCommands(tSidebar("calendar"), [
+    { id: "new-event", label: t("events.new_event"), icon: Plus, shortcut: "n", run: () => openCreateModal() },
+    { id: "new-task", label: t("events.new_task"), icon: ListTodo, run: openCreateTaskModal, when: () => enableCalendarTasks },
+    { id: "today", label: t("events.go_to_today"), icon: CalendarDays, shortcut: "t", run: goToToday, when: () => normalizedViewMode !== "tasks" },
+    ...paletteViews.map(({ mode, key }) => ({
+      id: `view-${mode}`,
+      label: t(`commands.${mode}`),
+      icon: CalendarDays,
+      shortcut: key,
+      run: () => { setMobileReturnToMonth(false); setViewMode(mode); },
+      when: () => mode !== normalizedViewMode && (mode !== "tasks" || enableCalendarTasks),
+    })),
+    { id: "import", label: t("toolbar.import"), icon: Upload, run: () => setShowImportModal(true) },
+    { id: "subscribe", label: t("toolbar.subscribe"), icon: Globe, run: () => setShowSubscriptionModal(true) },
+    { id: "refresh", label: tCommon("refresh"), icon: RefreshCw, shortcut: "F5", run: () => { void refreshCalendar(); } },
+  ], isEmbedded ? isFocusedProTab : !proInterfaceActive);
+
   const birthdayEvents = useMemo(() => {
     if (!showBirthdayCalendar || !dateRange) return [];
     return generateBirthdayEvents(contacts, dateRange.start, dateRange.end);
@@ -1669,6 +1698,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       onCreateEvent={() => openCreateModal()}
       onImport={() => setShowImportModal(true)}
       onSubscribe={() => setShowSubscriptionModal(true)}
+      onRefresh={() => { void refreshCalendar(); }}
       isMobile={isMobile}
       onNavigateBack={isMobile && mobileReturnToMonth && normalizedViewMode === "day" ? navigateBackToMonth : undefined}
       calendars={displayCalendars}

@@ -3736,7 +3736,23 @@
     "nav_open_menu": "Abrir menu",
     "toolbar": {
       "more": "Mais ações",
-      "select_view": "Mudar vista, atualmente {view}"
+      "select_view": "Mudar vista, atualmente {view}",
+      "import": "Importar calendário…",
+      "subscribe": "Assinar calendário…"
+    },
+    "commands": {
+      "day": "Vista de dia",
+      "week": "Vista de semana",
+      "month": "Vista de mês",
+      "agenda": "Vista de agenda",
+      "tasks": "Lista de tarefas"
+    },
+    "shortcuts": {
+      "views": "Visualizações",
+      "actions": "Ações",
+      "previous": "Dia, semana ou mês anterior",
+      "next": "Dia, semana ou mês seguinte",
+      "new_item": "Novo evento, ou uma nova tarefa em Tarefas"
     },
     "other_calendars": "Outros calendários",
     "calendar_options": "Opções de {name}"

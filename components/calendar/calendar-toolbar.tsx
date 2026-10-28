@@ -3,7 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Plus, Upload, CalendarDays, Globe, ChevronDown, ArrowLeft, Menu, MoreVertical } from "@/components/icons";
+import { ChevronLeft, ChevronRight, Plus, Upload, CalendarDays, Globe, ChevronDown, ArrowLeft, Menu, MoreVertical, RefreshCw } from "@/components/icons";
+import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
+import { useContextMenu } from "@/hooks/use-context-menu";
 import { startOfWeek } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { CalendarViewMode } from "@/stores/calendar-store";
@@ -23,6 +25,8 @@ interface CalendarToolbarProps {
   onCreateEvent: () => void;
   onImport?: () => void;
   onSubscribe?: () => void;
+  /** Reload calendars, events and subscriptions. */
+  onRefresh?: () => void;
   isMobile?: boolean;
   firstDayOfWeek?: number;
   onNavigateBack?: () => void;
@@ -61,6 +65,7 @@ export function CalendarToolbar({
   onCreateEvent,
   onImport,
   onSubscribe,
+  onRefresh,
   isMobile,
   firstDayOfWeek = 1,
   onNavigateBack,
@@ -73,6 +78,7 @@ export function CalendarToolbar({
   showCreateButton,
 }: CalendarToolbarProps) {
   const t = useTranslations("calendar");
+  const tCommon = useTranslations("common");
   const {
     weekStartsOn,
     formatMonthYear,
@@ -134,23 +140,40 @@ export function CalendarToolbar({
     }
   };
 
-  const [showImportDropdown, setShowImportDropdown] = useState(false);
-  const importDropdownRef = useRef<HTMLDivElement>(null);
-
+  // The ⋮ menu: what the calendar as a whole offers.
+  const {
+    contextMenu: moreMenu,
+    openContextMenuFrom: openMoreMenuFrom,
+    closeContextMenu: closeMoreMenu,
+    menuRef: moreMenuRef,
+  } = useContextMenu<true>();
+  const hasMoreMenu = !!(onImport || onSubscribe || onRefresh);
+  const pick = (fn: () => void) => () => { closeMoreMenu(); fn(); };
+  const moreButton = hasMoreMenu ? (
+    <>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className={cn(moreMenu.isOpen && "bg-accent text-accent-foreground")}
+        onClick={(e) => openMoreMenuFrom(e.currentTarget, true, "end")}
+        aria-label={t("toolbar.more")}
+        title={t("toolbar.more")}
+        aria-haspopup="menu"
+        aria-expanded={moreMenu.isOpen}
+      >
+        <MoreVertical />
+      </Button>
+      <ContextMenu ref={moreMenuRef} isOpen={moreMenu.isOpen} position={moreMenu.position} onClose={closeMoreMenu}>
+        {onImport && <ContextMenuItem icon={Upload} label={t("toolbar.import")} onClick={pick(onImport)} />}
+        {onSubscribe && <ContextMenuItem icon={Globe} label={t("toolbar.subscribe")} onClick={pick(onSubscribe)} />}
+        {onRefresh && (onImport || onSubscribe) && <ContextMenuSeparator />}
+        {onRefresh && <ContextMenuItem icon={RefreshCw} label={tCommon("refresh")} onClick={pick(onRefresh)} />}
+      </ContextMenu>
+    </>
+  ) : null;
 
   useEffect(() => {
-    if (!showImportDropdown) return;
-    function handleClickOutside(e: MouseEvent) {
-      if (importDropdownRef.current && !importDropdownRef.current.contains(e.target as Node)) {
-        setShowImportDropdown(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showImportDropdown]);
-
-  useEffect(() => {
-    if (!showViewMenu && !showImportDropdown) return;
+    if (!showViewMenu) return;
     function handleClickOutside(e: MouseEvent) {
       if (viewMenuRef.current && !viewMenuRef.current.contains(e.target as Node)) {
         setShowViewMenu(false);
@@ -159,7 +182,6 @@ export function CalendarToolbar({
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
         setShowViewMenu(false);
-        setShowImportDropdown(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -168,7 +190,7 @@ export function CalendarToolbar({
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleKey);
     };
-  }, [showViewMenu, showImportDropdown]);
+  }, [showViewMenu]);
 
 
 
@@ -391,52 +413,7 @@ export function CalendarToolbar({
 
       <div className="flex-1" />
 
-      {(onImport || onSubscribe) && (
-        <div className="relative" ref={importDropdownRef}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "h-8 w-8",
-              showImportDropdown && "bg-accent text-accent-foreground",
-            )}
-            onClick={() => setShowImportDropdown((v) => !v)}
-            aria-label={t("toolbar.more")}
-            title={t("toolbar.more")}
-            aria-haspopup="menu"
-            aria-expanded={showImportDropdown}
-          >
-            <MoreVertical className="w-4 h-4" />
-          </Button>
-          {showImportDropdown && (
-            <div
-              role="menu"
-              className="absolute top-full end-0 mt-1 z-50 bg-background border border-border rounded-lg shadow-lg p-1 min-w-[180px]"
-            >
-              {onImport && (
-                <button
-                  role="menuitem"
-                  onClick={() => { onImport(); setShowImportDropdown(false); }}
-                  className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors text-foreground"
-                >
-                  <Upload className="w-4 h-4" />
-                  {t("import.title")}
-                </button>
-              )}
-              {onSubscribe && (
-                <button
-                  role="menuitem"
-                  onClick={() => { onSubscribe(); setShowImportDropdown(false); }}
-                  className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors text-foreground"
-                >
-                  <Globe className="w-4 h-4" />
-                  {t("subscription.title")}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      {moreButton}
 
       <div className="relative ms-1" ref={viewMenuRef}>
         <Button
