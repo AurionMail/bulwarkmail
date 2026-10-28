@@ -3717,6 +3717,7 @@
       "title": "Dalībnieki",
       "add": "Pievienot dalībnieku",
       "organizer": "Organizators",
+      "organizer_role": "organizators",
       "attendee": "Dalībnieks",
       "accepted": "Pieņemts",
       "declined": "Noraidīts",

@@ -3718,6 +3718,7 @@
       "title": "Katılımcılar",
       "add": "Katılımcı ekle",
       "organizer": "Organizatör",
+      "organizer_role": "organizatör",
       "attendee": "Katılımcı",
       "accepted": "Kabul edildi",
       "declined": "Reddedildi",

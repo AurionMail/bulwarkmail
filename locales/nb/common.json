@@ -3718,6 +3718,7 @@
       "title": "Deltakere",
       "add": "Legg til deltaker",
       "organizer": "Arrangør",
+      "organizer_role": "arrangør",
       "attendee": "Deltaker",
       "accepted": "Godtatt",
       "declined": "Avslått",

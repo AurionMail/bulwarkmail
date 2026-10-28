@@ -3636,6 +3636,7 @@
       "title": "משתתפים",
       "add": "הוסף משתתף",
       "organizer": "מארגן",
+      "organizer_role": "מארגן",
       "attendee": "משתתף",
       "accepted": "התקבל",
       "declined": "נדחה",

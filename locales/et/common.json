@@ -3718,6 +3718,7 @@
       "title": "Osalejad",
       "add": "Lisa osaleja",
       "organizer": "Korraldaja",
+      "organizer_role": "korraldaja",
       "attendee": "Osaleja",
       "accepted": "Nõustunud",
       "declined": "Keeldunud",

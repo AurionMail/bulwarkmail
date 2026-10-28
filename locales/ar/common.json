@@ -3718,6 +3718,7 @@
       "title": "المشاركون",
       "add": "إضافة مشارك",
       "organizer": "المنظّم",
+      "organizer_role": "المنظّم",
       "attendee": "حاضر",
       "accepted": "مقبول",
       "declined": "مرفوض",

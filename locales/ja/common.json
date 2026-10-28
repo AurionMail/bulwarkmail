@@ -3718,6 +3718,7 @@
       "title": "参加者",
       "add": "参加者を追加",
       "organizer": "主催者",
+      "organizer_role": "主催者",
       "attendee": "参加者",
       "accepted": "承諾",
       "declined": "辞退",

@@ -3718,6 +3718,7 @@
       "title": "Résztvevők",
       "add": "Résztvevő hozzáadása",
       "organizer": "Szervező",
+      "organizer_role": "szervező",
       "attendee": "Résztvevő",
       "accepted": "Elfogadva",
       "declined": "Elutasítva",

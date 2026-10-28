@@ -1117,7 +1117,7 @@ export function EventModal({
                         <span className="truncate text-foreground" title={p.email}>
                           {p.name || p.email}
                           {p.isOrganizer && (
-                            <span className="text-muted-foreground ms-1">({t("participants.organizer").toLowerCase()})</span>
+                            <span className="text-muted-foreground ms-1">({t("participants.organizer_role")})</span>
                           )}
                         </span>
                         <ParticipantStatusBadge status={p.status} />

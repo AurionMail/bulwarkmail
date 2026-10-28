@@ -3718,6 +3718,7 @@
       "title": "Participants",
       "add": "Afegeix un participant",
       "organizer": "Organitzador",
+      "organizer_role": "organitzador",
       "attendee": "Assistent",
       "accepted": "Acceptat",
       "declined": "Rebutjat",

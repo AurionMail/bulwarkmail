@@ -3718,6 +3718,7 @@
       "title": "참석자",
       "add": "참석자 추가",
       "organizer": "주최자",
+      "organizer_role": "주최자",
       "attendee": "참석자",
       "accepted": "수락함",
       "declined": "거절함",

@@ -3718,6 +3718,7 @@
       "title": "Deltagere",
       "add": "Tilføj deltager",
       "organizer": "Arrangør",
+      "organizer_role": "arrangør",
       "attendee": "Deltager",
       "accepted": "Accepteret",
       "declined": "Afslået",

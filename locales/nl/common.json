@@ -3718,6 +3718,7 @@
       "title": "Deelnemers",
       "add": "Deelnemer toevoegen",
       "organizer": "Organisator",
+      "organizer_role": "organisator",
       "attendee": "Deelnemer",
       "accepted": "Geaccepteerd",
       "declined": "Geweigerd",

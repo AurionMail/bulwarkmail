@@ -3718,6 +3718,7 @@
       "title": "Participanți",
       "add": "Adăugați un participant",
       "organizer": "Organizator",
+      "organizer_role": "organizator",
       "attendee": "Participant",
       "accepted": "Acceptat",
       "declined": "Respins",

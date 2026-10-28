@@ -3718,6 +3718,7 @@
       "title": "參與者",
       "add": "新增參與者",
       "organizer": "主辦人",
+      "organizer_role": "主辦人",
       "attendee": "與會者",
       "accepted": "已接受",
       "declined": "已拒絕",

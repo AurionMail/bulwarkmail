@@ -3718,6 +3718,7 @@
       "title": "Participantes",
       "add": "Agregar participante",
       "organizer": "Organizador",
+      "organizer_role": "organizador",
       "attendee": "Participante",
       "accepted": "Aceptado",
       "declined": "Rechazado",

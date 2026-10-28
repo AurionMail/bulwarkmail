@@ -3718,6 +3718,7 @@
       "title": "Účastníci",
       "add": "Pridať účastníka",
       "organizer": "Organizátor",
+      "organizer_role": "organizátor",
       "attendee": "Účastník",
       "accepted": "Prijaté",
       "declined": "Odmietnuté",
