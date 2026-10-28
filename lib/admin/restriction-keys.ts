@@ -53,6 +53,7 @@ export const RESTRICTION_KEYS: readonly RestrictionKeyDef[] = [
   },
   { key: 'delegation', label: 'Delegates', description: 'Hide removes Settings > Sharing > Delegates, so users can no longer give someone access to mail, calendars and contacts in one step.', category: 'Sharing', type: 'boolean', page: 'org-sharing', modes: ['hidden'] },
   { key: 'sharingRights', label: 'Rights users can give', description: 'Untick "write" and every share dialog in Bulwark (folders, calendars, address books, files, Delegates) offers read access only.', category: 'Sharing', type: 'enum', allowedValues: ['read', 'write'], page: 'org-sharing', modes: ['allowedValues'] },
+  { key: 'deletedItemsRecovery', label: 'Recover deleted items', description: 'Hide removes Settings > Recover deleted items and its link in Trash, so users can no longer restore mail they deleted for good.', category: 'Sharing', type: 'boolean', page: 'org-sharing', modes: ['hidden'] },
 ];
 
 export function restrictionKeysForPage(page: AdminPageId): RestrictionKeyDef[] {

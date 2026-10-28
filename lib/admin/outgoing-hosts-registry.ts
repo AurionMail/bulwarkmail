@@ -145,7 +145,7 @@ export const OUTGOING_HOSTS: readonly OutgoingHost[] = [
  * has to be looked at again.
  */
 export const NON_REQUEST_HOSTS: readonly { host: string; files: readonly string[]; why: string }[] = [
-  { host: 'bulwarkmail.org', why: 'docs links and comments', files: ['app/(main)/admin/_pages/telemetry.tsx', 'instrumentation.node.ts', 'lib/telemetry/state.ts', 'lib/telemetry/types.ts'] },
+  { host: 'bulwarkmail.org', why: 'docs links and comments', files: ['app/(main)/admin/_pages/telemetry.tsx', 'components/admin/org/sections/recovery-section.tsx', 'instrumentation.node.ts', 'lib/telemetry/state.ts', 'lib/telemetry/types.ts'] },
   { host: 'bulwarkmail.com', why: 'JMAP capability URI', files: ['lib/jmap/client.ts'] },
   { host: 'extensions.bulwarkmail.org', why: 'signed statement type URIs', files: ['lib/admin/directory-keys.ts'] },
   { host: 'www.w3.org', why: 'XML namespaces', files: ['app/(main)/setup/page.tsx', 'components/ui/flag-icons.tsx', 'lib/favicon-badge.ts'] },
