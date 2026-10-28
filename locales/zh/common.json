@@ -1350,6 +1350,8 @@
       "id_exists": "此标签ID已存在",
       "edit": "编辑标签",
       "delete": "删除标签",
+      "edit_tag": "编辑 {name}",
+      "delete_tag": "删除 {name}",
       "deleted": "标签已删除",
       "save": "保存",
       "add": "添加",

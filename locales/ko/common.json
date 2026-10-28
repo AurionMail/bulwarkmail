@@ -1350,6 +1350,8 @@
       "id_exists": "이 태그 ID는 이미 존재합니다",
       "edit": "태그 편집",
       "delete": "태그 삭제",
+      "edit_tag": "{name} 편집",
+      "delete_tag": "{name} 삭제",
       "deleted": "태그가 삭제되었어요",
       "save": "저장",
       "add": "추가",

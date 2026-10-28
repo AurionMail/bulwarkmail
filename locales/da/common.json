@@ -1353,6 +1353,8 @@
       "id_exists": "Dette tag-ID findes allerede",
       "edit": "Redigér tag",
       "delete": "Slet tag",
+      "edit_tag": "Rediger {name}",
+      "delete_tag": "Slet {name}",
       "deleted": "Tag slettet",
       "save": "Gem",
       "add": "Tilføj",

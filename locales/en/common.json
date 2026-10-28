@@ -1353,6 +1353,8 @@
       "id_exists": "This tag ID already exists",
       "edit": "Edit tag",
       "delete": "Delete tag",
+      "edit_tag": "Edit {name}",
+      "delete_tag": "Delete {name}",
       "deleted": "Tag deleted",
       "save": "Save",
       "add": "Add",

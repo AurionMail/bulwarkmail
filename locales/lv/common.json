@@ -1350,6 +1350,8 @@
       "id_exists": "Šāds taga identifikators jau pastāv",
       "edit": "Rediģēt tagu",
       "delete": "Dzēst tagu",
+      "edit_tag": "Rediģēt {name}",
+      "delete_tag": "Dzēst {name}",
       "deleted": "Tags izdzēsts",
       "save": "Saglabāt",
       "add": "Pievienot",

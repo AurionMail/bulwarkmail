@@ -1350,6 +1350,8 @@
       "id_exists": "Ten ID etykiety już istnieje",
       "edit": "Edytuj etykietę",
       "delete": "Usuń etykietę",
+      "edit_tag": "Edytuj {name}",
+      "delete_tag": "Usuń {name}",
       "deleted": "Etykieta usunięta",
       "save": "Zapisz",
       "add": "Dodaj",

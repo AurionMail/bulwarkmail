@@ -1353,6 +1353,8 @@
       "id_exists": "See sildi ID on juba kasutusel",
       "edit": "Muuda silti",
       "delete": "Kustuta silt",
+      "edit_tag": "Muuda {name}",
+      "delete_tag": "Kustuta {name}",
       "deleted": "Silt kustutatud",
       "save": "Salvesta",
       "add": "Lisa",

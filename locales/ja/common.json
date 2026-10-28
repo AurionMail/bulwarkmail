@@ -1350,6 +1350,8 @@
       "id_exists": "このラベルIDは既に存在します",
       "edit": "ラベルを編集",
       "delete": "ラベルを削除",
+      "edit_tag": "{name} を編集",
+      "delete_tag": "{name} を削除",
       "deleted": "ラベルを削除しました",
       "save": "保存",
       "add": "追加",

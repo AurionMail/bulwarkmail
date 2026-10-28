@@ -1353,6 +1353,8 @@
       "id_exists": "Toto ID štítku už existuje",
       "edit": "Upraviť štítok",
       "delete": "Odstrániť štítok",
+      "edit_tag": "Upraviť {name}",
+      "delete_tag": "Zmazať {name}",
       "deleted": "Štítok bol odstránený",
       "save": "Uložiť",
       "add": "Pridať",

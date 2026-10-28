@@ -1350,6 +1350,8 @@
       "id_exists": "Deze label-ID bestaat al",
       "edit": "Label bewerken",
       "delete": "Label verwijderen",
+      "edit_tag": "{name} bewerken",
+      "delete_tag": "{name} verwijderen",
       "deleted": "Label verwijderd",
       "save": "Opslaan",
       "add": "Toevoegen",

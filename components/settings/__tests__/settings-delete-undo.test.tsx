@@ -45,7 +45,8 @@ describe('deleting a tag', () => {
     render(<KeywordSettings />);
     const second = DEFAULT_KEYWORDS[1];
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'delete' })[1]);
+    // Each Delete is named after its tag (the mocked t returns the key).
+    fireEvent.click(screen.getAllByRole('button', { name: 'delete_tag' })[1]);
 
     expect(useSettingsStore.getState().emailKeywords.map((k) => k.id)).not.toContain(second.id);
     expect(screen.queryByRole('alertdialog')).toBeNull();

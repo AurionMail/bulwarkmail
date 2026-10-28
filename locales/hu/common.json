@@ -1353,6 +1353,8 @@
       "id_exists": "Ez a címke azonosító már létezik",
       "edit": "Címke szerkesztése",
       "delete": "Címke törlése",
+      "edit_tag": "{name} szerkesztése",
+      "delete_tag": "{name} törlése",
       "deleted": "Címke törölve",
       "save": "Mentés",
       "add": "Hozzáadás",

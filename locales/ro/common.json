@@ -1353,6 +1353,8 @@
       "id_exists": "Această etichetă ID există deja",
       "edit": "Editați eticheta",
       "delete": "Șterge eticheta",
+      "edit_tag": "Editați {name}",
+      "delete_tag": "Ștergeți {name}",
       "deleted": "Eticheta a fost ștearsă",
       "save": "Salvare",
       "add": "Adăugați",

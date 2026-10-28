@@ -1350,6 +1350,8 @@
       "id_exists": "Bu etiket kimliği zaten mevcut",
       "edit": "Etiketi düzenle",
       "delete": "Etiketi sil",
+      "edit_tag": "{name} düzenle",
+      "delete_tag": "{name} sil",
       "deleted": "Etiket silindi",
       "save": "Kaydet",
       "add": "Ekle",

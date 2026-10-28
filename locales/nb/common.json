@@ -1353,6 +1353,8 @@
       "id_exists": "Denne etikett-ID-en finnes allerede",
       "edit": "Rediger etikett",
       "delete": "Slett etikett",
+      "edit_tag": "Rediger {name}",
+      "delete_tag": "Slett {name}",
       "deleted": "Etikett slettet",
       "save": "Lagre",
       "add": "Legg til",

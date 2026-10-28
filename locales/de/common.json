@@ -1350,6 +1350,8 @@
       "id_exists": "Diese Label-ID existiert bereits",
       "edit": "Label bearbeiten",
       "delete": "Label löschen",
+      "edit_tag": "{name} bearbeiten",
+      "delete_tag": "{name} löschen",
       "deleted": "Label gelöscht",
       "save": "Speichern",
       "add": "Hinzufügen",
