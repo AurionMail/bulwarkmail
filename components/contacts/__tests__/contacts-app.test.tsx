@@ -167,4 +167,16 @@ describe('ContactsApp', () => {
     await act(async () => { toastState.action!.onClick(); });
     await waitFor(() => expect(useContactStore.getState().contacts.find((c) => c.id === 'c-alice')?.keywords?.Friends).toBe(true));
   });
+
+  it('has a create button on the phone, as Mail and Files do', () => {
+    const matchMedia = window.matchMedia;
+    window.matchMedia = ((query: string) => ({ ...matchMedia(query), matches: query.includes('max-width') })) as typeof window.matchMedia;
+    try {
+      renderContacts();
+      fireEvent.click(screen.getByRole('button', { name: 'create_new' }));
+      expect(screen.getByPlaceholderText('middle_name')).toBeInTheDocument();
+    } finally {
+      window.matchMedia = matchMedia;
+    }
+  });
 });

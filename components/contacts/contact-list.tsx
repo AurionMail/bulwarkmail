@@ -154,7 +154,9 @@ export function ContactList({
   const groupByLetter = useSettingsStore((state) => state.groupContactsByLetter);
   const sortByLastName = useSettingsStore((state) => state.sortContactsByLastName);
   const updateSetting = useSettingsStore((state) => state.updateSetting);
-  const { contextMenu, openContextMenu, closeContextMenu, menuRef } = useContextMenu<ContactCard>();
+  const { contextMenu, openContextMenu, openContextMenuFrom, closeContextMenu, menuRef } = useContextMenu<ContactCard>();
+  // Opened by a long-press: the menu also offers Select, as touch has no Ctrl+click.
+  const [menuByTouch, setMenuByTouch] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<ListFilters>(EMPTY_FILTERS);
   const activeFilters = countActiveFilters(filters);
@@ -715,7 +717,8 @@ export function ContactList({
                   e.stopPropagation();
                   onToggleSelection(contact.id);
                 }}
-                onContextMenu={(e, c) => openContextMenu(e, c)}
+                onContextMenu={(e, c) => { setMenuByTouch(false); openContextMenu(e, c); }}
+                onLongPress={(row) => { setMenuByTouch(true); openContextMenuFrom(row, contact); }}
               />
             );
             return groupByLetter ? (
@@ -746,6 +749,7 @@ export function ContactList({
           isMultiSelect={selectedContactIds.has(contextMenu.data.id)}
           selectedCount={selectedContactIds.size}
           onOpen={() => onSelectContact(contextMenu.data!.id)}
+          onSelect={menuByTouch ? () => onToggleSelection(contextMenu.data!.id) : undefined}
           onEdit={() => onEditContact(contextMenu.data!.id)}
           onDelete={() => onDeleteContact(contextMenu.data!)}
           onAddToGroup={() => onAddContactToGroup(contextMenu.data!.id)}

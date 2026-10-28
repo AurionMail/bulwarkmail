@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, type DragEvent } from "react";
+import { useCallback, useRef, type DragEvent } from "react";
+import { useLongPress } from "@/hooks/use-long-press";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { ContactCard } from "@/lib/jmap/types";
@@ -21,9 +22,15 @@ interface ContactListItemProps {
   /** The keyboard cursor: the row that takes Tab and shows a focus ring. */
   isFocused?: boolean;
   onFocus?: () => void;
+  /** Long-press on touch: the row's menu, as right-click does (R7). */
+  onLongPress?: (row: HTMLElement) => void;
 }
 
-export function ContactListItem({ contact, isSelected, isChecked, hasSelection, density, selectedContactIds, onClick, onCheckboxClick, onContextMenu, isFocused = false, onFocus }: ContactListItemProps) {
+export function ContactListItem({ contact, isSelected, isChecked, hasSelection, density, selectedContactIds, onClick, onCheckboxClick, onContextMenu, isFocused = false, onFocus, onLongPress }: ContactListItemProps) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const longPress = useLongPress(() => {
+    if (rowRef.current) onLongPress?.(rowRef.current);
+  }, !!onLongPress);
   const name = getContactDisplayName(contact);
   const email = getContactPrimaryEmail(contact);
   const org = contact.organizations
@@ -57,6 +64,8 @@ export function ContactListItem({ contact, isSelected, isChecked, hasSelection, 
 
   return (
     <div
+      ref={rowRef}
+      {...(onLongPress ? longPress : {})}
       role="option"
       aria-selected={isSelected || isChecked}
       tabIndex={isFocused ? 0 : -1}

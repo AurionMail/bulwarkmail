@@ -19,6 +19,7 @@ import {
   Copy,
   Printer,
   FolderInput,
+  CheckSquare,
 } from "@/components/icons";
 import type { ContactCard } from "@/lib/jmap/types";
 import { getContactPrimaryEmail } from "@/stores/contact-store";
@@ -45,6 +46,8 @@ interface ContactContextMenuProps {
   isMultiSelect?: boolean;
   selectedCount?: number;
   onOpen: () => void;
+  /** Touch: start selecting with this contact (there is no Ctrl+click). */
+  onSelect?: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onAddToGroup: () => void;
@@ -68,6 +71,7 @@ export function ContactContextMenu({
   isMultiSelect = false,
   selectedCount = 1,
   onOpen,
+  onSelect,
   onEdit,
   onDelete,
   onAddToGroup,
@@ -151,6 +155,7 @@ export function ContactContextMenu({
   return (
     <ContextMenu ref={menuRef} isOpen={isOpen} position={position} onClose={onClose}>
       <ContextMenuItem icon={Eye} label={t("context_menu.open")} onClick={handle(onOpen)} />
+      {onSelect && <ContextMenuItem icon={CheckSquare} label={t("filters.select")} onClick={handle(onSelect)} />}
       <ContextMenuItem icon={Pencil} label={t("context_menu.edit")} onClick={handle(onEdit)} />
       {(email || phone) && <ContextMenuSeparator />}
       {email && onCompose && (

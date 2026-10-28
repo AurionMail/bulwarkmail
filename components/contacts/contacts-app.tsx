@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useCallback, useRef, useMemo } from "rea
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
-import { ArrowLeft, Users, UsersRound, AlertTriangle } from "@/components/icons";
+import { ArrowLeft, Users, UsersRound, AlertTriangle, Plus } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
@@ -1213,7 +1213,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
               <div
                 data-tour="contacts-list"
                 className={cn(
-                  "border-e border-border bg-background flex flex-col flex-shrink-0",
+                  "relative border-e border-border bg-background flex flex-col flex-shrink-0",
                   isMobile ? "w-full" : "",
                   !isListResizing && !isMobile && "transition-[width] duration-300"
                 )}
@@ -1272,6 +1272,18 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                   onMenuClick={isNarrow ? () => setNarrowSidebarOpen(true) : undefined}
                   isLoading={supportsSync && !contactsLoaded}
                 />
+                )}
+                {/* The phone's create button, as in Mail and Files (R7). */}
+                {isMobile && activeCategory !== "directory" && selectedContactIds.size === 0 && (
+                  <Button
+                    size="icon-lg"
+                    className="absolute bottom-4 end-4 z-20 rounded-full shadow-lg"
+                    aria-label={t("create_new")}
+                    title={t("create_new")}
+                    onClick={guard(handleCreateNew)}
+                  >
+                    <Plus className="w-5 h-5" />
+                  </Button>
                 )}
               </div>
 

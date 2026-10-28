@@ -237,4 +237,21 @@ describe('ContactList', () => {
     fireEvent.keyDown(document.body, { key: '/' });
     expect(document.activeElement).toBe(screen.getByPlaceholderText('search_placeholder'));
   });
+
+  it("opens a contact's menu on long-press, with Select to start selecting", () => {
+    vi.useFakeTimers();
+    try {
+      const onToggleSelection = vi.fn();
+      render(<ContactList {...defaultProps} onToggleSelection={onToggleSelection} />);
+      const row = screen.getAllByRole('option')[0];
+      const touchStart = new Event('touchstart', { bubbles: true });
+      Object.defineProperty(touchStart, 'touches', { value: [{ clientX: 5, clientY: 5 }] });
+      act(() => { row.dispatchEvent(touchStart); });
+      act(() => { vi.advanceTimersByTime(600); });
+      fireEvent.click(screen.getByText('filters.select'));
+      expect(onToggleSelection).toHaveBeenCalledWith('1');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
