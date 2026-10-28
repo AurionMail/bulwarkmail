@@ -127,6 +127,11 @@ describe('DelegateDialog', () => {
     return screen.findByRole('dialog');
   }
 
+  it('starts in the search field', async () => {
+    const dialog = await openDialog(makeClient());
+    await waitFor(() => expect(within(dialog).getByRole('textbox')).toHaveFocus());
+  });
+
   it('says why only known people are listed when directory queries are off', async () => {
     const dialog = await openDialog(makeClient());
     expect(within(dialog).getByTestId('delegate-directory-off')).toHaveTextContent('directory_off_note');

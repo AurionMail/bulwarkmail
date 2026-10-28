@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -75,6 +75,12 @@ export function DelegateDialog({
   const [failures, setFailures] = useState<ShareChangeResult[] | null>(null);
 
   const dialogRef = useFocusTrap({ isActive: true, onEscape: () => { if (!saving) onClose(); }, restoreFocus: true });
+  // The trap focuses the first control, the close button; picking a person
+  // starts in the search field. Declared after the trap, so it runs after it.
+  const searchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    searchRef.current?.focus();
+  }, []);
 
   const has = (kind: ShareTarget["kind"]) => targets.some((target) => target.kind === kind);
   const directoryOff = directory?.status === "restricted" && !!directory.directoryQueriesOff;
@@ -201,7 +207,7 @@ export function DelegateDialog({
                     placeholder={t("search_placeholder")}
                     aria-label={t("person")}
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                    autoFocus
+                    ref={searchRef}
                   />
                   {directory === null ? (
                     <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />{t("loading")}</p>
