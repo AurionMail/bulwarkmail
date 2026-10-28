@@ -28,6 +28,8 @@ interface SearchBoxProps {
   autoFocus?: boolean;
   /** Overrides the default placeholder, which carries the `/` shortcut hint. */
   placeholder?: string;
+  /** A control at the end of the field, after the clear button (the filter toggle). */
+  trailing?: React.ReactNode;
 }
 
 /**
@@ -37,7 +39,7 @@ interface SearchBoxProps {
  * reuses the composer's contact autocomplete lookup so directory principals,
  * address-book contacts and recent recipients all surface here too.
  */
-export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact, disabled = false, title, autoFocus, placeholder }: SearchBoxProps) {
+export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact, disabled = false, title, autoFocus, placeholder, trailing }: SearchBoxProps) {
   const t = useTranslations("sidebar");
   // "(press /)" only where there is a keyboard to press it on (R8).
   const touch = useMediaQuery("(pointer: coarse)");
@@ -138,7 +140,7 @@ export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact,
             onClear();
           }
         }}
-        className="relative"
+        className="relative group/search"
       >
         <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         {/* type="search": Bitwarden skips search fields unconditionally (it
@@ -169,7 +171,10 @@ export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact,
             close();
           }}
           onKeyDown={handleKeyDown}
-          className={cn("peer ps-9 h-9 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none", draft ? "pe-8" : !touch && "pe-8")}
+          className={cn(
+            "ps-9 h-9 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none",
+            trailing ? (draft || !touch ? "pe-16" : "pe-9") : (draft || !touch) && "pe-8",
+          )}
           role="combobox"
           aria-expanded={showDropdown}
           aria-controls={listId}
@@ -181,28 +186,34 @@ export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact,
           disabled={disabled}
           title={title}
         />
-        {!draft && !touch && (
-          <kbd
-            aria-hidden="true"
-            className="pointer-events-none absolute end-2 top-1/2 -translate-y-1/2 rounded border border-border px-1.5 font-sans text-[11px] leading-4 text-muted-foreground peer-focus:hidden"
-          >
-            /
-          </kbd>
-        )}
-        {draft && (
-          <button
-            type="button"
-            onClick={() => {
-              setDraft("");
-              close();
-              onClear();
-            }}
-            className={cn("absolute end-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors", TOUCH_HIT_AREA)}
-            aria-label={t("clear_search")}
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
+        <div className="absolute end-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+          {!draft && !touch && (
+            <kbd
+              aria-hidden="true"
+              className="pointer-events-none mx-1 rounded border border-border px-1.5 font-sans text-[11px] leading-4 text-muted-foreground group-focus-within/search:invisible"
+            >
+              /
+            </kbd>
+          )}
+          {draft && (
+            <button
+              type="button"
+              onClick={() => {
+                setDraft("");
+                close();
+                onClear();
+              }}
+              // The wrapper places it: the hit area's `relative` used to beat
+              // the button's own `absolute` and push it under the field.
+              className={cn("p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors", TOUCH_HIT_AREA)}
+              aria-label={t("clear_search")}
+              data-testid="search-clear"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+          {trailing}
+        </div>
       </form>
       {showDropdown && (
         <SearchSuggestions

@@ -82,7 +82,7 @@ import {
 } from "@/components/error";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ScheduleSendDialog } from "@/components/email/schedule-send-dialog";
-import { MailSortMenu, MailFolderMenu, MailFolderMenuItems } from "@/components/email/mail-list-menus";
+import { MailFolderMenu, MailFolderMenuItems } from "@/components/email/mail-list-menus";
 import { ContextMenuItem } from "@/components/ui/context-menu";
 import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { DragDropProvider } from "@/contexts/drag-drop-context";
@@ -5057,46 +5057,38 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     }}
                     disabled={isScheduledView}
                     title={isScheduledView ? t('email_viewer.scheduled_actions_only') : undefined}
+                    trailing={
+                      <button
+                        type="button"
+                        onClick={toggleAdvancedSearch}
+                        disabled={isScheduledView}
+                        className={cn(
+                          "relative p-1.5 rounded-md transition-colors",
+                          isScheduledView && "opacity-50 cursor-not-allowed",
+                          isAdvancedSearchOpen || activeFilterCount(searchFilters) > 0
+                            ? "bg-primary/10 text-primary"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                        title={isScheduledView ? t('email_viewer.scheduled_actions_only') : t("advanced_search.toggle_filters")}
+                        aria-label={t("advanced_search.toggle_filters")}
+                        aria-pressed={isAdvancedSearchOpen}
+                      >
+                        <Filter className="w-4 h-4" />
+                        {!isAdvancedSearchOpen && activeFilterCount(searchFilters) > 0 && (
+                          <span className="absolute -top-1 -end-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
+                            {activeFilterCount(searchFilters)}
+                          </span>
+                        )}
+                      </button>
+                    }
                   />
-                  <button
-                    type="button"
-                    onClick={toggleAdvancedSearch}
-                    disabled={isScheduledView}
-                    className={cn(
-                      "relative flex-shrink-0 p-2 rounded-md transition-colors",
-                      isScheduledView && "opacity-50 cursor-not-allowed",
-                      isAdvancedSearchOpen || activeFilterCount(searchFilters) > 0
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                    )}
-                    title={isScheduledView ? t('email_viewer.scheduled_actions_only') : t("advanced_search.toggle_filters")}
-                  >
-                    <Filter className="w-4 h-4" />
-                    {!isAdvancedSearchOpen && activeFilterCount(searchFilters) > 0 && (
-                      <span className="absolute -top-1 -end-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
-                        {activeFilterCount(searchFilters)}
-                      </span>
-                    )}
-                  </button>
-                  <MailSortMenu folderRole={conversationRole} disabled={isScheduledView} className="flex-shrink-0 text-muted-foreground" />
-                  <button
-                    type="button"
-                    onClick={handleManualRefresh}
-                    disabled={!client || isManualRefreshing}
-                    className={cn(
-                      "flex-shrink-0 p-2 rounded-md transition-colors",
-                      "text-muted-foreground hover:text-foreground hover:bg-muted",
-                      (!client || isManualRefreshing) && "opacity-50 cursor-not-allowed"
-                    )}
-                    title={tCommon("refresh")}
-                    aria-label={tCommon("refresh")}
-                  >
-                    <RefreshCw className={cn("w-4 h-4", isManualRefreshing && "animate-spin [animation-direction:reverse]")} />
-                  </button>
                   {/* The folder's actions, as the Mountain View list ⋮ has them. */}
                   <MailFolderMenu
                     disabled={isScheduledView}
                     className="flex-shrink-0 text-muted-foreground"
+                    folderRole={conversationRole}
+                    onRefresh={handleManualRefresh}
+                    refreshDisabled={!client || isManualRefreshing}
                     onMarkFolderRead={selectedMailbox ? folderMenuMarkRead : undefined}
                     onMarkAllFoldersRead={folderMenuMarkAllRead}
                     onEmptyFolder={folderIsEmptyable && selectedMailbox ? folderMenuEmpty : undefined}

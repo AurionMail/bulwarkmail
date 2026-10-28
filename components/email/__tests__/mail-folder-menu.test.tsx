@@ -29,6 +29,15 @@ describe('list header ⋮', () => {
     fireEvent.click(screen.getByText('mark_folder_read'));
     expect(onMarkFolderRead).toHaveBeenCalledTimes(1);
   });
+  it('carries Refresh and Sort, which have no buttons of their own', () => {
+    const onRefresh = vi.fn();
+    render(<MailFolderMenu folderRole="inbox" onRefresh={onRefresh} onMarkAllFoldersRead={vi.fn()} />);
+    fireEvent.click(screen.getByTestId('mail-folder-menu'));
+    expect(screen.getByTestId('mail-sort')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('mail-refresh'));
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
 });
 
 describe('phone header ⋮', () => {

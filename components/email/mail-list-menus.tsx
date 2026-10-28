@@ -2,9 +2,9 @@
 
 import { memo } from "react";
 import { useTranslations } from "next-intl";
-import { ArrowUpDown, Check, CheckCheck, FolderX, MailOpen, MoreVertical } from "@/components/icons";
+import { ArrowUpDown, Check, CheckCheck, FolderX, MailOpen, MoreVertical, RefreshCw } from "@/components/icons";
 import { IconButton } from "@/components/ui/icon-button";
-import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
+import { ContextMenu, ContextMenuItem, ContextMenuSeparator, ContextMenuSubMenu } from "@/components/ui/context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { useSettingsStore, getMessageListOrderFor } from "@/stores/settings-store";
 import { usePolicyStore } from "@/stores/policy-store";
@@ -61,10 +61,12 @@ export function applySortChoice(key: SortChoiceKey, folderRole: string | null | 
   if (client && store.selectedMailbox) void store.fetchEmails(client, store.selectedMailbox, { background: true });
 }
 
-/** The list header's Sort button (MAIL-30), like the one in Files. */
-export const MailSortMenu = memo(function MailSortMenu({ folderRole, disabled, className }: { folderRole: string | null | undefined; disabled?: boolean; className?: string }) {
+/**
+ * The Sort entries (MAIL-30), as a submenu of the list header's ⋮. Nothing
+ * when policy hides the order setting.
+ */
+export function MailSortSubMenu({ folderRole, onPicked }: { folderRole: string | null | undefined; onPicked: () => void }) {
   const t = useTranslations("email_list.sort");
-  const menu = useContextMenu<null>();
   const hidden = usePolicyStore((s) => s.isSettingHidden("messageListOrder"));
   const locked = usePolicyStore((s) => s.isSettingLocked("messageListOrder"));
   // Re-render when the order changes elsewhere (Settings, another device).
@@ -79,45 +81,28 @@ export const MailSortMenu = memo(function MailSortMenu({ folderRole, disabled, c
   const keywordSort = sortOptions === null || sortOptions.includes("hasKeyword");
 
   return (
-    <>
-      <IconButton
-        label={t("title")}
-        aria-haspopup="menu"
-        aria-expanded={menu.contextMenu.isOpen}
-        disabled={disabled || locked}
-        className={cn(menu.contextMenu.isOpen && "bg-accent", className)}
-        data-testid="mail-sort"
-        onMouseDown={(e) => { if (menu.contextMenu.isOpen) e.stopPropagation(); }}
-        onClick={(e) => {
-          if (menu.contextMenu.isOpen) menu.closeContextMenu();
-          else menu.openContextMenuFrom(e.currentTarget, null, "end");
-        }}
-      >
-        <ArrowUpDown />
-      </IconButton>
-      <ContextMenu ref={menu.menuRef} isOpen={menu.contextMenu.isOpen} position={menu.contextMenu.position} onClose={menu.closeContextMenu}>
-        {SORT_CHOICES.filter((choice) => keywordSort || !("keyword" in choice)).map((choice) => (
-          <SortItem
-            key={choice.key}
-            label={t(choice.key)}
-            checked={current === choice.key}
-            testId={`mail-sort-${choice.key}`}
-            onClick={() => {
-              menu.closeContextMenu();
-              applySortChoice(choice.key, folderRole);
-            }}
-          />
-        ))}
-        {current === null && (
-          <>
-            <ContextMenuSeparator />
-            <SortItem label={t("custom")} checked onClick={menu.closeContextMenu} />
-          </>
-        )}
-      </ContextMenu>
-    </>
+    <ContextMenuSubMenu icon={ArrowUpDown} label={t("title")} disabled={locked} testId="mail-sort">
+      {SORT_CHOICES.filter((choice) => keywordSort || !("keyword" in choice)).map((choice) => (
+        <SortItem
+          key={choice.key}
+          label={t(choice.key)}
+          checked={current === choice.key}
+          testId={`mail-sort-${choice.key}`}
+          onClick={() => {
+            onPicked();
+            applySortChoice(choice.key, folderRole);
+          }}
+        />
+      ))}
+      {current === null && (
+        <>
+          <ContextMenuSeparator />
+          <SortItem label={t("custom")} checked onClick={onPicked} />
+        </>
+      )}
+    </ContextMenuSubMenu>
   );
-});
+}
 
 /** A checkable entry of the Sort menu, as in Files'. */
 function SortItem({ label, checked, onClick, testId }: { label: string; checked: boolean; onClick: () => void; testId?: string }) {
@@ -139,16 +124,24 @@ function SortItem({ label, checked, onClick, testId }: { label: string; checked:
 }
 
 /**
- * The list header's ⋮: what the Mountain View list ⋮ offers for the folder
- * (MAIL-29). On the phone the same entries sit in the header's ⋮.
+ * The list header's ⋮: Refresh, Sort and what the Mountain View list ⋮
+ * offers for the folder (MAIL-29). On the phone the folder entries sit in
+ * the header's ⋮.
  */
 export const MailFolderMenu = memo(function MailFolderMenu({
+  folderRole,
+  onRefresh,
+  refreshDisabled,
   onMarkFolderRead,
   onMarkAllFoldersRead,
   onEmptyFolder,
   disabled,
   className,
 }: {
+  /** The open folder's role, for the order the Sort submenu checks. */
+  folderRole?: string | null;
+  onRefresh?: () => void;
+  refreshDisabled?: boolean;
   onMarkFolderRead?: () => void;
   onMarkAllFoldersRead?: () => void;
   /** Only where emptying is the usual thing to do: Spam and Trash. */
@@ -157,6 +150,7 @@ export const MailFolderMenu = memo(function MailFolderMenu({
   className?: string;
 }) {
   const t = useTranslations("email_list");
+  const tCommon = useTranslations("common");
   const menu = useContextMenu<null>();
   return (
     <>
@@ -176,6 +170,17 @@ export const MailFolderMenu = memo(function MailFolderMenu({
         <MoreVertical />
       </IconButton>
       <ContextMenu ref={menu.menuRef} isOpen={menu.contextMenu.isOpen} position={menu.contextMenu.position} onClose={menu.closeContextMenu}>
+        {onRefresh && (
+          <ContextMenuItem
+            icon={RefreshCw}
+            label={tCommon("refresh")}
+            disabled={refreshDisabled}
+            testId="mail-refresh"
+            onClick={() => { menu.closeContextMenu(); onRefresh(); }}
+          />
+        )}
+        <MailSortSubMenu folderRole={folderRole} onPicked={menu.closeContextMenu} />
+        <ContextMenuSeparator />
         <MailFolderMenuItems
           onMarkFolderRead={onMarkFolderRead}
           onMarkAllFoldersRead={onMarkAllFoldersRead}

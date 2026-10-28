@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useEmailStore } from '@/stores/email-store';
-import { MailSortMenu, sortChoiceFor } from '../mail-list-menus';
+import { MailFolderMenu, sortChoiceFor } from '../mail-list-menus';
 
-// The mail list's Sort menu writes the "Message list order" setting, like the
+// The mail list's Sort submenu (in the list header's ⋮) writes the "Message list order" setting, like the
 // Files header's sort menu writes its own.
 
 const fetchEmails = vi.fn().mockResolvedValue(undefined);
@@ -17,17 +17,21 @@ beforeEach(() => {
   useEmailStore.setState({ selectedMailbox: 'sent', fetchEmails } as never);
 });
 
+function openSort(folderRole: string) {
+  render(<MailFolderMenu folderRole={folderRole} onMarkAllFoldersRead={vi.fn()} />);
+  fireEvent.click(screen.getByTestId('mail-folder-menu'));
+  fireEvent.click(screen.getByTestId('mail-sort'));
+}
+
 describe('mail list Sort menu', () => {
   it('checks the current order', () => {
-    render(<MailSortMenu folderRole="inbox" />);
-    fireEvent.click(screen.getByTestId('mail-sort'));
+    openSort('inbox');
     expect(screen.getByTestId('mail-sort-newest').getAttribute('aria-checked')).toBe('true');
     expect(screen.getByTestId('mail-sort-oldest').getAttribute('aria-checked')).toBe('false');
   });
 
   it('writes the setting, makes it reach this folder, and reloads the list', () => {
-    render(<MailSortMenu folderRole="sent" />);
-    fireEvent.click(screen.getByTestId('mail-sort'));
+    openSort('sent');
     fireEvent.click(screen.getByTestId('mail-sort-oldest'));
     const { messageListOrder, messageListOrderScope } = useSettingsStore.getState();
     expect(messageListOrder).toEqual([{ criterion: 'receivedAt', direction: 'asc' }]);
@@ -38,8 +42,7 @@ describe('mail list Sort menu', () => {
 
   it('leaves out read state and stars when the server cannot order by them', () => {
     useAuthStore.setState({ client: { getEmailQuerySortOptions: () => ['receivedAt', 'from'] } } as never);
-    render(<MailSortMenu folderRole="inbox" />);
-    fireEvent.click(screen.getByTestId('mail-sort'));
+    openSort('inbox');
     expect(screen.queryByTestId('mail-sort-unread')).toBeNull();
     expect(screen.getByTestId('mail-sort-sender')).toBeTruthy();
   });

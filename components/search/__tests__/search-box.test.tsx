@@ -283,3 +283,19 @@ describe('SearchBox shortcut hint', () => {
     expect(container.querySelector('kbd')).toBeNull();
   });
 });
+
+describe('SearchBox end controls', () => {
+  it('keeps the clear button inside the field, where the wrapper places it', () => {
+    render(<SearchBox value="test" onChange={() => {}} onSubmit={() => {}} onClear={() => {}} onSelectContact={() => {}} />);
+    const clear = screen.getByTestId('search-clear');
+    // The touch hit area's `relative` once overrode the button's `absolute`,
+    // dropping it under the input and stretching the field.
+    expect(clear.className.split(/\s+/)).not.toContain('absolute');
+    expect(clear.closest('.absolute')?.closest('form')).toBeTruthy();
+  });
+
+  it('shows the trailing control next to the clear button', () => {
+    render(<SearchBox value="test" onChange={() => {}} onSubmit={() => {}} onClear={() => {}} onSelectContact={() => {}} trailing={<button>filters</button>} />);
+    expect(screen.getByText('filters').parentElement).toBe(screen.getByTestId('search-clear').parentElement);
+  });
+});
