@@ -120,8 +120,17 @@ function StorageQuotaCircle({ quota, usagePercent }: { quota: StorageQuota; usag
       ) return;
       setOpen(false);
     };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      buttonRef.current?.focus();
+    };
     document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, [open]);
 
   // Usage can legitimately exceed the quota (e.g. limit lowered after the fact)
@@ -140,6 +149,7 @@ function StorageQuotaCircle({ quota, usagePercent }: { quota: StorageQuota; usag
         onClick={() => setOpen(!open)}
         className="relative w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors cursor-pointer"
         aria-label={t("storage")}
+        aria-expanded={open}
       >
         <svg className="w-8 h-8 -rotate-90" viewBox="0 0 32 32">
           <circle cx="16" cy="16" r="12" fill="none" className="stroke-muted" strokeWidth="3" />
