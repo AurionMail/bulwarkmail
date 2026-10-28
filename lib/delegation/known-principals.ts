@@ -3,14 +3,17 @@
  * browser. Stalwart 1.0 with directory queries off (its default) won't name
  * a principal the user shares with unless that principal also shares
  * something back, so the "Who has access" list would otherwise show bare
- * ids for the very people the user just picked by name. Per account, at
- * most MAX entries, and only a convenience: losing it costs names, not
- * access.
+ * ids for the very people the user just picked by name. Only the people
+ * who have access and the one just picked are kept, never the directory;
+ * per account, at most MAX entries, gone when the account is removed or
+ * everyone signs out. A convenience: losing it costs names, not access.
  */
 
 import type { Principal } from '@/lib/jmap/types';
 
-const STORAGE_KEY = 'bulwark-delegate-names';
+/** Purged when everyone signs out (lib/sign-out-cleanup.ts). */
+export const DELEGATE_NAMES_KEY = 'bulwark-delegate-names';
+const STORAGE_KEY = DELEGATE_NAMES_KEY;
 const MAX = 200;
 
 type Entry = Pick<Principal, 'id' | 'name' | 'email' | 'type'>;
@@ -49,4 +52,18 @@ export function rememberPrincipals(accountKey: string, principals: Principal[]):
 export function rememberedPrincipals(accountKey: string): Map<string, Principal> {
   const own = readStore()[accountKey] ?? {};
   return new Map(Object.values(own).map((entry) => [entry.id, entry as Principal]));
+}
+
+/** Forget the names kept for one account (it was removed from this browser). */
+export function forgetPrincipals(accountKey: string): void {
+  if (!accountKey) return;
+  try {
+    const store = readStore();
+    if (!(accountKey in store)) return;
+    delete store[accountKey];
+    if (Object.keys(store).length === 0) localStorage.removeItem(STORAGE_KEY);
+    else localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  } catch {
+    // storage unavailable
+  }
 }

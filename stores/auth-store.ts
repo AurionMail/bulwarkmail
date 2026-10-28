@@ -20,6 +20,7 @@ import { isEmbedded, notifyParent } from '@/lib/iframe-bridge';
 import { snapshotAccount, restoreAccount, clearAllStores, evictAccount, evictAll, forgetAccountRows } from '@/lib/account-state-manager';
 import { clearAllPluginStorage, clearPluginStorageForAccount } from '@/lib/plugin-sandbox/storage-scope';
 import { broadcastSignOut, onSignedOutElsewhere, purgeSignedOutData } from '@/lib/sign-out-cleanup';
+import { forgetPrincipals } from '@/lib/delegation/known-principals';
 import { useSearchHistoryStore } from './search-history-store';
 import { useCalendarNotificationStore } from './calendar-notification-store';
 import { usePolicyStore } from './policy-store';
@@ -2230,6 +2231,7 @@ export const useAuthStore = create<AuthState>()(
           clients.delete(accountId);
           evictAccount(accountId);
           accountStore.removeAccount(accountId);
+          forgetPrincipals(accountId);
           if (!wasDemoMode) clearPluginStorageForAccount(accountId);
         }
 
@@ -2368,6 +2370,7 @@ export const useAuthStore = create<AuthState>()(
         evictAccount(accountId);
         forgetAccountRows(accountId, get().client);
         accountStore.removeAccount(accountId);
+        forgetPrincipals(accountId);
         clearPluginStorageForAccount(accountId);
       },
 

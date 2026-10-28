@@ -59,6 +59,15 @@ describe('removing a login that is not the active one', () => {
     useEmailStore.setState(initialEmail);
   });
 
+  it("forgets the names of the people it gave access to, and keeps the other login's", () => {
+    localStorage.setItem('bulwark-delegate-names', JSON.stringify({
+      [a]: { ck: { id: 'ck', name: 'carol@example.org', email: 'carol@example.org', type: 'individual' } },
+      [b]: { cj: { id: 'cj', name: 'bob@example.org', email: 'bob@example.org', type: 'individual' } },
+    }));
+    useAuthStore.getState().removeAccount(b);
+    expect(Object.keys(JSON.parse(localStorage.getItem('bulwark-delegate-names')!))).toEqual([a]);
+  });
+
   it('leaves its folder open in the Pro sidebar, so deleting the rows shown deletes nothing in the active login', async () => {
     const row = message();
     useEmailStore.setState({

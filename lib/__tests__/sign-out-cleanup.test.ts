@@ -17,7 +17,7 @@ describe('purgeSignedOutData', () => {
   it("removes the accounts' leftovers and keeps device preferences", () => {
     for (const key of [
       'email-snapshot', 'pro-tabs', 'search-history-storage', 'calendar-storage',
-      'files-favorites', 'files-recent-files', 'files-path-stack',
+      'files-favorites', 'files-recent-files', 'files-path-stack', 'bulwark-delegate-names',
       'settings-storage', 'theme-storage', 'locale-storage', 'template-storage', 'files-view-mode',
     ]) localStorage.setItem(key, 'x');
 
