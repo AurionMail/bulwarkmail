@@ -77,6 +77,7 @@ import { CreateCalendarModal } from "@/components/calendar/create-calendar-modal
 import { CalendarSidebarHeader } from "@/components/calendar/calendar-sidebar-header";
 import { getUserParticipantId, collectUserCalendarAddresses, userOrganizes, getParticipantList } from "@/lib/calendar-participants";
 import type { MoveEventHandler } from "@/hooks/use-time-grid-interactions";
+import type { RevealTime } from "@/hooks/use-display-hours";
 import { generateBirthdayEvents, createBirthdayCalendar, BIRTHDAY_CALENDAR_ID } from "@/lib/birthday-calendar";
 import { sharedCalendarColorKey, pickUnusedCalendarColor } from "@/lib/shared-calendar-colors";
 import { debug } from "@/lib/debug";
@@ -1031,6 +1032,9 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     if (enableCalendarTasks && (normalizedViewMode === "tasks" || showTasksOnCalendar)) void fetchTasksFn(client);
   }, { enabled: isAuthenticated && !!client, includeBackground: multiAccountEnabled });
 
+  // The time a saved event starts at, for the week and day grids to show it
+  // even when it is outside the hours on screen.
+  const [revealAt, setRevealAt] = useState<RevealTime | null>(null);
   const focusCalendarOnEvent = useCallback((event: Pick<Partial<CalendarEvent>, "start" | "utcStart" | "showWithoutTime">) => {
     if (!event.start) {
       return;
@@ -1046,6 +1050,9 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     }
 
     jumpTo(eventDate);
+    if (!event.showWithoutTime) {
+      setRevealAt((prev) => ({ minutes: eventDate.getHours() * 60 + eventDate.getMinutes(), nonce: (prev?.nonce ?? 0) + 1 }));
+    }
   }, [jumpTo]);
 
   const handleSaveEvent = useCallback(async (data: Partial<CalendarEvent>, requestedScheduling?: boolean, editor?: EventEditorState) => {
@@ -1777,6 +1784,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               currentUserEmails={currentUserEmails}
               canEditEvent={canEditEvent}
               onMoveEvent={handleMoveEvent}
+              revealAt={revealAt}
             />
           );
         case "day":
@@ -1801,6 +1809,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               currentUserEmails={currentUserEmails}
               canEditEvent={canEditEvent}
               onMoveEvent={handleMoveEvent}
+              revealAt={revealAt}
             />
           );
         case "agenda":

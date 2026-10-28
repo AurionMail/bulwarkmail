@@ -14,7 +14,7 @@ import { clipToDisplayHours, partitionByDisplayHours } from "@/lib/calendar-disp
 import { displayNow, isDisplayToday } from "@/lib/timezone";
 import { groupTasksByDueDay } from "@/lib/calendar-tasks";
 import type { CalendarEvent, Calendar, CalendarTask } from "@/lib/jmap/types";
-import { useDisplayHours } from "@/hooks/use-display-hours";
+import { useDisplayHours, type RevealTime } from "@/hooks/use-display-hours";
 import { useTimeGridInteractions, type MoveEventHandler } from "@/hooks/use-time-grid-interactions";
 import { useScrollWindow, getScrollStart, setScrollStart, scrollToStart } from "@/hooks/use-scroll-window";
 import { dayKey, type ScrollWindowViewProps } from "@/lib/calendar-scroll-window";
@@ -51,6 +51,8 @@ interface CalendarDayViewProps extends ScrollWindowViewProps {
    * series covers; without it the change goes straight to the store.
    */
   onMoveEvent?: MoveEventHandler;
+  /** A time to bring into view, such as a just-saved event's start. */
+  revealAt?: RevealTime | null;
 }
 
 const HOUR_HEIGHT = 64;
@@ -84,6 +86,7 @@ export function CalendarDayView({
   currentUserEmails,
   canEditEvent = () => true,
   onMoveEvent,
+  revealAt,
 }: CalendarDayViewProps) {
   const t = useTranslations("calendar");
   const describeError = useCalendarErrorMessage();
@@ -171,7 +174,7 @@ export function CalendarDayView({
 
   const {
     hours, canToggle: canToggleHours, configured: configuredHours, showAllHours, toggleAllHours, revealMinutes,
-  } = useDisplayHours({ scrollRef: rootRef, hourHeight: HOUR_HEIGHT });
+  } = useDisplayHours({ scrollRef: rootRef, hourHeight: HOUR_HEIGHT, revealAt });
   const firstHour = hours.startMinutes / 60;
   const visibleHours = HOURS.slice(firstHour, hours.endMinutes / 60);
   const gridHeight = visibleHours.length * HOUR_HEIGHT;
