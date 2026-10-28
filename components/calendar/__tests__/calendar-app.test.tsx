@@ -222,6 +222,15 @@ describe('CalendarApp unsaved editor changes', () => {
     await waitFor(() => expect(screen.queryByPlaceholderText('form.title')).toBeNull());
   });
 
+  it('opens the editor on n without typing the n into its title', async () => {
+    renderApp();
+    const press = new KeyboardEvent('keydown', { key: 'n', code: 'KeyN', bubbles: true, cancelable: true });
+    document.body.dispatchEvent(press);
+    // A key whose keydown is not cancelled goes on to type its character
+    expect(press.defaultPrevented).toBe(true);
+    expect(await screen.findByPlaceholderText('form.title')).toHaveValue('');
+  });
+
   it('closes an untouched editor without asking', () => {
     renderApp();
     fireEvent.keyDown(document.body, { key: 'n', code: 'KeyN' });

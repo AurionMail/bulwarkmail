@@ -1552,7 +1552,8 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
         case "day": setViewMode("day"); break;
         case "agenda": setViewMode("agenda"); break;
         case "tasks": if (enableCalendarTasks) setViewMode("tasks"); break;
-        case "new": openCreateForView(); break;
+        // Kept from typing itself into the title field the editor focuses.
+        case "new": e.preventDefault(); openCreateForView(); break;
       }
     };
     window.addEventListener("keydown", handleKey);
