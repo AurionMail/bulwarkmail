@@ -41,6 +41,7 @@ export const LITE_BUNDLE_NON_REQUEST = [
   { files: CHUNKS, why: "JMAP capability URI and XML namespaces", hosts: ["bulwarkmail.com", "www.w3.org", "creativecommons.org"] },
   { files: /./, why: "docs links in the translations and the README", hosts: ["bulwarkmail.org", "github.com"] },
   { files: PAGES, why: "XML namespaces of inline SVG", hosts: ["www.w3.org"] },
+  { files: /^_next\/static\/media\/pdf\.worker[^/]*\.m?js$/, why: "XML namespaces and the licence link inside pdf.js", hosts: ["www.apache.org", "www.w3.org", "www.xfa.org", "ns.adobe.com"] },
 ];
 
 const RESERVED_TLDS = new Set(["example", "test", "invalid", "localhost", "local", "internal", "lan"]);
