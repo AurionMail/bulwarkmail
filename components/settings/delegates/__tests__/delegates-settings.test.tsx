@@ -27,9 +27,10 @@ function targets(withCarol = false): ShareTarget[] {
 
 const ok = (changes: ShareChange[]): ShareChangeResult[] => changes.map((change) => ({ change, ok: true }));
 
-function makeClient(options: { withCarol?: boolean; directory?: PrincipalListing; apply?: (c: ShareChange[]) => ShareChangeResult[] } = {}) {
+function makeClient(options: { withCarol?: boolean; directory?: PrincipalListing; apply?: (c: ShareChange[]) => ShareChangeResult[]; sharedAccounts?: Array<{ id: string; name: string }> } = {}) {
   return {
     getAccountId: () => 'ci',
+    getSharedAccounts: () => options.sharedAccounts ?? [],
     supportsPrincipals: () => true,
     getPrincipals: vi.fn(async () => (options.directory ?? DIRECTORY_OFF).principals),
     listPrincipals: vi.fn(async () => options.directory ?? DIRECTORY_OFF),
@@ -87,6 +88,17 @@ describe('DelegatesSettings', () => {
     expect(within(row).getByText('org-carol@example.org')).toBeInTheDocument();
     expect(within(row).getByText('summary.mail_inbox · summary.calendars · summary.files · level.read')).toBeInTheDocument();
     expect(screen.getAllByTestId('delegate-row')).toHaveLength(1);
+  });
+
+  it('names someone the directory does not list from the accounts they share with the user', async () => {
+    renderWith(makeClient({
+      withCarol: true,
+      directory: { principals: [ALICE], status: 'restricted', directoryQueriesOff: true },
+      sharedAccounts: [{ id: 'ck', name: 'org-carol@example.org' }],
+    }));
+    const row = await screen.findByTestId('delegate-row');
+    expect(within(row).getByText('org-carol@example.org')).toBeInTheDocument();
+    expect(within(row).queryByText('unknown_person')).toBeNull();
   });
 
   it('removes a person from every item, files included', async () => {

@@ -75,8 +75,16 @@ export function DelegatesSettings() {
   const ownIds = useMemo(() => (client ? [client.getAccountId()] : []), [client]);
   const summaries = useMemo(() => (targets ? summarizeDelegates(targets, ownIds) : []), [targets, ownIds]);
 
-  const principalFor = useCallback((id: string): Principal | null =>
-    directory?.principals.find((p) => p.id === id) ?? remembered.get(id) ?? null, [directory, remembered]);
+  // Stalwart names a principal by its account id, and an account shared with
+  // the user is in the session under the owner's address: a last way to name
+  // someone the directory won't (Stalwart 1.0 with directory queries off).
+  const sessionAccounts = useMemo(() => new Map((client?.getSharedAccounts() ?? []).map((a) => [a.id, a.name])), [client]);
+  const principalFor = useCallback((id: string): Principal | null => {
+    const known = directory?.principals.find((p) => p.id === id) ?? remembered.get(id);
+    if (known) return known;
+    const accountName = sessionAccounts.get(id);
+    return accountName ? { id, name: accountName, email: accountName.includes('@') ? accountName : null, type: 'individual' } : null;
+  }, [directory, remembered, sessionAccounts]);
 
   if (delegation.hidden || !client) return null;
 
