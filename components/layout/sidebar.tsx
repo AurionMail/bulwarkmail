@@ -894,7 +894,7 @@ function VacationBanner() {
 
   return (
     <button
-      onClick={() => router.push('/settings')}
+      onClick={() => router.push(buildSettingsPath('vacation'))}
       className={cn(
         "flex items-center gap-2 w-full px-3 py-2 text-xs",
         "bg-amber-500/10 dark:bg-amber-400/10 text-amber-700 dark:text-amber-400",
