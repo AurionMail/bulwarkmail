@@ -413,7 +413,7 @@ export function EventDetailPopover({
             </span>
           )}
           {event.status === "cancelled" && (
-            <span className="mt-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 line-through">
+            <span className="mt-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-destructive/10 text-red-600 dark:text-red-400 line-through">
               {t("detail.cancelled")}
             </span>
           )}

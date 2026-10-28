@@ -979,13 +979,13 @@ export function EventModal({
 
         <div className="flex-1 overflow-y-auto">
           <div className="px-6 py-4 space-y-3">
-            <div className="flex items-start gap-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/50 px-4 py-3">
-              <CalendarDays className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div className="flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+              <CalendarDays className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
               <div className="text-sm">
-                <p className="font-medium text-blue-900 dark:text-blue-200">
+                <p className="font-medium text-foreground">
                   {t("participants.invited_by", { name: organizerInfo?.name || organizerInfo?.email || t("participants.organizer") })}
                 </p>
-                <p className="text-blue-700 dark:text-blue-400 mt-0.5">
+                <p className="text-muted-foreground mt-0.5">
                   {t("participants.respond_below")}
                 </p>
               </div>
@@ -1470,7 +1470,7 @@ export function EventModal({
                       ? 'text-sm rounded-md border border-destructive/50 bg-destructive/10 text-destructive px-3 py-2'
                       : w.severity === 'info'
                         ? 'text-sm rounded-md border border-border bg-muted/40 text-muted-foreground px-3 py-2'
-                        : 'text-sm rounded-md border border-yellow-500/50 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 px-3 py-2'
+                        : 'text-sm rounded-md border border-warning/50 bg-warning/10 text-amber-600 dark:text-amber-400 px-3 py-2'
                   }
                   title={w.message}
                 >
