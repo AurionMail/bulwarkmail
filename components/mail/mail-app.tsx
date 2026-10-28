@@ -1148,6 +1148,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (isMobile) setMobileSearchOpen(true);
       else keyboardHandlers.onFocusSearch?.();
     },
+    'all-inboxes': () => handleMailboxSelect(UNIFIED_MAILBOX_IDS.inbox),
   }, isAuthenticated && !!client);
 
   // Shared mail refresh: re-fetch mailboxes (unread counts) + the active list
