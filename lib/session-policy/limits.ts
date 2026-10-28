@@ -18,13 +18,20 @@ export interface AccountSession {
 
 export interface SessionLimits {
   idle: { minutes: number; warnSeconds: number } | null;
-  /** `at`: when the first account's maximum session length runs out. */
+  /** `at`: when the first account's maximum session length runs out, a minute early (MAX_SKEW_MARGIN_MS). */
   max: { at: number; hours: number; warnSeconds: number } | null;
 }
 
 export const NO_SESSION_LIMITS: SessionLimits = { idle: null, max: null };
 
 const HOUR_MS = 60 * 60 * 1000;
+
+/**
+ * The browser ends a maximum session length this much before the server
+ * would refuse it, so a clock that runs a little behind the server's still
+ * warns first.
+ */
+export const MAX_SKEW_MARGIN_MS = 60 * 1000;
 
 export function sessionLimits(accounts: readonly AccountSession[]): SessionLimits {
   let idle: SessionLimits['idle'] = null;
@@ -36,7 +43,7 @@ export function sessionLimits(accounts: readonly AccountSession[]): SessionLimit
       idle = { minutes: session.idleMinutes, warnSeconds };
     }
     if (session.maxHours > 0 && typeof account.signedInAt === 'number') {
-      const at = account.signedInAt + session.maxHours * HOUR_MS;
+      const at = account.signedInAt + session.maxHours * HOUR_MS - MAX_SKEW_MARGIN_MS;
       if (!max || at < max.at) max = { at, hours: session.maxHours, warnSeconds };
     }
   }

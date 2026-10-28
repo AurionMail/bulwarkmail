@@ -1244,6 +1244,9 @@ function LoginPageContent() {
                       : sessionEnd?.kind === "max"
                         ? tSessionLimits("reason_max", { hours: sessionEnd.hours })
                         : t("session_expired")}
+                    {sessionEnd?.draftsUnsaved && (
+                      <span className="block mt-1" data-testid="session-drafts-not-saved">{tSessionLimits("drafts_not_saved")}</span>
+                    )}
                   </p>
                   <button
                     type="button"

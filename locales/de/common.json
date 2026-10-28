@@ -86,7 +86,9 @@
     "dismiss": "OK",
     "signing_out": "Entwürfe werden gespeichert und Sie werden abgemeldet …",
     "reason_idle": "Sie wurden nach {minutes, plural, one {# Minute} other {# Minuten}} ohne Aktivität abgemeldet.",
-    "reason_max": "Sie wurden abgemeldet, weil Ihre Sitzung die Höchstdauer von {hours, plural, one {# Stunde} other {# Stunden}} erreicht hat."
+    "reason_max": "Sie wurden abgemeldet, weil Ihre Sitzung die Höchstdauer von {hours, plural, one {# Stunde} other {# Stunden}} erreicht hat.",
+    "drafts_not_saved": "Mindestens eine geöffnete Nachricht konnte nicht als Entwurf gespeichert werden.",
+    "seconds_left": "Noch {seconds, plural, one {# Sekunde} other {# Sekunden}}"
   },
   "sidebar": {
     "close": "Schließen",

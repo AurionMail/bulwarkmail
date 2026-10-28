@@ -14,6 +14,15 @@ vi.mock('@/lib/jmap/client', () => {
     onRateLimit() {}
     getRateLimitRemainingMs() { return 0; }
     disconnect() {}
+    getUsername() { return this.username; }
+    async getIdentities() { return []; }
+    supportsContacts() { return false; }
+    supportsPrincipals() { return false; }
+    supportsVacationResponse() { return false; }
+    supportsCalendars() { return false; }
+    supportsSieve() { return false; }
+    getSharedAccounts() { return []; }
+    getAccountInfo() { return undefined; }
   }
   class RateLimitError extends Error {}
   class RequestTimeoutError extends Error {}
@@ -61,4 +70,26 @@ it('says so for a provider sign-in whose renewal the server refused', async () =
   await vi.waitFor(() => expect(useAccountStore.getState().accounts).toHaveLength(0));
 
   expect(consumeSessionEnd()).toEqual({ kind: 'max', hours: 8 });
+});
+
+it('says nothing when another account comes back, and takes the server sign-in time', async () => {
+  const bob = {
+    ...account('basic'), id: 'bob@example.org@mail.example.org', username: 'bob@example.org', email: 'bob@example.org', cookieSlot: 1, isDefault: false,
+  };
+  vi.stubGlobal('fetch', vi.fn(async (input: unknown, init?: { method?: string }) => {
+    const url = String(input);
+    if (url.includes('/api/config')) return new Response(JSON.stringify(createConfig()), { status: 200 });
+    if (url.includes('/api/auth/session?slot=1') && init?.method === 'PUT') {
+      return new Response(JSON.stringify({ serverUrl: 'https://mail.example.org', username: 'bob@example.org', password: 'pw', signedInAt: 1234 }), { status: 200 });
+    }
+    if (url.includes('/api/auth/session') && init?.method === 'PUT') return tooOld();
+    return new Response('{}', { status: 200 });
+  }));
+  useAccountStore.setState({ accounts: [account('basic'), bob] as never, activeAccountId: account('basic').id, defaultAccountId: account('basic').id });
+
+  await useAuthStore.getState().checkAuth();
+  await vi.waitFor(() => expect(useAccountStore.getState().accounts.map((a) => a.id)).toEqual([bob.id]));
+  await vi.waitFor(() => expect(useAccountStore.getState().accounts[0].signedInAt).toBe(1234));
+
+  expect(consumeSessionEnd()).toBeNull();
 });

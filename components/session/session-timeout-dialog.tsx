@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,9 @@ function secondsLeft(deadline: number | null): number {
   return deadline === null ? 0 : Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
 }
 
+/** Screen readers hear the dialog when it opens, then only at these marks, not every second. */
+const ANNOUNCE_AT = [30, 10];
+
 /**
  * The warning before an organisation session limit signs the user out. For
  * the idle timeout it asks whether to stay; the maximum session length
@@ -31,6 +35,7 @@ export function SessionTimeoutDialog({ mode, deadline, maxHours, onStay, onDismi
   const t = useTranslations("session_limits");
   const id = useId();
   const [seconds, setSeconds] = useState(() => secondsLeft(deadline));
+  const [announced, setAnnounced] = useState<number | null>(null);
   const dialogRef = useFocusTrap({
     isActive: true,
     onEscape: mode === "idle" ? onStay : mode === "max" ? onDismiss : undefined,
@@ -44,16 +49,25 @@ export function SessionTimeoutDialog({ mode, deadline, maxHours, onStay, onDismi
     return () => clearInterval(interval);
   }, [deadline, mode]);
 
+  useEffect(() => {
+    const mark = ANNOUNCE_AT.find((at) => seconds === at);
+    if (mark !== undefined) setAnnounced(mark);
+  }, [seconds]);
+
+  if (typeof document === "undefined") return null;
+
   const title = mode === "max" ? t("max_title") : mode === "idle" ? t("idle_title") : t("signing_out");
 
-  return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4 backdrop-blur-[1px]" data-testid="session-timeout-dialog">
+  // Portalled to the end of the body above everything else, the office
+  // editor (z-100) and plugin dialogs (z-100000) included.
+  return createPortal(
+    <div className="fixed inset-0 z-[100001] flex items-center justify-center bg-black/50 p-4 backdrop-blur-[1px]" data-testid="session-timeout-dialog">
       <div
         ref={dialogRef}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby={`${id}-title`}
-        aria-describedby={`${id}-message`}
+        aria-describedby={mode !== "ending" ? `${id}-message` : undefined}
         className="w-full max-w-md rounded-lg border border-border bg-background shadow-xl"
       >
         <div className="flex items-start gap-4 p-6">
@@ -63,12 +77,15 @@ export function SessionTimeoutDialog({ mode, deadline, maxHours, onStay, onDismi
           <div className="min-w-0 flex-1">
             <h2 id={`${id}-title`} className="text-lg font-semibold text-foreground">{title}</h2>
             {mode !== "ending" && (
-              <p id={`${id}-message`} className="mt-2 text-sm text-muted-foreground" aria-live="polite">
+              <p id={`${id}-message`} className="mt-2 text-sm text-muted-foreground">
                 {mode === "max"
                   ? t("max_message", { hours: maxHours ?? 0, seconds })
                   : t("idle_message", { seconds })}
               </p>
             )}
+            <span className="sr-only" aria-live="polite">
+              {mode !== "ending" && announced !== null ? t("seconds_left", { seconds: announced }) : ""}
+            </span>
           </div>
         </div>
         {mode !== "ending" && (
@@ -82,6 +99,7 @@ export function SessionTimeoutDialog({ mode, deadline, maxHours, onStay, onDismi
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { SessionTimeoutGuard, DRAFT_FLUSH_TIMEOUT_MS } from '../session-timeout-guard';
+import { SessionTimeoutGuard, DRAFT_FLUSH_TIMEOUT_MS, FRAME_FOCUS_CHECK_MS } from '../session-timeout-guard';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAccountStore, type AccountEntry } from '@/stores/account-store';
 import { usePolicyStore } from '@/stores/policy-store';
@@ -222,7 +222,10 @@ describe('session timeout guard', () => {
     render(<SessionTimeoutGuard />);
     await advance(0);
 
-    await advance(9 * 60 * SECOND);
+    // Ten minutes left, ended a minute early for clock skew, warned a minute before that.
+    await advance(8 * 60 * SECOND - 1);
+    expect(screen.queryByText('max_title')).toBeNull();
+    await advance(1);
     expect(screen.getByText('max_title')).toBeTruthy();
     fireEvent.click(screen.getByText('dismiss'));
     expect(screen.queryByText('max_title')).toBeNull();
@@ -230,5 +233,94 @@ describe('session timeout guard', () => {
     await advance(0);
     expect(logoutAll).toHaveBeenCalledWith({ endProviderSession: false });
     expect(consumeSessionEnd()).toEqual({ kind: 'max', hours: 1 });
+  });
+
+  it('signs out right away after a reload that follows a pause longer than the limit', async () => {
+    // Recorded by a tab before the reload, five minutes ago; signed in long before.
+    localStorage.setItem(LAST_ACTIVITY_KEY, String(START - 5 * 60 * SECOND));
+    usePolicyStore.setState({ rawPolicy: policyWith({ idleMinutes: 1, maxHours: 0, warnSeconds: 30 }) });
+    useAccountStore.setState({ accounts: [account('alice', 'org-alice@example.org', START - 60 * 60 * SECOND)], activeAccountId: 'alice' });
+    useAuthStore.setState({
+      isAuthenticated: true, isDemoMode: false, activeAccountId: 'alice',
+      client: fakeClient('org-alice@example.org') as never, logoutAll: logoutAll as never,
+    });
+    render(<SessionTimeoutGuard />);
+    // Moving the mouse while the page loads doesn't bring the session back.
+    fireEvent.pointerDown(window);
+    await advance(0);
+
+    expect(logoutAll).toHaveBeenCalledWith({ endProviderSession: false });
+    expect(consumeSessionEnd()).toEqual({ kind: 'idle', minutes: 1 });
+  });
+
+  it('says on the login page when a draft could not be saved', async () => {
+    await signIn(policyWith({ idleMinutes: 1, maxHours: 0, warnSeconds: 30 }));
+    registerComposeFlush(async () => { throw new Error('save refused'); });
+
+    await advance(60 * SECOND);
+    await advance(0);
+    expect(logoutAll).toHaveBeenCalled();
+    expect(consumeSessionEnd()).toEqual({ kind: 'idle', minutes: 1, draftsUnsaved: true });
+  });
+
+  it('does not count scrolling as activity', async () => {
+    await signIn(policyWith({ idleMinutes: 1, maxHours: 0, warnSeconds: 30 }));
+    await advance(20 * SECOND);
+    fireEvent.scroll(window);
+    await advance(10 * SECOND);
+    expect(screen.getByText('idle_title')).toBeTruthy();
+  });
+
+  it('counts the focus on a cross-origin frame as activity, but not on a same-origin one', async () => {
+    const hasFocus = vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+    try {
+      await signIn(policyWith({ idleMinutes: 1, maxHours: 0, warnSeconds: 30 }));
+      const editor = document.createElement('iframe');
+      Object.defineProperty(editor, 'contentDocument', { get: () => null });
+      document.body.appendChild(editor);
+      editor.focus();
+      expect(document.activeElement).toBe(editor);
+
+      await advance(45 * SECOND);
+      expect(screen.queryByText('idle_title')).toBeNull();
+
+      // A message body (same origin) clicked into and left doesn't keep the session.
+      const body = document.createElement('iframe');
+      document.body.appendChild(body);
+      body.focus();
+      await advance(30 * SECOND + FRAME_FOCUS_CHECK_MS);
+      expect(screen.getByText('idle_title')).toBeTruthy();
+      editor.remove();
+      body.remove();
+    } finally {
+      hasFocus.mockRestore();
+    }
+  });
+
+  it('asks again for the policy subject of a client that had none', async () => {
+    const policy = policyWith({ idleMinutes: 0, maxHours: 0, warnSeconds: 30 }, [
+      { id: 'example', label: 'example.org', match: { domains: ['example.org'] }, policy: { organisation: { session: { idleMinutes: 1 } } } },
+    ]);
+    let username = '';
+    const client = { ...fakeClient(''), getUsername: () => username };
+    usePolicyStore.setState({ rawPolicy: policy });
+    useAccountStore.setState({ accounts: [account('alice', 'org-alice@example.org')], activeAccountId: 'alice' });
+    useAuthStore.setState({
+      isAuthenticated: true, isDemoMode: false, activeAccountId: 'alice', connectedAccountsRevision: 1,
+      client: client as never, logoutAll: logoutAll as never,
+    });
+    render(<SessionTimeoutGuard />);
+    await advance(0);
+    await advance(2 * 60 * SECOND);
+    expect(logoutAll).not.toHaveBeenCalled();
+
+    // The session is complete now: the subject is known and the domain's minute applies.
+    username = 'org-alice@example.org';
+    await act(async () => { useAuthStore.setState({ connectedAccountsRevision: 2 }); });
+    await advance(0);
+    fireEvent.keyDown(window, { key: 'a' });
+    await advance(60 * SECOND);
+    await advance(0);
+    expect(logoutAll).toHaveBeenCalled();
   });
 });

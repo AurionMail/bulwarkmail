@@ -18,32 +18,58 @@ import {
   type SessionLimits,
 } from "@/lib/session-policy/limits";
 import { createSessionTimer, type SessionEndKind, type SessionTimer, type SessionTimerState } from "@/lib/session-policy/session-timer";
-import { rememberSessionEnd } from "@/lib/session-policy/sign-out-reason";
+import { rememberSessionEnd, type SessionEndReason } from "@/lib/session-policy/sign-out-reason";
 import { SessionTimeoutDialog } from "./session-timeout-dialog";
 
-/** How long the sign-out waits for the open composers to save their drafts. */
+/** How long the sign-out waits for the open composers to save their drafts (and for sends in flight). */
 export const DRAFT_FLUSH_TIMEOUT_MS = 8000;
 /** Local activity reaches the timer and the other tabs at most this often. */
 const ACTIVITY_THROTTLE_MS = 1000;
-const ACTIVITY_EVENTS = ["pointerdown", "pointermove", "keydown", "touchstart", "wheel", "scroll", "focus"] as const;
+/**
+ * Bubbling input events, caught on the way down. Scrolling and focus moves
+ * inside the page don't count: the page scrolls and refocuses on its own.
+ */
+const ACTIVITY_EVENTS = ["pointerdown", "pointermove", "keydown", "touchstart", "wheel"] as const;
+/**
+ * Input inside a cross-origin frame (the office editor, plugin panels)
+ * never reaches this window. While such a frame has the focus, that counts
+ * as activity, checked this often.
+ */
+export const FRAME_FOCUS_CHECK_MS = 5000;
 
-const subjects = new WeakMap<IJMAPClient, Promise<PolicySubject | null>>();
-function subjectFor(client: IJMAPClient): Promise<PolicySubject | null> {
-  let subject = subjects.get(client);
-  if (!subject) {
-    subject = policySubjectForClient(client).catch(() => null);
-    subjects.set(client, subject);
+function crossOriginFrameHasFocus(): boolean {
+  if (typeof document === "undefined" || !document.hasFocus()) return false;
+  const element = document.activeElement;
+  if (!(element instanceof HTMLIFrameElement)) return false;
+  try {
+    // Same-origin frames (the message body) are readable and don't count:
+    // a message clicked into and left would keep the session alive.
+    return element.contentDocument === null;
+  } catch {
+    return true;
   }
+}
+
+/** Policy subjects per client and connection round; a failed or empty answer is asked again. */
+const subjects = new WeakMap<IJMAPClient, { revision: number; subject: Promise<PolicySubject | null> }>();
+function subjectFor(client: IJMAPClient, revision: number): Promise<PolicySubject | null> {
+  const cached = subjects.get(client);
+  if (cached && cached.revision === revision) return cached.subject;
+  const subject = policySubjectForClient(client).catch(() => null);
+  subjects.set(client, { revision, subject });
+  void subject.then((value) => {
+    if (value === null && subjects.get(client)?.subject === subject) subjects.delete(client);
+  });
   return subject;
 }
 
 /** The limits of every account signed in here, each with its own domain and group scopes. */
-async function collectLimits(): Promise<SessionLimits> {
+async function collectLimits(revision: number): Promise<SessionLimits> {
   const auth = useAuthStore.getState();
   const clients = new Map<string, IJMAPClient>(auth.getAllConnectedClients());
   if (auth.client && auth.activeAccountId && !clients.has(auth.activeAccountId)) clients.set(auth.activeAccountId, auth.client);
   const accounts: AccountSession[] = await Promise.all([...clients.entries()].map(async ([accountId, client]) => {
-    const subject = await subjectFor(client);
+    const subject = await subjectFor(client, revision);
     const session = usePolicyStore.getState().resolveFor(subject).organisation?.session;
     return { session, signedInAt: signedInAtFor(accountId) };
   }));
@@ -64,6 +90,13 @@ function signedInAtFor(accountId: string): number | undefined {
   return now;
 }
 
+function endReason(kind: SessionEndKind, limits: SessionLimits, draftsUnsaved: boolean): SessionEndReason {
+  const drafts = draftsUnsaved ? { draftsUnsaved: true } : {};
+  return kind === "max"
+    ? { kind: "max", hours: limits.max?.hours ?? 0, ...drafts }
+    : { kind: "idle", minutes: limits.idle?.minutes ?? 0, ...drafts };
+}
+
 const IDLE_STATE: SessionTimerState = { phase: "active", kind: null, deadline: null };
 
 /**
@@ -81,25 +114,36 @@ export function SessionTimeoutGuard() {
   const rawPolicy = usePolicyStore((s) => s.rawPolicy);
   const accountsKey = useAccountStore((s) => s.accounts.map((a) => `${a.id}|${a.signedInAt ?? ""}|${a.isConnected}`).join(","));
 
+  // The last activity any tab recorded, read once before this tab's own
+  // listeners can write it: a reload after a pause longer than the limit
+  // signs out right away, whatever the user does while the page loads.
+  const [mount] = useState(() => ({ at: Date.now(), lastActivity: readLastActivity() }));
   const [limits, setLimits] = useState<SessionLimits>(NO_SESSION_LIMITS);
+  const [limitsReady, setLimitsReady] = useState(false);
   const [state, setState] = useState<SessionTimerState>(IDLE_STATE);
   const [ending, setEnding] = useState(false);
   const [dismissedMax, setDismissedMax] = useState<number | null>(null);
   const timerRef = useRef<SessionTimer | null>(null);
+  const timersStartedRef = useRef(0);
   const channelRef = useRef<ActivityChannel | null>(null);
   const limitsRef = useRef(limits);
   limitsRef.current = limits;
+  const limitsReadyRef = useRef(limitsReady);
+  limitsReadyRef.current = limitsReady;
   const endingRef = useRef(false);
   const active = isAuthenticated && !isDemoMode;
 
   useEffect(() => {
     if (!active) {
       setLimits(NO_SESSION_LIMITS);
+      setLimitsReady(false);
       return;
     }
     let cancelled = false;
-    void collectLimits().then((next) => {
-      if (!cancelled) setLimits((prev) => (sameLimits(prev, next) ? prev : next));
+    void collectLimits(revision).then((next) => {
+      if (cancelled) return;
+      setLimits((prev) => (sameLimits(prev, next) ? prev : next));
+      setLimitsReady(true);
     });
     return () => { cancelled = true; };
   }, [active, client, revision, rawPolicy, accountsKey]);
@@ -113,15 +157,15 @@ export function SessionTimeoutGuard() {
     endingRef.current = true;
     setEnding(true);
     const current = limitsRef.current;
-    rememberSessionEnd(kind === "max"
-      ? { kind: "max", hours: current.max?.hours ?? 0 }
-      : { kind: "idle", minutes: current.idle?.minutes ?? 0 });
-    await flushComposers(DRAFT_FLUSH_TIMEOUT_MS);
+    // Said first, in case another tab's sign-out takes this one to the login page meanwhile.
+    rememberSessionEnd(endReason(kind, current, false));
+    const flushed = await flushComposers(DRAFT_FLUSH_TIMEOUT_MS);
+    if (flushed.failed > 0 || flushed.timedOut) rememberSessionEnd(endReason(kind, current, true));
     await useAuthStore.getState().logoutAll({ endProviderSession: false });
   }, []);
 
   // The clock, while there is a limit to count.
-  const hasLimits = active && (!!limits.idle || !!limits.max);
+  const hasLimits = active && limitsReady && (!!limits.idle || !!limits.max);
   useEffect(() => {
     if (!hasLimits) {
       timerRef.current?.dispose();
@@ -133,18 +177,20 @@ export function SessionTimeoutGuard() {
       timerRef.current.setLimits(limits);
       return;
     }
-    // A tab opened or reloaded after a long pause starts from the pause, a
-    // fresh sign-in from the sign-in.
+    // The first clock of this page starts from the activity recorded before
+    // the page loaded, a fresh sign-in from the sign-in. A clock started
+    // later (limits turned on meanwhile) from what the tabs recorded since.
+    const stored = timersStartedRef.current === 0 ? mount.lastActivity ?? mount.at : readLastActivity() ?? Date.now();
     const newestSignIn = Math.max(0, ...useAccountStore.getState().accounts.map((a) => a.signedInAt ?? 0));
-    const lastActivity = Math.max(readLastActivity() ?? Date.now(), newestSignIn);
+    timersStartedRef.current += 1;
     timerRef.current = createSessionTimer({
       limits,
-      lastActivity,
+      lastActivity: Math.max(stored, newestSignIn),
       onChange: setState,
       onExpire: (kind) => { void endSession(kind); },
     });
     setState(timerRef.current.state());
-  }, [hasLimits, limits, endSession]);
+  }, [hasLimits, limits, endSession, mount]);
 
   useEffect(() => () => {
     timerRef.current?.dispose();
@@ -164,7 +210,9 @@ export function SessionTimeoutGuard() {
     channelRef.current = channel;
     let lastSeen = 0;
     const onActivity = () => {
-      if (endingRef.current) return;
+      // Nothing counts until the limits of the signed-in accounts are known:
+      // the clock starts from what was recorded before.
+      if (endingRef.current || !limitsReadyRef.current) return;
       const at = Date.now();
       if (at - lastSeen < ACTIVITY_THROTTLE_MS) return;
       const timer = timerRef.current;
@@ -180,11 +228,18 @@ export function SessionTimeoutGuard() {
     const onVisibility = () => {
       if (document.visibilityState === "visible") timerRef.current?.check();
     };
+    const frameCheck = setInterval(() => {
+      if (crossOriginFrameHasFocus()) onActivity();
+    }, FRAME_FOCUS_CHECK_MS);
     for (const event of ACTIVITY_EVENTS) window.addEventListener(event, onActivity, { capture: true, passive: true });
+    // The window coming back into focus, not focus moving between elements.
+    window.addEventListener("focus", onActivity);
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       for (const event of ACTIVITY_EVENTS) window.removeEventListener(event, onActivity, { capture: true });
+      window.removeEventListener("focus", onActivity);
       document.removeEventListener("visibilitychange", onVisibility);
+      clearInterval(frameCheck);
       channel.close();
       channelRef.current = null;
     };

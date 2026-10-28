@@ -86,7 +86,9 @@
     "dismiss": "OK",
     "signing_out": "Saving drafts and signing out…",
     "reason_idle": "You were signed out after {minutes, plural, one {# minute} other {# minutes}} without activity.",
-    "reason_max": "You were signed out because your session reached its maximum length of {hours, plural, one {# hour} other {# hours}}."
+    "reason_max": "You were signed out because your session reached its maximum length of {hours, plural, one {# hour} other {# hours}}.",
+    "drafts_not_saved": "One or more open messages could not be saved as drafts.",
+    "seconds_left": "{seconds, plural, one {# second} other {# seconds}} left"
   },
   "sidebar": {
     "close": "Close",

@@ -25,7 +25,7 @@ describe('compose flush registry', () => {
 
     const done = flushComposers(5000);
     await vi.advanceTimersByTimeAsync(100);
-    await expect(done).resolves.toEqual({ total: 2, settled: 2, timedOut: false });
+    await expect(done).resolves.toEqual({ total: 2, settled: 2, failed: 0, timedOut: false });
     expect(order.sort()).toEqual(['a', 'b']);
   });
 
@@ -39,20 +39,20 @@ describe('compose flush registry', () => {
     await vi.advanceTimersByTimeAsync(2999);
     expect(result).toBeNull();
     await vi.advanceTimersByTimeAsync(1);
-    expect(result).toEqual({ total: 2, settled: 1, timedOut: true });
+    expect(result).toEqual({ total: 2, settled: 1, failed: 0, timedOut: true });
     expect(quick).toHaveBeenCalledTimes(1);
   });
 
   it('goes on when a flush fails', async () => {
     registerComposeFlush(async () => { throw new Error('save refused'); });
-    await expect(flushComposers(1000)).resolves.toEqual({ total: 1, settled: 1, timedOut: false });
+    await expect(flushComposers(1000)).resolves.toEqual({ total: 1, settled: 1, failed: 1, timedOut: false });
   });
 
   it('forgets a composer that unregistered', async () => {
     const flush = vi.fn(async () => {});
     const unregister = registerComposeFlush(flush);
     unregister();
-    await expect(flushComposers(1000)).resolves.toEqual({ total: 0, settled: 0, timedOut: false });
+    await expect(flushComposers(1000)).resolves.toEqual({ total: 0, settled: 0, failed: 0, timedOut: false });
     expect(flush).not.toHaveBeenCalled();
   });
 

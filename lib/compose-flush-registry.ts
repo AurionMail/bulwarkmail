@@ -50,19 +50,23 @@ export interface FlushResult {
   total: number;
   /** Flushes that finished (or failed) in time. */
   settled: number;
+  /** Flushes that reported a save the server didn't take (threw). */
+  failed: number;
   timedOut: boolean;
 }
 
 /** Run every registered flush and wait for them, but no longer than `timeoutMs`. */
 export async function flushComposers(timeoutMs: number): Promise<FlushResult> {
   const pending = [...flushes.values()];
-  if (pending.length === 0) return { total: 0, settled: 0, timedOut: false };
+  if (pending.length === 0) return { total: 0, settled: 0, failed: 0, timedOut: false };
   let settled = 0;
+  let failed = 0;
   const all = Promise.all(pending.map(async (flush) => {
     try {
       await flush();
     } catch {
-      // A failed save is the composer's to report; the sign-out goes on.
+      // The sign-out goes on; the login page says a draft wasn't saved.
+      failed += 1;
     }
     settled += 1;
   }));
@@ -72,7 +76,7 @@ export async function flushComposers(timeoutMs: number): Promise<FlushResult> {
     new Promise<boolean>((resolve) => { timer = setTimeout(() => resolve(true), timeoutMs); }),
   ]);
   clearTimeout(timer);
-  return { total: pending.length, settled, timedOut };
+  return { total: pending.length, settled, failed, timedOut };
 }
 
 /** Test helper: forget every registration. */

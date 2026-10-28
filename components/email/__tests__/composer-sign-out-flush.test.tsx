@@ -225,7 +225,7 @@ describe('composer flush before an automatic sign-out', () => {
     let result: Awaited<ReturnType<typeof flushComposers>> | undefined;
     await act(async () => { result = await flushComposers(5000); });
 
-    expect(result).toEqual({ total: 1, settled: 1, timedOut: false });
+    expect(result).toEqual({ total: 1, settled: 1, failed: 0, timedOut: false });
     expect(createDraft).toHaveBeenCalledTimes(1);
     expect(createDraft.mock.calls[0][1]).toBe('Half-written more');
   });
