@@ -132,7 +132,7 @@ export function PluginSearchResults({ surface, onOpenEmail }: PluginSearchResult
               aria-controls={listId}
               className="flex w-full items-center gap-1.5 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground"
             >
-              {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5 rtl:-scale-x-100" />}
+              {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
               <span className="truncate">{group.heading}</span>
               <span className="font-normal">({group.results.length})</span>
             </button>

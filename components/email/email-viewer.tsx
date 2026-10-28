@@ -4509,11 +4509,11 @@ export function EmailViewer({
         inert={!moreMenuOpen}
         className={cn(
         "bg-background border-s border-border z-[70]",
-        isPaneScoped ? "absolute inset-y-0 right-0 w-72" : "fixed inset-y-0 right-0 w-72 sm:hidden",
+        isPaneScoped ? "absolute inset-y-0 end-0 w-72" : "fixed inset-y-0 end-0 w-72 sm:hidden",
         "transform",
         moreMenuSlideEnabled && "transition-transform duration-300 ease-in-out",
         "flex flex-col",
-        moreMenuOpen ? "translate-x-0" : "translate-x-full"
+        moreMenuOpen ? "translate-x-0" : "translate-x-full rtl:-translate-x-full"
       )}>
         {/* The fixed panel spans the full viewport height, so in the iOS PWA
             its header would sit under the status bar without the safe-area
@@ -4748,7 +4748,7 @@ export function EmailViewer({
             )}
             <div className="flex-1 min-w-0">
               <div className="flex items-start gap-2">
-                <h1 className={cn(
+                <h1 dir="auto" className={cn(
                   "text-foreground break-words min-w-0",
                   mvViewer ? "text-[22px] leading-7 font-normal" : "text-lg lg:text-xl font-bold tracking-tight"
                 )}>
@@ -4831,7 +4831,7 @@ export function EmailViewer({
               </span>
               {email.size > 0 && (
                 <div className="text-xs text-muted-foreground/60">
-                  {formatFileSize(email.size)}
+                  <bdi>{formatFileSize(email.size)}</bdi>
                 </div>
               )}
             </div>
@@ -5079,7 +5079,7 @@ export function EmailViewer({
                             {getAttachmentDisplayName(attachment.name, attachment.type)}
                           </span>
                           <span className="text-[10px] text-muted-foreground flex-shrink-0">
-                            {formatFileSize(attachment.size)}
+                            <bdi>{formatFileSize(attachment.size)}</bdi>
                           </span>
                         </div>
                         <div className={cn(
@@ -5145,7 +5145,7 @@ export function EmailViewer({
                                 {getAttachmentDisplayName(attachment.name, attachment.type)}
                               </span>
                               <span className="text-[10px] text-muted-foreground ms-auto flex-shrink-0">
-                                {formatFileSize(attachment.size)}
+                                <bdi>{formatFileSize(attachment.size)}</bdi>
                               </span>
                               <div className="absolute inset-y-0 end-0 rounded-e-md bg-background/95 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-opacity flex items-center justify-center gap-1 px-1.5">
                                 <button
@@ -5282,7 +5282,7 @@ export function EmailViewer({
               </span>
               {email.size > 0 && !mvMobileViewer && (
                 <div className="text-xs text-muted-foreground/60">
-                  {formatFileSize(email.size)}
+                  <bdi>{formatFileSize(email.size)}</bdi>
                 </div>
               )}
             </div>
@@ -5593,7 +5593,7 @@ export function EmailViewer({
                       <Row label={t('subject')}>{email.subject || <span className="italic text-muted-foreground">{t('details.no_subject')}</span>}</Row>
                     )}
                     <Row label={t('details.size')}>
-                      {formatFileSize(email.size)}
+                      <bdi>{formatFileSize(email.size)}</bdi>
                       {topMimeType && (
                         <span className="text-muted-foreground"> · <span className="font-mono text-xs">{topMimeType}</span></span>
                       )}
@@ -5823,7 +5823,7 @@ export function EmailViewer({
             <div
               ref={belowHeaderGhostRef}
               aria-hidden="true"
-              className="absolute inset-y-0 left-0 right-0 flex items-center gap-2 invisible pointer-events-none whitespace-nowrap"
+              className="absolute inset-0 flex items-center gap-2 invisible pointer-events-none whitespace-nowrap"
             >
               {effectiveAttachments.map((attachment) => {
                 const FileIcon = getFileIcon(attachment.name || undefined, attachment.type);
@@ -5849,7 +5849,7 @@ export function EmailViewer({
                       {getAttachmentDisplayName(attachment.name, attachment.type)}
                     </span>
                     <span className="text-xs">
-                      {formatFileSize(attachment.size)}
+                      <bdi>{formatFileSize(attachment.size)}</bdi>
                     </span>
                   </div>
                 );
@@ -5903,7 +5903,7 @@ export function EmailViewer({
                       {getAttachmentDisplayName(attachment.name, attachment.type)}
                     </span>
                     <span className="text-xs text-muted-foreground flex-shrink-0">
-                      {formatFileSize(attachment.size)}
+                      <bdi>{formatFileSize(attachment.size)}</bdi>
                     </span>
                   </div>
                   <div className={cn(
@@ -5969,7 +5969,7 @@ export function EmailViewer({
                           {getAttachmentDisplayName(attachment.name, attachment.type)}
                         </span>
                         <span className="text-xs text-muted-foreground ms-auto flex-shrink-0">
-                          {formatFileSize(attachment.size)}
+                          <bdi>{formatFileSize(attachment.size)}</bdi>
                         </span>
                         <div className="absolute inset-y-0 end-0 rounded-e-md bg-background/95 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-opacity flex items-center justify-center gap-1 px-1.5">
                           <button
@@ -6048,7 +6048,7 @@ export function EmailViewer({
                         {getAttachmentDisplayName(attachment.name, attachment.type)}
                       </span>
                       <span className="text-xs text-muted-foreground flex-shrink-0">
-                        {formatFileSize(attachment.size)}
+                        <bdi>{formatFileSize(attachment.size)}</bdi>
                       </span>
                       {/* Phones have no hover: the plugin menu stays visible. */}
                       <AttachmentPluginMenu emailId={email?.id} attachment={attachment} className="-me-1 flex-shrink-0" iconClassName="w-3.5 h-3.5" />
@@ -6114,7 +6114,7 @@ export function EmailViewer({
                             {getAttachmentDisplayName(attachment.name, attachment.type)}
                           </span>
                           <span className="text-[10px] text-muted-foreground ms-auto flex-shrink-0">
-                            {formatFileSize(attachment.size)}
+                            <bdi>{formatFileSize(attachment.size)}</bdi>
                           </span>
                           <AttachmentPluginMenu emailId={email?.id} attachment={attachment} className="flex-shrink-0" iconClassName="w-3.5 h-3.5" />
                           <div className="absolute inset-y-0 end-0 rounded-e-md bg-background/95 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-opacity flex items-center justify-center gap-1 px-1.5">
@@ -6374,7 +6374,7 @@ export function EmailViewer({
     {isMobile && !mvMobileViewer && (
       <nav ref={bottomBarRef} className={cn(
         "z-50 bg-background border-t border-border overflow-hidden pb-[calc(env(safe-area-inset-bottom)/2)]",
-        isPaneScoped ? "absolute bottom-0 left-0 right-0" : "fixed bottom-0 left-0 right-0 sm:hidden",
+        isPaneScoped ? "absolute bottom-0 inset-x-0" : "fixed bottom-0 inset-x-0 sm:hidden",
       )}>
         <div className="flex items-center overflow-x-auto mobile-scroll-hidden">
           <button

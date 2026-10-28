@@ -4385,11 +4385,11 @@ export function EmailComposer({
                         // Real byte progress from the transport; see
                         // ComposerAttachment.progress for who reports it.
                         <div
-                          className="absolute bottom-0 left-0 h-0.5 bg-primary/60 transition-[width] duration-300 ease-out"
+                          className="absolute bottom-0 start-0 h-0.5 bg-primary/60 transition-[width] duration-300 ease-out"
                           style={{ width: `${att.progress}%` }}
                         />
                       ) : (
-                        <div className="absolute bottom-0 left-0 h-0.5 bg-primary/40 animate-[indeterminate_1.5s_ease-in-out_infinite]" style={{ width: '40%' }} />
+                        <div className="absolute bottom-0 start-0 h-0.5 bg-primary/40 animate-[indeterminate_1.5s_ease-in-out_infinite]" style={{ width: '40%' }} />
                       )}
                     </div>
                   )}
@@ -5007,7 +5007,7 @@ const AutocompleteDropdown = React.forwardRef<HTMLDivElement, {
           type="button"
           disabled={isSearchingServer}
           className={cn(
-            "w-full px-3 py-2 text-left text-sm flex items-center gap-2 text-muted-foreground hover:bg-muted disabled:opacity-60 disabled:cursor-default",
+            "w-full px-3 py-2 text-start text-sm flex items-center gap-2 text-muted-foreground hover:bg-muted disabled:opacity-60 disabled:cursor-default",
             results.length > 0 && "border-t border-border"
           )}
           onMouseDown={(e) => {

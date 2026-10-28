@@ -4880,7 +4880,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     onClick={() => setMobileSearchOpen(false)}
                     aria-label={t('sidebar.mobile.go_back')}
                   >
-                    <ArrowLeft className="h-5 w-5 rtl:-scale-x-100" />
+                    <ArrowLeft className="h-5 w-5" />
                   </Button>
                   <span className="font-medium truncate">{t('sidebar.search_placeholder')}</span>
                 </div>
@@ -4963,7 +4963,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   >
                     <Filter className="w-4 h-4" />
                     {!isAdvancedSearchOpen && activeFilterCount(searchFilters) > 0 && (
-                      <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
+                      <span className="absolute -top-1 -end-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
                         {activeFilterCount(searchFilters)}
                       </span>
                     )}
