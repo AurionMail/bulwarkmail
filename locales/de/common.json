@@ -4141,6 +4141,29 @@
   "unified_mailbox": {
     "search_unavailable": "Die Suche ist in der vereinheitlichten Ansicht nicht verfügbar"
   },
+  "recover_deleted": {
+    "tab": "Gelöschte Elemente wiederherstellen",
+    "title": "Gelöschte Elemente wiederherstellen",
+    "description": "E-Mails, die Sie endgültig gelöscht haben, zum Beispiel durch Leeren des Papierkorbs, und die der Server noch aufbewahrt. Wählen Sie Nachrichten aus und stellen Sie sie wieder her.",
+    "range_days": "Angezeigt werden E-Mails, die {days, plural, one {am letzten Tag} other {in den letzten # Tagen}} gelöscht wurden.",
+    "range_all": "Angezeigt werden alle gelöschten E-Mails, die der Server noch aufbewahrt.",
+    "loading": "Gelöschte E-Mails werden geladen…",
+    "load_failed": "Die gelöschten E-Mails konnten nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "empty": "Es gibt keine gelöschten E-Mails zum Wiederherstellen.",
+    "select_all": "Alle auswählen",
+    "selected": "{count} ausgewählt",
+    "refresh": "Aktualisieren",
+    "restore": "Wiederherstellen",
+    "restored": "{count, plural, one {# Nachricht wird} other {# Nachrichten werden}} in Ihren Posteingang zurückgelegt.",
+    "restore_partial": "{count, plural, one {# Nachricht konnte} other {# Nachrichten konnten}} nicht wiederhergestellt werden. Sie bleiben ausgewählt, damit Sie es erneut versuchen können.",
+    "restore_hint": "Wiederhergestellte E-Mails kommen ungelesen in Ihren Posteingang. Der Server erledigt das im Hintergrund, es kann also einen Moment dauern, bis sie erscheinen.",
+    "unknown_sender": "Unbekannter Absender",
+    "no_subject": "(kein Betreff)",
+    "deleted_on": "Gelöscht am {date}",
+    "trash_hint": "Versehentlich etwas endgültig gelöscht?",
+    "trash_link": "Gelöschte Elemente wiederherstellen"
+  },
   "calendar_event_notifications": {
     "someone": "Jemand",
     "invited": "{name} hat dich zu „{title}“ eingeladen",

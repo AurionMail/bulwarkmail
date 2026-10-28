@@ -26,6 +26,7 @@ import { isServerSetKeyword } from "./server-keywords";
 import { PrincipalsRequestError } from "./principals-error";
 import { buildShareSetCalls, failAll, parseShareTargets, readShareSetResults, SET_METHOD, type ShareChange, type ShareChangeResult, type ShareTarget } from "./share-batch";
 import type { ShareKind } from "./share-rights";
+import { ARCHIVED_ITEM_USING, STALWART_CAPABILITY, buildRestoreCalls, parseArchivedItems, readRestoreResults, type ArchivedEmail, type RestoreResult } from "@/lib/recovery/archived-items";
 import { RescheduleRestoredError } from "./reschedule-error";
 
 export { SchedulingDeniedError, RescheduleRestoredError };
@@ -11937,5 +11938,65 @@ export class JMAPClient implements IJMAPClient {
       [['PushSubscription/set', { destroy: [id] }, '0']],
       ['urn:ietf:params:jmap:core'],
     );
+  }
+
+  // ── Recover deleted items (Stalwart Enterprise, lib/recovery/archived-items.ts) ──
+
+  advertisesArchivedItems(accountId?: string): boolean {
+    return this.hasAccountCapability(STALWART_CAPABILITY, accountId || this.accountId);
+  }
+
+  /**
+   * The ids of the account's archived items. A request of its own: without
+   * an Enterprise license Stalwart refuses it (`forbidden`), and that must
+   * not take other calls down with it.
+   */
+  async queryArchivedItemIds(accountId?: string): Promise<string[]> {
+    const id = accountId || this.accountId;
+    const response = await this.request([["x:ArchivedItem/query", { accountId: id }, "q"]], ARCHIVED_ITEM_USING);
+    const [method, result] = response.methodResponses?.[0] ?? [];
+    if (method !== "x:ArchivedItem/query") {
+      const error = result as JmapErrorInfo | undefined;
+      throw jmapError(error?.description || "Failed to list deleted items", error);
+    }
+    const ids = (result as { ids?: unknown }).ids;
+    return Array.isArray(ids) ? ids.filter((v): v is string => typeof v === "string") : [];
+  }
+
+  async listArchivedEmails(accountId?: string): Promise<ArchivedEmail[]> {
+    const id = accountId || this.accountId;
+    const ids = await this.queryArchivedItemIds(id);
+    const calls: JMAPMethodCall[] = batched(ids, this.getMaxObjectsInGet())
+      .map((batch, i): JMAPMethodCall => ["x:ArchivedItem/get", { accountId: id, ids: batch }, `g${i}`]);
+    const items: ArchivedEmail[] = [];
+    for (const group of batched(calls, this.getMaxCallsInRequest())) {
+      const response = await this.request(group, ARCHIVED_ITEM_USING);
+      for (const [method, result] of response.methodResponses ?? []) {
+        if (method !== "x:ArchivedItem/get") {
+          const error = result as JmapErrorInfo | undefined;
+          throw jmapError(error?.description || "Failed to read deleted items", error);
+        }
+        items.push(...parseArchivedItems((result as { list?: unknown }).list, id));
+      }
+    }
+    return items;
+  }
+
+  async restoreArchivedItems(ids: string[], accountId?: string): Promise<RestoreResult[]> {
+    const id = accountId || this.accountId;
+    const calls = buildRestoreCalls(ids, id, this.getMaxObjectsInSet());
+    const results: RestoreResult[] = [];
+    for (const group of batched(calls, this.getMaxCallsInRequest())) {
+      try {
+        const response = await this.request(group, ARCHIVED_ITEM_USING);
+        results.push(...readRestoreResults(group, (response.methodResponses ?? []) as Array<[string, Record<string, unknown>, string]>));
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        for (const [, args] of group) {
+          results.push(...Object.keys(args.update as Record<string, unknown>).map((itemId) => ({ id: itemId, ok: false, error: reason })));
+        }
+      }
+    }
+    return results;
   }
 }
