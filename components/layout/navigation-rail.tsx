@@ -517,6 +517,7 @@ export function NavigationRail({
         <Link
           href="/settings"
           onClick={handleNavClick('settings')}
+          data-tour="nav-settings"
           className={cn(
             "flex flex-col items-center justify-center gap-1 py-2 px-1 min-h-[44px] grow shrink-0 basis-[64px]",
             "transition-colors duration-150",

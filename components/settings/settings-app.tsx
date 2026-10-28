@@ -909,7 +909,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
           <PhoneHeaderActions />
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto" data-tour="settings-tabs">
           <div className="px-4 pt-3 pb-1">
             <div className="relative">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />

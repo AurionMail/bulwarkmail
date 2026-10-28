@@ -8,8 +8,9 @@ import { useCalendarStore } from "@/stores/calendar-store";
 import { useWebDAVStore } from "@/stores/webdav-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { usePolicyStore } from "@/stores/policy-store";
-import { getTourSteps, type TourStep } from "./tour-steps";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { getTourSteps, isTourStepOnPage, type TourStep } from "./tour-steps";
+import { useIsMobile, useMediaQuery } from "@/hooks/use-media-query";
+import { requestAppCommand } from "@/lib/app-commands";
 import { TourOverlay } from "./tour-overlay";
 
 const TOUR_COMPLETED_KEY = "tour_completed";
@@ -24,6 +25,12 @@ interface TourContextValue {
   stopTour: () => void;
   nextStep: () => void;
   prevStep: () => void;
+  /**
+   * Drops the current step, which has nothing to point at, from this run of
+   * the tour, so the counter only ever counts steps that show. `direction`
+   * is the way the user was going.
+   */
+  skipStep: (direction: 1 | -1) => void;
   hasCompletedTour: boolean;
   resetTourCompletion: () => void;
 }
@@ -34,6 +41,12 @@ export function useTour() {
   const ctx = useContext(TourContext);
   if (!ctx) throw new Error("useTour must be used within TourProvider");
   return ctx;
+}
+
+function rememberStep(step: TourStep | undefined) {
+  try {
+    if (step) localStorage.setItem(TOUR_CURRENT_STEP_KEY, step.id);
+  } catch { /* */ }
 }
 
 export function TourProvider({ children }: { children: ReactNode }) {
@@ -54,14 +67,32 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const client = useAuthStore((s) => s.client);
   const contactsEnabled = usePolicyStore((s) => s.isFeatureEnabled('contactsEnabled'));
   const touch = useMediaQuery("(pointer: coarse)");
+  const phone = useIsMobile();
+  // Steps found to have nothing to point at during this run of the tour.
+  const [skipped, setSkipped] = useState<string[]>([]);
 
-  const steps = getTourSteps({
+  const allSteps = getTourSteps({
     isDemoMode,
     supportsCalendar: supportsCalendar && calendarEnabled,
     supportsWebDAV: supportsWebDAV !== false,
     supportsContacts: (client?.supportsContacts?.() ?? false) && contactsEnabled,
     touch,
+    phone,
   });
+  const steps = skipped.length ? allSteps.filter((s) => !skipped.includes(s.id)) : allSteps;
+  const step = isActive ? steps[currentStep] : undefined;
+
+  // Take the user to the app the step is about. On a phone the open message
+  // covers the list and the tab bar, so every Mail step but the reader's own
+  // closes it first.
+  useEffect(() => {
+    if (!step) return;
+    if (!isTourStepOnPage(step, pathname)) {
+      router.push(step.page ?? "/");
+    } else if (phone && !step.page && step.view !== "reader") {
+      requestAppCommand("show-list");
+    }
+  }, [step, pathname, phone, router]);
 
   useEffect(() => {
     // One-time migration: if the legacy per-device flag is set but the synced
@@ -88,29 +119,20 @@ export function TourProvider({ children }: { children: ReactNode }) {
     setHasCompletedTour(true);
   }, [tourCompleted, showOnboardingOnNewDevices]);
 
+  // A fresh run gives every step its chance again; the effect above takes the
+  // user to the first step's app.
   const startTour = useCallback(() => {
     let resumeStep = 0;
     try {
       const stored = localStorage.getItem(TOUR_CURRENT_STEP_KEY);
-      if (stored) {
-        const parsed = parseInt(stored, 10);
-        if (!isNaN(parsed) && parsed >= 0) resumeStep = parsed;
-      }
+      const index = stored ? allSteps.findIndex((s) => s.id === stored) : -1;
+      if (index >= 0) resumeStep = index;
     } catch { /* */ }
 
-    // If the resume step is beyond the current steps, start from 0
-    if (resumeStep >= steps.length) resumeStep = 0;
-
-    // Most steps live on the mailbox - navigate there (or to the step's specific page)
-    // so we don't start the tour on a page where the targets don't exist.
-    const targetPage = steps[resumeStep]?.page ?? "/";
-    if (pathname !== targetPage) {
-      router.push(targetPage);
-    }
-
+    setSkipped([]);
     setCurrentStep(resumeStep);
     setIsActive(true);
-  }, [steps, pathname, router]);
+  }, [allSteps]);
 
   const stopTour = useCallback(() => {
     setIsActive(false);
@@ -134,38 +156,31 @@ export function TourProvider({ children }: { children: ReactNode }) {
       completeTour();
       return;
     }
-    const next = currentStep + 1;
-    const nextStepDef = steps[next];
-    const currentStepDef = steps[currentStep];
-    setCurrentStep(next);
-    try {
-      localStorage.setItem(TOUR_CURRENT_STEP_KEY, String(next));
-    } catch { /* */ }
-
-    // Navigate when the next step is on a different page (treat "no page" as the mailbox)
-    const nextPage = nextStepDef?.page ?? "/";
-    const currentPage = currentStepDef?.page ?? "/";
-    if (nextPage !== currentPage) {
-      router.push(nextPage);
-    }
-  }, [currentStep, steps, completeTour, router]);
+    setCurrentStep(currentStep + 1);
+    rememberStep(steps[currentStep + 1]);
+  }, [currentStep, steps, completeTour]);
 
   const prevStep = useCallback(() => {
     if (currentStep <= 0) return;
-    const prev = currentStep - 1;
-    const prevStepDef = steps[prev];
-    setCurrentStep(prev);
-    try {
-      localStorage.setItem(TOUR_CURRENT_STEP_KEY, String(prev));
-    } catch { /* */ }
+    setCurrentStep(currentStep - 1);
+    rememberStep(steps[currentStep - 1]);
+  }, [currentStep, steps]);
 
-    if (prevStepDef?.page) {
-      router.push(prevStepDef.page);
-    } else if (steps[currentStep]?.page) {
-      // Going back from a page-specific step to a non-page step => go to mail
-      router.push("/");
+  const skipStep = useCallback((direction: 1 | -1) => {
+    const current = steps[currentStep];
+    if (!current) return;
+    const rest = steps.filter((s) => s !== current);
+    // Going on, the next step moves up into this index; going back, the
+    // previous one is a place lower (at the start, the next one shows).
+    const index = direction === -1 && currentStep > 0 ? currentStep - 1 : currentStep;
+    if (index >= rest.length) {
+      completeTour();
+      return;
     }
-  }, [currentStep, steps, router]);
+    setSkipped((ids) => [...ids, current.id]);
+    setCurrentStep(index);
+    rememberStep(rest[index]);
+  }, [currentStep, steps, completeTour]);
 
   const resetTourCompletion = useCallback(() => {
     setHasCompletedTour(false);
@@ -185,6 +200,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
     stopTour,
     nextStep,
     prevStep,
+    skipStep,
     hasCompletedTour,
     resetTourCompletion,
   };

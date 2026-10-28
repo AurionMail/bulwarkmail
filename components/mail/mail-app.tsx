@@ -1135,7 +1135,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     handlers: keyboardHandlers,
   });
 
-  // Compose and search from the command palette (components/command-palette).
+  // Compose and search from the command palette (components/command-palette);
+  // the tour closes the phone's folder drawer and reader to point at the list
+  // and the tab bar.
   useAppCommands({
     compose: keyboardHandlers.onCompose,
     search: () => {
@@ -1143,6 +1145,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       else keyboardHandlers.onFocusSearch?.();
     },
     'all-inboxes': () => handleMailboxSelect(UNIFIED_MAILBOX_IDS.inbox),
+    'show-list': () => {
+      if (!isMobile) return;
+      if (sidebarOpen) setSidebarOpen(false);
+      if (!showComposer && (activeView !== "list" || selectedEmail)) handleMobileBack();
+    },
   }, isAuthenticated && !!client);
 
   // Shared mail refresh: re-fetch mailboxes (unread counts) + the active list

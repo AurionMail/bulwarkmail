@@ -2228,6 +2228,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               onClick={openCreateForView}
               className="absolute bottom-4 end-4 z-40 h-14 w-14 rounded-full shadow-lg"
               aria-label={createLabel}
+              data-tour="create-event-button"
             >
               <Plus className="h-6 w-6" />
             </Button>
