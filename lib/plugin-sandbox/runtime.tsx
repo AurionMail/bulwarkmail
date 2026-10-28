@@ -150,12 +150,13 @@ function applySettings(next: Record<string, unknown>): void {
 }
 // What api.host.features says: one object for the iframe's lifetime,
 // updated in place on 'host-change' like the settings.
-const hostFeaturesState: HostFeaturesView = { externalMailWarnings: false };
+const hostFeaturesState: HostFeaturesView = { externalSenderLabel: false, externalRecipientWarning: false };
 const hostFeatureListeners = new Set<(features: HostFeaturesView) => void>();
 
 function applyHostFeatures(next: HostFeaturesView | undefined): void {
   if (!next) return;
-  hostFeaturesState.externalMailWarnings = next.externalMailWarnings === true;
+  hostFeaturesState.externalSenderLabel = next.externalSenderLabel === true;
+  hostFeaturesState.externalRecipientWarning = next.externalRecipientWarning === true;
   for (const listener of hostFeatureListeners) {
     try { listener(hostFeaturesState); } catch (err) { console.error('[plugin] host feature listener failed', err); }
   }

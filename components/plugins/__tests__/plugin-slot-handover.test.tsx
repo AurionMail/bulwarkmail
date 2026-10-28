@@ -1,4 +1,4 @@
-import { render, act, cleanup } from '@testing-library/react';
+import { render, renderHook, act, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { DEFAULT_ORGANISATION_POLICY } from '@/lib/admin/organisation-policy';
 import { DEFAULT_POLICY } from '@/lib/admin/types';
@@ -36,12 +36,28 @@ afterEach(() => {
 });
 
 describe('email-banner slot while core external warnings are on', () => {
-  it('shows the plugin banner while they are off and hides it as soon as one is on', () => {
+  it('shows the plugin banner until the sender label is on, whatever the recipient warning', () => {
     const { container } = render(<PluginSlot name="email-banner" />);
+    expect(frames(container).sort()).toEqual(['external-mail-warning', 'spam-score']);
+    act(() => setExternalMail({ recipientWarning: true }));
     expect(frames(container).sort()).toEqual(['external-mail-warning', 'spam-score']);
     act(() => setExternalMail({ senderLabel: true }));
     expect(frames(container)).toEqual(['spam-score']);
     act(() => setExternalMail({}));
     expect(frames(container).sort()).toEqual(['external-mail-warning', 'spam-score']);
+  });
+});
+
+describe('usePluginSlotOffers', () => {
+  // The reader and the conversation view build the plugin's view of a message
+  // only when some offer is left, so a hidden banner costs nothing.
+  it('leaves out the hidden banner offer, so nothing is built for it', async () => {
+    const { usePluginSlotOffers } = await import('@/hooks/use-plugin-slot-offers');
+    clearSlotOffers();
+    offerSlots('external-mail-warning', ['email-banner']);
+    const { result } = renderHook(() => usePluginSlotOffers('email-banner'));
+    expect(result.current.map((o) => o.pluginId)).toEqual(['external-mail-warning']);
+    act(() => setExternalMail({ senderLabel: true }));
+    expect(result.current).toEqual([]);
   });
 });

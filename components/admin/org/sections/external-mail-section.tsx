@@ -7,11 +7,11 @@ import { SettingItem, SettingsSection, ToggleSwitch } from '@/components/setting
 import { AdminLink } from '@/components/admin/admin-link';
 import { normalizeDomainList } from '@/lib/admin/organisation-policy';
 import { apiFetch } from '@/lib/browser-navigation';
+import { EXTERNAL_MAIL_WARNING_PLUGIN_ID } from '@/lib/plugin-sandbox/host-features';
 import { InheritNote } from '../org-page';
 import type { OrgPolicyDraft } from '../use-org-policy-draft';
 
-/** The plugin core took over from, and its first release that steps back on its own. */
-export const EXTERNAL_MAIL_PLUGIN_ID = 'external-mail-warning';
+/** The first release of the plugin core took over from that steps back on its own. */
 export const PLUGIN_STEPS_BACK_FROM = '1.6.0';
 
 function older(version: string, than: string): boolean {
@@ -32,7 +32,7 @@ function useInstalledPlugin(): InstalledPlugin | null {
       try {
         const res = await apiFetch('/api/admin/plugins');
         const list = res.ok ? ((await res.json()) as Array<{ id: string; version?: string }>) : [];
-        const found = Array.isArray(list) ? list.find((p) => p.id === EXTERNAL_MAIL_PLUGIN_ID) : undefined;
+        const found = Array.isArray(list) ? list.find((p) => p.id === EXTERNAL_MAIL_WARNING_PLUGIN_ID) : undefined;
         if (!cancelled) setPlugin(found ? { version: found.version ?? '' } : null);
       } catch {
         if (!cancelled) setPlugin(null);
@@ -73,7 +73,7 @@ export function ExternalMailSection({ draft }: { draft: OrgPolicyDraft }) {
   const importFromPlugin = async () => {
     setImporting(true);
     try {
-      const res = await apiFetch(`/api/admin/plugins/${EXTERNAL_MAIL_PLUGIN_ID}/config`);
+      const res = await apiFetch(`/api/admin/plugins/${EXTERNAL_MAIL_WARNING_PLUGIN_ID}/config`);
       if (!res.ok) throw new Error(String(res.status));
       const config = (await res.json()) as Record<string, unknown>;
       const fromPlugin = normalizeDomainList(config.safeDomains) ?? [];
@@ -159,10 +159,10 @@ export function ExternalMailSection({ draft }: { draft: OrgPolicyDraft }) {
             </p>
             <p className="text-muted-foreground">
               {outdated
-                ? `Version ${plugin.version || 'unknown'} is installed. While these warnings are on, Bulwark skips its warnings and banner so nobody is asked twice; version ${PLUGIN_STEPS_BACK_FROM} and later step back by themselves.`
-                : 'It does nothing while these warnings are on.'}{' '}
+                ? `Version ${plugin.version || 'unknown'} is installed. For each switch that is on, Bulwark skips the matching part of the plugin (its send confirm, or its banner and new-mail toast) so nobody is warned twice; version ${PLUGIN_STEPS_BACK_FROM} and later step back by themselves.`
+                : 'It turns off its own send confirm, banner and toast for each switch that is on here.'}{' '}
               &ldquo;Import from the plugin&rdquo; copies its safe domains into the list above.{' '}
-              <AdminLink href={`/admin/plugins/${EXTERNAL_MAIL_PLUGIN_ID}`} className="underline underline-offset-2 hover:text-foreground">Open the plugin</AdminLink>
+              <AdminLink href={`/admin/plugins/${EXTERNAL_MAIL_WARNING_PLUGIN_ID}`} className="underline underline-offset-2 hover:text-foreground">Open the plugin</AdminLink>
             </p>
           </div>
         </div>

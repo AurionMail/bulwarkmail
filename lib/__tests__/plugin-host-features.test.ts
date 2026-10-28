@@ -1,7 +1,7 @@
 /**
  * api.host.features tells plugins which of Bulwark's own features replace
- * them (externalMailWarnings: the organisation's External label or
- * recipient warning). The host sends it with init and again on every
+ * them (externalSenderLabel and externalRecipientWarning: the
+ * organisation's External label and recipient warning). The host sends it with init and again on every
  * change; the runtime keeps one object up to date.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -29,22 +29,26 @@ function setExternalMail(patch: Partial<typeof DEFAULT_ORGANISATION_POLICY.exter
 beforeEach(() => setExternalMail({}));
 
 describe('snapshotHostFeatures', () => {
-  it('says externalMailWarnings while either switch is on', () => {
-    expect(snapshotHostFeatures()).toEqual({ externalMailWarnings: false });
+  it('has one flag per switch', () => {
+    expect(snapshotHostFeatures()).toEqual({ externalSenderLabel: false, externalRecipientWarning: false });
     setExternalMail({ senderLabel: true });
-    expect(snapshotHostFeatures()).toEqual({ externalMailWarnings: true });
+    expect(snapshotHostFeatures()).toEqual({ externalSenderLabel: true, externalRecipientWarning: false });
     setExternalMail({ recipientWarning: true });
-    expect(snapshotHostFeatures()).toEqual({ externalMailWarnings: true });
+    expect(snapshotHostFeatures()).toEqual({ externalSenderLabel: false, externalRecipientWarning: true });
   });
 });
 
 describe('hand-over of the external-mail-warning plugin', () => {
-  it('skips its send check, toast and banner only while core warnings are on', () => {
+  it('skips its send check with the recipient warning and its toast and banner with the label', () => {
     const id = EXTERNAL_MAIL_WARNING_PLUGIN_ID;
     expect(isHookHandedOver(id, 'onBeforeEmailSend')).toBe(false);
     expect(isSlotHandedOver(id, 'email-banner')).toBe(false);
     setExternalMail({ recipientWarning: true });
     expect(isHookHandedOver(id, 'onBeforeEmailSend')).toBe(true);
+    expect(isHookHandedOver(id, 'onNewEmailReceived')).toBe(false);
+    expect(isSlotHandedOver(id, 'email-banner')).toBe(false);
+    setExternalMail({ senderLabel: true });
+    expect(isHookHandedOver(id, 'onBeforeEmailSend')).toBe(false);
     expect(isHookHandedOver(id, 'onNewEmailReceived')).toBe(true);
     expect(isSlotHandedOver(id, 'email-banner')).toBe(true);
     // Its other hooks, and every other plugin, keep running.
@@ -65,18 +69,18 @@ describe('host bridge', () => {
     const plugin = { id: 'p', name: 'P', version: '1.0.0', permissions: [], settings: {}, settingsSchema: {} } as never;
     const instance = createBackgroundInstance({ plugin, tier: 'privileged', code: '', locale: 'en' });
     const pending = (instance as unknown as { pendingInit: { hostFeatures?: unknown } | null }).pendingInit;
-    expect(pending?.hostFeatures).toEqual({ externalMailWarnings: true });
+    expect(pending?.hostFeatures).toEqual({ externalSenderLabel: true, externalRecipientWarning: false });
 
     // Before init has gone out a change lands in the payload ...
     setExternalMail({});
-    expect(pending?.hostFeatures).toEqual({ externalMailWarnings: false });
+    expect(pending?.hostFeatures).toEqual({ externalSenderLabel: false, externalRecipientWarning: false });
 
     // ... after it, as a host-change message.
     const sent: unknown[] = [];
     (instance as unknown as { pendingInit: unknown }).pendingInit = null;
     (instance as unknown as { send: (m: unknown) => void }).send = (m) => sent.push(m);
     setExternalMail({ recipientWarning: true });
-    expect(sent).toEqual([{ type: 'host-change', features: { externalMailWarnings: true } }]);
+    expect(sent).toEqual([{ type: 'host-change', features: { externalSenderLabel: false, externalRecipientWarning: true } }]);
     instance.destroy();
   }, 30_000);
 });
@@ -95,7 +99,7 @@ describe('api.host in the sandbox runtime', () => {
   let hostWindow: { postMessage: ReturnType<typeof vi.fn> };
   const realParent = Object.getOwnPropertyDescriptor(window, 'parent');
   const g = globalThis as {
-    __pluginApi?: { host: { features: { externalMailWarnings: boolean }; onFeaturesChange(fn: (f: unknown) => void): () => void } };
+    __pluginApi?: { host: { features: { externalSenderLabel: boolean; externalRecipientWarning: boolean }; onFeaturesChange(fn: (f: unknown) => void): () => void } };
     __seenAtActivate?: boolean;
   };
 
@@ -115,7 +119,7 @@ describe('api.host in the sandbox runtime', () => {
 
   it('has the value from init in activate and follows host-change', async () => {
     const bundle = `module.exports = { activate: function (api) {
-      globalThis.__seenAtActivate = api.host.features.externalMailWarnings;
+      globalThis.__seenAtActivate = api.host.features.externalRecipientWarning;
       globalThis.__pluginApi = api;
     } };`;
     const { SandboxRuntime } = await import('@/lib/plugin-sandbox/runtime');
@@ -126,7 +130,7 @@ describe('api.host in the sandbox runtime', () => {
         mode: 'background', pluginId: 'x', tier: 'privileged', locale: 'en',
         manifest: { id: 'x', version: '1.0.0', permissions: [], settings: {} },
         code: bundle,
-        hostFeatures: { externalMailWarnings: true },
+        hostFeatures: { externalSenderLabel: false, externalRecipientWarning: true },
       },
     });
     await waitFor(() => expect(g.__pluginApi).toBeDefined());
@@ -136,8 +140,9 @@ describe('api.host in the sandbox runtime', () => {
     const kept = api.host.features;
     const changes: unknown[] = [];
     api.host.onFeaturesChange((f) => changes.push({ ...(f as object) }));
-    post(hostWindow, HOST_ORIGIN, { type: 'host-change', features: { externalMailWarnings: false } });
-    expect(kept.externalMailWarnings).toBe(false);
-    expect(changes).toEqual([{ externalMailWarnings: false }]);
+    post(hostWindow, HOST_ORIGIN, { type: 'host-change', features: { externalSenderLabel: true, externalRecipientWarning: false } });
+    expect(kept.externalRecipientWarning).toBe(false);
+    expect(kept.externalSenderLabel).toBe(true);
+    expect(changes).toEqual([{ externalSenderLabel: true, externalRecipientWarning: false }]);
   }, 30_000);
 });

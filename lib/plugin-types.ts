@@ -844,11 +844,10 @@ export interface AppInfoView {
  * older than 1.19.0, so read it as `api.host?.features?.x === true`.
  */
 export interface HostFeaturesView {
-  /**
-   * The admin turned on the "External" sender label or the external
-   * recipient warning (policy organisation.externalMail) for this user.
-   */
-  externalMailWarnings: boolean;
+  /** The admin turned on the "External" label on mail from outside the organisation (organisation.externalMail.senderLabel). */
+  externalSenderLabel: boolean;
+  /** The admin turned on the confirm before sending outside the organisation (organisation.externalMail.recipientWarning). */
+  externalRecipientWarning: boolean;
 }
 
 /** One setting `api.app.searchSettings` found, in the user's language. */

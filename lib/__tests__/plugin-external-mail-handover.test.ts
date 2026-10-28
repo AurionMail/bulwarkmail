@@ -84,15 +84,26 @@ describe('the retired external-mail-warning plugin', () => {
     expect(mocks.invokeHook).toHaveBeenCalledWith('onBeforeEmailSend', [OUTGOING]);
   });
 
-  it('is skipped while the core warnings are on, and asked again once they are off', async () => {
+  it('loses its send check to the recipient warning, and gets it back once that is off', async () => {
+    loaded = 'external-mail-warning';
+    await loadSandboxedPlugin(plugin(loaded));
+    setExternalMail({ recipientWarning: true });
+    expect(await emailHooks.onBeforeEmailSend.interceptOutcome(OUTGOING as never)).toBe('allowed');
+    expect(mocks.invokeHook).not.toHaveBeenCalled();
+    // The toast is about incoming mail: it stays while only the warning is on.
+    await emailHooks.onNewEmailReceived.emit({ from: [{ email: 'dave@org-two.test' }] } as never);
+    expect(mocks.invokeHook).toHaveBeenCalledWith('onNewEmailReceived', expect.anything());
+
+    setExternalMail({});
+    expect(await emailHooks.onBeforeEmailSend.interceptOutcome(OUTGOING as never)).toBe('vetoed');
+  });
+
+  it('loses its new-mail toast to the sender label but keeps its send check', async () => {
     loaded = 'external-mail-warning';
     await loadSandboxedPlugin(plugin(loaded));
     setExternalMail({ senderLabel: true });
-    expect(await emailHooks.onBeforeEmailSend.interceptOutcome(OUTGOING as never)).toBe('allowed');
     await emailHooks.onNewEmailReceived.emit({ from: [{ email: 'dave@org-two.test' }] } as never);
     expect(mocks.invokeHook).not.toHaveBeenCalled();
-
-    setExternalMail({});
     expect(await emailHooks.onBeforeEmailSend.interceptOutcome(OUTGOING as never)).toBe('vetoed');
   });
 

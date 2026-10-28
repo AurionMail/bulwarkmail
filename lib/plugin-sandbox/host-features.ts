@@ -4,45 +4,52 @@
 // account switch to another scope).
 //
 // And the other half of that hand-over: copies of a plugin core replaced
-// that are older than the release which knows the flag keep running their
-// hooks. While core does the job, the host skips those hooks by plugin id.
+// that are older than the release which knows the flags keep running their
+// hooks. While core does a job, the host skips the hooks that did it, by
+// plugin id, one switch at a time.
 
 import { usePolicyStore } from '@/stores/policy-store';
 import type { HostFeaturesView } from '../plugin-types';
 import type { OrganisationPolicy } from '@/lib/admin/organisation-policy';
 
-/**
- * Either external-mail switch is on. The same rule as coreExternalWarningsOn
- * (lib/external-mail.ts), kept apart so the sandbox doesn't pull in the
- * account and contact stores.
- */
-export function externalWarningsOn(externalMail: OrganisationPolicy['externalMail'] | undefined): boolean {
-  return !!externalMail && (externalMail.senderLabel || externalMail.recipientWarning);
-}
-
-export function snapshotHostFeatures(): HostFeaturesView {
-  return { externalMailWarnings: externalWarningsOn(usePolicyStore.getState().getOrganisation().externalMail) };
-}
-
 /** The external-mail-warning plugin, retired in favour of organisation.externalMail. */
 export const EXTERNAL_MAIL_WARNING_PLUGIN_ID = 'external-mail-warning';
 
-/** Its send check and its new-mail toast; its banner is the email-banner slot. */
-const EXTERNAL_MAIL_WARNING_HOOKS = new Set(['onBeforeEmailSend', 'onNewEmailReceived']);
-const EXTERNAL_MAIL_WARNING_SLOTS = new Set(['email-banner']);
+/** The flags for an externalMail policy section (missing = both off). */
+export function hostFeaturesFor(externalMail: OrganisationPolicy['externalMail'] | undefined): HostFeaturesView {
+  return {
+    externalSenderLabel: externalMail?.senderLabel === true,
+    externalRecipientWarning: externalMail?.recipientWarning === true,
+  };
+}
+
+export function snapshotHostFeatures(): HostFeaturesView {
+  return hostFeaturesFor(usePolicyStore.getState().getOrganisation().externalMail);
+}
+
+/**
+ * Which flag hands over which of the plugin's parts: the send confirm goes
+ * with the recipient warning, the banner and the new-mail toast (both about
+ * incoming mail from outside) with the sender label.
+ */
+const HOOK_FLAGS: Record<string, keyof HostFeaturesView> = {
+  onBeforeEmailSend: 'externalRecipientWarning',
+  onNewEmailReceived: 'externalSenderLabel',
+};
+const SLOT_FLAGS: Record<string, keyof HostFeaturesView> = {
+  'email-banner': 'externalSenderLabel',
+};
 
 /** True when core does this plugin hook's job right now, so the host skips it. */
-export function isHookHandedOver(pluginId: string, hookName: string): boolean {
-  return pluginId === EXTERNAL_MAIL_WARNING_PLUGIN_ID
-    && EXTERNAL_MAIL_WARNING_HOOKS.has(hookName)
-    && snapshotHostFeatures().externalMailWarnings;
+export function isHookHandedOver(pluginId: string, hookName: string, features: HostFeaturesView = snapshotHostFeatures()): boolean {
+  const flag = HOOK_FLAGS[hookName];
+  return pluginId === EXTERNAL_MAIL_WARNING_PLUGIN_ID && !!flag && features[flag];
 }
 
 /** True when core does this plugin slot's job right now, so the host doesn't show it. */
 export function isSlotHandedOver(pluginId: string, slot: string, features: HostFeaturesView = snapshotHostFeatures()): boolean {
-  return pluginId === EXTERNAL_MAIL_WARNING_PLUGIN_ID
-    && EXTERNAL_MAIL_WARNING_SLOTS.has(slot)
-    && features.externalMailWarnings;
+  const flag = SLOT_FLAGS[slot];
+  return pluginId === EXTERNAL_MAIL_WARNING_PLUGIN_ID && !!flag && features[flag];
 }
 
 // ─── Change watch ────────────────────────────────────────────
