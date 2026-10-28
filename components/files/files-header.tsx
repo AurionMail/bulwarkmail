@@ -135,20 +135,21 @@ export function FilesHeader({
           {selection.trash ? (
             <>
               {selection.onRestore && (
-                <ToolButton icon={RotateCcw} label={t("restore")} onClick={selection.onRestore} compact={compact} />
+                <ToolButton icon={RotateCcw} label={t("restore")} onClick={selection.onRestore} compact />
               )}
               <ToolButton icon={Trash2} label={t("delete_forever")} onClick={selection.onDelete} compact destructive />
             </>
           ) : (
           <>
+          {/* All icons with a tooltip, as in Mail's selection bar: one kind of button. */}
           {selection.canOpen && (
-            <ToolButton icon={FolderOpen} label={t("open")} onClick={selection.onOpen} compact={compact} />
+            <ToolButton icon={FolderOpen} label={t("open")} onClick={selection.onOpen} compact />
           )}
           {selection.fileCount > 0 && (
-            <ToolButton icon={Download} label={t("download")} onClick={selection.onDownload} compact={compact} />
+            <ToolButton icon={Download} label={t("download")} onClick={selection.onDownload} compact />
           )}
           {selection.canShare && (
-            <ToolButton icon={Share2} label={t("share")} onClick={selection.onShare} compact={compact} />
+            <ToolButton icon={Share2} label={t("share")} onClick={selection.onShare} compact />
           )}
           {selection.canRename && (
             <ToolButton icon={Pencil} label={t("rename")} onClick={selection.onRename} compact />

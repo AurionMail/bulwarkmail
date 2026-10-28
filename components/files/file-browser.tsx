@@ -745,7 +745,9 @@ export function FileBrowser({
         return;
       }
       if (e.key === "Escape") {
-        if (searchQuery) setSearchQuery("");
+        // The details panel over the list closes first (innermost layer, R8).
+        if (showDetails && isNarrow) toggleDetails(false);
+        else if (searchQuery) setSearchQuery("");
         else if (selected.length > 0) onClearSelection();
         return;
       }
@@ -796,6 +798,7 @@ export function FileBrowser({
     return () => window.removeEventListener("keydown", handler);
   }, [
     showNewFolder, showNewTextFile, renameTarget, renameFolder, shareTargetId, moveTarget, accountPickerMode, selectedList, singleSelected, inTrash,
+    showDetails, isNarrow, toggleDetails,
     selectAllVisible, onCopy, onCut, onPaste, clipboard, searchQuery, onClearSelection, deleteNames, openResource,
     focusedName, onToggleSelect, currentPath, navigateUp, viewMode, gridColumns, moveFocus,
   ]);
@@ -1294,6 +1297,10 @@ export function FileBrowser({
             </div>
           )}
 
+          {/* Over the list on a narrow pane: a backdrop that closes it, as for the drawer. */}
+          {detailsPanel && isNarrow && (
+            <div className="absolute inset-0 z-20 bg-black/30" aria-hidden onClick={() => toggleDetails(false)} />
+          )}
           {detailsPanel}
 
           {isNarrow && canCreate && !selectionActions && (

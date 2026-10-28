@@ -462,4 +462,12 @@ describe('FileBrowser', () => {
     expect(shared).toEqual(inList.filter((l) => inTree.includes(l)));
     expect(shared).toEqual(expect.arrayContaining(['open', 'star', 'rename', 'move_to', 'download_zip', 'delete']));
   });
+
+  it("closes the details panel over a narrow list with Escape", async () => {
+    renderBrowser({ props: { selectedResources: new Set(['notes.txt']) } });
+    fireEvent.click(screen.getByRole('button', { name: 'details' }));
+    expect(screen.getByRole('button', { name: 'details' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.getByRole('button', { name: 'details' })).toHaveAttribute('aria-pressed', 'false');
+  });
 });
