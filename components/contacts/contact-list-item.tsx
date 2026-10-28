@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, type DragEvent } from "react";
 import { useLongPress } from "@/hooks/use-long-press";
+import { useTranslations } from "next-intl";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { ContactCard } from "@/lib/jmap/types";
@@ -31,6 +32,7 @@ export function ContactListItem({ contact, isSelected, isChecked, hasSelection, 
   const longPress = useLongPress(() => {
     if (rowRef.current) onLongPress?.(rowRef.current);
   }, !!onLongPress);
+  const t = useTranslations("contacts");
   const name = getContactDisplayName(contact);
   const email = getContactPrimaryEmail(contact);
   const org = contact.organizations
@@ -56,11 +58,11 @@ export function ContactListItem({ contact, isSelected, isChecked, hasSelection, 
       box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 14px; font-weight: 500;
       z-index: 9999; white-space: nowrap; pointer-events: none;
     `;
-    preview.textContent = ids.length === 1 ? (name || "1 contact") : `${ids.length} contacts`;
+    preview.textContent = ids.length === 1 && name ? name : t("drag_count", { count: ids.length });
     document.body.appendChild(preview);
     e.dataTransfer.setDragImage(preview, 0, 0);
     requestAnimationFrame(() => preview.remove());
-  }, [contact.id, name, email, selectedContactIds]);
+  }, [contact.id, name, email, selectedContactIds, t]);
 
   return (
     <div

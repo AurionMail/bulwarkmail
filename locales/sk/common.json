@@ -2904,6 +2904,9 @@
       }
     },
     "title": "Kontakty",
+    "disabled_title": "Kontakty vypol správca",
+    "disabled_description": "Ak ich potrebujete, obráťte sa na správcu.",
+    "drag_count": "{count, plural, one {1 kontakt} few {# kontakty} other {# kontaktov}}",
     "search_placeholder": "Hľadať kontakty...",
     "create_new": "Nový kontakt",
     "no_category": "Bez kategórie",

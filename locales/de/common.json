@@ -2904,6 +2904,9 @@
       }
     },
     "title": "Kontakte",
+    "disabled_title": "Kontakte wurden von Ihrem Administrator deaktiviert",
+    "disabled_description": "Wenden Sie sich an Ihren Administrator, wenn Sie Zugriff benötigen.",
+    "drag_count": "{count, plural, one {1 Kontakt} other {# Kontakte}}",
     "search_placeholder": "Kontakte suchen...",
     "create_new": "Neuer Kontakt",
     "no_category": "Ohne Kategorie",

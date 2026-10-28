@@ -2904,6 +2904,9 @@
       }
     },
     "title": "مخاطبین",
+    "disabled_title": "مدیر شما مخاطبان را غیرفعال کرده است",
+    "disabled_description": "اگر به آن‌ها نیاز دارید، با مدیر تماس بگیرید.",
+    "drag_count": "{count, plural, one {۱ مخاطب} other {# مخاطب}}",
     "search_placeholder": "جستجوی مخاطبین...",
     "create_new": "مخاطب جدید",
     "no_category": "بدون دسته‌بندی",

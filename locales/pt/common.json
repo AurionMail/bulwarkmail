@@ -2904,6 +2904,9 @@
       }
     },
     "title": "Contatos",
+    "disabled_title": "Os contatos foram desativados pelo administrador",
+    "disabled_description": "Peça ao administrador se precisar deles.",
+    "drag_count": "{count, plural, one {1 contato} other {# contatos}}",
     "search_placeholder": "Pesquisar contatos...",
     "create_new": "Novo contato",
     "no_category": "Sem categoria",

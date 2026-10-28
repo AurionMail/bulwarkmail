@@ -2904,6 +2904,9 @@
       }
     },
     "title": "連絡先",
+    "disabled_title": "連絡先は管理者によって無効にされています",
+    "disabled_description": "必要な場合は管理者にお問い合わせください。",
+    "drag_count": "{count, plural, other {#件の連絡先}}",
     "search_placeholder": "連絡先を検索...",
     "create_new": "新しい連絡先",
     "no_category": "カテゴリなし",

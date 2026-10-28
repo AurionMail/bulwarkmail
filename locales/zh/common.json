@@ -2904,6 +2904,9 @@
       }
     },
     "title": "联系人",
+    "disabled_title": "管理员已关闭联系人",
+    "disabled_description": "如需使用，请联系管理员。",
+    "drag_count": "{count, plural, other {# 个联系人}}",
     "search_placeholder": "搜索联系人...",
     "create_new": "新联系人",
     "no_category": "没有类别",

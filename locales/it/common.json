@@ -2904,6 +2904,9 @@
       }
     },
     "title": "Contatti",
+    "disabled_title": "I contatti sono stati disattivati dall'amministratore",
+    "disabled_description": "Rivolgiti all'amministratore se ti servono.",
+    "drag_count": "{count, plural, one {1 contatto} other {# contatti}}",
     "search_placeholder": "Cerca contatti...",
     "create_new": "Nuovo contatto",
     "no_category": "Senza categoria",

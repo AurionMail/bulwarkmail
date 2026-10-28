@@ -2904,6 +2904,9 @@
       }
     },
     "title": "Contacte",
+    "disabled_title": "Contactele au fost dezactivate de administrator",
+    "disabled_description": "Contactați administratorul dacă aveți nevoie de ele.",
+    "drag_count": "{count, plural, one {1 contact} other {# contacte}}",
     "search_placeholder": "Căutare contacte...",
     "create_new": "Contact nou",
     "no_category": "Fără categorie",

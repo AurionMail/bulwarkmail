@@ -2904,6 +2904,9 @@
       }
     },
     "title": "Névjegyek",
+    "disabled_title": "A névjegyeket a rendszergazda kikapcsolta",
+    "disabled_description": "Ha szüksége van rájuk, forduljon a rendszergazdához.",
+    "drag_count": "{count, plural, one {1 névjegy} other {# névjegy}}",
     "search_placeholder": "Névjegyek keresése...",
     "create_new": "Új névjegy",
     "no_category": "Nincs kategória",

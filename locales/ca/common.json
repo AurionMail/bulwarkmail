@@ -2904,6 +2904,9 @@
       }
     },
     "title": "Contactes",
+    "disabled_title": "L'administrador ha desactivat els contactes",
+    "disabled_description": "Contacteu amb l'administrador si els necessiteu.",
+    "drag_count": "{count, plural, one {1 contacte} other {# contactes}}",
     "search_placeholder": "Cerca contactes...",
     "create_new": "Contacte nou",
     "no_category": "Sense categoria",

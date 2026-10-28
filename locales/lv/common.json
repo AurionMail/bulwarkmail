@@ -2904,6 +2904,9 @@
       }
     },
     "title": "Kontakti",
+    "disabled_title": "Administrators ir izslēdzis kontaktpersonas",
+    "disabled_description": "Ja tās ir nepieciešamas, sazinieties ar administratoru.",
+    "drag_count": "{count, plural, one {1 kontaktpersona} other {# kontaktpersonas}}",
     "search_placeholder": "Meklēt kontaktus...",
     "create_new": "Jauns kontakts",
     "no_category": "Bez kategorijas",

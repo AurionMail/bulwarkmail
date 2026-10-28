@@ -2904,6 +2904,9 @@
       }
     },
     "title": "Contacts",
+    "disabled_title": "Contacts is turned off by your administrator",
+    "disabled_description": "Ask your administrator if you need them.",
+    "drag_count": "{count, plural, one {1 contact} other {# contacts}}",
     "search_placeholder": "Search contacts...",
     "create_new": "New Contact",
     "no_category": "No Category",

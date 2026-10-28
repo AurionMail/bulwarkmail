@@ -2904,6 +2904,9 @@
       }
     },
     "title": "جهات الاتصال",
+    "disabled_title": "عطّل المسؤول جهات الاتصال",
+    "disabled_description": "تواصل مع المسؤول إذا كنت بحاجة إليها.",
+    "drag_count": "{count, plural, one {جهة اتصال واحدة} other {# جهة اتصال}}",
     "search_placeholder": "بحث في جهات الاتصال...",
     "create_new": "جهة اتصال جديدة",
     "no_category": "بلا فئة",

@@ -1078,9 +1078,9 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     return (
       <div className="flex h-dvh items-center justify-center bg-background p-6">
         <div className="max-w-lg text-center space-y-3">
-          <AlertTriangle className="w-10 h-10 text-yellow-500 mx-auto" />
-          <p className="text-sm font-medium">Contacts feature is disabled by your administrator</p>
-          <p className="text-xs text-muted-foreground">Please contact your administrator if you need access.</p>
+          <AlertTriangle className="w-10 h-10 text-amber-600 dark:text-amber-400 mx-auto" />
+          <p className="text-sm font-medium">{t("disabled_title")}</p>
+          <p className="text-xs text-muted-foreground">{t("disabled_description")}</p>
         </div>
       </div>
     );

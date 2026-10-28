@@ -2904,6 +2904,9 @@
       }
     },
     "title": "Контакты",
+    "disabled_title": "Администратор отключил контакты",
+    "disabled_description": "Обратитесь к администратору, если они вам нужны.",
+    "drag_count": "{count, plural, one {# контакт} few {# контакта} other {# контактов}}",
     "search_placeholder": "Поиск контактов...",
     "create_new": "Новый контакт",
     "no_category": "Без категории",

@@ -2904,6 +2904,9 @@
       }
     },
     "title": "Kişiler",
+    "disabled_title": "Kişiler yöneticiniz tarafından kapatıldı",
+    "disabled_description": "İhtiyacınız varsa yöneticinize başvurun.",
+    "drag_count": "{count, plural, one {1 kişi} other {# kişi}}",
     "search_placeholder": "Kişilerde ara...",
     "create_new": "Yeni Kişi",
     "no_category": "Kategori Yok",

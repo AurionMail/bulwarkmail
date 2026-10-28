@@ -2904,6 +2904,9 @@
       }
     },
     "title": "연락처",
+    "disabled_title": "관리자가 연락처를 사용 중지했습니다",
+    "disabled_description": "필요하면 관리자에게 문의하세요.",
+    "drag_count": "{count, plural, other {연락처 #개}}",
     "search_placeholder": "연락처 검색...",
     "create_new": "새 연락처",
     "no_category": "카테고리 없음",

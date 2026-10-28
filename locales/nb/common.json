@@ -2904,6 +2904,9 @@
       }
     },
     "title": "Kontakter",
+    "disabled_title": "Kontakter er slått av av administratoren",
+    "disabled_description": "Spør administratoren hvis du trenger dem.",
+    "drag_count": "{count, plural, one {1 kontakt} other {# kontakter}}",
     "search_placeholder": "Søk etter kontakter...",
     "create_new": "Ny kontakt",
     "no_category": "Ingen kategori",

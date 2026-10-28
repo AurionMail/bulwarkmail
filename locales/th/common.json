@@ -2258,6 +2258,9 @@
       }
     },
     "title": "ผู้ติดต่อ",
+    "disabled_title": "ผู้ดูแลระบบปิดรายชื่อติดต่อ",
+    "disabled_description": "ติดต่อผู้ดูแลระบบหากคุณต้องการใช้",
+    "drag_count": "{count, plural, other {ผู้ติดต่อ # รายการ}}",
     "search_placeholder": "ค้นหาผู้ติดต่อ...",
     "create_new": "ผู้ติดต่อใหม่",
     "no_category": "ไม่มีหมวดหมู่",

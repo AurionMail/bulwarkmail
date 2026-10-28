@@ -2904,6 +2904,9 @@
       }
     },
     "title": "Contacten",
+    "disabled_title": "Contacten zijn uitgeschakeld door je beheerder",
+    "disabled_description": "Vraag je beheerder als je ze nodig hebt.",
+    "drag_count": "{count, plural, one {1 contact} other {# contacten}}",
     "search_placeholder": "Contacten zoeken...",
     "create_new": "Nieuw contact",
     "no_category": "Geen categorie",

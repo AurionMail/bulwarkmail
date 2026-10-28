@@ -1,19 +1,20 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { contactDateParts, formatContactDate } from "@/lib/contact-dates";
 import { Mail, Phone, Building, MapPin, StickyNote, Pencil, Trash2, BookUser, Copy, Send, Globe, Cake, KeyRound, Users, Briefcase, Heart, Languages, Calendar, UserCircle, Download, MoreHorizontal, Printer, FolderInput } from "@/components/icons";
 import { Avatar } from "@/components/ui/avatar";
 import { MailtoLink } from "@/components/ui/mailto-link";
 import { Button } from "@/components/ui/button";
 import { ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
-import type { ContactCard, AnniversaryDate, PartialDate } from "@/lib/jmap/types";
+import type { ContactCard, AnniversaryDate } from "@/lib/jmap/types";
 import { getContactDisplayName, getContactPrimaryEmail, getContactPhotoRef } from "@/stores/contact-store";
 import { ContactActivity } from "./contact-activity";
 import { toast } from "@/stores/toast-store";
 import { exportContact, useContactExportBusy } from "./contact-export";
-import { printContact } from "./contact-print";
+import { printContact, printLabels } from "./contact-print";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { contactHooks } from "@/lib/plugin-hooks";
@@ -66,32 +67,8 @@ function formatPhoneFeatures(features: Record<string, boolean> | undefined, labe
   return Object.keys(features).filter(k => features[k]).map(label).join(", ");
 }
 
-function getDateParts(dateInput: AnniversaryDate): { year?: number; month?: number; day?: number } {
-  if (typeof dateInput === "object" && dateInput !== null) {
-    if (dateInput["@type"] === "Timestamp" && typeof dateInput.utc === "string") {
-      const d = new Date(dateInput.utc);
-      if (!isNaN(d.getTime())) {
-        return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() };
-      }
-      return {};
-    }
-    const pd = dateInput as PartialDate;
-    return { year: pd.year, month: pd.month, day: pd.day };
-  }
-  const s = String(dateInput);
-  if (s.startsWith("--")) {
-    const parts = s.substring(2).split("-");
-    return { month: parseInt(parts[0], 10), day: parts[1] ? parseInt(parts[1], 10) : undefined };
-  }
-  const d = new Date(s);
-  if (!isNaN(d.getTime())) {
-    return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate() };
-  }
-  return {};
-}
-
 function getCompletedYears(dateInput: AnniversaryDate): number | null {
-  const { year, month, day } = getDateParts(dateInput);
+  const { year, month, day } = contactDateParts(dateInput);
   if (!year) return null;
   const now = new Date();
   let years = now.getFullYear() - year;
@@ -104,44 +81,10 @@ function getCompletedYears(dateInput: AnniversaryDate): number | null {
   return years;
 }
 
-function formatDate(dateInput: AnniversaryDate): string {
-  if (typeof dateInput === 'object' && dateInput !== null) {
-    if (dateInput['@type'] === 'Timestamp' && typeof dateInput.utc === 'string') {
-      try {
-        const d = new Date(dateInput.utc as string);
-        if (!isNaN(d.getTime())) {
-          return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
-        }
-      } catch { /* fallback */ }
-      return String(dateInput.utc);
-    }
-    const pd = dateInput as PartialDate;
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const parts: string[] = [];
-    if (pd.month && monthNames[pd.month - 1]) parts.push(monthNames[pd.month - 1]);
-    if (pd.day) parts.push(String(pd.day));
-    if (pd.year) parts.push(String(pd.year));
-    return parts.join(' ') || String(dateInput);
-  }
-  const dateStr = String(dateInput);
-  if (dateStr.startsWith("--")) {
-    const parts = dateStr.substring(2).split("-");
-    const month = parseInt(parts[0], 10);
-    const day = parts[1] ? parseInt(parts[1], 10) : undefined;
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return day ? `${monthNames[month - 1]} ${day}` : monthNames[month - 1];
-  }
-  try {
-    const d = new Date(dateStr);
-    if (!isNaN(d.getTime())) {
-      return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
-    }
-  } catch { /* fallback */ }
-  return dateStr;
-}
 
 export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDuplicate, onMoveTo, onCompose, isMobile, className }: ContactDetailProps) {
   const t = useTranslations("contacts");
+  const locale = useLocale();
   const contextLabel = (key: string) => (CONTEXT_LABEL_KEYS[key] ? t(CONTEXT_LABEL_KEYS[key]) : key);
   const featureLabel = (key: string) => (PHONE_FEATURE_LABEL_KEYS[key] ? t(PHONE_FEATURE_LABEL_KEYS[key]) : key);
 
@@ -179,7 +122,7 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
   };
 
   const handlePrint = () => {
-    void printContact(contact, name);
+    void printContact(contact, printLabels(t, locale), name);
   };
 
   const moreItems: MoreItem[] = [];
@@ -396,7 +339,7 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
                 return (
                   <FieldRow key={`an${i}`} icon={Cake} label={t(`detail.anniversary_${ann.kind}`)}>
                     <div className="text-sm">
-                      {formatDate(ann.date)}
+                      {formatContactDate(ann.date, locale)}
                       {years !== null && (
                         <span className="text-muted-foreground"> · {t(suffixKey, { count: years })}</span>
                       )}
@@ -543,8 +486,8 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
 
         {(contact.created || contact.updated) && (
           <div className="py-4 text-xs text-muted-foreground space-y-1">
-            {contact.created && <div>{t("detail.created")}: {formatDate(contact.created)}</div>}
-            {contact.updated && <div>{t("detail.updated")}: {formatDate(contact.updated)}</div>}
+            {contact.created && <div>{t("detail.created")}: {formatContactDate(contact.created, locale)}</div>}
+            {contact.updated && <div>{t("detail.updated")}: {formatContactDate(contact.updated, locale)}</div>}
           </div>
         )}
       </div>

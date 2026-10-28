@@ -2904,6 +2904,9 @@
       }
     },
     "title": "Харилцах утас",
+    "disabled_title": "Таны администратор харилцагчдыг унтраасан",
+    "disabled_description": "Хэрэгтэй бол администратортаа хандана уу.",
+    "drag_count": "{count, plural, one {1 харилцагч} other {# харилцагч}}",
     "search_placeholder": "Харилцагч хайх...",
     "create_new": "Шинэ холбоо барих",
     "no_category": "Ангилалгүй",

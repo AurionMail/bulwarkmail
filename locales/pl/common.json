@@ -2904,6 +2904,9 @@
       }
     },
     "title": "Kontakty",
+    "disabled_title": "Administrator wyłączył kontakty",
+    "disabled_description": "Jeśli ich potrzebujesz, skontaktuj się z administratorem.",
+    "drag_count": "{count, plural, one {1 kontakt} few {# kontakty} other {# kontaktów}}",
     "search_placeholder": "Szukaj kontaktów...",
     "create_new": "Nowy kontakt",
     "no_category": "Brak kategorii",

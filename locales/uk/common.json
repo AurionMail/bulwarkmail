@@ -2904,6 +2904,9 @@
       }
     },
     "title": "Контакти",
+    "disabled_title": "Адміністратор вимкнув контакти",
+    "disabled_description": "Зверніться до адміністратора, якщо вони вам потрібні.",
+    "drag_count": "{count, plural, one {# контакт} few {# контакти} other {# контактів}}",
     "search_placeholder": "Пошук контактів...",
     "create_new": "Новий контакт",
     "no_category": "Без категорії",

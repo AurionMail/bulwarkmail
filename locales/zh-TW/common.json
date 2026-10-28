@@ -2904,6 +2904,9 @@
       }
     },
     "title": "聯絡人",
+    "disabled_title": "管理員已關閉聯絡人",
+    "disabled_description": "如需使用，請聯絡管理員。",
+    "drag_count": "{count, plural, other {# 位聯絡人}}",
     "search_placeholder": "搜尋聯絡人…",
     "create_new": "新增聯絡人",
     "no_category": "無類別",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   ContextMenu,
   ContextMenuItem,
@@ -24,7 +24,7 @@ import {
 import type { ContactCard } from "@/lib/jmap/types";
 import { getContactPrimaryEmail } from "@/stores/contact-store";
 import { exportContact, useContactExportBusy } from "./contact-export";
-import { printContact } from "./contact-print";
+import { printContact, printLabels } from "./contact-print";
 import { toast } from "@/stores/toast-store";
 
 function getContactPrimaryPhone(contact: ContactCard): string {
@@ -84,6 +84,7 @@ export function ContactContextMenu({
   onBatchDelete,
 }: ContactContextMenuProps) {
   const t = useTranslations("contacts");
+  const locale = useLocale();
   const email = getContactPrimaryEmail(contact);
   const phone = getContactPrimaryPhone(contact);
   const showBatchActions = isMultiSelect && selectedCount > 1;
@@ -116,7 +117,7 @@ export function ContactContextMenu({
   };
 
   const handlePrint = () => {
-    void printContact(contact);
+    void printContact(contact, printLabels(t, locale));
   };
 
   if (showBatchActions) {

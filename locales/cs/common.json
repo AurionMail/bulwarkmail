@@ -2904,6 +2904,9 @@
       }
     },
     "title": "Kontakty",
+    "disabled_title": "Kontakty vypnul správce",
+    "disabled_description": "Pokud je potřebujete, obraťte se na správce.",
+    "drag_count": "{count, plural, one {1 kontakt} few {# kontakty} other {# kontaktů}}",
     "search_placeholder": "Hledat kontakty...",
     "create_new": "Nový kontakt",
     "no_category": "Bez kategorie",

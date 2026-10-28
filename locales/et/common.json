@@ -2904,6 +2904,9 @@
       }
     },
     "title": "Kontaktid",
+    "disabled_title": "Administraator on kontaktid välja lülitanud",
+    "disabled_description": "Kui neid vajate, pöörduge administraatori poole.",
+    "drag_count": "{count, plural, one {1 kontakt} other {# kontakti}}",
     "search_placeholder": "Otsi kontakte...",
     "create_new": "Uus kontakt",
     "no_category": "Kategooria puudub",

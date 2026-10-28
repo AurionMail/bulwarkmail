@@ -2822,6 +2822,9 @@
       }
     },
     "title": "אנשי קשר",
+    "disabled_title": "מנהל המערכת השבית את אנשי הקשר",
+    "disabled_description": "פנה למנהל המערכת אם אתה צריך אותם.",
+    "drag_count": "{count, plural, one {איש קשר אחד} other {# אנשי קשר}}",
     "search_placeholder": "חפש אנשי קשר...",
     "create_new": "איש קשר חדש",
     "no_category": "אין קטגוריה",
