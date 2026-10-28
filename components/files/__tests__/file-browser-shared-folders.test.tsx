@@ -376,4 +376,28 @@ describe('FileBrowser', () => {
     expect(screen.queryByRole('menu')).toBeNull();
     expect(onClearSelection).not.toHaveBeenCalled();
   });
+
+  it("offers Restore and Delete permanently in the trash, and Empty trash in its toolbar", () => {
+    const onRestore = vi.fn(async () => {});
+    const onEmptyTrash = vi.fn();
+    const trashed = { ...resource(OWN[1]), trash: { deletedAt: '2026-10-20T10:00:00Z', fromParentId: null, batchId: 'b1' } };
+    act(() => { useFileStore.setState({ trashCount: 1 }); });
+    renderBrowser({ resources: [trashed], props: { currentPath: '/.Trash', onRestore, onEmptyTrash } });
+    act(() => { useFileStore.setState({ currentParentId: '*trash', trashCount: 1 }); });
+
+    fireEvent.click(screen.getByRole('button', { name: 'empty_trash' }));
+    expect(onEmptyTrash).toHaveBeenCalled();
+
+    fireEvent.contextMenu(within(list()).getByText('notes.txt'));
+    expect(screen.queryByText('rename')).toBeNull();
+    fireEvent.click(screen.getByText('restore'));
+    expect(onRestore).toHaveBeenCalledWith(['notes.txt']);
+    expect(screen.getByRole('columnheader', { name: 'deleted' })).toBeInTheDocument();
+  });
+
+  it("lists the trash in the sidebar", () => {
+    const { onNavigate } = renderBrowser();
+    fireEvent.click(within(tree()).getByRole('button', { name: /trash/ }));
+    expect(onNavigate).toHaveBeenCalledWith('/.Trash', '*trash');
+  });
 });

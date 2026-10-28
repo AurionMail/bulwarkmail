@@ -1408,7 +1408,18 @@ export class DemoJMAPClient implements IJMAPClient {
   }
 
   async destroyFileNodes(ids: string[]): Promise<{ destroyed: string[]; notDestroyed: string[] }> {
+    // Like the server: a folder goes with everything in it (emptying the trash).
     const idSet = new Set(ids);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const n of this.data.fileNodes) {
+        if (n.parentId && idSet.has(n.parentId) && !idSet.has(n.id)) {
+          idSet.add(n.id);
+          grew = true;
+        }
+      }
+    }
     this.data.fileNodes = this.data.fileNodes.filter(n => !idSet.has(n.id));
     return { destroyed: ids, notDestroyed: [] };
   }

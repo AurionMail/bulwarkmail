@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import {
   Upload, FolderPlus, Download, Trash2, Pencil, Copy, Clipboard, Scissors, Info,
   FilePlus, CopyPlus, AlertCircle, FolderUp, Share2, SquarePen, Eye, FolderOpen,
-  RefreshCw, Star, StarOff, Plus, CheckSquare, File,
+  RefreshCw, Star, StarOff, Plus, CheckSquare, File, RotateCcw,
 } from "@/components/icons";
 import { useIsDesktop, useIsMobile, useMediaQuery } from "@/hooks/use-media-query";
 import { useContextMenu } from "@/hooks/use-context-menu";
@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { fileNameProblem } from "@/lib/file-name-rules";
 import { EmptyFolder, NoSearchResults } from "@/components/files/file-empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { isAudioFile, isImageFile, isPdfFile, isTextFile, isVideoFile } from "@/components/files/file-icons";
 import { loadFilesSettings, saveFilesSettings, type FilesSettings } from "@/components/files/files-settings";
 import { FilesSidebar, type CreateKind } from "@/components/files/files-sidebar";
@@ -26,6 +27,7 @@ import { INTERNAL_DRAG_TYPE, anchorEvent, isInternalDrag, readDraggedNames } fro
 import { ResizeHandle } from "@/components/layout/resize-handle";
 import { getDroppedFilesAndFolders } from "@/lib/webdav/drop-utils";
 import { resourceToView, useFileStore, isSharedFilesPage, sharedFilePages, type FileResource } from "@/stores/file-store";
+import { TRASH_LOCATION, TRASH_PATH, isTrashLocation } from "@/lib/files-trash";
 import { PluginActions, usePluginActions } from "@/components/plugins/plugin-actions";
 import { toast } from "@/stores/toast-store";
 import { ShareCollectionDialog } from "@/components/settings/share-collection-dialog";
@@ -60,8 +62,13 @@ interface FileBrowserProps {
   onUploadFiles: (files: File[]) => Promise<void>;
   onUploadFolder: (files: File[]) => Promise<void>;
   onCancelUpload: () => void;
+  /** Delete: into the trash, or for good when in the trash or a shared drive. */
   onDelete: (name: string) => Promise<void>;
   onBatchDelete: (names: string[]) => Promise<void>;
+  /** In the trash: put items back where they came from. */
+  onRestore?: (names: string[]) => Promise<void>;
+  /** In the trash: delete everything in it for good. */
+  onEmptyTrash?: () => void;
   onRename: (oldName: string, newName: string) => Promise<void>;
   onDownload: (name: string) => Promise<void>;
   onBatchDownload: (names: string[]) => Promise<void>;
@@ -118,6 +125,16 @@ type MenuData = { kind: "item"; resource: FileResource } | { kind: "empty" } | {
 
 const SIDEBAR_DEFAULT_WIDTH = 256;
 
+/** A folder's path ("/Documents/Taxes") from the folder list. */
+function pathOfFolder(folders: FileResource[], folder: FileResource): string {
+  const names = [folder.name];
+  const byId = new Map(folders.map((f) => [f.id, f]));
+  for (let cur = folder.parentId ? byId.get(folder.parentId) : undefined; cur && names.length < 64; cur = cur.parentId ? byId.get(cur.parentId) : undefined) {
+    names.unshift(cur.name);
+  }
+  return "/" + names.join("/");
+}
+
 function isTypingTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
   if (!el) return false;
@@ -139,6 +156,8 @@ export function FileBrowser({
   onCancelUpload,
   onDelete,
   onBatchDelete,
+  onRestore,
+  onEmptyTrash,
   onRename,
   onDownload,
   onBatchDownload,
@@ -196,6 +215,10 @@ export function FileBrowser({
   const hasListed = useFileStore((s) => s.hasListed);
   const currentParentId = useFileStore((s) => s.currentParentId);
   const pathStack = useFileStore((s) => s.pathStack);
+  const trashCount = useFileStore((s) => s.trashCount);
+  // The trash lists deleted items: they can be restored, previewed or
+  // deleted for good, nothing else.
+  const inTrash = isTrashLocation(currentParentId);
   useEffect(() => {
     if (storeClient) void loadSharedRoots();
   }, [storeClient, loadSharedRoots]);
@@ -346,12 +369,15 @@ export function FileBrowser({
   // Whether the user may add items to the folder on screen. Nothing can be
   // put on a page listing files shared on their own.
   const currentFolder = currentParentId ? allFolders.find((f) => f.id === currentParentId) : null;
-  const canCreate = !accountPickerMode && !isSharedFilesPage(currentParentId)
+  const canCreate = !accountPickerMode && !isSharedFilesPage(currentParentId) && !inTrash
     && (currentFolder?.myRights?.mayAddChildren ?? true);
 
   // ---- Listing ---------------------------------------------------------------
   const displayResources = useMemo(() => {
-    let list = resources;
+    // In the trash the date column is when an item was deleted.
+    let list = inTrash
+      ? resources.map((r) => (r.trash?.deletedAt ? { ...r, lastModified: r.trash.deletedAt } : r))
+      : resources;
     if (!settings.showHiddenFiles) list = list.filter((r) => !r.name.startsWith("."));
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -375,7 +401,7 @@ export function FileBrowser({
       if (cmp === 0) cmp = a.name.localeCompare(b.name);
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [resources, settings.showHiddenFiles, searchQuery, sortKey, sortDir]);
+  }, [resources, inTrash, settings.showHiddenFiles, searchQuery, sortKey, sortDir]);
 
   // Folders other principals shared with the user, listed at the root next to
   // the user's own (#1181).
@@ -407,11 +433,12 @@ export function FileBrowser({
     // Inside a folder someone shared with the user, the trail starts there.
     const insideShared = !!pathStack[1]?.id?.includes(":");
     const list: Crumb[] = [{ id: null, name: insideShared ? t("shared_with_me") : t("my_files"), path: "/" }];
+    if (inTrash) return [...list, { id: TRASH_LOCATION, name: t("trash"), path: TRASH_PATH }];
     segments.forEach((name, i) => {
       list.push({ id: pathStack[i + 1]?.id ?? null, name, path: "/" + segments.slice(0, i + 1).join("/") });
     });
     return list;
-  }, [currentPath, pathStack, t]);
+  }, [currentPath, pathStack, inTrash, t]);
   const folderName = crumbs[crumbs.length - 1].name;
 
   const navigateCrumb = useCallback((crumb: Crumb) => {
@@ -438,6 +465,8 @@ export function FileBrowser({
   const openResource = useCallback((resource: FileResource) => {
     // A symlink has nothing to open (Stalwart 1.0).
     if (resource.isSymlink) return;
+    // A deleted folder is restored before it is opened; a deleted file can be looked at.
+    if (resource.trash && (resource.isDirectory || !isPreviewable(resource.name))) return;
     if (resource.isDirectory) {
       onNavigate(pathOf(resource), resource.id);
     } else if (isOfficeEditable?.(resource.name) && onEditFile) {
@@ -455,6 +484,15 @@ export function FileBrowser({
     if (isImageFile(resource.name)) onPreviewImage(resource.name);
     else onPreviewFile(resource.name);
   }, [onPreviewImage, onPreviewFile]);
+
+  // Where a deleted item came from, as its row's tooltip in the trash.
+  const trashNote = useCallback((r: FileResource): string | undefined => {
+    if (!r.trash) return undefined;
+    const from = r.trash.fromParentId;
+    const folder = from ? allFolders.find((f) => f.id === from) : null;
+    const path = from === null ? t("my_files") : folder ? pathOfFolder(allFolders, folder) : null;
+    return path ? t("deleted_from", { folder: path }) : undefined;
+  }, [allFolders, t]);
 
   // ---- Selection -------------------------------------------------------------
   const selectRange = useCallback((from: string, to: string, additive: boolean) => {
@@ -514,7 +552,7 @@ export function FileBrowser({
   }, [onMoveTo]);
 
   const itemDragProps = useCallback((resource: FileResource) => ({
-    draggable: !touch,
+    draggable: !touch && !inTrash,
     onDragStart: (e: React.DragEvent) => {
       const names = selectedResources.has(resource.name) ? [...selectedResources] : [resource.name];
       e.dataTransfer.setData(INTERNAL_DRAG_TYPE, JSON.stringify(names));
@@ -536,7 +574,7 @@ export function FileBrowser({
       const names = readDraggedNames(e).filter((n) => n !== resource.name);
       if (names.length > 0) moveNames(names, resource.id);
     },
-  }), [touch, selectedResources, moveNames]);
+  }), [touch, inTrash, selectedResources, moveNames]);
 
   const runUpload = useCallback(async (files: File[], asFolder: boolean) => {
     if (files.length === 0) return;
@@ -683,6 +721,7 @@ export function FileBrowser({
         selectAllVisible();
         return;
       }
+      if (inTrash && (mod || e.key === "F2") && ["c", "x", "v", "f2"].includes(e.key.toLowerCase())) return;
       if (mod && e.key.toLowerCase() === "c" && selected.length > 0) {
         if (window.getSelection()?.toString()) return;
         e.preventDefault();
@@ -750,7 +789,7 @@ export function FileBrowser({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [
-    showNewFolder, showNewTextFile, renameTarget, renameFolder, shareTargetId, accountPickerMode, selectedList, singleSelected,
+    showNewFolder, showNewTextFile, renameTarget, renameFolder, shareTargetId, accountPickerMode, selectedList, singleSelected, inTrash,
     selectAllVisible, onCopy, onCut, onPaste, clipboard, searchQuery, onClearSelection, deleteNames, openResource,
     focusedName, onToggleSelect, currentPath, navigateUp, viewMode, gridColumns, moveFocus,
   ]);
@@ -779,6 +818,25 @@ export function FileBrowser({
     : menuData?.kind === "item" ? [menuData.resource] : [];
 
   const renderItemMenu = (resource: FileResource) => {
+    if (inTrash) {
+      const names = menuSelection.map((r) => r.name);
+      const one = menuSelection.length === 1 ? menuSelection[0] : null;
+      return (
+        <>
+          {onRestore && (
+            <ContextMenuItem icon={RotateCcw} label={t("restore")} onClick={() => { closeMenu(); void onRestore(names); }} />
+          )}
+          {one && !one.isDirectory && !one.isSymlink && isPreviewable(one.name) && (
+            <ContextMenuItem icon={Eye} label={t("preview")} onClick={() => { closeMenu(); previewResource(one); }} />
+          )}
+          {one && !one.isDirectory && !one.isSymlink && (
+            <ContextMenuItem icon={Download} label={t("download")} onClick={() => { closeMenu(); void onDownload(one.name); }} />
+          )}
+          <ContextMenuSeparator />
+          <ContextMenuItem icon={Trash2} label={t("delete_forever")} destructive onClick={() => { closeMenu(); deleteNames(names); }} />
+        </>
+      );
+    }
     if (menuSelection.length > 1) {
       const names = menuSelection.map((r) => r.name);
       const fileCount = menuSelection.filter((r) => !r.isDirectory && !r.isSymlink).length;
@@ -910,6 +968,9 @@ export function FileBrowser({
       onRevealRecent={fromDrawer((id: string) => void onRevealNode(id))}
       onDownloadRecent={fromDrawer((id: string) => void onDownloadNode(id))}
       onRemoveRecent={onRemoveRecent}
+      trashCount={trashCount}
+      onOpenTrash={fromDrawer(() => onNavigate(TRASH_PATH, TRASH_LOCATION))}
+      onDropToTrash={(names) => deleteNames(names)}
     />
   );
 
@@ -948,6 +1009,9 @@ export function FileBrowser({
     // Until the first listing is in, an empty list means "not loaded yet".
     if ((isLoading || !hasListed) && resources.length === 0) return <ListSkeleton />;
     if (showEmpty && searchQuery) return <NoSearchResults query={searchQuery} onClear={() => setSearchQuery("")} />;
+    if (showEmpty && inTrash) {
+      return <EmptyState icon={Trash2} title={t("trash_empty_title")} description={t("trash_empty_hint")} />;
+    }
     if (showEmpty) {
       return (
         <EmptyFolder
@@ -970,6 +1034,7 @@ export function FileBrowser({
       iconOptions,
       getImageUrl,
       handlers,
+      itemNote: inTrash ? trashNote : undefined,
     };
     return (
       <>
@@ -984,6 +1049,7 @@ export function FileBrowser({
             allSelected={allSelected}
             someSelected={someSelected}
             onToggleAll={() => (allSelected ? onClearSelection() : selectAllVisible())}
+            dateLabel={inTrash ? t("deleted") : undefined}
           />
         ))}
         {(sharedAtRoot.length > 0 || sharedPagesAtRoot.length > 0) && (
@@ -1025,7 +1091,24 @@ export function FileBrowser({
     />
   );
 
-  const selectionActions = selectedList.length > 0 ? {
+  const selectionActions = selectedList.length > 0 && inTrash ? {
+    count: selectedList.length,
+    fileCount: 0,
+    canOpen: false,
+    canRename: false,
+    canShare: false,
+    trash: true,
+    onRestore: onRestore ? () => void onRestore(selectedList.map((r) => r.name)) : undefined,
+    onOpen: () => {},
+    onDownload: () => {},
+    onShare: () => {},
+    onRename: () => {},
+    onCut: () => {},
+    onCopy: () => {},
+    onDelete: () => deleteNames(selectedList.map((r) => r.name)),
+    onClear: onClearSelection,
+    pluginFiles: [],
+  } : selectedList.length > 0 ? {
     count: selectedList.length,
     fileCount: selectedList.filter((r) => !r.isDirectory && !r.isSymlink).length,
     canOpen: !!singleSelected && !singleSelected.isSymlink
@@ -1110,6 +1193,7 @@ export function FileBrowser({
           compact={isMobile}
           toolsHidden={accountPickerMode}
           selection={selectionActions}
+          emptyTrash={inTrash && onEmptyTrash ? { onEmpty: onEmptyTrash, disabled: trashCount === 0 } : undefined}
         />
 
         {error && (

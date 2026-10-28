@@ -6,6 +6,7 @@ import {
   Plus, HardDrive, File, Folder, FolderOpen, ChevronRight, ChevronDown, Star, StarOff,
   Clock, Share2, Upload, FolderUp, FolderPlus, FilePlus, Pencil, Trash2, Download, Eye, X, FolderSearch,
 } from "@/components/icons";
+import { isTrashLocation } from "@/lib/files-trash";
 import { Button } from "@/components/ui/button";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
@@ -77,6 +78,11 @@ export interface FilesSidebarProps {
   onRevealRecent: (id: string) => void;
   onDownloadRecent: (id: string) => void;
   onRemoveRecent: (id: string) => void;
+  /** Items in the trash; the entry shows their number. */
+  trashCount?: number;
+  onOpenTrash?: () => void;
+  /** Delete items dragged onto the trash entry. */
+  onDropToTrash?: (names: string[]) => void;
 }
 
 export function FilesSidebar({
@@ -103,6 +109,9 @@ export function FilesSidebar({
   onRevealRecent,
   onDownloadRecent,
   onRemoveRecent,
+  trashCount = 0,
+  onOpenTrash,
+  onDropToTrash,
 }: FilesSidebarProps) {
   const t = useTranslations("files");
   const newMenu = useContextMenu<null>();
@@ -383,6 +392,37 @@ export function FilesSidebar({
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {onOpenTrash && (
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={onOpenTrash}
+              aria-current={isTrashLocation(currentParentId) ? "page" : undefined}
+              className={rowClass(isTrashLocation(currentParentId), dropTarget === "__trash__")}
+              style={{ ...ROW_STYLE, paddingInlineStart: "12px" }}
+              onDragOver={(e) => {
+                if (!isInternalDrag(e) || !onDropToTrash || isTrashLocation(currentParentId)) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                setDropTarget("__trash__");
+              }}
+              onDragLeave={() => setDropTarget((cur) => (cur === "__trash__" ? null : cur))}
+              onDrop={(e) => {
+                if (!isInternalDrag(e) || !onDropToTrash) return;
+                e.preventDefault();
+                setDropTarget(null);
+                const names = readDraggedNames(e);
+                if (names.length > 0) onDropToTrash(names);
+              }}
+            >
+              <span className="w-3.5 -ms-1 shrink-0" />
+              <Trash2 className="w-4 h-4 shrink-0" />
+              <span className="truncate flex-1">{t("trash")}</span>
+              {trashCount > 0 && <span className="text-xs text-muted-foreground tabular-nums">{trashCount}</span>}
+            </button>
           </div>
         )}
 

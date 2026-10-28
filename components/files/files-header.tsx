@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import {
   Menu, ChevronRight, Search, X, ArrowUpDown, Check, LayoutGrid, LayoutList,
   PanelRight, Download, Trash2, Scissors, Copy, Pencil, Share2, Clipboard,
-  MoreHorizontal, FolderOpen, Folder, ArrowUp, ArrowDown, RefreshCw,
+  MoreHorizontal, FolderOpen, Folder, ArrowUp, ArrowDown, RefreshCw, RotateCcw,
 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
@@ -45,6 +45,9 @@ interface SelectionActions {
   pluginFiles: FileResourceView[];
   /** The one selected item's type, so plugins can offer type-specific actions; undefined for several. */
   pluginMimeType?: string;
+  /** Items in the trash: Restore and Delete permanently, nothing else. */
+  trash?: boolean;
+  onRestore?: () => void;
 }
 
 interface FilesHeaderProps {
@@ -74,6 +77,8 @@ interface FilesHeaderProps {
   /** Hide the tools that only apply to a folder listing (Pro account picker). */
   toolsHidden?: boolean;
   selection: SelectionActions | null;
+  /** In the trash: the Empty trash button. */
+  emptyTrash?: { onEmpty: () => void; disabled: boolean };
 }
 
 const MAX_VISIBLE_CRUMBS = 3;
@@ -103,6 +108,7 @@ export function FilesHeader({
   compact,
   toolsHidden,
   selection,
+  emptyTrash,
 }: FilesHeaderProps) {
   const t = useTranslations("files");
   const sortMenu = useContextMenu<null>();
@@ -122,6 +128,15 @@ export function FilesHeader({
           {t("selected_count", { count: selection.count })}
         </span>
         <div className="flex items-center gap-0.5 min-w-0 overflow-x-auto">
+          {selection.trash ? (
+            <>
+              {selection.onRestore && (
+                <ToolButton icon={RotateCcw} label={t("restore")} onClick={selection.onRestore} compact={compact} />
+              )}
+              <ToolButton icon={Trash2} label={t("delete_forever")} onClick={selection.onDelete} compact destructive />
+            </>
+          ) : (
+          <>
           {selection.canOpen && (
             <ToolButton icon={FolderOpen} label={t("open")} onClick={selection.onOpen} compact={compact} />
           )}
@@ -138,9 +153,11 @@ export function FilesHeader({
           <ToolButton icon={Copy} label={t("copy")} onClick={selection.onCopy} compact />
           <ToolButton icon={Trash2} label={t("delete")} onClick={selection.onDelete} compact destructive />
           {!compact && <SelectionPluginActions files={selection.pluginFiles} mimeType={selection.pluginMimeType} />}
+          </>
+          )}
         </div>
         {/* Outside the scrolling row, so the "more" button never scrolls out of sight. */}
-        {compact && <SelectionPluginActions files={selection.pluginFiles} mimeType={selection.pluginMimeType} overflow />}
+        {compact && !selection.trash && <SelectionPluginActions files={selection.pluginFiles} mimeType={selection.pluginMimeType} overflow />}
         <div className="flex-1" />
         <DetailsToggle showDetails={showDetails} onToggle={onToggleDetails} label={t("details")} />
       </div>
@@ -281,6 +298,19 @@ export function FilesHeader({
 
       {!toolsHidden && (
         <div className="flex items-center gap-1 shrink-0">
+          {emptyTrash && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-destructive hover:text-destructive"
+              onClick={emptyTrash.onEmpty}
+              disabled={emptyTrash.disabled}
+              title={t("empty_trash")}
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className={cn(compact && "sr-only")}>{t("empty_trash")}</span>
+            </Button>
+          )}
           {clipboardCount > 0 && (
             <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={onPaste} title={t("paste_here")}>
               <Clipboard className="w-4 h-4" />

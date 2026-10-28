@@ -36,6 +36,8 @@ export interface FileViewProps {
   iconOptions: IconOptions;
   getImageUrl: (name: string) => Promise<string>;
   handlers: FileItemHandlers;
+  /** A line about an item, as its tooltip (where a deleted item came from). */
+  itemNote?: (resource: FileResource) => string | undefined;
 }
 
 const LONG_PRESS_MS = 450;
@@ -138,7 +140,7 @@ const LIST_COLUMNS = "grid grid-cols-[auto_minmax(0,1fr)_auto] sm:grid-cols-[aut
 
 export function FileListView({
   resources, selected, focusedName, dropTarget, cutNames, starredPaths, pathOf, touch, iconOptions, getImageUrl, handlers,
-  sortKey, sortDir, onSort, allSelected, someSelected, onToggleAll,
+  sortKey, sortDir, onSort, allSelected, someSelected, onToggleAll, itemNote, dateLabel,
 }: FileViewProps & {
   sortKey: SortKey;
   sortDir: SortDir;
@@ -146,6 +148,8 @@ export function FileListView({
   allSelected: boolean;
   someSelected: boolean;
   onToggleAll: () => void;
+  /** The date column's heading, "Modified" unless told otherwise. */
+  dateLabel?: string;
 }) {
   const t = useTranslations("files");
   const selecting = selected.size > 0;
@@ -165,7 +169,7 @@ export function FileListView({
           {someSelected && !allSelected && <span className="sr-only">{t("selected_count", { count: selected.size })}</span>}
         </div>
         <SortHeader label={t("name")} column="name" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-        <SortHeader label={t("modified")} column="modified" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hidden md:block" />
+        <SortHeader label={dateLabel ?? t("modified")} column="modified" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hidden md:block" />
         <SortHeader label={t("size")} column="size" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="hidden sm:block text-end" />
         <div role="columnheader" className="w-[4.75rem]"><span className="sr-only">{t("context_menu")}</span></div>
       </div>
@@ -183,13 +187,14 @@ export function FileListView({
           iconOptions={iconOptions}
           getImageUrl={getImageUrl}
           handlers={handlers}
+          note={itemNote?.(resource)}
         />
       ))}
     </div>
   );
 }
 
-function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isStarred, selecting, touch, iconOptions, getImageUrl, handlers }: {
+function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isStarred, selecting, touch, iconOptions, getImageUrl, handlers, note }: {
   resource: FileResource;
   isSelected: boolean;
   isFocused: boolean;
@@ -201,6 +206,7 @@ function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isS
   iconOptions: IconOptions;
   getImageUrl: (name: string) => Promise<string>;
   handlers: FileItemHandlers;
+  note?: string;
 }) {
   const t = useTranslations("files");
   const touchProps = useTouchPress(touch, selecting, resource, handlers);
@@ -251,7 +257,7 @@ function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isS
               }}
               onDoubleClick={(e) => e.stopPropagation()}
               className={cn("truncate text-start hover:underline underline-offset-2 decoration-muted-foreground/50", resource.isDirectory && "font-medium")}
-              title={resource.name}
+              title={note ? `${resource.name}\n${note}` : resource.name}
             >
               {resource.name}
             </button>
@@ -260,6 +266,7 @@ function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isS
           </div>
           {touch && (
             <div className="text-xs text-muted-foreground truncate">
+              {note && <>{note} · </>}
               {formatShortDate(resource.lastModified)}
               {!resource.isDirectory && !resource.isSymlink && <> · {formatFileSize(resource.contentLength)}</>}
             </div>

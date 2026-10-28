@@ -7,7 +7,8 @@ import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useAuthStore, redirectToLogin, saveRedirectAfterLogin } from '@/stores/auth-store';
 import { useAccountStore } from "@/stores/account-store";
 import { useEmailStore } from "@/stores/email-store";
-import { useFileStore, isSharedLocation, linkedPreviewResource, resourceServerRef, resourceToView, type UploadReport } from "@/stores/file-store";
+import { useFileStore, deletesToTrash, isSharedLocation, linkedPreviewResource, resourceServerRef, resourceToView, type UploadReport } from "@/stores/file-store";
+import { isTrashLocation } from "@/lib/files-trash";
 import { fileErrorKind, isPartialCopy } from "@/lib/file-errors";
 import { toast } from "@/stores/toast-store";
 import { cn, formatFileSize } from "@/lib/utils";
@@ -109,6 +110,11 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     lastAction,
     shareResource,
     openSharedNode,
+    trashResources,
+    trashNode,
+    restoreResources,
+    purgeResources,
+    emptyTrash,
   } = useFileStore();
 
   const isMobile = useIsMobile();
@@ -397,42 +403,6 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     }
   }, [uploadFolder, t, maxSizeUpload, showUploadReport, failureReason]);
 
-  const handleDelete = useCallback(async (name: string) => {
-    const confirmed = await confirmDialog({
-      title: t("delete_confirm_title"),
-      message: t("delete_confirm_message", { name }),
-      confirmText: t("delete"),
-      variant: "destructive",
-    });
-    if (!confirmed) return;
-
-    try {
-      if (!await deleteResource(name)) return;
-      toast.success(t("delete_success"));
-    } catch (err) {
-      console.error("Failed to delete:", err);
-      toast.error(t("delete_error"), failureReason(err));
-    }
-  }, [deleteResource, confirmDialog, t, failureReason]);
-
-  const handleBatchDelete = useCallback(async (names: string[]) => {
-    const confirmed = await confirmDialog({
-      title: t("delete_confirm_title"),
-      message: t("batch_delete_confirm_message", { count: names.length }),
-      confirmText: t("delete"),
-      variant: "destructive",
-    });
-    if (!confirmed) return;
-
-    try {
-      if (!await deleteResources(names)) return;
-      toast.success(t("batch_delete_success", { count: names.length }));
-    } catch (err) {
-      console.error("Failed to batch delete:", err);
-      toast.error(t("delete_error"), failureReason(err));
-    }
-  }, [deleteResources, confirmDialog, t, failureReason]);
-
   const handleUndo = useCallback(async () => {
     try {
       await undoLastAction();
@@ -442,6 +412,93 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       toast.error(t("undo_error"), failureReason(err));
     }
   }, [undoLastAction, t, failureReason]);
+
+  // Delete (R3): in the own drive items go to the trash, with Undo and no
+  // question; in the trash and in a drive someone shared they are gone for
+  // good, so that asks first.
+  const currentParentIdForDelete = useFileStore((s) => s.currentParentId);
+  const handleDeleteNames = useCallback(async (names: string[]) => {
+    if (names.length === 0) return;
+    if (isTrashLocation(currentParentIdForDelete)) {
+      const confirmed = await confirmDialog({
+        title: t("delete_forever_title", { count: names.length }),
+        message: names.length === 1
+          ? t("delete_forever_message", { name: names[0] })
+          : t("delete_forever_message_count", { count: names.length }),
+        confirmText: t("delete_forever"),
+        variant: "destructive",
+      });
+      if (!confirmed) return;
+      try {
+        const count = await purgeResources(names);
+        if (count > 0) toast.success(t("deleted_forever", { count }));
+      } catch (err) {
+        console.error("Failed to delete:", err);
+        toast.error(t("delete_error"), failureReason(err));
+      }
+      return;
+    }
+    if (deletesToTrash(currentParentIdForDelete)) {
+      try {
+        const count = await trashResources(names);
+        if (count > 0) {
+          toast.success(t("moved_to_trash", { count }), {
+            action: { label: t("undo"), onClick: handleUndo },
+          });
+        }
+      } catch (err) {
+        console.error("Failed to delete:", err);
+        toast.error(t("delete_error"), failureReason(err));
+      }
+      return;
+    }
+    const confirmed = await confirmDialog({
+      title: t("delete_forever_title", { count: names.length }),
+      message: names.length === 1
+        ? t("delete_forever_message", { name: names[0] })
+        : t("delete_forever_message_count", { count: names.length }),
+      confirmText: t("delete_forever"),
+      variant: "destructive",
+    });
+    if (!confirmed) return;
+    try {
+      if (names.length === 1 ? !await deleteResource(names[0]) : !await deleteResources(names)) return;
+      toast.success(t("deleted_forever", { count: names.length }));
+    } catch (err) {
+      console.error("Failed to delete:", err);
+      toast.error(t("delete_error"), failureReason(err));
+    }
+  }, [currentParentIdForDelete, confirmDialog, t, purgeResources, trashResources, deleteResource, deleteResources, handleUndo, failureReason]);
+  const handleDelete = useCallback((name: string) => handleDeleteNames([name]), [handleDeleteNames]);
+  const handleBatchDelete = handleDeleteNames;
+
+  const handleRestore = useCallback(async (names: string[]) => {
+    try {
+      const count = await restoreResources(names);
+      if (count > 0) toast.success(t("restored", { count }));
+    } catch (err) {
+      console.error("Failed to restore:", err);
+      toast.error(t("restore_error"), failureReason(err));
+    }
+  }, [restoreResources, t, failureReason]);
+
+  const trashCount = useFileStore((s) => s.trashCount);
+  const handleEmptyTrash = useCallback(async () => {
+    const confirmed = await confirmDialog({
+      title: t("empty_trash_title"),
+      message: t("empty_trash_message", { count: trashCount }),
+      confirmText: t("empty_trash"),
+      variant: "destructive",
+    });
+    if (!confirmed) return;
+    try {
+      await emptyTrash();
+      toast.success(t("trash_emptied"));
+    } catch (err) {
+      console.error("Failed to empty the trash:", err);
+      toast.error(t("empty_trash_error"), failureReason(err));
+    }
+  }, [confirmDialog, t, trashCount, emptyTrash, failureReason]);
 
   const handleRename = useCallback(async (oldName: string, newName: string) => {
     try {
@@ -546,21 +603,34 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
   }, [renameNode, t, handleUndo]);
 
   const handleDeleteNode = useCallback(async (id: string, name: string) => {
+    // A folder of the own drive goes to the trash; one of a shared drive is gone for good.
+    if (deletesToTrash(id)) {
+      try {
+        if (!await trashNode(id)) return;
+        toast.success(t("moved_to_trash", { count: 1 }), {
+          action: { label: t("undo"), onClick: handleUndo },
+        });
+      } catch (err) {
+        console.error("Failed to delete:", err);
+        toast.error(t("delete_error"), failureReason(err));
+      }
+      return;
+    }
     const confirmed = await confirmDialog({
-      title: t("delete_confirm_title"),
-      message: t("delete_confirm_message", { name }),
-      confirmText: t("delete"),
+      title: t("delete_forever_title", { count: 1 }),
+      message: t("delete_forever_message", { name }),
+      confirmText: t("delete_forever"),
       variant: "destructive",
     });
     if (!confirmed) return;
     try {
       if (!await deleteNode(id)) return;
-      toast.success(t("delete_success"));
+      toast.success(t("deleted_forever", { count: 1 }));
     } catch (err) {
       console.error("Failed to delete:", err);
-      toast.error(t("delete_error"));
+      toast.error(t("delete_error"), failureReason(err));
     }
-  }, [deleteNode, confirmDialog, t]);
+  }, [deleteNode, trashNode, confirmDialog, handleUndo, t, failureReason]);
 
   const handleDownloadNode = useCallback(async (id: string) => {
     try {
@@ -716,6 +786,8 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
                   onCancelUpload={cancelUpload}
                   onDelete={handleDelete}
                   onBatchDelete={handleBatchDelete}
+                  onRestore={handleRestore}
+                  onEmptyTrash={() => void handleEmptyTrash()}
                   onRename={handleRename}
                   onDownload={handleDownload}
                   onBatchDownload={handleBatchDownload}
