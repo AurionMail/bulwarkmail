@@ -8,6 +8,8 @@ import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { AccountInfo, EmailPushConfig, Mailbox } from '@/lib/jmap/types';
 import { isJmapSetError, jmapErrorType } from '@/lib/jmap/jmap-error';
 import { DEFAULT_RELAY_BASE_URL } from '@/lib/push-relays';
+import { relayAllowed } from '@/lib/outgoing-hosts';
+import { noThirdPartyTraffic } from '@/lib/third-party-mode';
 import { IS_LITE } from '@/lib/lite';
 import {
   EMPTY_NOTIFICATION_MUTES,
@@ -433,7 +435,9 @@ export function isWebPushSupported(): boolean {
   );
 }
 
+/** Every relay request is built here, so the built-in relay can't be reached in the no-third-party mode (#903). */
 function buildRelayUrl(base: string, suffix: string): string {
+  if (!relayAllowed(base)) throw new Error('The built-in push relay is off: this server does not contact outside services');
   return base.replace(/\/+$/, '') + suffix;
 }
 
@@ -893,7 +897,7 @@ export async function disableWebPush(params: DisableWebPushParams): Promise<void
   // Enabling again starts from the full emailPush map.
   localStorage.removeItem(emailPushRefusedKey(accountId));
 
-  if (deviceClientId && relayBaseUrl) {
+  if (deviceClientId && relayBaseUrl && relayAllowed(relayBaseUrl)) {
     await fetch(
       buildRelayUrl(relayBaseUrl, `/api/push/register/${encodeURIComponent(deviceClientId)}`),
       { method: 'DELETE' },
@@ -980,7 +984,7 @@ export async function revokePushDevice(params: {
   }
 
   await params.client.destroyPushSubscription(params.device.id);
-  if (relayBaseUrl && params.device.deviceClientId) {
+  if (relayBaseUrl && relayAllowed(relayBaseUrl) && params.device.deviceClientId) {
     await fetch(
       buildRelayUrl(
         relayBaseUrl,
@@ -1071,6 +1075,14 @@ async function runResync(accountId: string, params: ResyncWebPushParams): Promis
     // isWebPushEnabled (it requires a live browser subscription) would do.
     if (!isWebPushSupported() || Notification.permission !== 'granted'
       || !localStorage.getItem(subscriptionIdKey(accountId))) return false;
+    // Registered with the built-in relay before third-party traffic was
+    // turned off, and no relay of the organisation's own to move to: drop the
+    // server's PushSubscription so the mail server stops pinging that relay
+    // (#903). disableWebPush skips the relay itself.
+    if (!params.relayBaseUrl && noThirdPartyTraffic()) {
+      await disableWebPush({ client: params.client });
+      return false;
+    }
     if (!params.force && !(await resyncDue(accountId))) return false;
     await enableWebPush({
       client: params.client,

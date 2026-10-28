@@ -10,6 +10,7 @@ import { logger } from '@/lib/logger';
 import { hasSessionSecret } from '@/lib/auth/session-secret';
 import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
 import { checkExtensionDirectoryUrl } from '@/lib/admin/directory-url';
+import { parseNoThirdPartyEnv } from '@/lib/third-party-mode';
 
 // Strings that count as "no real secret configured" - used so the dashboard
 // can warn about a placeholder session secret without us ever returning the
@@ -97,6 +98,17 @@ export async function PATCH(request: NextRequest) {
     if ('extensionDirectoryUrl' in updates) {
       const problem = await checkExtensionDirectoryUrl(updates.extensionDirectoryUrl);
       if (problem) return NextResponse.json({ error: problem }, { status: 400 });
+    }
+
+    // The no-third-party switch is fail-closed: an "on" from the environment
+    // can't be undone from the panel (lib/admin/third-party-mode.ts).
+    if ('noThirdPartyTraffic' in updates) {
+      if (typeof updates.noThirdPartyTraffic !== 'boolean') {
+        return NextResponse.json({ error: 'noThirdPartyTraffic must be true or false' }, { status: 400 });
+      }
+      if (!updates.noThirdPartyTraffic && parseNoThirdPartyEnv(process.env.NO_THIRD_PARTY_TRAFFIC)) {
+        return NextResponse.json({ error: 'NO_THIRD_PARTY_TRAFFIC is set in the environment; change it there.' }, { status: 409 });
+      }
     }
 
     // Enum keys only accept their declared values; a stray string would

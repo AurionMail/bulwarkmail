@@ -32,6 +32,7 @@ import { clearSectionTitle } from './section-titles';
 import { cancelPluginProxyRequests } from './proxy-client';
 import { cancelConnectFor } from './connect-dialog';
 import type { SlotName } from '../plugin-types';
+import { PLUGIN_REFUSED_ERROR, pluginAllowed } from '../outgoing-hosts';
 
 // ─── Hook-bus lookup (one flat map for name → bus) ────────────
 
@@ -222,6 +223,13 @@ export function loadSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
 }
 
 async function startSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
+  // A plugin that declares network access doesn't start while third-party
+  // traffic is off; the rest run (#903).
+  if (!pluginAllowed(plugin)) {
+    storeAccessor?.setPluginStatus(plugin.id, 'error', PLUGIN_REFUSED_ERROR);
+    console.warn(`[plugin-sandbox] "${plugin.id}" not started: it declares network access and third-party traffic is off`);
+    return;
+  }
 
   let background: ReturnType<typeof createBackgroundInstance> | null = null;
   try {

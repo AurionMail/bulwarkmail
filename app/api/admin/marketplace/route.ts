@@ -32,6 +32,8 @@ import {
   directoryJson,
   getDirectoryChannel,
   getDirectoryUrl,
+  directoryOff,
+  DIRECTORY_OFF_MESSAGE,
   installedExtensions,
   installedStateOf,
   readBundleBytes,
@@ -57,6 +59,9 @@ export async function GET(request: NextRequest) {
   try {
     const result = await requireAdminAuth(request);
     if ('error' in result) return result.error;
+    if (await directoryOff()) {
+      return NextResponse.json({ error: DIRECTORY_OFF_MESSAGE, code: 'no-third-party-traffic' }, { status: 403 });
+    }
 
     const directoryUrl = await getDirectoryUrl();
     const query: Record<string, string | undefined> = {};
@@ -105,6 +110,9 @@ export async function POST(request: NextRequest) {
   try {
     const result = await requireAdminAuth(request);
     if ('error' in result) return result.error;
+    if (await directoryOff()) {
+      return NextResponse.json({ error: DIRECTORY_OFF_MESSAGE, code: 'no-third-party-traffic' }, { status: 403 });
+    }
 
     const ip = getClientIP(request);
     const { slug, version, type, force } = await request.json();

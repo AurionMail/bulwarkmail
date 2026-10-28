@@ -981,6 +981,12 @@
     "rule_folder_failed": "Could not create the folder",
     "vacation_filters_save_failed": "Out of office settings saved, but the forwarding and reply recipients could not be saved"
   },
+  "third_party": {
+    "push_needs_relay": "Push notifications need a push relay run by your organisation, and none is set up. New mail still shows while the app is open.",
+    "relay_desc": "Only your organisation's own relays are offered, because this server doesn't contact outside services.",
+    "relay_none": "None set up",
+    "plugin_refused": "Not started: this plugin connects to outside services, which your organisation has turned off."
+  },
   "date": {
     "today": "Today",
     "yesterday": "Yesterday",

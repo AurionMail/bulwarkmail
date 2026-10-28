@@ -13,6 +13,7 @@ import { useFaviconRefreshStore } from '@/stores/favicon-refresh-store';
 import { toast } from '@/stores/toast-store';
 import { cn } from '@/lib/utils';
 import { IS_LITE } from '@/lib/lite';
+import { senderFaviconsAllowed } from '@/lib/outgoing-hosts';
 import { SettingsSection, SettingItem, Select, ToggleSwitch } from './settings-section';
 import { MessageListOrderSettings } from './message-list-order-settings';
 import { Button } from '@/components/ui/button';
@@ -216,13 +217,13 @@ export function MessageListSettings() {
 
       {/* Sender favicons come from the /api/favicon proxy, absent in the static Lite build (components/ui/avatar.tsx). */}
       <SettingsSection id="senders" title={tPage('sections.senders')}>
-        {!IS_LITE && (
+        {!IS_LITE && senderFaviconsAllowed() && (
           <SettingItem label={tAdvanced('sender_favicons.label')} description={tAdvanced('sender_favicons.description')}>
             <ToggleSwitch checked={senderFavicons} onChange={(checked) => updateSetting('senderFavicons', checked)} />
           </SettingItem>
         )}
 
-        {!IS_LITE && senderFavicons && (
+        {!IS_LITE && senderFaviconsAllowed() && senderFavicons && (
           <SettingItem nested label={tAdvanced('sender_favicons.refresh_label')} description={tAdvanced('sender_favicons.refresh_description')}>
             <Button
               variant="outline"

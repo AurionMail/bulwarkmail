@@ -4,6 +4,7 @@ import {
 } from './state';
 import { fetchStatus } from './fetcher';
 import type { UpdateStatus } from './types';
+import { isNoThirdPartyTrafficOn } from '@/lib/admin/third-party-mode';
 
 const HOUR_MS = 60 * 60 * 1000;
 const JITTER_MS = 5 * 60 * 1000;       // ± 5 min, keeps containers from syncing
@@ -11,6 +12,9 @@ const FIRST_DELAY_MS = 30 * 1000;       // first check ~30s after boot
 const FAILURE_BACKOFF_MS = 15 * 60 * 1000; // after a failed fetch, retry in 15 min
 
 let currentTimer: NodeJS.Timeout | null = null;
+
+/** What checkOnce reports while NO_THIRD_PARTY_TRAFFIC is on. */
+export const NO_THIRD_PARTY_ERROR = 'off: no third-party traffic';
 
 function jitteredDelay(base: number): number {
   const j = (Math.random() * 2 - 1) * JITTER_MS;
@@ -23,6 +27,7 @@ export async function checkOnce(opts?: { reason?: string }): Promise<{
   error?: string;
 }> {
   if (disabledByEnv()) return { ok: false, error: 'disabled by env' };
+  if (await isNoThirdPartyTrafficOn()) return { ok: false, error: NO_THIRD_PARTY_ERROR };
 
   const state = await loadState();
   const endpoint = effectiveEndpoint(state);
@@ -73,6 +78,10 @@ async function tick(): Promise<void> {
 export async function startScheduler(): Promise<void> {
   if (disabledByEnv()) {
     logger.info('version-check: scheduler not started (disabled by env)');
+    return;
+  }
+  if (await isNoThirdPartyTrafficOn()) {
+    logger.info('version-check: scheduler not started (no third-party traffic)');
     return;
   }
   const state = await loadState();

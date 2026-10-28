@@ -59,6 +59,7 @@ import { doNotificationsShow } from './host-api-notify';
 import { setSectionTitle } from './section-titles';
 import { requestPanel } from './panel-requests';
 import { doComposerAttach, doComposerGetBody, doComposerGetSelection, doComposerReplaceBody, doComposerReplaceSelection } from './host-api-composer';
+import { pluginAllowed, wkdAllowed } from '../outgoing-hosts';
 
 /**
  * Methods only callable from the privileged (same-origin) tier. These expose
@@ -667,6 +668,9 @@ async function readCapped(res: Response, limit: number): Promise<ArrayBuffer> {
 }
 
 async function doHttpFetch(plugin: InstalledPlugin, rawUrl: string, init?: PluginFetchInit) {
+  // Such a plugin isn't started in the no-third-party mode; this is the
+  // second lock in case one runs anyway (#903).
+  if (!pluginAllowed(plugin)) throw new Error('Outside requests are off: this server does not contact outside services');
   if (typeof rawUrl !== 'string') throw new Error('url must be a string');
   let url: URL;
   try { url = new URL(rawUrl); } catch { throw new Error('url must be absolute https://'); }
@@ -1169,6 +1173,8 @@ export interface WkdResult {
 }
 
 export async function doGetPublicKeyFromWKD(email: string): Promise<WkdResult> {
+  // The lookup goes to the recipient's domain: off with third-party traffic (#903).
+  if (!wkdAllowed()) return { status: 'ERROR', error: 'Key lookups at other domains are off on this server' };
   const cleanEmail = email.trim();
   const atIndex = cleanEmail.lastIndexOf('@');
   

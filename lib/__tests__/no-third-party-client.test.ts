@@ -1,0 +1,123 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DEFAULT_RELAY_BASE_URL, resolveActiveRelayUrl, resolveDefaultRelayUrl, resolvePushRelayOptions } from '@/lib/push-relays';
+import { revokePushDevice, type PushDevice } from '@/lib/web-push';
+import { doGetPublicKeyFromWKD } from '@/lib/plugin-sandbox/host-api';
+import { applyLiteConfig } from '@/lib/lite-config';
+import { setNoThirdPartyTraffic, noThirdPartyTraffic, parseNoThirdPartyEnv } from '@/lib/third-party-mode';
+import { isBuiltInHost, isPlaceholderHost, pluginAllowed, pluginDeclaresNetwork } from '@/lib/outgoing-hosts';
+import type { IJMAPClient } from '@/lib/jmap/client-interface';
+
+// The browser half of the "no third-party traffic" mode (#903).
+
+const fetchSpy = vi.fn(async () => new Response('{}'));
+
+beforeEach(() => {
+  fetchSpy.mockClear();
+  vi.stubGlobal('fetch', fetchSpy);
+});
+afterEach(() => {
+  vi.unstubAllGlobals();
+  setNoThirdPartyTraffic(false);
+});
+
+const ownRelay = { label: 'Company', url: 'https://push.company.example' };
+
+describe('push relays', () => {
+  it('drop the built-in relay in the mode and keep the admin\'s', () => {
+    setNoThirdPartyTraffic(true);
+    expect(resolvePushRelayOptions({})).toEqual([]);
+    expect(resolvePushRelayOptions({ pushRelays: [ownRelay] })).toEqual([ownRelay]);
+    setNoThirdPartyTraffic(false);
+    expect(resolvePushRelayOptions({ pushRelays: [ownRelay] }).map((o) => o.url)).toEqual([DEFAULT_RELAY_BASE_URL, ownRelay.url]);
+  });
+
+  it('fall back to the admin\'s relay, or to none, instead of the built-in one', () => {
+    setNoThirdPartyTraffic(true);
+    expect(resolveDefaultRelayUrl({ pushRelays: [ownRelay] })).toBe(ownRelay.url);
+    expect(resolveDefaultRelayUrl({})).toBe('');
+    // A user's saved pick of the built-in relay is not honoured either.
+    expect(resolveActiveRelayUrl({}, DEFAULT_RELAY_BASE_URL)).toBe('');
+    expect(resolveActiveRelayUrl({ pushRelays: [ownRelay] }, DEFAULT_RELAY_BASE_URL)).toBe(ownRelay.url);
+    // A configured pushRelayUrl pointing at the built-in host doesn't sneak it back.
+    expect(resolveDefaultRelayUrl({ pushRelayUrl: DEFAULT_RELAY_BASE_URL })).toBe('');
+    setNoThirdPartyTraffic(false);
+    expect(resolveDefaultRelayUrl({})).toBe(DEFAULT_RELAY_BASE_URL);
+  });
+
+  it('never get a request to the built-in relay in the mode', async () => {
+    const client = { destroyPushSubscription: vi.fn(async () => {}) } as unknown as IJMAPClient;
+    const device: PushDevice = { id: 'p1', deviceClientId: 'abc', expires: null, types: null, isThisDevice: false, relayStatus: 'unknown' };
+
+    setNoThirdPartyTraffic(true);
+    await revokePushDevice({ client, device, relayBaseUrl: DEFAULT_RELAY_BASE_URL });
+    expect(client.destroyPushSubscription).toHaveBeenCalledWith('p1');
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    setNoThirdPartyTraffic(false);
+    await revokePushDevice({ client, device, relayBaseUrl: DEFAULT_RELAY_BASE_URL });
+    expect(fetchSpy).toHaveBeenCalledWith(`${DEFAULT_RELAY_BASE_URL}/api/push/register/abc`, { method: 'DELETE' });
+  });
+});
+
+describe('WKD key lookup', () => {
+  it('asks the recipient\'s domain only with the mode off', async () => {
+    setNoThirdPartyTraffic(true);
+    expect(await doGetPublicKeyFromWKD('joe@vendor.example')).toMatchObject({ status: 'ERROR' });
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    setNoThirdPartyTraffic(false);
+    fetchSpy.mockImplementation(async () => new Response('', { status: 404 }));
+    await doGetPublicKeyFromWKD('joe@vendor.example');
+    expect(String((fetchSpy.mock.calls[0] as unknown[])[0])).toMatch(/^https:\/\/openpgpkey\.vendor\.example\//);
+  });
+});
+
+describe('plugins', () => {
+  it('that declare network access are refused in the mode, the rest run', () => {
+    const offline = { permissions: ['email:read', 'http:post'] };
+    const fetcher = { permissions: ['http:fetch'], httpOrigins: ['https://api.vendor.example'] };
+    const proxied = { permissions: ['http:proxy'] };
+    const framer = { permissions: [], frameOrigins: ['https://www.youtube-nocookie.com'] };
+    expect([offline, fetcher, proxied, framer].map(pluginDeclaresNetwork)).toEqual([false, true, true, true]);
+
+    setNoThirdPartyTraffic(true);
+    expect([offline, fetcher, proxied, framer].map(pluginAllowed)).toEqual([true, false, false, false]);
+    setNoThirdPartyTraffic(false);
+    expect([offline, fetcher, proxied, framer].map(pluginAllowed)).toEqual([true, true, true, true]);
+  });
+});
+
+describe('config', () => {
+  it('reads noThirdPartyTraffic from the Lite config.json', () => {
+    expect(applyLiteConfig({}).noThirdPartyTraffic).toBe(false);
+    expect(applyLiteConfig({ noThirdPartyTraffic: true }).noThirdPartyTraffic).toBe(true);
+    expect(applyLiteConfig({ noThirdPartyTraffic: 'yes' }).noThirdPartyTraffic).toBe(false);
+  });
+
+  it('turns the browser switches on once the runtime config is fetched', async () => {
+    vi.resetModules();
+    const mode = await import('@/lib/third-party-mode');
+    const { createConfig } = await import('./fixtures/config');
+    fetchSpy.mockImplementation(async () => Response.json(createConfig({ noThirdPartyTraffic: true })));
+    const { fetchConfig } = await import('@/hooks/use-config');
+    await fetchConfig();
+    expect(mode.noThirdPartyTraffic()).toBe(true);
+  });
+
+  it('parses the env spellings', () => {
+    expect(['true', 'TRUE', '1', 'yes', 'on', ' on '].map(parseNoThirdPartyEnv)).toEqual([true, true, true, true, true, true]);
+    expect(['false', '0', '', 'off', 'nope', undefined].map(parseNoThirdPartyEnv)).toEqual([false, false, false, false, false, false]);
+    expect(noThirdPartyTraffic()).toBe(false);
+  });
+});
+
+describe('host helpers', () => {
+  it('know the built-in hosts and the placeholders', () => {
+    expect(isBuiltInHost('https://notifications.relay.bulwarkmail.org/')).toBe(true);
+    expect(isBuiltInHost('https://extensions.bulwarkmail.org')).toBe(true);
+    expect(isBuiltInHost('https://extensions.corp.example')).toBe(false);
+    expect(isBuiltInHost('not a url')).toBe(false);
+    expect(['mail.example.com', 'x', 'stalwart.internal:8080', '10.0.0.5', '*.vimeo.com', 'acme.test'].every(isPlaceholderHost)).toBe(true);
+    expect(['github.com', 'icons.duckduckgo.com', 'api.example.io'].some(isPlaceholderHost)).toBe(false);
+  });
+});

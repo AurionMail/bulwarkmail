@@ -168,6 +168,8 @@ export function buildLiteConfig(env = {}, { target = "static" } = {}) {
       : {}),
     rememberMeEnabled: parseBool(env.LITE_REMEMBER_ME, true),
     demoMode: parseBool(env.LITE_DEMO_MODE, false),
+    // Written out so deployers find the switch (#903; lib/outgoing-hosts.ts).
+    noThirdPartyTraffic: parseBool(env.LITE_NO_THIRD_PARTY_TRAFFIC, false),
     loginShowTotp: true,
     loginShowVersion: true,
   };
@@ -661,6 +663,8 @@ ${demoMode ? "Demo mode is ON: the login page offers a built-in demo account and
      while \`jmapServerUrl\` is empty.
    - \`rememberMeEnabled\`: \`false\` never remembers a sign-in (sessions then end with the tab).
      Sign-ins are otherwise remembered; \`loginShowRememberMe: true\` lets people choose.
+   - \`noThirdPartyTraffic\`: \`true\` keeps the browser off every built-in outside host
+     (no Google Maps links on event addresses; see the third-party traffic docs).
    Optional keys: \`demoMode\`, \`jmapServers\`, \`jmapServerAutoPickByDomain\`, the login logo/company/link keys and \`loginShow*\` toggles (same names as the Docker env vars, camelCased).
 3. Allow the browser to talk to the mail server (CORS). In Stalwart, turn on
    the \`usePermissiveCors\` setting of the \`Http\` object: in the web admin

@@ -81,6 +81,12 @@ export async function POST(request: NextRequest) {
           { status: 409 },
         );
       }
+      if (source === 'no-third-party') {
+        return NextResponse.json(
+          { error: 'telemetry is off while NO_THIRD_PARTY_TRAFFIC is on' },
+          { status: 409 },
+        );
+      }
       if (body.consent !== 'on' && body.consent !== 'off') {
         return NextResponse.json({ error: 'consent must be "on" or "off"' }, { status: 400 });
       }

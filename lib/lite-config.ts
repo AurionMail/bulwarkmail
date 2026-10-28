@@ -95,6 +95,8 @@ export function applyLiteConfig(raw: unknown, defaults?: { jmapServerUrl?: strin
     embeddedMode: bool(input.embeddedMode, false),
     parentOrigin: str(input.parentOrigin, ''),
     sourceCodeUrl: httpUrlOrEmpty(input.sourceCodeUrl),
+    // Same browser-side switches as the server build (lib/outgoing-hosts.ts).
+    noThirdPartyTraffic: bool(input.noThirdPartyTraffic, false),
     ...LITE_FORCED_FLAGS,
   };
 }

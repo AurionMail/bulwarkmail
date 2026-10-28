@@ -25,6 +25,7 @@ import { canUserRsvp, getEventEditability, type EditabilityContext } from "@/lib
 import { useFormatEventDate } from "@/hooks/use-format-event-date";
 import { useContactNameResolver } from "@/hooks/use-contact-name-resolver";
 import { findMeetingLink, locationAction, mapsUrl, primaryLocationName } from "@/lib/event-links";
+import { mapsLinksAllowed } from "@/lib/outgoing-hosts";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { eventToView } from "@/lib/plugin-projection";
 
@@ -160,7 +161,9 @@ export function EventDetailPopover({
   const locationHref = useMemo(() => {
     if (!locationName) return null;
     const action = locationAction(locationName, meeting);
-    return action.kind === "url" ? action.uri : mapsUrl(action.query);
+    if (action.kind === "url") return action.uri;
+    // No Google Maps link while third-party traffic is off (#903).
+    return mapsLinksAllowed() ? mapsUrl(action.query) : null;
   }, [locationName, meeting]);
   const [locationCopied, setLocationCopied] = useState(false);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -493,7 +496,7 @@ export function EventDetailPopover({
               href={locationHref ?? undefined}
               target="_blank"
               rel="noreferrer"
-              className="text-sm text-primary hover:underline min-w-0 break-words"
+              className={cn("text-sm min-w-0 break-words", locationHref ? "text-primary hover:underline" : "text-foreground")}
               title={locationName}
             >
               {/^https?:\/\//i.test(locationName)

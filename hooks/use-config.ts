@@ -7,6 +7,7 @@ import type { PublicJmapServerEntry } from '@/lib/admin/jmap-servers';
 import { IS_LITE, IS_LITE_STALWART, LITE_CONFIG_PATH, withLiteBuildId } from '@/lib/lite';
 import { applyLiteConfig, liteStalwartDefaults } from '@/lib/lite-config';
 import { isConfigData } from '@/lib/config-validation';
+import { setNoThirdPartyTraffic } from '@/lib/third-party-mode';
 
 export interface ConfigData {
   appName: string;
@@ -46,6 +47,8 @@ export interface ConfigData {
   embeddedMode: boolean;
   parentOrigin: string;
   sourceCodeUrl: string;
+  /** Stay off every built-in outside host (#903; lib/outgoing-hosts.ts). */
+  noThirdPartyTraffic: boolean;
 }
 
 interface AppConfig extends ConfigData {
@@ -123,6 +126,7 @@ export async function fetchConfig(): Promise<ConfigData> {
   configPromise = (IS_LITE ? fetchLiteConfig() : fetchServerConfig())
     .then((data) => {
       configCache = data;
+      setNoThirdPartyTraffic(data.noThirdPartyTraffic === true);
       // Fetch admin policy alongside config (non-blocking)
       usePolicyStore.getState().fetchPolicy();
       return data;
@@ -181,6 +185,7 @@ export function useConfig(): AppConfig {
     embeddedMode: configCache?.embeddedMode || false,
     parentOrigin: configCache?.parentOrigin || '',
     sourceCodeUrl: configCache?.sourceCodeUrl || '',
+    noThirdPartyTraffic: configCache?.noThirdPartyTraffic ?? false,
     isLoading: !configCache,
     error: null,
   });
@@ -226,6 +231,7 @@ export function useConfig(): AppConfig {
         embeddedMode: configCache.embeddedMode,
         parentOrigin: configCache.parentOrigin,
         sourceCodeUrl: configCache.sourceCodeUrl,
+        noThirdPartyTraffic: configCache.noThirdPartyTraffic,
         isLoading: false,
         error: null,
       });
@@ -272,6 +278,7 @@ export function useConfig(): AppConfig {
           embeddedMode: data.embeddedMode,
           parentOrigin: data.parentOrigin,
           sourceCodeUrl: data.sourceCodeUrl,
+          noThirdPartyTraffic: data.noThirdPartyTraffic,
           isLoading: false,
           error: null,
         });

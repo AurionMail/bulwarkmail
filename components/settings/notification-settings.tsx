@@ -29,6 +29,7 @@ import {
 } from '@/lib/web-push';
 import type { PushDevice } from '@/lib/web-push';
 import { IS_LITE } from '@/lib/lite';
+import { noThirdPartyTraffic } from '@/lib/third-party-mode';
 import {
   resolveActiveRelayUrl,
   resolvePushRelayOptions,
@@ -50,6 +51,7 @@ type DevicesState =
 export function NotificationSettings() {
   const t = useTranslations('settings.notifications');
   const tAppearance = useTranslations('settings.appearance');
+  const tThirdParty = useTranslations('third_party');
   const {
     emailNotificationsEnabled,
     emailNotificationSound,
@@ -83,6 +85,8 @@ export function NotificationSettings() {
   const relayOptions = resolvePushRelayOptions(policy);
   const activeRelayUrl = resolveActiveRelayUrl(policy, pushRelayUrl);
   const relayChoiceFixed = pushRelayLocked || relayOptions.length < 2;
+  // Third-party traffic off and no relay of the organisation's own (#903).
+  const noRelay = !activeRelayUrl;
   const activeRelayLabel =
     relayOptions.find((option) => option.url === activeRelayUrl)?.label ?? activeRelayUrl;
 
@@ -140,6 +144,8 @@ export function NotificationSettings() {
   // components/service-worker-registration.tsx), not a browser limitation.
   const statusDescription = pushStatus.kind === 'unsupported'
     ? (IS_LITE ? t('push.status_lite') : `${t('push.status_unsupported')} ${t('push.ios_hint')}`)
+    : noRelay && !pushEnabled
+      ? tThirdParty('push_needs_relay')
     : busy
       ? t('push.status_busy')
       : pushEnabled
@@ -420,7 +426,7 @@ export function NotificationSettings() {
             <ToggleSwitch
               checked={pushEnabled}
               onChange={(checked) => void (checked ? handleEnablePush() : handleDisablePush())}
-              disabled={busy || pushStatus.kind === 'unsupported' || !client}
+              disabled={busy || pushStatus.kind === 'unsupported' || !client || (noRelay && !pushEnabled)}
             />
           </div>
         </SettingItem>
@@ -432,11 +438,11 @@ export function NotificationSettings() {
         <SettingItem
           advanced
           label={t('push.relay_label')}
-          description={pushRelayLocked ? t('push.relay_locked_desc') : t('push.relay_desc')}
+          description={pushRelayLocked ? t('push.relay_locked_desc') : noThirdPartyTraffic() ? tThirdParty('relay_desc') : t('push.relay_desc')}
           locked={pushRelayLocked}
         >
           {relayChoiceFixed ? (
-            <span className="text-sm text-muted-foreground">{activeRelayLabel}</span>
+            <span className="text-sm text-muted-foreground">{noRelay ? tThirdParty('relay_none') : activeRelayLabel}</span>
           ) : (
             <Select
               value={activeRelayUrl}

@@ -9,6 +9,7 @@ import { useContactPhotoSrc } from "@/hooks/use-contact-photo";
 import { avatarHooks } from "@/lib/plugin-hooks";
 import { withBasePath } from "@/lib/browser-navigation";
 import { IS_LITE } from "@/lib/lite";
+import { sampleAvatarsAllowed, senderFaviconsAllowed } from "@/lib/outgoing-hosts";
 import { useFaviconRefreshStore, failedFaviconDomains } from "@/stores/favicon-refresh-store";
 
 const IS_DEV = process.env.NODE_ENV !== "production";
@@ -126,7 +127,7 @@ const CUSTOM_AVATARS: Record<string, string> = IS_DEV ? {
 // Mock-server-only: for personal-domain emails, deterministically pick a randomuser.me portrait.
 // Returns null for ~30% of addresses so not everyone has a photo.
 function getProfilePictureUrl(email: string, domain: string, devMode: boolean, name?: string): string | null {
-  if (!devMode) return null;
+  if (!devMode || !sampleAvatarsAllowed()) return null;
   if (!PERSONAL_DOMAINS.has(domain)) return null;
   const h = emailHash(email);
   if (h % 10 < 3) return null; // ~30% get no photo
@@ -237,12 +238,13 @@ export function Avatar({ name, email, contactPhoto, size = "md", className, disa
   };
 
   const profilePic = email && domain ? getProfilePictureUrl(email, domain, devMode, name) : null;
-  // Sender favicons come from the /api/favicon proxy, absent in the static build.
+  // Sender favicons come from the /api/favicon proxy, absent in the static
+  // build and off while third-party traffic is (#903).
   const showFavicon =
-    !IS_LITE && !disableFavicon && senderFavicons && faviconDomain && !PERSONAL_DOMAINS.has(faviconDomain) && !imgError && !domainFailed;
+    !IS_LITE && senderFaviconsAllowed() && !disableFavicon && senderFavicons && faviconDomain && !PERSONAL_DOMAINS.has(faviconDomain) && !imgError && !domainFailed;
 
   // Priority: contact photo > plugin avatar (e.g. Gravatar) > custom avatar > profile picture > company favicon > initials
-  const customAvatar = devMode && email ? CUSTOM_AVATARS[email.toLowerCase()] : null;
+  const customAvatar = devMode && email && sampleAvatarsAllowed() ? CUSTOM_AVATARS[email.toLowerCase()] : null;
   const pluginAvatar = pluginAvatarFailed ? null : pluginAvatarUrl;
   const photoSrc = resolvedContactPhoto || pluginAvatar || customAvatar || profilePic || null;
   const faviconSrc = !imgError && !domainFailed && showFavicon ? withBasePath(`/api/favicon?domain=${encodeURIComponent(faviconDomain!)}${faviconRefreshedAt ? `&v=${faviconRefreshedAt}` : ""}`) : null;
