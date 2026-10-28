@@ -22,4 +22,15 @@ describe('ContextMenu rows on a touch screen', () => {
       expect(row.className).not.toMatch(/(^|\s)min-h-11/);
     }
   });
+
+  it('hides key hints under a coarse pointer only (R8)', () => {
+    render(
+      <ContextMenu isOpen position={{ x: 10, y: 10 }} onClose={() => {}}>
+        <ContextMenuItem label="Rename" shortcut="F2" onClick={() => {}} />
+      </ContextMenu>,
+    );
+    const hint = screen.getByText('F2');
+    expect(hint.className).toContain('pointer-coarse:hidden');
+    expect(hint.className).not.toMatch(/(^|\s)hidden/);
+  });
 });

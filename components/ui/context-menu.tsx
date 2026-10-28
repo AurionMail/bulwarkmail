@@ -560,8 +560,9 @@ export function ContextMenuItem({
       ) : (
         <span className="flex-1">{label}</span>
       )}
+      {/* Key hints mean nothing without a keyboard: hidden on touch (R8). */}
       {shortcut && (
-        <span className="text-xs text-muted-foreground ms-auto">{shortcut}</span>
+        <span className="text-xs text-muted-foreground ms-auto pointer-coarse:hidden">{shortcut}</span>
       )}
     </button>
   );
