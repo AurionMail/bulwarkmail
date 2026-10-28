@@ -12,10 +12,13 @@ vi.mock('@/hooks/use-email-drag', () => ({
 }));
 
 vi.mock('@/stores/auth-store', () => {
-  const state = { identities: [], username: null };
-  return {
-    useAuthStore: (selector?: (s: typeof state) => unknown) => (selector ? selector(state) : state),
-  };
+  const state = { identities: [], username: null, client: null, activeAccountId: null, getClientForAccount: () => undefined };
+  // getState for the plugin action target (resolveEmailBlobContext).
+  const useAuthStore = Object.assign(
+    (selector?: (s: typeof state) => unknown) => (selector ? selector(state) : state),
+    { getState: () => state },
+  );
+  return { useAuthStore };
 });
 
 const ACCOUNT_TEAL = { id: 'acct-teal', avatarColor: '#0d9488', label: 'Teal account' };
