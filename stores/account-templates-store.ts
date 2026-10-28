@@ -23,6 +23,12 @@ export type LocalOnlyReason = 'too-large' | 'no-room';
 export interface PersonalPartition extends PersonalCopy {
   /** Templates the server refused, with why. */
   localOnly: Record<string, LocalOnlyReason>;
+  /** Tombstones the server's marker entry held after the last round. Others are still to be sent. */
+  serverDeleted: Record<string, string>;
+  /** The marker entry (`org.bulwarkmail.templates`) is on the server: the settings blob may drop its copy. */
+  markerOnServer: boolean;
+  /** Versions of the browser's own templates already merged in, so each is taken once. */
+  fromBrowser: Record<string, string>;
 }
 
 export interface TeamTemplates {
@@ -37,13 +43,21 @@ export interface TeamTemplates {
 
 interface AccountTemplatesState {
   personal: Record<string, PersonalPartition>;
+  /**
+   * Without settings sync (Lite, sync off) the browser's list belongs to no
+   * account: it goes into the first account whose metadata answers, this one.
+   */
+  browserListOwner: string | null;
   /** The active signed-in account, kept here by the sync driver for the settings bridge. */
   active: string | null;
   teams: Record<string, TeamTemplates[]>;
   setPersonal: (accountId: string, partition: PersonalPartition) => void;
   updatePersonal: (accountId: string, change: (partition: PersonalPartition) => PersonalPartition) => void;
   setTeams: (accountId: string, teams: TeamTemplates[]) => void;
-  /** At a full sign-out: keep only what exists nowhere else (templates the server never took). */
+  /**
+   * At a full sign-out: keep only what exists nowhere else, the templates
+   * the server never took and deletions it hasn't heard of.
+   */
   forgetServerCopies: () => void;
 }
 
@@ -52,12 +66,29 @@ export const emptyPartition = (): PersonalPartition => ({
   deletedTemplateIds: {},
   serverVersions: {},
   localOnly: {},
+  serverDeleted: {},
+  markerOnServer: false,
+  fromBrowser: {},
 });
+
+/** What a full sign-out keeps of a partition; null when everything is on the server. */
+export function unsentPart(partition: PersonalPartition): PersonalPartition | null {
+  const templates = partition.templates.filter((t) => partition.serverVersions[t.id] !== t.updatedAt);
+  const deletedTemplateIds: Record<string, string> = {};
+  for (const [id, at] of Object.entries(partition.deletedTemplateIds)) {
+    if (partition.serverDeleted[id] !== at) deletedTemplateIds[id] = at;
+  }
+  if (templates.length === 0 && Object.keys(deletedTemplateIds).length === 0) return null;
+  const localOnly: Record<string, LocalOnlyReason> = {};
+  for (const t of templates) if (partition.localOnly[t.id]) localOnly[t.id] = partition.localOnly[t.id];
+  return { ...emptyPartition(), templates, deletedTemplateIds, localOnly, fromBrowser: partition.fromBrowser };
+}
 
 export const useAccountTemplatesStore = create<AccountTemplatesState>()(
   persist(
     (set) => ({
       personal: {},
+      browserListOwner: null,
       active: null,
       teams: {},
       setPersonal: (accountId, partition) => set((state) => ({ personal: { ...state.personal, [accountId]: partition } })),
@@ -70,17 +101,25 @@ export const useAccountTemplatesStore = create<AccountTemplatesState>()(
       forgetServerCopies: () => set((state) => {
         const personal: Record<string, PersonalPartition> = {};
         for (const [accountId, partition] of Object.entries(state.personal)) {
-          const unsent = partition.templates.filter((t) => partition.serverVersions[t.id] !== t.updatedAt);
-          if (unsent.length === 0) continue;
-          personal[accountId] = { ...emptyPartition(), templates: unsent, localOnly: partition.localOnly };
+          const kept = unsentPart(partition);
+          if (kept) personal[accountId] = kept;
         }
         return { personal, teams: {} };
       }),
     }),
     {
       name: 'account-templates',
-      version: 1,
-      partialize: (state) => ({ personal: state.personal }),
+      version: 2,
+      partialize: (state) => ({ personal: state.personal, browserListOwner: state.browserListOwner }),
+      migrate: (persisted, version) => {
+        const state = (persisted ?? {}) as { personal?: Record<string, Partial<PersonalPartition>>; browserListOwner?: string | null };
+        if (version < 2) {
+          const personal: Record<string, PersonalPartition> = {};
+          for (const [id, partition] of Object.entries(state.personal ?? {})) personal[id] = { ...emptyPartition(), ...partition };
+          return { personal, browserListOwner: state.browserListOwner ?? null } as unknown as AccountTemplatesState;
+        }
+        return state as unknown as AccountTemplatesState;
+      },
     },
   ),
 );

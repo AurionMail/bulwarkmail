@@ -126,4 +126,35 @@ describe('team templates in the manager', () => {
     expect(screen.getByTestId('template-source-note')).toHaveTextContent('team_read_only');
     expect(screen.queryByRole('button', { name: 'add' })).toBeNull();
   });
+
+  it('says that someone else changed it, and keeps what the user typed', async () => {
+    save.mockResolvedValue('conflict');
+    render(<TemplateManagerModal isOpen onClose={() => {}} />);
+    fireEvent.click(screen.getByTestId('template-source-tab-team'));
+    fireEvent.click(screen.getByRole('button', { name: 'edit' }));
+    fireEvent.change(screen.getByPlaceholderText('name_placeholder'), { target: { value: 'My change' } });
+    fireEvent.click(screen.getByRole('button', { name: 'update' }));
+    expect(await screen.findByTestId('template-save-error')).toHaveTextContent('save_failed_conflict');
+    expect((screen.getByPlaceholderText('name_placeholder') as HTMLInputElement).value).toBe('My change');
+    // The edit started from the version the user saw.
+    expect(save.mock.calls[0][3]).toBe('2026-01-01T00:00:00.000Z');
+  });
+
+  it('moves between the lists with the arrow keys, as a tab list', () => {
+    render(<TemplateManagerModal isOpen onClose={() => {}} />);
+    const personal = screen.getByTestId('template-source-tab-personal');
+    expect(personal).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', personal.id);
+    personal.focus();
+    fireEvent.keyDown(personal, { key: 'ArrowRight' });
+    const team = screen.getByTestId('template-source-tab-team');
+    expect(team).toHaveAttribute('aria-selected', 'true');
+    expect(document.activeElement).toBe(team);
+    expect(team).toHaveAttribute('tabindex', '0');
+    expect(personal).toHaveAttribute('tabindex', '-1');
+    fireEvent.keyDown(team, { key: 'End' });
+    expect(screen.getByTestId('template-source-tab-organisation')).toHaveAttribute('aria-selected', 'true');
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight' });
+    expect(personal).toHaveAttribute('aria-selected', 'true');
+  });
 });

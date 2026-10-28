@@ -27,6 +27,9 @@ interface TemplateManagerModalProps {
 
 type TemplateData = Omit<EmailTemplate, 'id' | 'createdAt' | 'updatedAt'>;
 
+const PANEL_ID = 'template-source-panel';
+const tabId = (key: string) => `template-source-tab-${key.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+
 export function TemplateManagerModal({ isOpen, onClose, accountId }: TemplateManagerModalProps) {
   const t = useTranslations('templates');
   const tSettings = useTranslations('settings.templates');
@@ -85,7 +88,8 @@ export function TemplateManagerModal({ isOpen, onClose, accountId }: TemplateMan
     result === 'too-large' ? tOrg('save_failed_too_large')
       : result === 'no-room' ? tOrg('save_failed_no_room')
         : result === 'forbidden' ? tOrg('save_failed_forbidden')
-          : tOrg('save_failed');
+          : result === 'conflict' ? tOrg('save_failed_conflict')
+            : tOrg('save_failed');
 
   // A failed save keeps the form open with what the user typed.
   const run = async (step: () => Promise<TemplateSaveResult>, after: () => void) => {
@@ -161,13 +165,35 @@ export function TemplateManagerModal({ isOpen, onClose, accountId }: TemplateMan
 
         <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
           {showTabs && (
-            <div role="tablist" aria-label={tOrg('sources_label')} className="flex flex-wrap gap-2 mb-3" data-testid="template-sources">
+            <div
+              role="tablist"
+              aria-label={tOrg('sources_label')}
+              className="flex flex-wrap gap-2 mb-3"
+              data-testid="template-sources"
+              onKeyDown={(e) => {
+                // Arrow keys, Home and End move between the lists, as in any tab list.
+                const index = sources.findIndex((s) => s.key === source?.key);
+                const next = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? index + 1
+                  : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? index - 1
+                    : e.key === 'Home' ? 0
+                      : e.key === 'End' ? sources.length - 1
+                        : null;
+                if (next === null || sources.length === 0) return;
+                e.preventDefault();
+                const target = sources[(next + sources.length) % sources.length];
+                selectSource(target.key);
+                document.getElementById(tabId(target.key))?.focus();
+              }}
+            >
               {sources.map((s) => (
                 <button
                   key={s.key}
+                  id={tabId(s.key)}
                   type="button"
                   role="tab"
                   aria-selected={s.key === source?.key}
+                  aria-controls={PANEL_ID}
+                  tabIndex={s.key === source?.key ? 0 : -1}
                   data-testid={`template-source-tab-${s.kind}`}
                   onClick={() => selectSource(s.key)}
                   className={cn(
@@ -183,6 +209,11 @@ export function TemplateManagerModal({ isOpen, onClose, accountId }: TemplateMan
             </div>
           )}
 
+          <div
+            id={PANEL_ID}
+            role={showTabs ? 'tabpanel' : undefined}
+            aria-labelledby={showTabs && source ? tabId(source.key) : undefined}
+          >
           {note && <div className="mb-4" data-testid="template-source-note">{note}</div>}
 
           {!source && (
@@ -219,6 +250,7 @@ export function TemplateManagerModal({ isOpen, onClose, accountId }: TemplateMan
             <div className="mb-6 p-4 border border-border rounded-lg bg-muted/30">
               <h3 className="text-sm font-semibold mb-4">{tSettings('add')}</h3>
               <TemplateForm
+                categorySource={templates}
                 shared={!isPersonal}
                 busy={busy}
                 onSave={handleSave}
@@ -232,6 +264,7 @@ export function TemplateManagerModal({ isOpen, onClose, accountId }: TemplateMan
               <h3 className="text-sm font-semibold mb-4">{tSettings('edit')}</h3>
               <TemplateForm
                 template={templates.find((tpl) => tpl.id === editingId)}
+                categorySource={templates}
                 shared={!isPersonal}
                 busy={busy}
                 onSave={handleSave}
@@ -295,7 +328,7 @@ export function TemplateManagerModal({ isOpen, onClose, accountId }: TemplateMan
                           onClick={() => { setEditingId(template.id); setIsCreating(false); setError(null); }}
                           disabled={!!editingId || isCreating}
                           aria-label={tSettings('edit')}
-                          className="h-8 w-8 p-0"
+                          className="h-11 w-11 sm:h-8 sm:w-8 p-0"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </Button>
@@ -305,7 +338,7 @@ export function TemplateManagerModal({ isOpen, onClose, accountId }: TemplateMan
                           onClick={() => void run(() => actions.duplicate(source, template.id, t('copy_suffix')), () => {})}
                           disabled={!!editingId || isCreating || busy}
                           aria-label={tOrg('duplicate')}
-                          className="h-8 w-8 p-0"
+                          className="h-11 w-11 sm:h-8 sm:w-8 p-0"
                         >
                           <Copy className="w-3.5 h-3.5" />
                         </Button>
@@ -336,7 +369,7 @@ export function TemplateManagerModal({ isOpen, onClose, accountId }: TemplateMan
                             onClick={() => setDeleteConfirmId(template.id)}
                             disabled={!!editingId || isCreating}
                             aria-label={tSettings('confirm_delete')}
-                            className="h-8 w-8 p-0 hover:text-red-600 dark:hover:text-red-400"
+                            className="h-11 w-11 sm:h-8 sm:w-8 p-0 hover:text-red-600 dark:hover:text-red-400"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
@@ -350,7 +383,7 @@ export function TemplateManagerModal({ isOpen, onClose, accountId }: TemplateMan
                           onClick={() => setPreviewId(previewId === template.id ? null : template.id)}
                           aria-label={t('preview')}
                           aria-expanded={previewId === template.id}
-                          className="h-8 w-8 p-0"
+                          className="h-11 w-11 sm:h-8 sm:w-8 p-0"
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </Button>
@@ -362,7 +395,7 @@ export function TemplateManagerModal({ isOpen, onClose, accountId }: TemplateMan
                             disabled={busy}
                             aria-label={tOrg('copy_to_personal')}
                             title={tOrg('copy_to_personal')}
-                            className="h-8 w-8 p-0"
+                            className="h-11 w-11 sm:h-8 sm:w-8 p-0"
                           >
                             <Copy className="w-3.5 h-3.5" />
                           </Button>
@@ -392,6 +425,7 @@ export function TemplateManagerModal({ isOpen, onClose, accountId }: TemplateMan
           {isPersonal && actions.storedInAccount && (
             <p className="mt-4 text-xs text-muted-foreground" data-testid="template-storage-note">{tOrg('personal_in_account')}</p>
           )}
+          </div>
         </div>
       </div>
     </div>

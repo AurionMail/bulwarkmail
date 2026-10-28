@@ -9,7 +9,7 @@ import {
   parseSyncedTemplates,
   parseTemplateTombstones,
 } from '@/lib/template-utils';
-import { generateUUID } from '@/lib/utils';
+import * as reducer from '@/lib/templates/template-reducer';
 import { registerTemplateSyncBridge } from './settings-store';
 import { notifyPersonalChange, useAccountTemplatesStore } from './account-templates-store';
 import { withStorableId } from '@/lib/templates/metadata-templates';
@@ -17,6 +17,9 @@ import { templateHooks } from '@/lib/plugin-hooks';
 import { templateToView } from '@/lib/plugin-projection';
 
 const MAX_RECENT = 5;
+
+const listOf = (state: { templates: EmailTemplate[]; deletedTemplateIds: Record<string, string> }): reducer.TemplateListState =>
+  ({ templates: state.templates, deletedTemplateIds: state.deletedTemplateIds });
 
 interface TemplateStore {
   templates: EmailTemplate[];
@@ -65,72 +68,36 @@ export const useTemplateStore = create<TemplateStore>()(
       deletedTemplateIds: {},
 
       addTemplate: (data) => {
-        const now = new Date().toISOString();
-        const template: EmailTemplate = {
-          ...data,
-          id: generateUUID(),
-          createdAt: now,
-          updatedAt: now,
-        };
-        set((state) => ({
-          templates: [...state.templates, template],
-        }));
+        const { state, template } = reducer.addTemplate(listOf(get()), data);
+        set(state);
         void templateHooks.onTemplateCreate.emit(templateToView(template));
         return template;
       },
 
       updateTemplate: (id, updates) => {
-        set((state) => ({
-          templates: state.templates.map((t) =>
-            t.id === id
-              ? { ...t, ...updates, updatedAt: new Date().toISOString() }
-              : t
-          ),
-        }));
+        set(reducer.updateTemplate(listOf(get()), id, updates));
         emitTemplateUpdate(id);
       },
 
       deleteTemplate: (id) => {
         if (!get().templates.some((t) => t.id === id)) return;
         set((state) => ({
-          templates: state.templates.filter((t) => t.id !== id),
+          ...reducer.deleteTemplate(listOf(state), id),
           recentTemplateIds: state.recentTemplateIds.filter((rid) => rid !== id),
-          deletedTemplateIds: {
-            ...state.deletedTemplateIds,
-            [id]: new Date().toISOString(),
-          },
         }));
         void templateHooks.onTemplateDelete.emit({ templateId: id });
       },
 
       duplicateTemplate: (id, nameSuffix) => {
-        const original = get().templates.find((t) => t.id === id);
-        if (!original) return null;
-
-        const now = new Date().toISOString();
-        const duplicate: EmailTemplate = {
-          ...original,
-          id: generateUUID(),
-          name: `${original.name} ${nameSuffix || '(copy)'}`,
-
-          isFavorite: false,
-          createdAt: now,
-          updatedAt: now,
-        };
-
-        set((state) => ({
-          templates: [...state.templates, duplicate],
-        }));
-        void templateHooks.onTemplateCreate.emit(templateToView(duplicate));
-        return duplicate;
+        const result = reducer.duplicateTemplate(listOf(get()), id, nameSuffix);
+        if (!result) return null;
+        set(result.state);
+        void templateHooks.onTemplateCreate.emit(templateToView(result.template));
+        return result.template;
       },
 
       toggleFavorite: (id) => {
-        set((state) => ({
-          templates: state.templates.map((t) =>
-            t.id === id ? { ...t, isFavorite: !t.isFavorite, updatedAt: new Date().toISOString() } : t
-          ),
-        }));
+        set(reducer.toggleFavorite(listOf(get()), id));
         emitTemplateUpdate(id);
       },
 
@@ -176,9 +143,7 @@ export const useTemplateStore = create<TemplateStore>()(
       importTemplates: (json) => {
         const result = importUtil(json);
         if (result.templates.length > 0) {
-          set((state) => ({
-            templates: [...state.templates, ...result.templates],
-          }));
+          set(reducer.appendTemplates(listOf(get()), result.templates));
           void templateHooks.onTemplatesImport.emit({ count: result.templates.length });
         }
         return { count: result.templates.length, errors: result.errors };
@@ -263,45 +228,52 @@ if (typeof window !== 'undefined') {
 // (rather than settings-store importing this module) avoids an import cycle -
 // see registerTemplateSyncBridge.
 //
-// An account that keeps its templates itself (account-templates-store, JMAP
-// metadata on Stalwart 1.0) is left out of the blob: its pushes carry no
-// templates, and a blob loaded for it doesn't touch this browser's list,
-// which belongs to the accounts without. The account's copy is what a
-// settings file export of it holds.
+// An account that keeps its templates in its own Inbox metadata (Stalwart
+// 1.0, account-templates-store) leaves the blob once its marker entry is on
+// the server: from then on its pushes carry no templates, and the flag has
+// the stored blob drop its copy. Until then the blob syncs the browser's
+// list as before. A blob loaded for such an account is merged into the
+// browser's list as always and into the account's copy as well, so
+// templates that only the blob has still reach the account.
 const accountCopy = (accountId: string | undefined) => {
   const accounts = useAccountTemplatesStore.getState();
   const id = accountId ?? accounts.active ?? undefined;
   return id ? accounts.personal[id] : undefined;
 };
 
+function mergeIntoAccount(accountId: string, templates: unknown, deletedTemplateIds: unknown): void {
+  const incoming = parseSyncedTemplates(templates);
+  if (!incoming || incoming.length === 0) return;
+  useAccountTemplatesStore.getState().updatePersonal(accountId, (copy) => ({
+    ...copy,
+    ...mergeSyncedTemplates(
+      { templates: copy.templates, deletedTemplateIds: copy.deletedTemplateIds },
+      { templates: incoming.map(withStorableId), deletedTemplateIds: parseTemplateTombstones(deletedTemplateIds) },
+    ),
+  }));
+  notifyPersonalChange(accountId);
+}
+
 registerTemplateSyncBridge(
   {
     getSyncedState: (opts) => {
       const copy = accountCopy(opts?.accountId);
-      if (copy) return { templates: copy.templates, deletedTemplateIds: copy.deletedTemplateIds, storedInAccount: true };
+      if (copy?.markerOnServer) return { templates: copy.templates, deletedTemplateIds: copy.deletedTemplateIds, storedInAccount: true };
       const { templates, deletedTemplateIds } = useTemplateStore.getState();
       return { templates, deletedTemplateIds };
     },
     applySyncedState: (templates, deletedTemplateIds, opts) => {
       if (opts.accountId) {
-        if (!accountCopy(opts.accountId)) useTemplateStore.getState().applySyncedState(templates, deletedTemplateIds, opts);
+        useTemplateStore.getState().applySyncedState(templates, deletedTemplateIds, opts);
+        if (accountCopy(opts.accountId)) mergeIntoAccount(opts.accountId, templates, deletedTemplateIds);
         return;
       }
       // A settings file the user imports: into the active account's copy
-      // when it keeps one, added by id like a sync (never a wholesale
-      // replace, which would delete server templates).
+      // when it keeps one, added by id (never a wholesale replace, which
+      // would delete server templates).
       const active = useAccountTemplatesStore.getState().active;
-      const incoming = parseSyncedTemplates(templates);
       if (active && accountCopy(active)) {
-        if (!incoming || incoming.length === 0) return;
-        useAccountTemplatesStore.getState().updatePersonal(active, (copy) => ({
-          ...copy,
-          ...mergeSyncedTemplates(
-            { templates: copy.templates, deletedTemplateIds: copy.deletedTemplateIds },
-            { templates: incoming.map(withStorableId), deletedTemplateIds: {} },
-          ),
-        }));
-        notifyPersonalChange(active);
+        mergeIntoAccount(active, templates, {});
         return;
       }
       useTemplateStore.getState().applySyncedState(templates, deletedTemplateIds, opts);
@@ -309,10 +281,11 @@ registerTemplateSyncBridge(
   },
   (listener) => {
     useTemplateStore.subscribe(listener);
-    // An account that starts keeping its templates pushes once, so the
+    // An account whose marker just reached the server pushes once, so the
     // blob drops its copy.
     useAccountTemplatesStore.subscribe((state, prev) => {
-      if (Object.keys(state.personal).length > Object.keys(prev.personal).length) listener();
+      const newlyMarked = Object.entries(state.personal).some(([id, copy]) => copy.markerOnServer && !prev.personal[id]?.markerOnServer);
+      if (newlyMarked) listener();
     });
   }
 );

@@ -1,19 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { JMAPClient } from '../jmap/client';
-import { syncPersonalTemplates, PERSONAL_MARKER_KEY } from '../templates/account-template-sync';
-import { planPersonalSync } from '../templates/metadata-templates';
-import { useAccountTemplatesStore } from '@/stores/account-templates-store';
-import type { EmailTemplate } from '../template-types';
-import recorded from './fixtures/stalwart-1.0.0-template-metadata.json';
-import { syncAccountTemplates } from '../templates/personal-templates';
-import { useAuthStore } from '@/stores/auth-store';
-import { useTemplateStore } from '@/stores/template-store';
 
 // Personal templates kept in the user's own Inbox metadata on Stalwart
-// v1.0.0, one namespace per template. The server below answers with the
-// envelopes recorded from stw-rel (fixtures/…template-metadata.json) and
-// keeps the metadata in memory, refusing like the real one once 64 KB are
-// used.
+// v1.0.0, one namespace per template plus a marker entry holding the
+// tombstones of deleted ones. The server below answers with the envelopes
+// recorded from stw-rel (fixtures/…template-metadata.json) and keeps the
+// metadata in memory, refusing like the real one once 64 KB are used.
+
+const config = vi.hoisted(() => ({ value: { settingsSyncEnabled: true } as Record<string, unknown> | null }));
+vi.mock('@/hooks/use-config', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  getCachedConfig: () => config.value,
+}));
+
+import { JMAPClient } from '../jmap/client';
+import { syncPersonalTemplates, type BrowserList } from '../templates/account-template-sync';
+import { planPersonalSync, pruneTombstones, storableId } from '../templates/metadata-templates';
+import { browserListFor, flushAccountTemplates, personalTemplatesFor, syncAccountTemplates } from '../templates/personal-templates';
+import { useAccountTemplatesStore } from '@/stores/account-templates-store';
+import { useAuthStore } from '@/stores/auth-store';
+import { useTemplateStore } from '@/stores/template-store';
+import { useSettingsStore } from '@/stores/settings-store';
+import { purgeSignedOutData, runBeforeSignOut } from '@/lib/sign-out-cleanup';
+import type { EmailTemplate } from '../template-types';
+import recorded from './fixtures/stalwart-1.0.0-template-metadata.json';
 
 const METADATA_CAP = {
   'urn:ietf:params:jmap:metadata': {
@@ -42,6 +51,8 @@ type Call = [string, Record<string, unknown>, string];
 let server: Record<string, unknown>;
 let sets: Array<{ key: string; value: unknown }>;
 let drop: boolean;
+let omitMetadata: boolean;
+let onSet: (() => void) | null;
 const SHARED_MAX = 65536;
 
 function answer(body: { methodCalls: Call[] }): Response {
@@ -49,10 +60,13 @@ function answer(body: { methodCalls: Call[] }): Response {
   const [method, args] = body.methodCalls[body.methodCalls.length - 1];
   if (method === 'Mailbox/get') {
     const out = clone(recorded.getEmpty);
-    (out.methodResponses[1][1] as { list: Array<{ metadata: unknown }> }).list[0].metadata = clone(server);
+    const inbox = (out.methodResponses[1][1] as { list: Array<Record<string, unknown>> }).list[0];
+    if (omitMetadata) delete inbox.metadata;
+    else inbox.metadata = clone(server);
     return json(out);
   }
   if (method === 'Mailbox/set') {
+    onSet?.();
     const patch = (args.update as Record<string, Record<string, unknown>>).a;
     const [path, value] = Object.entries(patch)[0];
     const namespace = path.replace(/^metadata\//, '');
@@ -71,12 +85,18 @@ const tpl = (id: string, name: string, updatedAt = '2026-10-01T00:00:00.000Z', e
   createdAt: '2026-10-01T00:00:00.000Z', updatedAt, ...extra,
 });
 const ns = (id: string) => `org.bulwarkmail.template.${id}`;
+const MARKER = 'org.bulwarkmail.templates';
+const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
 
 let client: JMAPClient;
 let connection: ReturnType<typeof vi.fn<(connected: boolean) => void>>;
-let legacy: EmailTemplate[];
-const sync = () => syncPersonalTemplates('carol@mail', client, () => legacy);
+let browser: BrowserList;
+const sync = () => syncPersonalTemplates('carol@mail', client, () => browser);
+const list = (templates: EmailTemplate[]): BrowserList => ({ status: 'list', templates });
 const partition = () => useAccountTemplatesStore.getState().personal['carol@mail'];
+const names = () => partition().templates.map((t) => t.name).sort();
+const edit = (fn: (templates: EmailTemplate[]) => EmailTemplate[]) =>
+  useAccountTemplatesStore.getState().updatePersonal('carol@mail', (p) => ({ ...p, templates: fn(p.templates) }));
 
 async function connect(withMetadata = true) {
   const fetchSpy = vi.spyOn(globalThis, 'fetch');
@@ -89,6 +109,12 @@ async function connect(withMetadata = true) {
   client.onConnectionChange(connection);
 }
 
+const original = useAuthStore.getState();
+const asCarol = () => useAuthStore.setState({
+  activeAccountId: 'carol@mail',
+  getClientForAccount: (id: string) => (id === 'carol@mail' ? client : undefined),
+} as never);
+
 beforeEach(async () => {
   vi.useRealTimers();
   vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -96,146 +122,208 @@ beforeEach(async () => {
   server = {};
   sets = [];
   drop = false;
-  legacy = [];
-  useAccountTemplatesStore.setState({ personal: {}, teams: {}, active: null });
+  omitMetadata = false;
+  onSet = null;
+  browser = list([]);
+  config.value = { settingsSyncEnabled: true };
+  localStorage.removeItem('settings-sync-owner');
+  useAccountTemplatesStore.setState({ personal: {}, teams: {}, active: null, browserListOwner: null });
+  useTemplateStore.setState({ templates: [], deletedTemplateIds: {}, recentTemplateIds: [] });
+  useSettingsStore.setState({ settingsSyncDisabled: false });
   await connect();
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  useAuthStore.setState({ activeAccountId: original.activeAccountId, getClientForAccount: original.getClientForAccount } as never);
+});
 
-describe('the first load with metadata', () => {
-  it('uploads the browser\'s templates once into an empty account and marks it', async () => {
-    legacy = [tpl('aaaa-1', 'Hello'), tpl('aaaa-2', 'Thanks')];
+describe('the browser\'s own list', () => {
+  it('goes into an empty account, with the marker after it', async () => {
+    browser = list([tpl('aaaa-1', 'Hello'), tpl('aaaa-2', 'Thanks')]);
     expect(await sync()).toBe('synced');
-    expect(sets.map((s) => s.key)).toEqual([ns('aaaa-1'), ns('aaaa-2'), `org.bulwarkmail.${PERSONAL_MARKER_KEY}`]);
-    expect((server[ns('aaaa-1')] as EmailTemplate).name).toBe('Hello');
-    expect(partition().templates.map((t) => t.name).sort()).toEqual(['Hello', 'Thanks']);
+    expect(sets.map((s) => s.key)).toEqual([ns('aaaa-1'), ns('aaaa-2'), MARKER]);
+    expect(server[MARKER]).toEqual({ version: 1, deleted: {} });
+    expect(names()).toEqual(['Hello', 'Thanks']);
+    expect(partition().markerOnServer).toBe(true);
 
-    // Once: the next round has nothing to write.
+    // Each version is taken once: the next round writes nothing.
     sets = [];
-    expect(await sync()).toBe('synced');
+    await sync();
     expect(sets).toEqual([]);
   });
 
-  it('doesn\'t upload the browser\'s list to an account set up before, even an empty one', async () => {
-    server = { [`org.bulwarkmail.${PERSONAL_MARKER_KEY}`]: { v: 1 } };
-    legacy = [tpl('aaaa-1', 'Deleted elsewhere long ago')];
+  it('is merged into an account that holds templates already, so a second browser keeps both lists', async () => {
+    server = { [ns('bbbb-1')]: tpl('bbbb-1', 'From the other browser'), [MARKER]: { version: 1, deleted: {} } };
+    browser = list([tpl('aaaa-1', 'Only here')]);
+    await sync();
+    expect(names()).toEqual(['From the other browser', 'Only here']);
+    expect(sets.map((s) => s.key)).toEqual([ns('aaaa-1')]);
+  });
+
+  it('leaves out a template that a newer tombstone deleted', async () => {
+    server = { [MARKER]: { version: 1, deleted: { 'aaaa-1': ago(1000) } } };
+    browser = list([tpl('aaaa-1', 'Deleted elsewhere', ago(60_000)), tpl('aaaa-2', 'Kept', ago(60_000))]);
+    await sync();
+    expect(names()).toEqual(['Kept']);
+    expect(server[ns('aaaa-1')]).toBeUndefined();
+  });
+
+  it('is not used, and no marker written, while it isn\'t known whose it is', async () => {
+    browser = { status: 'unknown' };
+    useTemplateStore.setState({ templates: [tpl('aaaa-9', 'Someone else’s')] });
     await sync();
     expect(sets).toEqual([]);
     expect(partition().templates).toEqual([]);
+    expect(partition().markerOnServer).toBe(false);
   });
 
-  it('takes the server copy in a second browser instead of the local list', async () => {
-    server = { [ns('bbbb-1')]: tpl('bbbb-1', 'From the other browser'), [`org.bulwarkmail.${PERSONAL_MARKER_KEY}`]: { v: 1 } };
-    legacy = [tpl('aaaa-1', 'Only here')];
+  it('gives an id that doesn\'t fit a metadata key the same new id on every device', async () => {
+    const id = storableId('Demo_Template 1');
+    expect(id).toMatch(/^[0-9a-f]{28}$/);
+    expect(storableId('Demo_Template 1')).toBe(id);
+    expect(storableId('Demo_Template 2')).not.toBe(id);
+    browser = list([tpl('Demo_Template 1', 'Old id')]);
     await sync();
-    expect(partition().templates.map((t) => t.name)).toEqual(['From the other browser']);
-    expect(sets).toEqual([]);
+    expect(partition().templates[0].id).toBe(id);
+    expect(server[ns(id)]).toBeTruthy();
   });
 
   it('keeps a template over 8 KB and one the server has no room for in this browser, with why', async () => {
-    // 64 KB minus a bit is in use by something else already.
     server = { 'org.bulwarkmail.other': { fill: 'y'.repeat(SHARED_MAX - 4000) } };
-    legacy = [tpl('aaaa-big', 'Big', undefined, { body: 'x'.repeat(9000) }), tpl('aaaa-mid', 'Mid', undefined, { body: 'z'.repeat(5000) }), tpl('aaaa-ok', 'Small')];
+    browser = list([tpl('aaaa-big', 'Big', undefined, { body: 'x'.repeat(9000) }), tpl('aaaa-mid', 'Mid', undefined, { body: 'z'.repeat(5000) }), tpl('aaaa-ok', 'Small')]);
     await sync();
-    const p = partition();
-    expect(p.localOnly).toEqual({ 'aaaa-big': 'too-large', 'aaaa-mid': 'no-room' });
-    expect(p.templates.map((t) => t.name).sort()).toEqual(['Big', 'Mid', 'Small']);
+    expect(partition().localOnly).toEqual({ 'aaaa-big': 'too-large', 'aaaa-mid': 'no-room' });
+    expect(names()).toEqual(['Big', 'Mid', 'Small']);
     expect(server[ns('aaaa-ok')]).toBeTruthy();
-    expect(server[ns('aaaa-mid')]).toBeUndefined();
-    // The 9 KB one never went out.
     expect(sets.some((s) => s.key === ns('aaaa-big'))).toBe(false);
   });
-
-  it('gives an id that doesn\'t fit a metadata key a new one', async () => {
-    legacy = [tpl('Demo_Template 1', 'Old id')];
-    await sync();
-    const [template] = partition().templates;
-    expect(template.id).not.toBe('Demo_Template 1');
-    expect(server[ns(template.id)]).toBeTruthy();
-  });
 });
 
-describe('whose list is uploaded', () => {
-  const original = useAuthStore.getState();
-  afterEach(() => {
-    localStorage.removeItem('settings-sync-owner');
-    useAuthStore.setState({ activeAccountId: original.activeAccountId, getClientForAccount: original.getClientForAccount } as never);
-  });
-
-  it("waits while the browser's list still holds another account's synced templates", async () => {
-    useTemplateStore.setState({ templates: [tpl('aaaa-9', "Alice's")] });
-    useAuthStore.setState({ activeAccountId: 'carol@mail', getClientForAccount: (id: string) => (id === 'carol@mail' ? client : undefined) } as never);
-    localStorage.setItem('settings-sync-owner', 'alice@mail');
-    expect(await syncAccountTemplates('carol@mail')).toBe('unsupported');
-    expect(sets).toEqual([]);
-    expect(partition()).toBeUndefined();
-
-    // Carol's settings have loaded: now the list is hers.
-    useTemplateStore.setState({ templates: [tpl('cccc-1', "Carol's")] });
-    localStorage.setItem('settings-sync-owner', 'carol@mail');
-    expect(await syncAccountTemplates('carol@mail')).toBe('synced');
-    expect(partition().templates.map((t) => t.name)).toEqual(["Carol's"]);
-  });
-
-  it("never uploads the browser's list into an account that isn't the active one", async () => {
-    useTemplateStore.setState({ templates: [tpl('aaaa-9', "Active account's")] });
-    useAuthStore.setState({ activeAccountId: 'alice@mail', getClientForAccount: (id: string) => (id === 'carol@mail' ? client : undefined) } as never);
-    expect(await syncAccountTemplates('carol@mail')).toBe('unsupported');
-    expect(sets).toEqual([]);
-    // Once set up elsewhere, its own copy is read from the server.
-    server = { [ns('cccc-2')]: tpl('cccc-2', 'Set up elsewhere'), [`org.bulwarkmail.${PERSONAL_MARKER_KEY}`]: { v: 1 } };
-    expect(await syncAccountTemplates('carol@mail')).toBe('synced');
-    expect(partition().templates.map((t) => t.name)).toEqual(['Set up elsewhere']);
-  });
-});
-
-describe('later rounds merge by id and updatedAt', () => {
+describe('later rounds', () => {
   beforeEach(async () => {
-    legacy = [tpl('aaaa-1', 'One'), tpl('aaaa-2', 'Two')];
+    browser = list([tpl('aaaa-1', 'One'), tpl('aaaa-2', 'Two')]);
     await sync();
     sets = [];
   });
 
-  it('takes a newer server version and uploads a newer local one', async () => {
+  it('take a newer server version and upload a newer local one', async () => {
     server[ns('aaaa-1')] = tpl('aaaa-1', 'One, edited elsewhere', '2026-10-05T00:00:00.000Z');
-    useAccountTemplatesStore.getState().updatePersonal('carol@mail', (p) => ({
-      ...p, templates: p.templates.map((t) => (t.id === 'aaaa-2' ? { ...t, name: 'Two, edited here', updatedAt: '2026-10-06T00:00:00.000Z' } : t)),
-    }));
+    edit((templates) => templates.map((t) => (t.id === 'aaaa-2' ? { ...t, name: 'Two, edited here', updatedAt: '2026-10-06T00:00:00.000Z' } : t)));
     await sync();
-    expect(partition().templates.find((t) => t.id === 'aaaa-1')?.name).toBe('One, edited elsewhere');
+    expect(names()).toEqual(['One, edited elsewhere', 'Two, edited here']);
     expect(sets.map((s) => s.key)).toEqual([ns('aaaa-2')]);
-    expect((server[ns('aaaa-2')] as EmailTemplate).name).toBe('Two, edited here');
   });
 
-  it('drops a template deleted elsewhere, and removes one deleted here from the server', async () => {
+  it('upload an entry that is missing without a tombstone, never take it as deleted', async () => {
     delete server[ns('aaaa-1')];
-    useAccountTemplatesStore.getState().updatePersonal('carol@mail', (p) => ({
-      ...p,
-      templates: p.templates.filter((t) => t.id !== 'aaaa-2'),
-      deletedTemplateIds: { 'aaaa-2': '2026-10-07T00:00:00.000Z' },
-    }));
     await sync();
-    expect(partition().templates).toEqual([]);
-    expect(sets).toEqual([{ key: ns('aaaa-2'), value: null }]);
-    expect(partition().deletedTemplateIds).toEqual({});
+    expect(names()).toEqual(['One', 'Two']);
+    expect(server[ns('aaaa-1')]).toBeTruthy();
   });
 
-  it('keeps a template edited here after another browser deleted it', async () => {
-    delete server[ns('aaaa-1')];
-    useAccountTemplatesStore.getState().updatePersonal('carol@mail', (p) => ({
-      ...p, templates: p.templates.map((t) => (t.id === 'aaaa-1' ? { ...t, updatedAt: '2026-10-09T00:00:00.000Z' } : t)),
-    }));
+  it('delete through the tombstone: the marker first, then the entry', async () => {
+    personalTemplatesFor('carol@mail').remove('aaaa-2');
     await sync();
-    expect(partition().templates.map((t) => t.id).sort()).toEqual(['aaaa-1', 'aaaa-2']);
-    expect(sets.map((s) => s.key)).toEqual([ns('aaaa-1')]);
+    expect(sets.map((s) => s.key)).toEqual([MARKER, ns('aaaa-2')]);
+    expect((server[MARKER] as { deleted: Record<string, string> }).deleted['aaaa-2']).toBeTruthy();
+    expect(partition().serverDeleted['aaaa-2']).toBeTruthy();
+  });
+
+  it('drop a template another device deleted, also when the store changes during the round (review A)', async () => {
+    server[MARKER] = { version: 1, deleted: { 'aaaa-1': ago(0) } };
+    delete server[ns('aaaa-1')];
+    edit((templates) => templates.map((t) => (t.id === 'aaaa-2' ? { ...t, name: 'Two!', updatedAt: ago(500) } : t)));
+    onSet = () => {
+      // While the upload runs, a new template arrives (this tab or another one).
+      edit((templates) => [...templates, tpl('aaaa-3', 'Three', ago(100))]);
+      onSet = null;
+    };
+    await sync();
+    await sync();
+    expect(partition().templates.map((t) => t.id).sort()).toEqual(['aaaa-2', 'aaaa-3']);
+    expect(server[ns('aaaa-1')]).toBeUndefined();
+    expect(server[ns('aaaa-3')]).toBeTruthy();
+  });
+
+  it('keep what another tab wrote while the round ran', async () => {
+    onSet = () => {
+      // Another tab's write replaces the whole partition (storage rehydrate).
+      const p = partition();
+      useAccountTemplatesStore.setState({
+        personal: {
+          'carol@mail': {
+            ...p,
+            templates: [...p.templates.filter((t) => t.id !== 'aaaa-1'), tpl('aaaa-4', 'From the other tab', ago(50))],
+            deletedTemplateIds: { 'aaaa-1': ago(10) },
+          },
+        },
+      });
+      onSet = null;
+    };
+    edit((templates) => templates.map((t) => (t.id === 'aaaa-2' ? { ...t, updatedAt: ago(1000) } : t)));
+    await sync();
+    expect(partition().templates.map((t) => t.id).sort()).toEqual(['aaaa-2', 'aaaa-4']);
+    expect(server[ns('aaaa-1')]).toBeUndefined();
+    expect(server[ns('aaaa-4')]).toBeTruthy();
+  });
+
+  it('keep the copy when an answer comes without the metadata property (review B)', async () => {
+    omitMetadata = true;
+    expect(await sync()).toBe('unsupported');
+    expect(names()).toEqual(['One', 'Two']);
+  });
+
+  it('keep an edit made on a device whose clock is behind (review C)', async () => {
+    server[ns('aaaa-1')] = tpl('aaaa-1', 'Edited on a fast clock', new Date(Date.now() + 3_600_000).toISOString());
+    await sync();
+    personalTemplatesFor('carol@mail').update('aaaa-1', { name: 'Edited here later' });
+    await sync();
+    expect(partition().templates.find((t) => t.id === 'aaaa-1')?.name).toBe('Edited here later');
+    expect((server[ns('aaaa-1')] as EmailTemplate).name).toBe('Edited here later');
+  });
+});
+
+describe('whose the browser\'s list is', () => {
+  beforeEach(asCarol);
+
+  it('is unknown until settings sync loaded the account\'s settings, whose templates then reach the account (review D)', async () => {
+    expect(browserListFor('carol@mail')).toEqual({ status: 'unknown' });
+    await syncAccountTemplates('carol@mail');
+    expect(server[MARKER]).toBeUndefined();
+    expect(partition().markerOnServer).toBe(false);
+
+    // The settings blob loads: its templates go into the account's copy too.
+    localStorage.setItem('settings-sync-owner', 'carol@mail');
+    useSettingsStore.getState().importSettings(JSON.stringify({ templates: [tpl('blob-1', 'Only in the blob')], deletedTemplateIds: {} }), { serverAccountId: 'carol@mail' });
+    expect(partition().templates.map((t) => t.id)).toEqual(['blob-1']);
+    await syncAccountTemplates('carol@mail');
+    expect(server[ns('blob-1')]).toBeTruthy();
+    expect(server[MARKER]).toEqual({ version: 1, deleted: {} });
+  });
+
+  it('is another account\'s while that account\'s settings are loaded', () => {
+    localStorage.setItem('settings-sync-owner', 'alice@mail');
+    expect(browserListFor('carol@mail')).toEqual({ status: 'unknown' });
+    expect(browserListFor('dave@mail')).toEqual({ status: 'none' });
+  });
+
+  it('goes into the first account only without settings sync, and others start empty', async () => {
+    config.value = { settingsSyncEnabled: false };
+    useTemplateStore.setState({ templates: [tpl('aaaa-1', 'Browser')] });
+    expect(browserListFor('carol@mail').status).toBe('list');
+    await syncAccountTemplates('carol@mail');
+    expect(useAccountTemplatesStore.getState().browserListOwner).toBe('carol@mail');
+    expect(names()).toEqual(['Browser']);
+    expect(browserListFor('dave@mail')).toEqual({ status: 'none' });
+    expect(browserListFor('carol@mail').status).toBe('list');
   });
 });
 
 describe('servers without metadata', () => {
-  it('leaves an account without the capability alone', async () => {
+  it('leave an account without the capability alone', async () => {
     vi.restoreAllMocks();
     await connect(false);
-    legacy = [tpl('aaaa-1', 'Local')];
+    browser = list([tpl('aaaa-1', 'Local')]);
     const fetchSpy = vi.mocked(globalThis.fetch);
     fetchSpy.mockClear();
     expect(await sync()).toBe('unsupported');
@@ -243,13 +331,12 @@ describe('servers without metadata', () => {
     expect(partition()).toBeUndefined();
   });
 
-  it('keeps the app online when the server drops the connection on metadata (the 1.0 test build)', async () => {
+  it('keep the app online when the server drops the connection on metadata (the 1.0 test build)', async () => {
     drop = true;
-    legacy = [tpl('aaaa-1', 'Local')];
+    browser = list([tpl('aaaa-1', 'Local')]);
     expect(await sync()).toBe('unsupported');
     expect(partition()).toBeUndefined();
     expect(connection).not.toHaveBeenCalledWith(false);
-    // And it isn't asked again for a while.
     const fetchSpy = vi.mocked(globalThis.fetch);
     fetchSpy.mockClear();
     expect(await sync()).toBe('unsupported');
@@ -257,14 +344,57 @@ describe('servers without metadata', () => {
   });
 });
 
-describe('planPersonalSync', () => {
-  it('keeps a deletion here over an older server copy, and an edit there over an older deletion', () => {
+describe('signing out', () => {
+  beforeEach(async () => {
+    asCarol();
+    localStorage.setItem('settings-sync-owner', 'carol@mail');
+    useTemplateStore.setState({ templates: [tpl('aaaa-1', 'One'), tpl('aaaa-2', 'Two')] });
+    await syncAccountTemplates('carol@mail');
+    sets = [];
+  });
+
+  it('sends a deletion that is still queued before the account signs out', async () => {
+    personalTemplatesFor('carol@mail').remove('aaaa-1');
+    await runBeforeSignOut('carol@mail');
+    expect(sets.map((s) => s.key)).toEqual([MARKER, ns('aaaa-1')]);
+    expect(server[ns('aaaa-1')]).toBeUndefined();
+  });
+
+  it('keeps only unsent templates and deletions after a full sign-out', async () => {
+    drop = true;
+    personalTemplatesFor('carol@mail').remove('aaaa-1');
+    personalTemplatesFor('carol@mail').add({ name: 'Unsent', subject: '', body: '', category: '', isFavorite: false });
+    await flushAccountTemplates('carol@mail');
+    purgeSignedOutData();
+    const kept = useAccountTemplatesStore.getState().personal['carol@mail'];
+    expect(kept.templates.map((t) => t.name)).toEqual(['Unsent']);
+    expect(Object.keys(kept.deletedTemplateIds)).toEqual(['aaaa-1']);
+  });
+
+  it('drops an account copy that the server holds in full', () => {
+    purgeSignedOutData();
+    expect(useAccountTemplatesStore.getState().personal['carol@mail']).toBeUndefined();
+  });
+});
+
+describe('tombstones', () => {
+  it('keep 90 days and at most 8 KB, the oldest go first', () => {
+    const deleted: Record<string, string> = { old: ago(91 * 86_400_000) };
+    for (let i = 0; i < 400; i++) deleted[`id-${String(i).padStart(4, '0')}-${'x'.repeat(20)}`] = ago(i * 1000);
+    const kept = pruneTombstones(deleted);
+    expect(kept.old).toBeUndefined();
+    expect(new TextEncoder().encode(JSON.stringify({ version: 1, deleted: kept })).length).toBeLessThanOrEqual(8192);
+    expect(kept[`id-0000-${'x'.repeat(20)}`]).toBeDefined();
+    expect(kept[`id-0399-${'x'.repeat(20)}`]).toBeUndefined();
+  });
+
+  it('a deletion here wins over an older server copy, an edit there over an older deletion', () => {
     const plan = planPersonalSync(
-      { templates: [], deletedTemplateIds: { a: '2026-10-05T00:00:00.000Z', b: '2026-10-05T00:00:00.000Z' }, serverVersions: { a: '2026-10-01T00:00:00.000Z', b: '2026-10-01T00:00:00.000Z' } },
-      { a: tpl('a', 'A', '2026-10-01T00:00:00.000Z'), b: tpl('b', 'B', '2026-10-06T00:00:00.000Z') },
+      { templates: [], deletedTemplateIds: { a: ago(5000), b: ago(5000) } },
+      { a: tpl('a', 'A', ago(10_000)), b: tpl('b', 'B', ago(1000)) },
+      {},
     );
     expect(plan.deletes).toEqual(['a']);
     expect(plan.templates.map((t) => t.id)).toEqual(['b']);
-    expect(plan.uploads).toEqual([]);
   });
 });

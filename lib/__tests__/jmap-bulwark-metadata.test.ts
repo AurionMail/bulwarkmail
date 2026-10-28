@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { JMAPClient } from '../jmap/client';
-import { MetadataTooLargeError, MetadataUnsupportedError, bulwarkEntries, isValidMetadataKey } from '../jmap/bulwark-metadata';
+import { MetadataRefusedError, MetadataTooLargeError, MetadataUnsupportedError, bulwarkEntries, isValidMetadataKey } from '../jmap/bulwark-metadata';
+import recorded from './fixtures/stalwart-1.0.0-template-metadata.json';
 
 // Bulwark keeps shared tags and templates in the Inbox metadata of an
 // account, one namespace per item (each namespace holds at most 8 KB on
@@ -120,6 +121,29 @@ describe('setBulwarkMetadata', () => {
 
   it('says unsupported for an account without metadata', async () => {
     await expect(client.setBulwarkMetadata('old', 'tags', [])).rejects.toBeInstanceOf(MetadataUnsupportedError);
+  });
+
+  it('passes on the type of Stalwart\'s refusal (recorded on v1.0.0)', async () => {
+    answer = (body) => body.methodCalls[0][0] === 'Mailbox/set'
+      ? json({ methodResponses: [['Mailbox/set', { ...(recorded.setForbidden.methodResponses[0][1] as object), notUpdated: { 'inbox-1': (recorded.setForbidden.methodResponses[0][1] as { notUpdated: { a: unknown } }).notUpdated.a } }, '0']] })
+      : inboxAnswer({});
+    const error = await client.setBulwarkMetadata('team', 'template.x', { name: 'x' }).catch((e) => e);
+    expect(error).toBeInstanceOf(MetadataRefusedError);
+    expect(error.type).toBe('forbidden');
+    expect(error.message).toBe('Not allowed to modify metadata.');
+  });
+});
+
+describe('an answer without the metadata property', () => {
+  it('means unsupported, never "every entry was removed"', async () => {
+    answer = () => json({
+      methodResponses: [
+        ['Mailbox/query', { ids: ['inbox-1'] }, 'q'],
+        ['Mailbox/get', { list: [{ id: 'inbox-1' }] }, 'g'],
+      ],
+    });
+    expect(await client.getBulwarkMetadata('team')).toBeNull();
+    expect(client.supportsBulwarkMetadata('team')).toBe(false);
   });
 });
 

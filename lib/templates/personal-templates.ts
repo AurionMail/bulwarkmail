@@ -11,11 +11,12 @@ import type { EmailTemplate } from '@/lib/template-types';
 import { exportTemplates, filterTemplates, importTemplates as parseImport } from '@/lib/template-utils';
 import { templateHooks } from '@/lib/plugin-hooks';
 import { templateToView } from '@/lib/plugin-projection';
-import { generateUUID } from '@/lib/utils';
-import { onFullSignOut } from '@/lib/sign-out-cleanup';
+import { onBeforeSignOut, onFullSignOut } from '@/lib/sign-out-cleanup';
+import { IS_LITE } from '@/lib/lite';
+import { getCachedConfig } from '@/hooks/use-config';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTemplateStore } from '@/stores/template-store';
-import { readSettingsOwner } from '@/stores/settings-store';
+import { isSettingsLoadSettled, readSettingsOwner, useSettingsStore } from '@/stores/settings-store';
 import {
   notifyPersonalChange,
   onPersonalChange,
@@ -23,18 +24,17 @@ import {
   type LocalOnlyReason,
   type PersonalPartition,
 } from '@/stores/account-templates-store';
-import { syncPersonalTemplates, type MetadataClient, type SyncOutcome } from './account-template-sync';
-
-type TemplateData = Omit<EmailTemplate, 'id' | 'createdAt' | 'updatedAt'>;
-type TemplateUpdate = Partial<Omit<EmailTemplate, 'id' | 'createdAt'>>;
+import * as reducer from './template-reducer';
+import { clientFor } from './account-clients';
+import { pendingRound, syncPersonalTemplates, type BrowserList, type SyncOutcome } from './account-template-sync';
 
 export interface PersonalTemplateOps {
   /** The account keeps its templates (in the server's metadata), not just this browser. */
   storedInAccount: boolean;
   templates: () => EmailTemplate[];
   localOnly: () => Record<string, LocalOnlyReason>;
-  add: (data: TemplateData) => EmailTemplate;
-  update: (id: string, updates: TemplateUpdate) => void;
+  add: (data: reducer.TemplateData) => EmailTemplate;
+  update: (id: string, updates: reducer.TemplateUpdate) => void;
   remove: (id: string) => void;
   duplicate: (id: string, nameSuffix?: string) => EmailTemplate | null;
   toggleFavorite: (id: string) => void;
@@ -74,8 +74,8 @@ function legacyOps(): PersonalTemplateOps {
 function accountOps(accountId: string): PersonalTemplateOps {
   const partition = (): PersonalPartition | undefined => useAccountTemplatesStore.getState().personal[accountId];
   const templates = () => partition()?.templates ?? [];
-  const change = (fn: (p: PersonalPartition) => PersonalPartition) => {
-    useAccountTemplatesStore.getState().updatePersonal(accountId, fn);
+  const change = (fn: (list: reducer.TemplateListState) => reducer.TemplateListState) => {
+    useAccountTemplatesStore.getState().updatePersonal(accountId, (p) => ({ ...p, ...fn({ templates: p.templates, deletedTemplateIds: p.deletedTemplateIds }) }));
     notifyPersonalChange(accountId);
   };
   const find = (id: string) => templates().find((t) => t.id === id);
@@ -83,12 +83,15 @@ function accountOps(accountId: string): PersonalTemplateOps {
     const template = find(id);
     if (template) void templateHooks.onTemplateUpdate.emit(templateToView(template));
   };
-  const add = (data: TemplateData): EmailTemplate => {
-    const now = new Date().toISOString();
-    const template: EmailTemplate = { ...data, id: generateUUID(), createdAt: now, updatedAt: now };
-    change((p) => ({ ...p, templates: [...p.templates, template] }));
-    void templateHooks.onTemplateCreate.emit(templateToView(template));
-    return template;
+  const add = (data: reducer.TemplateData): EmailTemplate => {
+    let created: EmailTemplate | null = null;
+    change((list) => {
+      const result = reducer.addTemplate(list, data);
+      created = result.template;
+      return result.state;
+    });
+    void templateHooks.onTemplateCreate.emit(templateToView(created!));
+    return created!;
   };
   return {
     storedInAccount: true,
@@ -97,30 +100,28 @@ function accountOps(accountId: string): PersonalTemplateOps {
     add,
     update: (id, updates) => {
       if (!find(id)) return;
-      const now = new Date().toISOString();
-      change((p) => ({ ...p, templates: p.templates.map((t) => (t.id === id ? { ...t, ...updates, updatedAt: now } : t)) }));
+      change((list) => reducer.updateTemplate(list, id, updates));
       emitUpdate(id);
     },
     remove: (id) => {
       if (!find(id)) return;
-      const now = new Date().toISOString();
-      change((p) => {
-        const localOnly = { ...p.localOnly };
-        delete localOnly[id];
-        return { ...p, templates: p.templates.filter((t) => t.id !== id), deletedTemplateIds: { ...p.deletedTemplateIds, [id]: now }, localOnly };
-      });
+      change((list) => reducer.deleteTemplate(list, id));
       void templateHooks.onTemplateDelete.emit({ templateId: id });
     },
     duplicate: (id, suffix) => {
-      const original = find(id);
-      if (!original) return null;
-      return add({ ...original, name: `${original.name} ${suffix || '(copy)'}`, isFavorite: false });
+      let created: EmailTemplate | null = null;
+      change((list) => {
+        const result = reducer.duplicateTemplate(list, id, suffix);
+        if (!result) return list;
+        created = result.template;
+        return result.state;
+      });
+      if (created) void templateHooks.onTemplateCreate.emit(templateToView(created));
+      return created;
     },
     toggleFavorite: (id) => {
-      const template = find(id);
-      if (!template) return;
-      const now = new Date().toISOString();
-      change((p) => ({ ...p, templates: p.templates.map((t) => (t.id === id ? { ...t, isFavorite: !t.isFavorite, updatedAt: now } : t)) }));
+      if (!find(id)) return;
+      change((list) => reducer.toggleFavorite(list, id));
       emitUpdate(id);
     },
     search: (query) => filterTemplates(templates(), query),
@@ -128,7 +129,7 @@ function accountOps(accountId: string): PersonalTemplateOps {
     importJson: (json) => {
       const result = parseImport(json);
       if (result.templates.length > 0) {
-        change((p) => ({ ...p, templates: [...p.templates, ...result.templates] }));
+        change((list) => reducer.appendTemplates(list, result.templates));
         void templateHooks.onTemplatesImport.emit({ count: result.templates.length });
       }
       return { count: result.templates.length, errors: result.errors };
@@ -142,40 +143,55 @@ export function personalTemplatesFor(accountId?: string | null): PersonalTemplat
   return id && useAccountTemplatesStore.getState().personal[id] ? accountOps(id) : legacyOps();
 }
 
-// ─── Syncing ──────────────────────────────────────────────────
+// ─── Whose is the browser's list ──────────────────────────────
 
-function clientFor(accountId: string): MetadataClient | null {
-  const auth = useAuthStore.getState();
-  const client = auth.getClientForAccount?.(accountId) ?? (accountId === auth.activeAccountId ? auth.client : null);
-  return (client as unknown as MetadataClient | null) ?? null;
+/**
+ * The browser's template list as far as `accountId` is concerned.
+ *
+ * With settings sync, the list mirrors the settings of the account that
+ * loaded last (settings-sync-owner): it is this account's once its settings
+ * have loaded, and unknown before that; a load that ended without making
+ * any account the owner (the server refused sync) leaves the list to no
+ * one, as without sync.
+ *
+ * Without settings sync (Lite, sync off), the list belongs to no account:
+ * it goes into the first account whose metadata answers, and only that
+ * one, so one person's templates don't turn up in every mailbox signed in
+ * in this browser.
+ */
+export function browserListFor(accountId: string): BrowserList {
+  const templates = useTemplateStore.getState().templates;
+  const config = getCachedConfig();
+  if (!IS_LITE && !config) return { status: 'unknown' };
+  const syncOn = !IS_LITE && config?.settingsSyncEnabled === true && !useSettingsStore.getState().settingsSyncDisabled;
+  if (syncOn) {
+    const owner = readSettingsOwner();
+    const active = useAuthStore.getState().activeAccountId;
+    if (owner !== null) {
+      if (owner === accountId && accountId === active) return { status: 'list', templates };
+      return accountId === active ? { status: 'unknown' } : { status: 'none' };
+    }
+    if (!isSettingsLoadSettled(accountId)) return accountId === active ? { status: 'unknown' } : { status: 'none' };
+  }
+  const given = useAccountTemplatesStore.getState().browserListOwner;
+  if (given !== null && given !== accountId) return { status: 'none' };
+  return {
+    status: 'list',
+    templates,
+    claim: () => {
+      if (useAccountTemplatesStore.getState().browserListOwner === null) useAccountTemplatesStore.setState({ browserListOwner: accountId });
+    },
+  };
 }
+
+// ─── Syncing ──────────────────────────────────────────────────
 
 /** Sync the account's personal templates now. */
 export function syncAccountTemplates(accountId: string): Promise<SyncOutcome> {
   const client = clientFor(accountId);
-  if (!client || typeof client.getAccountId !== 'function') return Promise.resolve('unsupported');
-  return syncPersonalTemplates(accountId, client, () => browserListOf(accountId));
+  if (!client) return Promise.resolve('unsupported');
+  return syncPersonalTemplates(accountId, client, () => browserListFor(accountId));
 }
-
-/**
- * The browser's template list, if it is this account's: the active
- * account's once its synced settings are loaded, or a list no account's
- * settings sync owns (sync off, Lite). Never another account's, which
- * would copy one account's templates into another's mailbox.
- */
-function browserListOf(accountId: string): EmailTemplate[] | null {
-  if (accountId !== useAuthStore.getState().activeAccountId) return null;
-  const owner = readSettingsOwner();
-  if (owner !== null && owner !== accountId) return null;
-  return useTemplateStore.getState().templates;
-}
-
-// The browser's list changing for an account that doesn't keep its own
-// copy yet (its synced settings just loaded) is the moment to set it up.
-useTemplateStore.subscribe(() => {
-  const active = useAuthStore.getState().activeAccountId;
-  if (active && !useAccountTemplatesStore.getState().personal[active]) scheduleAccountSync(active);
-});
 
 const SYNC_DELAY_MS = 800;
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -192,6 +208,13 @@ export function scheduleAccountSync(accountId: string): void {
 
 onPersonalChange(scheduleAccountSync);
 
+// The browser's list changing (an account's synced settings just loaded,
+// or the user changed a template there) is merged in at once.
+useTemplateStore.subscribe(() => {
+  const active = useAuthStore.getState().activeAccountId;
+  if (active) scheduleAccountSync(active);
+});
+
 const lastSync = new Map<string, number>();
 
 /** Sync when the last round is older than `maxAgeMs` (opening the picker or the manager, coming back to the tab). */
@@ -204,7 +227,29 @@ export function refreshAccountTemplates(accountId: string | null | undefined, ma
   void syncAccountTemplates(id);
 }
 
-// At a full sign-out only what exists nowhere else stays in this browser.
+/**
+ * Before an account signs out: send what is queued for it (above all
+ * deletions, which otherwise come back from the server next time). The
+ * auth store bounds the wait.
+ */
+export async function flushAccountTemplates(accountId: string): Promise<void> {
+  const ids = accountId === 'all' ? Object.keys(useAccountTemplatesStore.getState().personal) : [accountId];
+  await Promise.all(ids.map(async (id) => {
+    if (!useAccountTemplatesStore.getState().personal[id]) return;
+    const timer = timers.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      timers.delete(id);
+    }
+    await pendingRound(id);
+    await syncAccountTemplates(id);
+  }));
+}
+
+onBeforeSignOut(flushAccountTemplates);
+
+// At a full sign-out only what exists nowhere else stays in this browser:
+// templates and deletions the server hasn't taken yet.
 onFullSignOut(() => {
   lastSync.clear();
   useAccountTemplatesStore.getState().forgetServerCopies();

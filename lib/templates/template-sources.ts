@@ -30,3 +30,6 @@ export const teamSourceKey = (accountId: string) => `team:${accountId}`;
 export function byName(templates: EmailTemplate[]): EmailTemplate[] {
   return [...templates].sort((a, b) => a.name.localeCompare(b.name));
 }
+
+/** What a change to a template came to; anything but 'ok' keeps the form open. */
+export type TemplateSaveResult = 'ok' | 'too-large' | 'no-room' | 'forbidden' | 'conflict' | 'failed';

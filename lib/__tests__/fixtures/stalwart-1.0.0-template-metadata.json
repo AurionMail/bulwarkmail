@@ -1,5 +1,5 @@
 {
-  "_comment": "Recorded from Stalwart v1.0.0 (stw-rel, http://10.10.10.62:8120) on 2026-10-28, org-carol@example.org own Inbox: Bulwark template metadata. Removed again after recording.",
+  "_comment": "Recorded from Stalwart v1.0.0 (stw-rel, http://10.10.10.62:8120) on 2026-10-28, org-carol@example.org own Inbox: Bulwark template metadata. Removed again after recording. setForbidden: org-carol writing to the Inbox org-alice shared with her read-only.",
   "getEmpty": {
     "methodResponses": [
       [
@@ -154,5 +154,28 @@
       ]
     ],
     "sessionState": "c499329"
+  },
+  "setForbidden": {
+    "methodResponses": [
+      [
+        "Mailbox/set",
+        {
+          "accountId": "bj",
+          "oldState": "seu",
+          "newState": "seu",
+          "notUpdated": {
+            "a": {
+              "type": "forbidden",
+              "description": "Not allowed to modify metadata.",
+              "properties": [
+                "metadata"
+              ]
+            }
+          }
+        },
+        "0"
+      ]
+    ],
+    "sessionState": "e6894019"
   }
 }

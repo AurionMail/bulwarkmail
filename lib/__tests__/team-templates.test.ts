@@ -36,7 +36,7 @@ type Call = [string, Record<string, unknown>, string];
 let metadata: Record<string, Record<string, unknown>>;
 let maySetMetadata: boolean;
 let requests: Call[][];
-let refuse: string | null;
+let refuse: boolean;
 
 function answer(body: { methodCalls: Call[] }): Response {
   requests.push(body.methodCalls);
@@ -55,7 +55,8 @@ function answer(body: { methodCalls: Call[] }): Response {
     return json(out);
   }
   if (method === 'Mailbox/set') {
-    if (refuse) return json({ methodResponses: [['Mailbox/set', { notUpdated: { a: { type: 'forbidden', description: refuse } } }, '0']] });
+    // Stalwart v1.0.0's refusal for a user who may read the Inbox but not set its metadata.
+    if (refuse) return json(clone(recorded.setForbidden));
     const [path, value] = Object.entries((args.update as Record<string, Record<string, unknown>>).a)[0];
     const namespace = path.replace(/^metadata\//, '');
     metadata[accountId] = { ...metadata[accountId] };
@@ -82,7 +83,7 @@ beforeEach(async () => {
     bk: { 'org.bulwarkmail.template.c1': tpl('c1', 'Carol’s own') },
   };
   maySetMetadata = true;
-  refuse = null;
+  refuse = false;
   requests = [];
   const fetchSpy = vi.spyOn(globalThis, 'fetch');
   fetchSpy.mockResolvedValueOnce(json(session()));
@@ -113,26 +114,45 @@ describe('team templates', () => {
     expect(team.mayWrite).toBe(false);
   });
 
-  it('saves into the group\'s Inbox without the member\'s identity or favourite, and deletes', async () => {
+  it('saves into the group\'s Inbox without the member\'s identity, favourite or blind copies, and deletes', async () => {
     await loadTeamTemplates('alice@mail', client);
-    const result = await saveTeamTemplate('alice@mail', 'bi', tpl('t2', 'Offer', { identityId: 'alice-identity', isFavorite: true }));
+    const result = await saveTeamTemplate('alice@mail', 'bi', tpl('t2', 'Offer', {
+      identityId: 'alice-identity', isFavorite: true, defaultRecipients: { to: ['a@x.test'], cc: ['c@x.test'], bcc: ['boss@x.test'] },
+    }), null);
     expect(result).toBe('ok');
     const saved = metadata.bi['org.bulwarkmail.template.t2'] as EmailTemplate;
     expect(saved.name).toBe('Offer');
     expect(saved.identityId).toBeUndefined();
     expect(saved.isFavorite).toBe(false);
+    expect(saved.defaultRecipients).toEqual({ to: ['a@x.test'], cc: ['c@x.test'] });
     expect(useAccountTemplatesStore.getState().teams['alice@mail'][0].templates.map((t) => t.id).sort()).toEqual(['t1', 't2']);
 
-    expect(await deleteTeamTemplate('alice@mail', 'bi', 't1')).toBe('ok');
+    expect(await deleteTeamTemplate('alice@mail', 'bi', 't1', tpl('t1', 'Team reply').updatedAt)).toBe('ok');
     expect(metadata.bi['org.bulwarkmail.template.t1']).toBeUndefined();
     expect(useAccountTemplatesStore.getState().teams['alice@mail'][0].templates.map((t) => t.id)).toEqual(['t2']);
   });
 
   it('says why the server refused a change', async () => {
     await loadTeamTemplates('alice@mail', client);
-    expect(await saveTeamTemplate('alice@mail', 'bi', tpl('t3', 'Huge', { body: 'x'.repeat(9000) }))).toBe('too-large');
-    refuse = 'You are not allowed to modify this mailbox.';
-    expect(await saveTeamTemplate('alice@mail', 'bi', tpl('t4', 'Small'))).toBe('forbidden');
+    expect(await saveTeamTemplate('alice@mail', 'bi', tpl('t3', 'Huge', { body: 'x'.repeat(9000) }), null)).toBe('too-large');
+    refuse = true;
+    expect(await saveTeamTemplate('alice@mail', 'bi', tpl('t4', 'Small'), null)).toBe('forbidden');
     expect(metadata.bi['org.bulwarkmail.template.t4']).toBeUndefined();
+  });
+
+  it('refuses a change to a template someone else changed since, and shows their version', async () => {
+    await loadTeamTemplates('alice@mail', client);
+    const base = tpl('t1', 'Team reply').updatedAt;
+    // Bob saves first.
+    metadata.bi['org.bulwarkmail.template.t1'] = tpl('t1', 'Version of Bob', { updatedAt: '2026-10-20T00:00:00.000Z' });
+    const result = await saveTeamTemplate('alice@mail', 'bi', tpl('t1', 'Version of Alice', { updatedAt: '2026-10-21T00:00:00.000Z' }), base);
+    expect(result).toBe('conflict');
+    expect((metadata.bi['org.bulwarkmail.template.t1'] as EmailTemplate).name).toBe('Version of Bob');
+    expect(useAccountTemplatesStore.getState().teams['alice@mail'][0].templates[0].name).toBe('Version of Bob');
+    expect(await deleteTeamTemplate('alice@mail', 'bi', 't1', base)).toBe('conflict');
+    // A new template whose id someone took meanwhile is refused too.
+    expect(await saveTeamTemplate('alice@mail', 'bi', tpl('t1', 'New'), null)).toBe('conflict');
+    // Starting from Bob's version, the change goes through.
+    expect(await saveTeamTemplate('alice@mail', 'bi', tpl('t1', 'Alice again', { updatedAt: '2026-10-22T00:00:00.000Z' }), '2026-10-20T00:00:00.000Z')).toBe('ok');
   });
 });

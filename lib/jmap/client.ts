@@ -1,4 +1,4 @@
-import { advertisesMailboxMetadata, bulwarkEntries, MAX_METADATA_ENTRY_BYTES, METADATA_CAPABILITY, MetadataTooLargeError, MetadataUnsupportedError, metadataValueBytes, namespaceFor } from "./bulwark-metadata";
+import { advertisesMailboxMetadata, bulwarkEntries, MAX_METADATA_ENTRY_BYTES, METADATA_CAPABILITY, MetadataRefusedError, MetadataTooLargeError, MetadataUnsupportedError, metadataValueBytes, namespaceFor } from "./bulwark-metadata";
 import { IncompleteDeleteError } from "./delete-error";
 import { ArchiveEmailsError } from "./archive-error";
 import { generateUUID } from '@/lib/utils';
@@ -7132,7 +7132,9 @@ export class JMAPClient implements IJMAPClient {
       ], ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:mail", METADATA_CAPABILITY]);
       const get = response.methodResponses?.find((r) => r[0] === "Mailbox/get");
       const inbox = (get?.[1] as { list?: Array<Record<string, unknown>> } | undefined)?.list?.[0];
-      if (!inbox) throw new MetadataUnsupportedError("No Inbox metadata in the answer");
+      // An answer without the property is a server that doesn't keep it,
+      // never "every entry was removed".
+      if (!inbox || !(property in inbox)) throw new MetadataUnsupportedError("No Inbox metadata in the answer");
       this.metadataInboxIds.set(id, inbox.id as string);
       this.metadataUnsupported.delete(id);
       return bulwarkEntries(inbox[property]);
@@ -7174,7 +7176,7 @@ export class JMAPClient implements IJMAPClient {
     const notUpdated = (result as { notUpdated?: Record<string, { type?: string; description?: string }> }).notUpdated?.[inboxId];
     if (notUpdated) {
       if (/exceeds the maximum/i.test(notUpdated.description ?? "")) throw new MetadataTooLargeError(notUpdated.description!);
-      throw new Error(notUpdated.description || `Failed to save metadata (${notUpdated.type ?? "unknown"})`);
+      throw new MetadataRefusedError(notUpdated.type ?? "unknown", notUpdated.description || `Failed to save metadata (${notUpdated.type ?? "unknown"})`);
     }
   }
 

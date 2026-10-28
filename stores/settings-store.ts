@@ -56,6 +56,15 @@ let blockedSyncAccountId: string | null = null;
 // device settings and the first sign-in adopts them.
 const SETTINGS_OWNER_KEY = 'settings-sync-owner';
 
+// Accounts whose settings load from the server has finished (with or
+// without a copy) since this page loaded.
+const settledLoads = new Set<string>();
+
+/** Whether this account's settings load has finished in this page. */
+export function isSettingsLoadSettled(accountId: string): boolean {
+  return settledLoads.has(accountId);
+}
+
 /** The account whose server copy the local settings (and template list) mirror; null if none. */
 export function readSettingsOwner(): string | null {
   try {
@@ -1808,6 +1817,8 @@ export const useSettingsStore = create<SettingsState>()(
           syncError('Failed to load settings from server:', error);
           isLoadingFromServer = false;
           return failWithoutForeignState();
+        } finally {
+          settledLoads.add(accountId);
         }
       },
 

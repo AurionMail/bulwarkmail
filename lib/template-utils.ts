@@ -191,6 +191,9 @@ export {
   type SyncedTemplateState,
 } from './template-merge';
 
+/** `createdAt` / `updatedAt` of a synced template that has none. */
+const UNKNOWN_TIME = new Date(0).toISOString();
+
 /**
  * Structurally validates a `templates` value from a synced settings blob or
  * settings-file import. Returns null when the value is not an array (a blob
@@ -210,7 +213,9 @@ export function parseSyncedTemplates(value: unknown): EmailTemplate[] | null {
     seen.add(t.id);
 
     const recipients = t.defaultRecipients as Record<string, unknown> | undefined;
-    const now = new Date().toISOString();
+    // A fixed time, not now: a copy without a date must never win a merge
+    // by `updatedAt` against one that has a date.
+    const now = UNKNOWN_TIME;
 
     templates.push({
       id: t.id,

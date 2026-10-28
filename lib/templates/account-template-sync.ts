@@ -1,15 +1,23 @@
 /**
  * Keeps each signed-in account's personal templates in its own Inbox
- * metadata, and reads the team templates of its group mailboxes
- * (Stalwart v1.0.0 and later; lib/templates/metadata-templates.ts).
+ * metadata (Stalwart v1.0.0 and later; lib/templates/metadata-templates.ts).
  *
- * Personal templates: the first time an account's metadata answers in this
- * browser and the server holds no templates for it yet, the browser's own
- * list (template-store, which settings sync also fills) is uploaded once,
- * and a marker entry says the account has been set up, so a later empty
- * server copy means "all deleted", not "never uploaded". After that, this
- * browser's copy (account-templates-store) and the server copy are merged
- * on every sync. A template the server refuses for its size stays here.
+ * Every round:
+ * - reads the account's template entries and the marker entry with the
+ *   tombstones of deleted templates;
+ * - merges in the browser's own list (template-store, which settings sync
+ *   fills) when it is this account's, each version once, minus templates
+ *   a newer tombstone deleted;
+ * - merges this browser's copy and the server copy by id and `updatedAt`;
+ * - uploads what the server lacks, writes the marker (tombstones first),
+ *   then removes the entries the tombstones cover.
+ * A missing entry is uploaded again, never taken as a deletion. A template
+ * the server refuses for its size stays in this browser.
+ *
+ * While it isn't known whose the browser's list is (settings sync is on
+ * and hasn't loaded this account's settings yet), nothing is taken from
+ * it and no marker is written, since the marker lets the settings blob
+ * drop its copy.
  *
  * Servers without metadata, and the pre-release 1.0 build that drops the
  * connection on metadata requests, never answer: their accounts keep using
@@ -18,16 +26,22 @@
  * for ten minutes).
  */
 
-import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import { MetadataTooLargeError } from '@/lib/jmap/bulwark-metadata';
 import type { EmailTemplate } from '@/lib/template-types';
+import { mergeSyncedTemplates } from '@/lib/template-utils';
 import { debug } from '@/lib/debug';
+import { hasMetadata, type TemplateClient } from './account-clients';
 import {
+  MARKER_KEY,
+  MARKER_VERSION,
   isTooLargeForMetadata,
+  markerFromMetadata,
   planPersonalSync,
+  sameTombstones,
   templateKey,
   templateValue,
   templatesFromMetadata,
+  unionTombstones,
   withStorableId,
 } from './metadata-templates';
 import {
@@ -37,37 +51,25 @@ import {
   type PersonalPartition,
 } from '@/stores/account-templates-store';
 
-/** The entry that says an account's personal templates were set up on the server. */
-export const PERSONAL_MARKER_KEY = 'templates';
+/** The browser's own template list, as far as this account is concerned. */
+export type BrowserList =
+  /** Not known yet whose it is: take nothing, write no marker. */
+  | { status: 'unknown' }
+  /** It belongs to another account (or to none in particular and was given to another). */
+  | { status: 'none' }
+  /** It is this account's. `claim` records that it went into this account. */
+  | { status: 'list'; templates: EmailTemplate[]; claim?: () => void };
 
-export type MetadataClient = Pick<IJMAPClient, 'getAccountId'> & Partial<Pick<IJMAPClient,
-  'supportsBulwarkMetadata' | 'getBulwarkMetadata' | 'setBulwarkMetadata'>>;
-
-export type SyncOutcome = 'synced' | 'unsupported' | 'busy';
-
-/**
- * The browser's own list, for the one-time upload; null while it isn't
- * this account's (another account's settings are still loaded), and then
- * a server that was never set up waits for a later round.
- */
-type LegacySource = () => EmailTemplate[] | null;
+export type SyncOutcome = 'synced' | 'unsupported';
 
 const running = new Map<string, Promise<SyncOutcome>>();
 const again = new Set<string>();
 
-export function hasMetadata(client: MetadataClient | null | undefined, accountId: string): client is MetadataClient & Required<Pick<MetadataClient, 'getBulwarkMetadata' | 'setBulwarkMetadata'>> {
-  return !!client
-    && typeof client.getBulwarkMetadata === 'function'
-    && typeof client.setBulwarkMetadata === 'function'
-    && client.supportsBulwarkMetadata?.(accountId) === true;
-}
-
 /**
- * One round for the signed-in account `localAccountId`: read its Inbox
- * metadata, merge, write what changed. Rounds for the same account don't
- * overlap; asking during one runs another afterwards.
+ * One round for the signed-in account `localAccountId`. Rounds for the
+ * same account don't overlap; asking during one runs another afterwards.
  */
-export function syncPersonalTemplates(localAccountId: string, client: MetadataClient, legacy: LegacySource): Promise<SyncOutcome> {
+export function syncPersonalTemplates(localAccountId: string, client: TemplateClient, browserList: () => BrowserList): Promise<SyncOutcome> {
   const current = running.get(localAccountId);
   if (current) {
     again.add(localAccountId);
@@ -75,9 +77,9 @@ export function syncPersonalTemplates(localAccountId: string, client: MetadataCl
   }
   const round = (async (): Promise<SyncOutcome> => {
     try {
-      let outcome = await syncRound(localAccountId, client, legacy);
+      let outcome = await syncRound(localAccountId, client, browserList);
       while (again.delete(localAccountId) && outcome === 'synced') {
-        outcome = await syncRound(localAccountId, client, legacy);
+        outcome = await syncRound(localAccountId, client, browserList);
       }
       return outcome;
     } finally {
@@ -89,39 +91,46 @@ export function syncPersonalTemplates(localAccountId: string, client: MetadataCl
   return round;
 }
 
-async function syncRound(localAccountId: string, client: MetadataClient, legacy: LegacySource): Promise<SyncOutcome> {
+/** Waits for a round of the account that is under way. */
+export function pendingRound(localAccountId: string): Promise<SyncOutcome> | undefined {
+  return running.get(localAccountId);
+}
+
+async function syncRound(localAccountId: string, client: TemplateClient, browserList: () => BrowserList): Promise<SyncOutcome> {
   const accountId = client.getAccountId();
   if (!accountId || !hasMetadata(client, accountId)) return 'unsupported';
   const entries = await client.getBulwarkMetadata(accountId);
   if (!entries) return 'unsupported';
 
-  const store = useAccountTemplatesStore.getState();
   const server = templatesFromMetadata(entries);
-  const setUp = PERSONAL_MARKER_KEY in entries || Object.keys(server).length > 0;
-  let partition = store.personal[localAccountId];
-  if (!partition) {
-    // First answer in this browser. A server that has never held this
-    // account's templates gets the browser's own list once.
-    partition = emptyPartition();
-    if (!setUp) {
-      const own = legacy();
-      if (!own) return 'unsupported';
-      partition.templates = own.map(withStorableId);
+  const marker = markerFromMetadata(entries);
+  const serverTombstones = marker?.deleted ?? {};
+  const browser = browserList();
+  const store = useAccountTemplatesStore.getState();
+
+  let start: PersonalPartition = store.personal[localAccountId] ?? emptyPartition();
+  // Every id has to fit a metadata key.
+  if (start.templates.some((t) => withStorableId(t) !== t)) {
+    start = { ...start, templates: start.templates.map(withStorableId) };
+  }
+  if (browser.status === 'list') {
+    const fresh = browser.templates.map(withStorableId).filter((t) => start.fromBrowser[t.id] !== t.updatedAt);
+    if (fresh.length > 0) {
+      const merged = mergeSyncedTemplates(
+        { templates: start.templates, deletedTemplateIds: unionTombstones(start.deletedTemplateIds, serverTombstones) },
+        { templates: fresh, deletedTemplateIds: {} },
+      );
+      const fromBrowser = { ...start.fromBrowser };
+      for (const t of fresh) fromBrowser[t.id] = t.updatedAt;
+      start = { ...start, templates: merged.templates, deletedTemplateIds: merged.deletedTemplateIds, fromBrowser };
     }
-    store.setPersonal(localAccountId, partition);
+    browser.claim?.();
   }
+  if (start !== store.personal[localAccountId]) store.setPersonal(localAccountId, start);
 
-  // Every id has to fit a metadata key; give the odd old one a new id.
-  if (partition.templates.some((t) => withStorableId(t) !== t)) {
-    partition = { ...partition, templates: partition.templates.map(withStorableId) };
-    store.setPersonal(localAccountId, partition);
-  }
-
-  const plan = planPersonalSync(partition, server);
-  const serverVersions: Record<string, string> = {};
-  for (const [id, template] of Object.entries(server)) serverVersions[id] = template.updatedAt;
+  const plan = planPersonalSync(start, server, serverTombstones);
+  const serverAfter: Record<string, EmailTemplate> = { ...server };
   const localOnly: Record<string, LocalOnlyReason> = {};
-  const failedDeletes = new Set<string>();
   let reachable = true;
 
   for (const template of plan.uploads) {
@@ -132,7 +141,7 @@ async function syncRound(localAccountId: string, client: MetadataClient, legacy:
     if (!reachable) continue;
     try {
       await client.setBulwarkMetadata(accountId, templateKey(template.id), templateValue(template));
-      serverVersions[template.id] = template.updatedAt;
+      serverAfter[template.id] = template;
     } catch (error) {
       if (error instanceof MetadataTooLargeError) {
         localOnly[template.id] = 'no-room';
@@ -143,61 +152,54 @@ async function syncRound(localAccountId: string, client: MetadataClient, legacy:
       }
     }
   }
-  for (const id of plan.deletes) {
-    if (!reachable) {
-      failedDeletes.add(id);
-      continue;
-    }
+
+  // The tombstones go up before the entries they delete come off.
+  let serverDeleted = serverTombstones;
+  let markerOnServer = marker !== null;
+  const markerAllowed = browser.status !== 'unknown';
+  if (reachable && markerAllowed && (!marker || !sameTombstones(marker.deleted, plan.deletedTemplateIds))) {
     try {
-      await client.setBulwarkMetadata(accountId, templateKey(id), null);
-      delete serverVersions[id];
+      await client.setBulwarkMetadata(accountId, MARKER_KEY, { version: MARKER_VERSION, deleted: plan.deletedTemplateIds });
+      serverDeleted = plan.deletedTemplateIds;
+      markerOnServer = true;
     } catch (error) {
-      debug.warn('templates', 'Could not remove a template from the account:', error);
-      failedDeletes.add(id);
+      debug.warn('templates', 'Could not save the deleted templates in the account:', error);
       reachable = false;
     }
   }
-  if (!setUp && reachable) {
+  for (const id of plan.deletes) {
+    if (!reachable || serverDeleted[id] === undefined) continue;
     try {
-      await client.setBulwarkMetadata(accountId, PERSONAL_MARKER_KEY, { v: 1 });
+      await client.setBulwarkMetadata(accountId, templateKey(id), null);
+      delete serverAfter[id];
     } catch (error) {
-      debug.warn('templates', 'Could not mark the account as set up:', error);
+      debug.warn('templates', 'Could not remove a template from the account:', error);
+      reachable = false;
     }
   }
 
-  // Changes made here while the round ran are newer than the plan: keep
-  // them and go round again.
-  const latest = useAccountTemplatesStore.getState().personal[localAccountId] ?? partition;
-  const changedMeanwhile = latest !== partition;
-  const deletedTemplateIds: Record<string, string> = {};
-  for (const [id, at] of Object.entries(plan.deletedTemplateIds)) {
-    if (failedDeletes.has(id)) deletedTemplateIds[id] = at;
+  // Changes made here while the round ran come after it: plan them again
+  // against the server as it is now (nothing is written), and go round
+  // again for what that leaves to do.
+  const latest = useAccountTemplatesStore.getState().personal[localAccountId] ?? start;
+  const final = planPersonalSync(latest, serverAfter, serverDeleted);
+  const serverVersions: Record<string, string> = {};
+  for (const [id, template] of Object.entries(serverAfter)) serverVersions[id] = template.updatedAt;
+  const keptLocalOnly: Record<string, LocalOnlyReason> = {};
+  for (const template of final.templates) {
+    if (serverVersions[template.id] === template.updatedAt) continue;
+    const reason = localOnly[template.id] ?? latest.localOnly[template.id];
+    if (reason) keptLocalOnly[template.id] = reason;
   }
-  const next: PersonalPartition = changedMeanwhile
-    ? mergeLater(latest, plan.templates, serverVersions, localOnly)
-    : { templates: plan.templates, deletedTemplateIds, serverVersions, localOnly };
-  useAccountTemplatesStore.getState().setPersonal(localAccountId, next);
-  if (changedMeanwhile) again.add(localAccountId);
-  return 'synced';
-}
-
-/** The round's result under edits made while it ran: those win. */
-function mergeLater(
-  latest: PersonalPartition,
-  synced: EmailTemplate[],
-  serverVersions: Record<string, string>,
-  localOnly: Record<string, LocalOnlyReason>,
-): PersonalPartition {
-  const byId = new Map(synced.map((t) => [t.id, t]));
-  for (const template of latest.templates) {
-    const known = byId.get(template.id);
-    if (!known || Date.parse(template.updatedAt) >= Date.parse(known.updatedAt)) byId.set(template.id, template);
-  }
-  for (const id of Object.keys(latest.deletedTemplateIds)) byId.delete(id);
-  return {
-    templates: [...byId.values()],
-    deletedTemplateIds: latest.deletedTemplateIds,
+  useAccountTemplatesStore.getState().setPersonal(localAccountId, {
+    ...latest,
+    templates: final.templates,
+    deletedTemplateIds: final.deletedTemplateIds,
     serverVersions,
-    localOnly: { ...latest.localOnly, ...localOnly },
-  };
+    serverDeleted,
+    markerOnServer,
+    localOnly: keptLocalOnly,
+  });
+  if (latest !== start) again.add(localAccountId);
+  return 'synced';
 }
