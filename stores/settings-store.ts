@@ -14,6 +14,7 @@ import { generateAccountId } from '@/lib/account-utils';
 import { subscriptionOwnerFor } from '@/lib/calendar-subscription-sync';
 import type { FolderCountMode } from '@/lib/folder-counts';
 import { orderForMailbox, sanitizeSortLevels, type MessageListOrderScope, type SortLevel } from '@/lib/message-list-order';
+import { EMPTY_SIGNATURE_DETAILS, sanitizeSignatureDetails, type SignatureDetails } from '@/lib/org-signature';
 import {
   DEFAULT_SUB_ADDRESS_DELIMITER,
   isValidSubAddressDelimiter,
@@ -538,6 +539,7 @@ interface SettingsState {
   sendDelaySeconds: SendDelaySeconds;
   signaturePosition: SignaturePosition; // Position of the signature relative to quoted text in replies/forwards
   signatureSeparatorEnabled: boolean; // Prefix the signature with the RFC 3676 "-- " delimiter
+  signatureDetails: SignatureDetails; // Title, department, phone, mobile for the organisation signature (lib/org-signature.ts)
   requestReadReceiptDefault: boolean; // Pre-check "request read receipt" in the composer
   readReceiptResponse: ReadReceiptResponse; // How to respond to incoming read-receipt requests
 
@@ -851,6 +853,7 @@ const DEFAULT_SETTINGS = {
   sendDelaySeconds: 0 as SendDelaySeconds,
   signaturePosition: 'below_quote' as SignaturePosition,
   signatureSeparatorEnabled: true,
+  signatureDetails: EMPTY_SIGNATURE_DETAILS,
   requestReadReceiptDefault: false,
   readReceiptResponse: 'ask' as ReadReceiptResponse,
 
@@ -1253,6 +1256,7 @@ export const useSettingsStore = create<SettingsState>()(
           sendDelaySeconds: state.sendDelaySeconds,
           signaturePosition: state.signaturePosition,
           signatureSeparatorEnabled: state.signatureSeparatorEnabled,
+          signatureDetails: state.signatureDetails,
           requestReadReceiptDefault: state.requestReadReceiptDefault,
           readReceiptResponse: state.readReceiptResponse,
           sessionTimeout: state.sessionTimeout,
@@ -1451,6 +1455,10 @@ export const useSettingsStore = create<SettingsState>()(
                 return;
               }
               if (key === 'hiddenSharedMailAccounts' && !isPlainRecord(settings[key])) {
+                return;
+              }
+              if (key === 'signatureDetails') {
+                put(key, { signatureDetails: sanitizeSignatureDetails(settings[key]) });
                 return;
               }
               if (key === 'notificationMutes') {

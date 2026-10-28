@@ -113,6 +113,11 @@ async function fetchServerConfig(): Promise<ConfigData> {
   throw lastError;
 }
 
+/** The config once fetched (it is fetched at app start), for code outside React. */
+export function getCachedConfig(): ConfigData | null {
+  return configCache;
+}
+
 export async function fetchConfig(): Promise<ConfigData> {
   // Return cached config if available
   if (configCache) {

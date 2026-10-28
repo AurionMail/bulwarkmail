@@ -100,22 +100,26 @@ export function appendHtmlSignature(
   signature?: SignatureSource | null,
   options: { separator?: boolean } = {},
 ): string {
+  const html = signatureAsHtml(signature);
+  if (!html) return htmlBody;
   const sep = wantsSignatureSeparator(options.separator, signature) ? '<br><br>-- <br>' : '<br><br>';
+  return `${htmlBody}${sep}${html}`;
+}
 
-  if (signature?.htmlSignature?.trim()) {
-    return `${htmlBody}${sep}${sanitizeSignatureHtml(signature.htmlSignature)}`;
-  }
-
+/**
+ * A signature as it goes into an HTML body: its HTML, sanitised, or its
+ * text, escaped, with line breaks. Empty without either.
+ */
+export function signatureAsHtml(signature?: SignatureSource | null): string {
+  if (signature?.htmlSignature?.trim()) return sanitizeSignatureHtml(signature.htmlSignature);
   if (signature?.textSignature?.trim()) {
-    const escaped = signature.textSignature
+    return signature.textSignature
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/\n/g, '<br>');
-    return `${htmlBody}${sep}${escaped}`;
   }
-
-  return htmlBody;
+  return '';
 }
 
 export function hasMeaningfulHtmlBody(html: string): boolean {

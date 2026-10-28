@@ -86,6 +86,10 @@ import { useContactStore, getContactDisplayName, getContactPrimaryEmail } from "
 import { useTemplateStore, renderTemplateWithPlugins, notifyTemplateApplied } from "@/stores/template-store";
 import { notifyIdentitySelected } from "@/stores/identity-store";
 import { usePluginSignature } from "@/hooks/use-plugin-signature";
+import { useOrgSignature, useOrgSignatureIdentity } from "@/hooks/use-org-signature";
+import { OrgDisclaimerPreview } from "@/components/email/org-disclaimer-preview";
+// Registers the organisation signature check and the disclaimer on the send path.
+import "@/lib/org/outgoing";
 import { SubAddressHelper } from "@/components/identity/sub-address-helper";
 import { generateSubAddress } from "@/lib/sub-addressing";
 import { substitutePlaceholders, spliceTemplateAboveSignature, composeBodyHasUserContent } from "@/lib/template-utils";
@@ -133,6 +137,7 @@ import type { Editor } from "@tiptap/react";
 import { htmlToPlainText as htmlToPlainTextShared } from "@/lib/html-to-text";
 import { fileStorage } from "@/lib/plugin-storage";
 import { usePolicyStore } from "@/stores/policy-store";
+import { registerComposeFlush } from "@/lib/compose-flush-registry";
 import { toUnicodeEmail } from "@/lib/idn";
 
 /**
@@ -141,6 +146,9 @@ import { toUnicodeEmail } from "@/lib/idn";
  * <p> blocks are separated by a blank line, matching their visual rendering (#421).
  * Quotes get "> " and list items their markers, like any plain-text mail.
  */
+/** How often an automatic sign-out looks whether a send in flight has finished. */
+const SEND_WAIT_POLL_MS = 100;
+
 function htmlToPlainText(html: string): string {
   return htmlToPlainTextShared(html, { paragraphSpacing: true, mailMarkup: true });
 }
@@ -231,6 +239,12 @@ export interface ComposerDraftData {
   references?: string[];
   /** Priority of a re-opened draft, read back from its headers (#970). */
   priority?: MessagePriority;
+  /**
+   * Handed to the host when the composer went away with edits the server may
+   * not have: the composer opened again with it counts them as unsaved, so
+   * an automatic sign-out saves them (lib/compose-flush-registry.ts).
+   */
+  unsaved?: boolean;
 }
 
 interface EmailComposerProps {
@@ -549,9 +563,15 @@ export function EmailComposer({
   const initialCurrentIdentityForSig = initialData?.selectedIdentityId
     ? identities.find((i) => i.id === initialData.selectedIdentityId) || primaryIdentity
     : primaryIdentity;
-  const initialSignatureIdentity = (initialCurrentIdentityForSig?.htmlSignature || initialCurrentIdentityForSig?.textSignature)
-    ? initialCurrentIdentityForSig
-    : primaryIdentity;
+  // The organisation signature applies here as below (hooks/use-org-signature.ts).
+  const initialSignatureIdentity = useOrgSignatureIdentity(
+    (initialCurrentIdentityForSig?.htmlSignature || initialCurrentIdentityForSig?.textSignature)
+      ? initialCurrentIdentityForSig
+      : primaryIdentity,
+    initialCurrentIdentityForSig,
+    (initialCurrentIdentityForSig?.id && stripCrossAccountIdentityPrefix(initialCurrentIdentityForSig.id).localAccountId)
+      || composerAccountIdRef.current,
+  );
   const hasInitialSignature = !!(initialSignatureIdentity?.htmlSignature || initialSignatureIdentity?.textSignature);
   const shouldEmbedSignatureAboveQuote =
     (mode === 'reply' || mode === 'replyAll' || mode === 'forward') &&
@@ -1030,6 +1050,10 @@ export function EmailComposer({
   const composerClient = currentIdentityParts.localAccountId
     ? (useAuthStore.getState().getClientForAccount(currentIdentityParts.localAccountId) ?? client)
     : client;
+  // The signed-in account the message goes out from, whose domain and group
+  // scopes decide the organisation signature and disclaimer: the identity's
+  // own account, else the one the composer was opened in.
+  const composingAccountId = currentIdentityParts.localAccountId ?? composerAccountIdRef.current;
   // The upload callbacks below list only `client` as a dependency, so they read
   // the composing identity's client through a ref: uploads must land in the
   // account that owns the draft, and a direct substitution would capture a
@@ -1146,8 +1170,13 @@ export function EmailComposer({
   const ownSignatureIdentity = identityPickedByUser || currentIdentity?.htmlSignature || currentIdentity?.textSignature
     ? currentIdentity
     : primaryIdentity;
-  // Plugins may rewrite the signature (onSignatureRender).
-  const { identity: signatureIdentity, revision: pluginSignatureRevision } = usePluginSignature(ownSignatureIdentity);
+  // Then the organisation signature: the default for an identity without
+  // one, or in place of every signature when the admin locked it. Plugins
+  // may rewrite the result (onSignatureRender), except a locked one.
+  const orgSignature = useOrgSignature(ownSignatureIdentity, currentIdentity, composingAccountId);
+  const { identity: signatureIdentity, revision: pluginSignatureRevision } = usePluginSignature(orgSignature.identity, {
+    locked: orgSignature.enforced,
+  });
 
   // Hold the TipTap editor instance so we can swap the embedded signature
   // when the user switches identity in "above quote" mode without rebuilding
@@ -1160,18 +1189,29 @@ export function EmailComposer({
   const prevSignatureSeparatorRef = useRef<boolean>(signatureSeparatorEnabled);
   const prevPluginSignatureRevisionRef = useRef(pluginSignatureRevision);
   const prevSignatureIdentityRef = useRef(signatureIdentity);
+  // The signature's text, for a change under the same identity: the
+  // organisation policy arriving after the composer opened, or the user's
+  // details changing.
+  const signatureContent = JSON.stringify([signatureIdentity?.htmlSignature ?? "", signatureIdentity?.textSignature ?? ""]);
+  const prevSignatureContentRef = useRef(signatureContent);
 
   useEffect(() => {
     const editor = editorRef.current;
     const identityChanged = prevSignatureIdentityIdRef.current !== signatureIdentity?.id;
     const separatorChanged = prevSignatureSeparatorRef.current !== signatureSeparatorEnabled;
     const pluginSignatureChanged = prevPluginSignatureRevisionRef.current !== pluginSignatureRevision;
+    const contentChanged = prevSignatureContentRef.current !== signatureContent;
     const previousIdentity = prevSignatureIdentityRef.current;
     prevSignatureIdentityIdRef.current = signatureIdentity?.id;
     prevSignatureSeparatorRef.current = signatureSeparatorEnabled;
     prevPluginSignatureRevisionRef.current = pluginSignatureRevision;
     prevSignatureIdentityRef.current = signatureIdentity;
-    if (!identityChanged && !separatorChanged && !pluginSignatureChanged) return;
+    prevSignatureContentRef.current = signatureContent;
+    if (!identityChanged && !separatorChanged && !pluginSignatureChanged && !contentChanged) return;
+    // A signature that arrives where there was none comes into the body like
+    // a new identity's; one the user removed stays removed.
+    const hadSignature = !!(previousIdentity?.htmlSignature || previousIdentity?.textSignature);
+    const bringsSignature = identityChanged || (contentChanged && !hadSignature);
     // Replies/forwards only embed when configured for "above quote". Compose
     // always embeds (see getInitialBody), so swap on identity change there too.
     const isReplyLike = mode === 'reply' || mode === 'replyAll' || mode === 'forward';
@@ -1181,7 +1221,7 @@ export function EmailComposer({
     if (plainTextMode) {
       // A new plain-text message carries the signature at the end of the
       // body, a reply or forward above its quote header.
-      if (!identityChanged) return;
+      if (!identityChanged && !contentChanged) return;
       const options = { separator: signatureSeparatorEnabled };
       if (mode === 'compose') {
         setBody((prev) => replacePlainTextSignature(prev, previousIdentity, signatureIdentity, options));
@@ -1204,8 +1244,8 @@ export function EmailComposer({
     // quoted body - see removeSignatureRange), or removed when the new
     // identity has no signature.
     const currentHtml = serializeEditorContent(editor);
-    // Only a new identity brings a signature back into a body without one.
-    if (!identityChanged && !containsEmbeddedSignature(currentHtml)) return;
+    // Only a new identity (or a first signature) brings one into a body without one.
+    if (!bringsSignature && !containsEmbeddedSignature(currentHtml)) return;
     const nextHtml = replaceEmbeddedSignature(currentHtml, buildEmbeddedSignatureHtml(signatureIdentity, {
       embed: true,
       separator: signatureSeparatorEnabled,
@@ -1218,7 +1258,7 @@ export function EmailComposer({
     // would re-run on unrelated identity-field changes and re-splice the
     // signature into the live editor.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signatureIdentity?.id, signatureIdentity?.htmlSignature, signatureIdentity?.textSignature, signatureSeparatorEnabled, signaturePosition, mode, plainTextMode, pluginSignatureRevision]);
+  }, [signatureIdentity?.id, signatureContent, signatureSeparatorEnabled, signaturePosition, mode, plainTextMode, pluginSignatureRevision]);
 
   useEffect(() => {
     const handleClickOutsideSendMenu = (event: MouseEvent) => {
@@ -1574,7 +1614,8 @@ export function EmailComposer({
   // Bumped on every edit and compared with the edit the last successful save
   // covered. Closing a message autosave already stored asked about "unsaved
   // changes" that were not there.
-  const changeVersionRef = useRef(0);
+  // Stashed edits handed back by the host start out unsaved.
+  const changeVersionRef = useRef(initialData?.unsaved ? 1 : 0);
   const savedVersionRef = useRef(0);
   const firstChangeRunRef = useRef(true);
   useEffect(() => {
@@ -1648,6 +1689,9 @@ export function EmailComposer({
           mode,
           replyTo,
           priority: priorityRef.current,
+          // Edits the last save didn't cover; a minimised composer with
+          // none needs no save before an automatic sign-out.
+          unsaved: changeVersionRef.current !== savedVersionRef.current || saveFailedRef.current,
         });
       }
     };
@@ -2699,6 +2743,24 @@ export function EmailComposer({
   // Keep saveDraftRef pointing to latest saveDraft
   saveDraftRef.current = saveDraft;
 
+  // An automatic sign-out saves what the server doesn't have yet, with the
+  // same save the close and send paths use. A send in flight goes first:
+  // the sign-out waits for it (within its own time limit), and a message
+  // that went out needs no draft. A save the server refused throws, so the
+  // login page can say a draft wasn't saved.
+  useEffect(() => registerComposeFlush(async () => {
+    while (isSendingRef.current) await new Promise((resolve) => setTimeout(resolve, SEND_WAIT_POLL_MS));
+    if (sentRef.current) return;
+    const unsaved = changeVersionRef.current !== savedVersionRef.current || saveFailedRef.current;
+    if (!unsaved) return;
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    await saveDraftRef.current();
+    if (saveFailedRef.current) throw new Error('The draft was not saved');
+  }), []);
+
   // The draft as plugins see it: onDraftChange, the frames above and below
   // the body, and clicks on plugin entries in the Send menu.
   const draftSnapshot = () => ({
@@ -3291,6 +3353,10 @@ export function EmailComposer({
       identityId: currentIdentity?.id,
       mode,
       plainText: plainTextMode,
+      forwardedSeparator: tQuote('forwarded_separator'),
+      sender: currentIdentity
+        ? { name: currentIdentity.name, email: currentIdentity.email, accountId: composingAccountId }
+        : undefined,
     };
     preSendCheckingRef.current = true;
     let checksPassed = false;
@@ -3393,12 +3459,15 @@ export function EmailComposer({
     }
 
     const rewritten = plainTextMode ? null : rewriteInlineImages(body);
-    // What the send-pipeline finalisers add (disclaimer, organisation
-    // signature) goes in here, on the send only: drafts never get it.
+    // What the send-pipeline finalisers add (organisation signature) goes in
+    // here, on the send only: drafts never get it. The `last` stage (the
+    // disclaimer) runs on what goes out once plugins had their say, below.
     const { html: finalHtmlBody, text: finalBody } = finalizeOutgoing({
       html: plainTextMode ? undefined : `<div>${rewritten!.html}</div>${buildSignatureHtml()}`,
       text: builtTextBody,
     }, outgoingContext);
+    const lastStage = (html: string | undefined, text: string) =>
+      finalizeOutgoing({ html: html || undefined, text }, outgoingContext, 'last');
     const inlineAttachments = rewritten?.attachments ?? [];
 
     try {
@@ -3437,14 +3506,16 @@ export function EmailComposer({
       // host then skips its own plaintext submission, cleans up the draft and
       // closes (through the scheduled-send callback for a delayed send). An
       // aborted or failed handler sent nothing: keep the message and its
-      // draft, and never fall back to sending it unsigned (#1207).
+      // draft, and never fall back to sending it unsigned (#1207). It signs
+      // or encrypts the message with the `last` finalisers' additions.
+      const sealed = lastStage(finalHtmlBody, finalBody);
       const composeSendRequest = {
         to: toAddresses.map(r => formatRecipient(r.name, r.email)),
         cc: ccAddresses.map(r => formatRecipient(r.name, r.email)),
         bcc: bccAddresses.map(r => formatRecipient(r.name, r.email)),
         subject,
-        htmlBody: finalHtmlBody || '',
-        textBody: finalBody,
+        htmlBody: sealed.html || '',
+        textBody: sealed.text,
         identityId: currentIdentity?.id || '',
         fromEmail,
         fromName,
@@ -3509,6 +3580,8 @@ export function EmailComposer({
           inReplyTo: threadingHeaders?.inReplyTo?.[0],
         };
         const outgoing = await emailHooks.onTransformOutgoingEmail.transform(transformInput);
+        // Below whatever the plugins added (a footer), the `last` finalisers.
+        const sealedOutgoing = lastStage(outgoing.htmlBody, outgoing.textBody);
 
         // Strip the cross-account namespace from the identity id before
         // handing it to the parent - the JMAP server only knows the raw
@@ -3541,8 +3614,8 @@ export function EmailComposer({
           cc: outgoing.cc,
           bcc: outgoing.bcc,
           subject: outgoing.subject,
-          body: outgoing.textBody,
-          htmlBody: outgoing.htmlBody || undefined,
+          body: sealedOutgoing.text,
+          htmlBody: sealedOutgoing.html || undefined,
           draftId: finalDraftId && !draftElsewhere ? finalDraftId : undefined,
           draftAccountId: finalDraftId && !draftElsewhere ? draftAccountAtSend : undefined,
           fromEmail,
@@ -4401,6 +4474,8 @@ export function EmailComposer({
             dangerouslySetInnerHTML={{ __html: `${wantsSignatureSeparator(signatureSeparatorEnabled, signatureIdentity) ? '<div>-- </div>' : ''}${composerSignatureHtml}` }}
           />
         ) : null}
+        {/* The admin's disclaimer: added on send (lib/org/outgoing.ts), never part of the body. */}
+        <OrgDisclaimerPreview sending={currentIdentity} accountId={composingAccountId} plainText={plainTextMode} body={body} />
         {wantsPluginDraft && (
           <PluginSlot name="composer-below-body" className="w-full" extraProps={pluginDraftProps} />
         )}

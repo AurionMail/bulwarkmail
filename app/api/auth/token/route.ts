@@ -30,6 +30,15 @@ import {
 } from '@/lib/oauth/end-session';
 import { MAX_ACCOUNT_SLOTS } from '@/lib/account-utils';
 import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
+import {
+  clearSignInStamp,
+  isPastMaxAge,
+  maxSessionHoursFor,
+  SESSION_TOO_OLD,
+  tokenSignedInAt,
+  writeSignInStamp,
+} from '@/lib/auth/session-age';
+import { clearStalwartAuthContextInStore, readStalwartAuthContextFromStore } from '@/lib/stalwart/auth-context';
 
 function parseSlot(raw: string | null): number | null {
   if (raw === null) return null;
@@ -142,16 +151,21 @@ export async function POST(request: NextRequest) {
     const serverId = typeof bodyServerId === 'string' && bodyServerId ? bodyServerId : null;
 
     const tokens = await exchangeCodeForTokens(code, code_verifier, redirect_uri, serverId);
+    // A sign-in: the maximum session length counts from here, on the server
+    // and, from this answer, in the browser.
+    const signedInAt = Date.now();
 
     const response = NextResponse.json({
       access_token: tokens.access_token,
       expires_in: tokens.expires_in,
+      signed_in_at: signedInAt,
     });
 
     const cookieStore = await cookies();
     if (tokens.refresh_token) {
       const cookieName = refreshTokenCookieName(slot);
       cookieStore.set(cookieName, tokens.refresh_token, getCookieOptions());
+      writeSignInStamp(cookieStore, slot, { signedInAt, refreshToken: tokens.refresh_token });
     }
     const cachedAccessToken = cacheAccessToken(cookieStore, slot, tokens.access_token, tokens.expires_in || 3600, [tokens.refresh_token, serverId]);
     storeIdToken(cookieStore, slot, tokens.id_token, request.nextUrl.basePath, [tokens.refresh_token, cachedAccessToken, serverId]);
@@ -189,6 +203,25 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'No refresh token' }, { status: 401 });
     }
 
+    // The organisation's maximum session length (lib/auth/session-age.ts).
+    // A refresh token without a matching stamp (from before stamps, or one
+    // whose stamp was deleted) counts from the fixed time the server first
+    // enforced the limits, never from now.
+    const age = await tokenSignedInAt(cookieStore, slot, refreshToken);
+    if (age) {
+      const context = readStalwartAuthContextFromStore(cookieStore, slot);
+      const account = age.stamp?.account ?? context?.accountName ?? context?.username ?? null;
+      const maxHours = await maxSessionHoursFor(account);
+      if (isPastMaxAge(age.signedInAt, maxHours)) {
+        await signOutSlot(cookieStore, slot, request.nextUrl.basePath, false);
+        clearStalwartAuthContextInStore(cookieStore, slot);
+        return NextResponse.json({ error: SESSION_TOO_OLD, maxHours }, { status: 401 });
+      }
+      // Bind the time to this token from now on.
+      if (!age.stamp) writeSignInStamp(cookieStore, slot, { signedInAt: age.signedInAt, refreshToken, ...(account ? { account } : {}) });
+    }
+    const signedIn = age ? { signed_in_at: age.signedInAt } : {};
+
     // A session restore calls this to get its token back, not because the
     // current one expired. Serving the cached token avoids spending a refresh
     // the IdP may legitimately reject: Rauthy stamps refresh tokens with
@@ -204,6 +237,7 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({
           access_token: cached.accessToken,
           expires_in: cached.expiresIn,
+          ...signedIn,
         });
       }
     }
@@ -252,6 +286,14 @@ export async function PUT(request: NextRequest) {
 
     if (tokens.refresh_token) {
       cookieStore.set(cookieName, tokens.refresh_token, getCookieOptions());
+      // The stamp follows the rotated token, with the same sign-in time and lifetime.
+      if (age) {
+        writeSignInStamp(cookieStore, slot, {
+          signedInAt: age.signedInAt,
+          refreshToken: tokens.refresh_token,
+          ...(age.stamp?.account ? { account: age.stamp.account } : {}),
+        });
+      }
     }
 
     const expiresIn = tokens.expires_in || 3600;
@@ -265,6 +307,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({
       access_token: tokens.access_token,
       expires_in: expiresIn,
+      ...signedIn,
     });
   } catch (error) {
     logger.error('Token refresh error', { error: error instanceof Error ? error.message : 'Unknown error' });
@@ -307,6 +350,7 @@ async function signOutSlot(
   for (const name of [cookieName, refreshTokenServerCookieName(slot), accessTokenCookieName(slot)]) {
     if (cookieStore.get(name)) cookieStore.delete(name);
   }
+  clearSignInStamp(cookieStore, slot);
   if (idToken !== undefined) clearIdToken(cookieStore, slot, basePath);
   return endSessionUrl;
 }

@@ -34,6 +34,7 @@ import { toAsciiDomain } from "@/lib/idn";
 import { usePrefetchMailView } from "@/hooks/use-prefetch-mail-view";
 import { buildMobileHandoffUrl, mobileHandoffTarget, signedInLoginAction } from "@/lib/auth/mobile-handoff";
 import { MobileHandoffConsent } from "@/components/auth/mobile-handoff-consent";
+import { consumeSessionEnd, type SessionEndReason } from "@/lib/session-policy/sign-out-reason";
 
 /** The domain of a complete address (`user@example.com`), or '' while it is still being typed. */
 function completeAddressDomain(username: string): string {
@@ -139,6 +140,7 @@ function VersionBadge() {
 function LoginPageContent() {
   const router = useRouter();
   const t = useTranslations("login");
+  const tSessionLimits = useTranslations("session_limits");
   const params = useParams();
   const searchParams = useSearchParams();
   const isAddAccountMode = searchParams.get("mode") === "add-account";
@@ -207,6 +209,8 @@ function LoginPageContent() {
   // those sessions then only last as long as the tab (lib/auth/lite-tokens.ts).
   const [liteTokenLoginSupported, setLiteTokenLoginSupported] = useState<boolean | null>(null);
   const [sessionExpired, setSessionExpired] = useState(false);
+  // Signed out by the organisation's idle timeout or maximum session length.
+  const [sessionEnd, setSessionEnd] = useState<SessionEndReason | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [shakeError, setShakeError] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
@@ -332,6 +336,11 @@ function LoginPageContent() {
         sessionStorage.removeItem('session_expired');
       }
     } catch { /* sessionStorage unavailable */ }
+    const ended = consumeSessionEnd();
+    if (ended) {
+      setSessionEnd(ended);
+      setSessionExpired(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -1229,8 +1238,15 @@ function LoginPageContent() {
                   <Info className="w-5 h-5" />
                 </div>
                 <div className="flex-1 min-w-0 self-center flex items-center gap-2">
-                  <p className="text-sm text-info flex-1 leading-relaxed">
-                    {t("session_expired")}
+                  <p className="text-sm text-info flex-1 leading-relaxed" data-testid="session-expired-reason">
+                    {sessionEnd?.kind === "idle"
+                      ? tSessionLimits("reason_idle", { minutes: sessionEnd.minutes })
+                      : sessionEnd?.kind === "max"
+                        ? tSessionLimits("reason_max", { hours: sessionEnd.hours })
+                        : t("session_expired")}
+                    {sessionEnd?.draftsUnsaved && (
+                      <span className="block mt-1" data-testid="session-drafts-not-saved">{tSessionLimits("drafts_not_saved")}</span>
+                    )}
                   </p>
                   <button
                     type="button"

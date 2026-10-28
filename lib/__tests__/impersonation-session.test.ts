@@ -110,7 +110,7 @@ describe('impersonation handoff', () => {
     const put = await readSession();
     expect(put.status).toBe(200);
     const body = await put.json();
-    expect(body).toEqual({ serverUrl: 'https://mail.example.org', username: 'alice@example.org', password: APP_SECRET });
+    expect(body).toEqual({ serverUrl: 'https://mail.example.org', username: 'alice@example.org', password: APP_SECRET, signedInAt: expect.any(Number) });
     expect(JSON.stringify(body)).not.toContain(MASTER_PASSWORD);
     expect([...jar.values()].join()).not.toContain(MASTER_PASSWORD);
   });

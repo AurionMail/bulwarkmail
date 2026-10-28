@@ -42,6 +42,15 @@ export const RESTRICTION_KEYS: readonly RestrictionKeyDef[] = [
   { key: 'calendarNotificationsEnabled', label: 'Calendar Notifications', category: 'Notifications', type: 'boolean', page: 'policy' },
   { key: 'pushNotifyInboxOnly', label: 'Inbox-only Push Notifications', category: 'Notifications', type: 'boolean', page: 'policy' },
   { key: 'debugMode', label: 'Debug Mode', category: 'Advanced', type: 'boolean', page: 'policy' },
+  {
+    key: 'signature',
+    label: 'Signatures',
+    description: "Lock: users can't change signatures, and the organisation signature replaces their own. Hide: users get no signature editor at all.",
+    category: 'Composer',
+    type: 'boolean',
+    page: 'org-signatures',
+    modes: ['locked', 'hidden'],
+  },
 ];
 
 export function restrictionKeysForPage(page: AdminPageId): RestrictionKeyDef[] {

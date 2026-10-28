@@ -1,21 +1,29 @@
 import type { Identity } from '@/lib/jmap/types';
 import { appendHtmlSignature, appendPlainTextSignature } from '@/lib/signature-utils';
+import { currentSignatureIdentity } from '@/lib/org/signature-state';
 import { finalizeOutgoing, runPreSendChecks, type OutgoingBodies } from './send-pipeline';
+// Registers the organisation signature check and the disclaimer.
+import '@/lib/org/outgoing';
 
 /**
  * The bodies a quick reply sends: the typed text with the signature, as
  * HTML too when the signature is HTML, after the same pre-send checks and
  * finalisers as the composer's send. Null when a check stopped the send.
+ * The organisation signature applies as in the composer
+ * (`signatureIdentity` is what the reply would sign with on its own,
+ * `sendingIdentity` the identity it goes out from).
  */
 export async function prepareQuickReply(input: {
   body: string;
   signatureIdentity: Identity | null | undefined;
+  sendingIdentity?: Identity | null;
   separator: boolean;
   to: string[];
   fromEmail?: string;
   identityId?: string;
 }): Promise<OutgoingBodies | null> {
-  const { body, signatureIdentity, separator } = input;
+  const { body, separator } = input;
+  const signatureIdentity = currentSignatureIdentity(input.signatureIdentity, input.sendingIdentity ?? undefined);
   const text = appendPlainTextSignature(body, signatureIdentity, { separator });
 
   // When the identity has an HTML signature, send a matching HTML body so the
@@ -38,9 +46,13 @@ export async function prepareQuickReply(input: {
     bcc: [],
     fromEmail: input.fromEmail,
     identityId: input.identityId,
+    sender: input.sendingIdentity
+      ? { name: input.sendingIdentity.name, email: input.sendingIdentity.email }
+      : undefined,
     mode: 'reply' as const,
     plainText: !html,
   };
   if (!(await runPreSendChecks(context))) return null;
-  return finalizeOutgoing({ html, text }, context);
+  // Quick reply has no plugin step in between: both stages at once.
+  return finalizeOutgoing(finalizeOutgoing({ html, text }, context), context, 'last');
 }

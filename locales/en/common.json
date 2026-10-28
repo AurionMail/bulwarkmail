@@ -76,6 +76,20 @@
       "back_to_login": "Back to login"
     }
   },
+  "session_limits": {
+    "idle_title": "Are you still there?",
+    "idle_message": "You'll be signed out in {seconds, plural, one {# second} other {# seconds}} because there was no activity. Open messages are saved as drafts.",
+    "stay": "Stay signed in",
+    "sign_out_now": "Sign out now",
+    "max_title": "Your session is ending",
+    "max_message": "Your organisation ends sessions {hours, plural, one {# hour} other {# hours}} after sign-in. You'll be signed out in {seconds, plural, one {# second} other {# seconds}}. Open messages are saved as drafts.",
+    "dismiss": "OK",
+    "signing_out": "Saving drafts and signing out…",
+    "reason_idle": "You were signed out after {minutes, plural, one {# minute} other {# minutes}} without activity.",
+    "reason_max": "You were signed out because your session reached its maximum length of {hours, plural, one {# hour} other {# hours}}.",
+    "drafts_not_saved": "One or more open messages could not be saved as drafts.",
+    "seconds_left": "{seconds, plural, one {# second} other {# seconds}} left"
+  },
   "sidebar": {
     "close": "Close",
     "compose": "Compose",
@@ -2838,6 +2852,23 @@
     },
     "delete_button": "Delete",
     "delete_confirm_title": "Delete Identity"
+  },
+  "org_signature": {
+    "disclaimer_added_on_send": "Added when you send",
+    "identity_signature_label": "Signature",
+    "identity_no_signature": "No signature",
+    "identity_default": "Leave both signatures empty to send your organisation's signature from this address.",
+    "details": {
+      "title": "Your details",
+      "description": "Your organisation's signature shows these. Fill them in once; every address you send from uses them.",
+      "preview": "Your signature",
+      "fields": {
+        "title": "Job title",
+        "department": "Department",
+        "phone": "Phone",
+        "mobile": "Mobile"
+      }
+    }
   },
   "templates": {
     "picker_title": "Choose a Template",

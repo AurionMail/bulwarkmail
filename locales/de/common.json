@@ -76,6 +76,20 @@
       "back_to_login": "Zurück zur Anmeldung"
     }
   },
+  "session_limits": {
+    "idle_title": "Sind Sie noch da?",
+    "idle_message": "Sie werden in {seconds, plural, one {# Sekunde} other {# Sekunden}} abgemeldet, weil es keine Aktivität gab. Geöffnete Nachrichten werden als Entwurf gespeichert.",
+    "stay": "Angemeldet bleiben",
+    "sign_out_now": "Jetzt abmelden",
+    "max_title": "Ihre Sitzung endet",
+    "max_message": "Ihre Organisation beendet Sitzungen {hours, plural, one {# Stunde} other {# Stunden}} nach der Anmeldung. Sie werden in {seconds, plural, one {# Sekunde} other {# Sekunden}} abgemeldet. Geöffnete Nachrichten werden als Entwurf gespeichert.",
+    "dismiss": "OK",
+    "signing_out": "Entwürfe werden gespeichert und Sie werden abgemeldet …",
+    "reason_idle": "Sie wurden nach {minutes, plural, one {# Minute} other {# Minuten}} ohne Aktivität abgemeldet.",
+    "reason_max": "Sie wurden abgemeldet, weil Ihre Sitzung die Höchstdauer von {hours, plural, one {# Stunde} other {# Stunden}} erreicht hat.",
+    "drafts_not_saved": "Mindestens eine geöffnete Nachricht konnte nicht als Entwurf gespeichert werden.",
+    "seconds_left": "Noch {seconds, plural, one {# Sekunde} other {# Sekunden}}"
+  },
   "sidebar": {
     "close": "Schließen",
     "compose": "Verfassen",
@@ -2838,6 +2852,23 @@
     },
     "delete_button": "Löschen",
     "delete_confirm_title": "Identität löschen"
+  },
+  "org_signature": {
+    "disclaimer_added_on_send": "Wird beim Senden angefügt",
+    "identity_signature_label": "Signatur",
+    "identity_no_signature": "Keine Signatur",
+    "identity_default": "Lassen Sie beide Signaturen leer, um von dieser Adresse die Signatur Ihrer Organisation zu senden.",
+    "details": {
+      "title": "Ihre Angaben",
+      "description": "Die Signatur Ihrer Organisation zeigt diese Angaben. Sie füllen sie einmal aus, und jede Adresse, von der Sie senden, verwendet sie.",
+      "preview": "Ihre Signatur",
+      "fields": {
+        "title": "Position",
+        "department": "Abteilung",
+        "phone": "Telefon",
+        "mobile": "Mobil"
+      }
+    }
   },
   "templates": {
     "picker_title": "Vorlage wählen",
