@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { Search, X, MapPin, Repeat } from "@/components/icons";
 import { Input } from "@/components/ui/input";
 import { IconButton } from "@/components/ui/icon-button";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
@@ -88,11 +89,13 @@ interface CalendarSearchResultsProps {
   currentUserEmails?: string[];
   onSelectEvent: (event: CalendarEvent, anchorRect: DOMRect) => void;
   onContextMenuEvent?: (e: React.MouseEvent, event: CalendarEvent) => void;
+  /** Empties the search box, back to the calendar (R9). */
+  onClearSearch?: () => void;
 }
 
 /** The events a calendar search found, upcoming first, then past ones. */
 export function CalendarSearchResults({
-  query, results, calendars, timeFormat = "24h", currentUserEmails, onSelectEvent, onContextMenuEvent,
+  query, results, calendars, timeFormat = "24h", currentUserEmails, onSelectEvent, onContextMenuEvent, onClearSearch,
 }: CalendarSearchResultsProps) {
   const t = useTranslations("calendar");
   const intlFormatter = useDisplayDateFormatter();
@@ -199,6 +202,11 @@ export function CalendarSearchResults({
           icon={Search}
           title={t("search.no_results", { query: query.trim() })}
           description={t("search.no_results_hint")}
+          actions={onClearSearch && (
+            <Button size="sm" variant="outline" onClick={onClearSearch}>
+              {t("search.clear")}
+            </Button>
+          )}
         />
       )}
       {section("calendar-search-upcoming", t("search.upcoming"), upcoming)}

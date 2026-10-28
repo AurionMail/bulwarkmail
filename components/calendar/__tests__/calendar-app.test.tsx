@@ -352,6 +352,18 @@ describe('CalendarApp event search (CAL-16)', () => {
     expect(await screen.findByText('search.no_results', {}, { timeout: 3000 })).toBeInTheDocument();
   });
 
+  it('offers Clear search when nothing matches, back to the calendar with the cursor in the box', async () => {
+    renderApp();
+    const box = screen.getByRole('searchbox', { name: 'search.title' });
+    fireEvent.change(box, { target: { value: 'zzz' } });
+    await screen.findByText('search.no_results', {}, { timeout: 3000 });
+    const results = screen.getByTestId('calendar-search-results');
+    fireEvent.click(within(results).getByRole('button', { name: 'search.clear' }));
+    expect(box).toHaveValue('');
+    expect(document.activeElement).toBe(box);
+    await waitFor(() => expect(screen.queryByTestId('calendar-search-results')).toBeNull());
+  });
+
   it('is in the command palette', () => {
     render(<><CalendarApp /><PaletteGroups /></>);
     const items = screen.getByTestId('palette').textContent ?? '';

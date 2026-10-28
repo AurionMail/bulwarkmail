@@ -1795,6 +1795,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
             currentUserEmails={currentUserEmails}
             onSelectEvent={handleSelectEvent}
             onContextMenuEvent={handleContextMenuEvent}
+            onClearSearch={() => { setSearchQuery(""); searchInputRef.current?.focus(); }}
           />
         );
       }
