@@ -20,7 +20,13 @@ import { useShallow } from "zustand/react/shallow";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatFileSize, cn, cleanPreview } from "@/lib/utils";
+import { IconButton } from "@/components/ui/icon-button";
 import {
+  Archive,
+  Mail,
+  ShieldAlert,
+  ShieldCheck,
+  Trash2,
   ArrowLeft,
   ChevronDown,
   ChevronUp,
@@ -75,6 +81,15 @@ interface ThreadConversationViewProps {
   onMarkAsRead?: (emailId: string, read: boolean) => void;
   /** Role of the folder the conversation was opened from, for plugin actions limited to some folders. */
   mailboxRole?: string | null;
+  /**
+   * The conversation's actions in the header, as the list row offers them
+   * (on the row's newest message): Archive, Delete, Report spam / Not spam,
+   * Mark as unread.
+   */
+  onArchive?: () => void;
+  onDelete?: () => void;
+  onToggleSpam?: () => void;
+  onMarkUnread?: () => void;
 }
 
 // Helper function to get file icon based on mime type or extension
@@ -191,6 +206,10 @@ export function ThreadConversationView({
   blobSource,
   onMarkAsRead,
   mailboxRole,
+  onArchive,
+  onDelete,
+  onToggleSpam,
+  onMarkUnread,
 }: ThreadConversationViewProps) {
   const t = useTranslations();
   const externalContent = useConversationExternalContent();
@@ -252,21 +271,38 @@ export function ThreadConversationView({
     <div className="flex flex-col h-full bg-background">
       {/* Header */}
       <div className="flex items-center px-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 sticky top-0 z-10" style={{ gap: 'var(--density-item-gap)', paddingBlock: 'var(--density-header-py)' }}>
-        <button
-          onClick={onBack}
-          className="p-2 -ms-2 rounded-full hover:bg-muted transition-colors"
-          aria-label={t('email_viewer.back_to_list')}
-          title={t('email_viewer.back_to_list')}
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
+        <IconButton size="icon-lg" className="-ms-2 flex-shrink-0" onClick={onBack} label={t('email_viewer.back_to_list')}>
+          <ArrowLeft />
+        </IconButton>
         <div className="flex-1 min-w-0">
-          <h1 className="font-semibold text-foreground break-words">
+          <h1 className="font-semibold text-foreground break-words" dir="auto">
             {thread.latestEmail.subject || t("email_viewer.no_subject")}
           </h1>
           <p className="text-sm text-muted-foreground">
             {t("threads.messages_other", { count: emails.length })}
           </p>
+        </div>
+        <div className="flex items-center flex-shrink-0 -me-2" data-testid="conversation-actions">
+          {onArchive && (
+            <IconButton size="icon-lg" onClick={onArchive} label={t('context_menu.archive')}>
+              <Archive />
+            </IconButton>
+          )}
+          {onDelete && (
+            <IconButton size="icon-lg" onClick={onDelete} label={t('context_menu.delete')}>
+              <Trash2 />
+            </IconButton>
+          )}
+          {onToggleSpam && (
+            <IconButton size="icon-lg" onClick={onToggleSpam} label={mailboxRole === 'junk' ? t('context_menu.not_spam') : t('context_menu.mark_as_spam')}>
+              {mailboxRole === 'junk' ? <ShieldCheck /> : <ShieldAlert />}
+            </IconButton>
+          )}
+          {onMarkUnread && (
+            <IconButton size="icon-lg" onClick={onMarkUnread} label={t('context_menu.mark_unread')}>
+              <Mail />
+            </IconButton>
+          )}
         </div>
       </div>
 

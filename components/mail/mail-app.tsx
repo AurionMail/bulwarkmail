@@ -1905,6 +1905,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // back once there is nothing left to read, so tablet never ends up on an
   // empty reading pane with only the bottom bar.
   const readingPaneEmpty = !showComposer && !conversationThread && !selectedEmail && !isLoadingEmail;
+  // The phone conversation's Report spam / Not spam, as in the list: not on
+  // your own outgoing mail.
+  const conversationRole = mailboxes.find(m => m.id === selectedMailbox)?.role ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined);
+  const conversationInJunk = conversationRole === 'junk';
+  const conversationSpamApplicable = !['sent', 'drafts', 'scheduled'].includes(conversationRole || '');
   useEffect(() => {
     if (readingPaneEmpty && !tabletListVisible) setTabletListVisible(true);
   }, [readingPaneEmpty, tabletListVisible, setTabletListVisible]);
@@ -5398,6 +5403,28 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   }
                 }}
                 mailboxRole={mailboxes.find(m => m.id === selectedMailbox)?.role ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined)}
+                // What the list row does with the conversation, then back to
+                // the list, which now shows what is left.
+                onArchive={archiveActionEnabled ? () => {
+                  const target = conversationThread.latestEmail;
+                  handleMobileBack();
+                  void handleArchive(target);
+                } : undefined}
+                onDelete={() => {
+                  const target = conversationThread.latestEmail;
+                  handleMobileBack();
+                  void handleDelete(target);
+                }}
+                onToggleSpam={conversationSpamApplicable ? () => {
+                  const target = conversationThread.latestEmail;
+                  handleMobileBack();
+                  void (conversationInJunk ? handleUndoSpam(target) : handleMarkAsSpam(target));
+                } : undefined}
+                onMarkUnread={client ? () => {
+                  const target = conversationThread.latestEmail;
+                  handleMobileBack();
+                  void markAsRead(client, target.id, false, emailKeyFor(target)).catch(toastUpdateFailure);
+                } : undefined}
               />
             ) : (
               <>
