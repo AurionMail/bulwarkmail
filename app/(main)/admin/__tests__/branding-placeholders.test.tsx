@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useAdminUnsavedStore } from '@/stores/admin-unsaved-store';
 
@@ -12,6 +12,8 @@ vi.mock('@/lib/browser-navigation', () => ({
   }), { status: 200, headers: { 'content-type': 'application/json' } })),
   withBasePath: (p: string) => p,
 }));
+const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() }));
+vi.mock('@/stores/toast-store', () => ({ toast, useToastStore: () => [] }));
 vi.mock('next/link', () => ({ default: ({ children }: { children: React.ReactNode }) => children }));
 
 import { BrandingPage } from '../_pages/branding';
@@ -33,5 +35,16 @@ describe('admin branding image fields', () => {
     const wildcardFavicon = screen.getByRole('textbox', { name: 'Favicon' });
     expect(wildcardFavicon.getAttribute('placeholder')).toBe('Enter URL');
     expect(wildcardFavicon.getAttribute('title')).toBe('Enter URL');
+  });
+
+  // R9: the result in the past tense, without "successfully".
+  it('reports an upload without "successfully"', async () => {
+    const { container } = render(<BrandingPage />);
+    await screen.findByRole('button', { name: 'mail.example.com' });
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(['x'], 'logo.png', { type: 'image/png' })] } });
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    expect(toast.success.mock.calls[0][0]).toBe('logo.png uploaded');
   });
 });

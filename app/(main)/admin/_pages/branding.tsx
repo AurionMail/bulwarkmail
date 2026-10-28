@@ -216,7 +216,7 @@ export function BrandingPage() {
 
     if (res.ok) {
       const data = await res.json();
-      setMessage({ type: 'success', text: `Uploaded ${file.name} successfully.` });
+      setMessage({ type: 'success', text: `${file.name} uploaded` });
       setEdits(prev => {
         const next = { ...prev };
         delete next[slot];
