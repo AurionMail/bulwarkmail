@@ -685,7 +685,7 @@ export function CalendarWeekView({
                       onClick={() => handleSlotClick(day, h)}
                       onDoubleClick={() => handleSlotDoubleClick(day, h)}
                       onContextMenu={onContextMenuEmpty ? (e) => onContextMenuEmpty(e, day, h, false) : undefined}
-                      className="border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                      className="relative border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors outline-none focus-visible:after:absolute focus-visible:after:inset-0 focus-visible:after:z-[15] focus-visible:after:pointer-events-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-primary"
                       style={{ height: hourHeight }}
                     />
                   ))}

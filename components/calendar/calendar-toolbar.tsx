@@ -267,6 +267,8 @@ export function CalendarToolbar({
             )}
 
             {/* Row 2: View switcher pills + calendar toggle */}
+            {/* Each pill is as wide as its label plus an even share of the rest, so a
+                long label ("جدول الأعمال", "Aufgaben") neither wraps nor touches the edge. */}
             <div className="flex items-center gap-1.5">
               <div className="flex flex-1 border border-border rounded-md overflow-hidden">
                 {views.map((v) => (
@@ -274,7 +276,7 @@ export function CalendarToolbar({
                     key={v}
                     onClick={() => onViewModeChange(v)}
                     className={cn(
-                      "flex-1 min-h-11 text-[11px] font-medium transition-colors touch-manipulation",
+                      "flex-auto min-h-11 px-1.5 text-[11px] font-medium transition-colors touch-manipulation",
                       v === viewMode
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground active:bg-muted"
