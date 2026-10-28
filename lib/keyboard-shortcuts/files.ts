@@ -9,7 +9,7 @@ export const FILES_SECTIONS: readonly ShortcutSection[] = [
       { key: "↓ / ↑", description: "files.shortcuts.move" },
       { key: "← / →", description: "files.shortcuts.move_grid" },
       { key: "Home / End", description: "files.shortcuts.first_last" },
-      { key: "Shift + ↓ / ↑", description: "files.shortcuts.extend" },
+      { key: "Shift + ↓ / Shift + ↑", description: "files.shortcuts.extend" },
       { key: "Enter", description: "files.shortcuts.open" },
       { key: "Space", description: "files.shortcuts.toggle" },
       { key: "Mod + A", description: "files.shortcuts.select_all" },
