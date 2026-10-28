@@ -51,6 +51,15 @@ export const RESTRICTION_KEYS: readonly RestrictionKeyDef[] = [
     page: 'org-signatures',
     modes: ['locked', 'hidden'],
   },
+  {
+    key: 'personalTemplates',
+    label: 'Personal templates',
+    description: "Hide: users get only the organisation and team templates and can't save templates of their own. The ones they have are kept, not deleted.",
+    category: 'Composer',
+    type: 'boolean',
+    page: 'org-templates',
+    modes: ['hidden'],
+  },
 ];
 
 export function restrictionKeysForPage(page: AdminPageId): RestrictionKeyDef[] {

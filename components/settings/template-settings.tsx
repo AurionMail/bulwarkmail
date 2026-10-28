@@ -6,6 +6,7 @@ import { SettingsSection } from './settings-section';
 import { Button } from '@/components/ui/button';
 import { TemplateManagerModal } from '@/components/templates/template-manager-modal';
 import { useTemplateStore } from '@/stores/template-store';
+import { useTemplateSources } from '@/hooks/use-template-sources';
 import { toast } from '@/stores/toast-store';
 import { debug } from '@/lib/debug';
 import {
@@ -21,6 +22,8 @@ export function TemplateSettings() {
   const tNotif = useTranslations('notifications');
 
   const { templates, exportAllTemplates, importTemplates: storeImport } = useTemplateStore();
+  const { sources, personalHidden } = useTemplateSources();
+  const total = sources.reduce((n, source) => n + source.templates.length, 0);
 
   const [showManager, setShowManager] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -83,7 +86,7 @@ export function TemplateSettings() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <FileText className="w-4 h-4" />
             <span>
-              {t('count', { count: templates.length })}
+              {t('count', { count: total })}
             </span>
           </div>
           <Button
@@ -96,7 +99,7 @@ export function TemplateSettings() {
         </div>
       </SettingsSection>
 
-      <SettingsSection id="templates-export" advanced title={t('export_import')} description={t('export_import_description')}>
+      {!personalHidden && <SettingsSection id="templates-export" advanced title={t('export_import')} description={t('export_import_description')}>
         <div className="flex items-center gap-3 py-3">
           <Button
             variant="outline"
@@ -125,7 +128,7 @@ export function TemplateSettings() {
             </Button>
           </div>
         </div>
-      </SettingsSection>
+      </SettingsSection>}
 
       {showManager && (
         <TemplateManagerModal

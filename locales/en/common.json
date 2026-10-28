@@ -2891,6 +2891,23 @@
       "sender_name": "Your name"
     }
   },
+  "org_templates": {
+    "section_personal": "My templates",
+    "section_organisation": "Organisation",
+    "sources_label": "Template lists",
+    "organisation_note": "From your organisation. You can't change these, but you can copy one into your own templates.",
+    "copy_to_personal": "Copy to my templates",
+    "duplicate": "Duplicate",
+    "save_failed": "The template could not be saved. Try again.",
+    "save_failed_forbidden": "You can't change these templates.",
+    "save_failed_too_large": "This template is larger than the 8 KB the server keeps per template. Shorten it and save again.",
+    "save_failed_no_room": "The mailbox has no room for more templates. Delete one and try again.",
+    "local_only_too_large": "Only in this browser: larger than the 8 KB the server keeps per template.",
+    "local_only_no_room": "Only in this browser: your account has no room for more templates.",
+    "personal_in_account": "Your templates are kept in your account, so you have them on every device you sign in on. Anyone you share your Inbox with can read them.",
+    "team_note": "Everyone in {name} sees these templates and can change them.",
+    "team_read_only": "You can use these templates but not change them."
+  },
   "contacts": {
     "directory": {
       "title": "Directory",

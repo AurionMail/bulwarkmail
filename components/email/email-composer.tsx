@@ -84,6 +84,7 @@ import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import type { FileNode } from "@/lib/jmap/types";
 import { useContactStore, getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
 import { useTemplateStore, renderTemplateWithPlugins, notifyTemplateApplied } from "@/stores/template-store";
+import { useTemplateSources } from "@/hooks/use-template-sources";
 import { notifyIdentitySelected } from "@/stores/identity-store";
 import { usePluginSignature } from "@/hooks/use-plugin-signature";
 import { useOrgSignature, useOrgSignatureIdentity } from "@/hooks/use-org-signature";
@@ -1554,6 +1555,8 @@ export function EmailComposer({
   const addTrustedSender = useSettingsStore((s) => s.addTrustedSender);
   const trustedSendersAddressBook = useSettingsStore((s) => s.trustedSendersAddressBook);
   const addTemplate = useTemplateStore((s) => s.addTemplate);
+  // The admin may leave users only organisation and team templates.
+  const personalTemplatesHidden = useTemplateSources(composingAccountId).personalHidden;
   // Sign/encrypt is provided by crypto plugins (S/MIME, PGP) via the
   // composer-toolbar slot + the onComposeSend hook — the host stays
   // crypto-agnostic.
@@ -4674,9 +4677,11 @@ export function EmailComposer({
                   <ComposerToolbarMenuItem icon={FileText} onSelect={() => { close(); setShowTemplatePicker(true); }}>
                     {t('insert_template')}
                   </ComposerToolbarMenuItem>
-                  <ComposerToolbarMenuItem icon={BookmarkPlus} onSelect={() => { close(); setShowSaveAsTemplate(true); }}>
-                    {t('save_as_template')}
-                  </ComposerToolbarMenuItem>
+                  {!personalTemplatesHidden && (
+                    <ComposerToolbarMenuItem icon={BookmarkPlus} onSelect={() => { close(); setShowSaveAsTemplate(true); }}>
+                      {t('save_as_template')}
+                    </ComposerToolbarMenuItem>
+                  )}
                 </>}
               </ComposerToolbarMenu>
             )}
@@ -4831,6 +4836,7 @@ export function EmailComposer({
           isOpen={showTemplatePicker}
           onClose={() => setShowTemplatePicker(false)}
           onSelect={handleTemplateSelect}
+          accountId={composingAccountId}
         />
       )}
 
