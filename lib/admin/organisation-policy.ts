@@ -25,7 +25,11 @@ export interface OrganisationPolicy {
     senderLabel: boolean;
     /** Confirm before sending to recipients outside the organisation domains. */
     recipientWarning: boolean;
-    /** Organisation domains; empty means the domains of the user's identities. Subdomains match. */
+    /**
+     * More organisation domains. The domains of the user's own identities
+     * always count as internal; these are added to them. A domain covers its
+     * subdomains (example.com covers eu.example.com). See lib/external-mail.ts.
+     */
     domains: string[];
     /** Recipients in the user's contacts don't trigger the warning. */
     trustContacts: boolean;

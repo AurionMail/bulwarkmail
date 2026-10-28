@@ -659,6 +659,10 @@
     "plugin_panel_show": "Show plugin panel",
     "plugin_panel_hide": "Hide plugin panel"
   },
+  "external_mail": {
+    "sender_label": "External",
+    "sender_tooltip": "From outside your organisation: {domain}"
+  },
   "email_composer": {
     "select_from_directory": "Select from directory",
     "minimize": "Minimize",

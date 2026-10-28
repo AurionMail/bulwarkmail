@@ -659,6 +659,10 @@
     "plugin_panel_hide": "Plugin-Bereich ausblenden",
     "copy": "Kopieren"
   },
+  "external_mail": {
+    "sender_label": "Extern",
+    "sender_tooltip": "Von außerhalb Ihrer Organisation: {domain}"
+  },
   "email_composer": {
     "select_from_directory": "Aus Verzeichnis auswählen",
     "minimize": "Minimieren",
