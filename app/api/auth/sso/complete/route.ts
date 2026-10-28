@@ -106,6 +106,7 @@ export async function POST(request: NextRequest) {
 
     // Exchange code for tokens
     const tokens = await exchangeCodeForTokens(code, codeVerifier, redirectUri, pendingServerId);
+    const signedInAt = Date.now();
 
     // For the mobile handoff flow the tokens are handed back to the app
     // verbatim - we deliberately don't write any cookies on the webmail
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest) {
         const cookieName = refreshTokenCookieName(slot);
         cookieStore.set(cookieName, tokens.refresh_token, getCookieOptions());
         // A sign-in: the maximum session length counts from here (lib/auth/session-age.ts).
-        writeSignInStamp(cookieStore, slot, { signedInAt: Date.now() });
+        writeSignInStamp(cookieStore, slot, { signedInAt, refreshToken: tokens.refresh_token });
       }
       const serverCookieName = refreshTokenServerCookieName(slot);
       if (pendingServerId) {
@@ -169,6 +170,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       access_token: tokens.access_token,
       expires_in: tokens.expires_in,
+      signed_in_at: signedInAt,
     });
   } catch (error) {
     // Clean up pending cookie on any error

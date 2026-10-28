@@ -36,8 +36,8 @@ describe('encryptSession / decryptSession', () => {
   });
 
   it('produces a base64 token with a random IV (two encrypts differ, both decrypt equal)', () => {
-    const a = encryptSession('https://x', 'u', 'p');
-    const b = encryptSession('https://x', 'u', 'p');
+    const a = encryptSession('https://x', 'u', 'p', 1000);
+    const b = encryptSession('https://x', 'u', 'p', 1000);
     expect(a).not.toBe(b);
     expect(Buffer.from(a, 'base64').toString('base64')).toBe(a); // valid base64
     expect(decryptSession(a)).toEqual(decryptSession(b));

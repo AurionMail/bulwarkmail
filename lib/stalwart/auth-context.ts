@@ -14,12 +14,6 @@ export interface StalwartAuthContext {
    * data such as synced settings is keyed on this.
    */
   accountName?: string;
-  /**
-   * When the user signed in (ms), for the organisation's maximum session
-   * length (lib/auth/session-age.ts). Carried over when the context is
-   * written again for the same account (a renewed token, a restore).
-   */
-  signedInAt?: number;
 }
 
 type CookieStore = Awaited<ReturnType<typeof cookies>>;
@@ -45,8 +39,7 @@ function isValidContext(payload: unknown): payload is StalwartAuthContext {
   return typeof candidate.serverUrl === 'string'
     && typeof candidate.username === 'string'
     && typeof candidate.authHeader === 'string'
-    && (candidate.accountName === undefined || typeof candidate.accountName === 'string')
-    && (candidate.signedInAt === undefined || typeof candidate.signedInAt === 'number');
+    && (candidate.accountName === undefined || typeof candidate.accountName === 'string');
 }
 
 function getSessionCookieOptions() {
@@ -66,14 +59,8 @@ export function readStalwartAuthContextFromStore(
 
   // Hand back exactly the declared shape: the envelope's own bookkeeping
   // stays in the envelope rather than riding along into the credentials.
-  const { serverUrl, username, authHeader, accountName, signedInAt } = payload;
-  return {
-    serverUrl,
-    username,
-    authHeader,
-    ...(accountName ? { accountName } : {}),
-    ...(typeof signedInAt === 'number' ? { signedInAt } : {}),
-  };
+  const { serverUrl, username, authHeader, accountName } = payload;
+  return accountName ? { serverUrl, username, authHeader, accountName } : { serverUrl, username, authHeader };
 }
 
 export function setStalwartAuthContextInStore(
