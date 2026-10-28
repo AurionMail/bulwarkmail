@@ -885,6 +885,7 @@
     "send_delay_unsupported_title": "Ohne Verzögerung senden?",
     "recipient_edit_email": "E-Mail-Adresse bearbeiten",
     "recipient_edit_name": "Anzeigenamen bearbeiten",
+    "recipient_remove": "Entfernen",
     "recipient_email_placeholder": "E-Mail-Adresse",
     "recipient_name_placeholder": "Anzeigename",
     "invalid_recipient": "Keine gültige E-Mail-Adresse",

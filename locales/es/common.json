@@ -885,6 +885,7 @@
     "send_delay_unsupported_title": "¿Enviar sin retraso?",
     "recipient_edit_email": "Editar dirección de correo",
     "recipient_edit_name": "Editar nombre para mostrar",
+    "recipient_remove": "Quitar",
     "recipient_email_placeholder": "Dirección de correo",
     "recipient_name_placeholder": "Nombre para mostrar",
     "invalid_recipient": "No es una dirección de correo válida",

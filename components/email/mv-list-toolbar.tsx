@@ -108,7 +108,6 @@ export function MvListToolbar({
 }: MvListToolbarProps) {
   const t = useTranslations("email_list");
   const tBatch = useTranslations("email_list.batch_actions");
-  const tActions = useTranslations("settings.email_behavior.hover_actions");
   const archiveActionEnabled = useArchiveActionEnabled();
   const tFolder = useTranslations("mailbox_context_menu");
   const tMenu = useTranslations("context_menu");
@@ -511,7 +510,7 @@ export function MvListToolbar({
           {archiveActionEnabled && (
             <ToolbarButton
               icon={Archive}
-              label={tActions("archive")}
+              label={tMenu("archive")}
               onClick={() => run(async () => (client ? batchArchive(client) : false), {
                 success: tNotifications("emails_archived", { count: selectionCount }),
                 error: tNotifications("error_archiving"),
@@ -527,7 +526,7 @@ export function MvListToolbar({
           {spamApplicable && (
             <ToolbarButton
               icon={isInJunk ? ShieldCheck : ShieldAlert}
-              label={isInJunk ? tActions("not_spam") : tActions("spam")}
+              label={isInJunk ? tMenu("not_spam") : tMenu("mark_as_spam")}
               onClick={handleSpam}
               disabled={isProcessing}
             />

@@ -5079,7 +5079,6 @@ function RecipientChipInput({
   onMoveChip: (recipient: Recipient, fromField: 'to' | 'cc' | 'bcc', toField: 'to' | 'cc' | 'bcc', toIndex?: number) => void;
 }) {
   const t = useTranslations('email_composer');
-  const tCommon = useTranslations('common');
   const { contextMenu, openContextMenu, closeContextMenu, menuRef } = useContextMenu<{ index: number; recipient: Recipient }>();
   const [editingChip, setEditingChip] = useState<{ index: number; editType: 'email' | 'name' } | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -5567,7 +5566,7 @@ function RecipientChipInput({
             )}
             <ContextMenuItem label={t('recipient_edit_name')} onClick={handleEditName} />
             <ContextMenuSeparator />
-            <ContextMenuItem label={tCommon('delete')} onClick={() => {
+            <ContextMenuItem label={t('recipient_remove')} onClick={() => {
               if (contextMenu.data) {
                 handleChipRemove(contextMenu.data.index, { stopPropagation: () => {} } as React.MouseEvent);
               }

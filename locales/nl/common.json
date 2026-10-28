@@ -885,6 +885,7 @@
     "send_delay_unsupported_title": "Verzenden zonder vertraging?",
     "recipient_edit_email": "E-mailadres bewerken",
     "recipient_edit_name": "Weergavenaam bewerken",
+    "recipient_remove": "Verwijderen",
     "recipient_email_placeholder": "E-mailadres",
     "recipient_name_placeholder": "Weergavenaam",
     "invalid_recipient": "Geen geldig e-mailadres",

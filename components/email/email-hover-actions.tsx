@@ -120,7 +120,8 @@ export function EmailHoverActions({
   );
   const hoverActionsMode = useSettingsStore((state) => state.hoverActionsMode);
   const hoverActionsCorner = useSettingsStore((state) => state.hoverActionsCorner);
-  const t = useTranslations("settings.email_behavior.hover_actions");
+  // The words the row's menu uses for the same actions (R10).
+  const t = useTranslations("context_menu");
   const isMobile = useIsMobile();
   // Buttons plugins add to the row (message-row-actions), after the app's own.
   const pluginActionCount = usePluginActions("message-row-actions", { mailboxRole }).length;
@@ -233,7 +234,11 @@ export function EmailHoverActions({
         : isNotSpam
           ? ShieldCheck
           : Icon;
-    const title = isNotSpam ? t("not_spam") : t(config.titleKey);
+    const title = isNotSpam ? t("not_spam")
+      : actionId === "markRead" ? t(isUnread ? "mark_read" : "mark_unread")
+      : actionId === "star" ? t(isStarred ? "unstar" : "star")
+      : actionId === "spam" ? t("mark_as_spam")
+      : t(config.titleKey);
     const className = isNotSpam
       ? "hover:text-green-600 dark:hover:text-green-400"
       : config.className;
@@ -246,6 +251,7 @@ export function EmailHoverActions({
         onClick={(e) => handleAction(e, actionId)}
         onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
         title={title}
+        aria-label={title}
         aria-haspopup={actionId === "tag" ? "menu" : undefined}
         aria-expanded={actionId === "tag" ? tagPickerPos !== null : undefined}
         className={cn(
