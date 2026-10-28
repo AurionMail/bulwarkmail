@@ -726,7 +726,7 @@ export function CalendarManagementSettings() {
                 </div>
               )}
 
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity">
                 <button
                   type="button"
                   onClick={() => setEditingId(cal.id)}
@@ -853,7 +853,7 @@ export function CalendarManagementSettings() {
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity">
                   <button
                     type="button"
                     onClick={() => setEditingSubscription(sub)}

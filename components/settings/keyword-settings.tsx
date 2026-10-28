@@ -134,7 +134,7 @@ function KeywordRow({
         ariaLabel={t("visibility_field")}
         className="text-xs py-1"
       />
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity">
         <button
           type="button"
           onClick={onEdit}

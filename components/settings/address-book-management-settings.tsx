@@ -253,7 +253,7 @@ export function AddressBookManagementSettings() {
             </span>
           );
         })()}
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity">
           {canRename && (
             <button
               type="button"
@@ -392,7 +392,7 @@ export function AddressBookManagementSettings() {
                   <span className="text-sm font-medium truncate block">{keyword}</span>
                 </div>
                 <span className="text-xs text-muted-foreground tabular-nums">{count}</span>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity">
                   <button
                     type="button"
                     onClick={() => setEditingKeyword(keyword)}
