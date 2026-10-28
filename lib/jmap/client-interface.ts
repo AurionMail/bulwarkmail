@@ -297,6 +297,8 @@ export interface IJMAPClient {
     limit?: number;
     onProgress?: (scanned: number, total: number) => void;
     signal?: AbortSignal;
+    /** Another account of this login, e.g. a group account (default: the own one). */
+    accountId?: string;
   }): Promise<{ keywords: Record<string, number>; scanned: number; total: number; complete: boolean }>;
   /** Per-tab unread counts for message-list category tabs (filter = resolved tab fragment, null = unfiltered). */
   getCategoryUnreadCounts(mailboxId: string, tabs: Array<{ id: string; filter: Record<string, unknown> | null }>, accountId?: string): Promise<Record<string, number>>;
@@ -622,6 +624,8 @@ export interface IJMAPClient {
   supportsBulwarkMetadata?(accountId?: string): boolean;
   getBulwarkMetadata?(accountId?: string, options?: { private?: boolean }): Promise<Record<string, unknown> | null>;
   setBulwarkMetadata?(accountId: string | undefined, key: string, value: unknown, options?: { private?: boolean }): Promise<void>;
+  advertisesBulwarkMetadata?(accountId?: string): boolean;
+  patchBulwarkMetadata?(accountId: string | undefined, key: string, patches: Array<{ path: string[]; value: unknown }>): Promise<{ newState?: string }>;
   setCalendarShare(calendarId: string, principalId: string, rights: CalendarRights | null, targetAccountId?: string): Promise<void>;
   setAddressBookShare(addressBookId: string, principalId: string, rights: AddressBookRights | null, targetAccountId?: string): Promise<void>;
   setFileNodeShare(fileNodeId: string, principalId: string, rights: FileNodeRights | null, targetAccountId?: string): Promise<void>;

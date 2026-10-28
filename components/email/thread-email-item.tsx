@@ -16,6 +16,7 @@ import { useSettingsStore } from "@/stores/settings-store";
 import { useUIStore } from "@/stores/ui-store";
 import { emailKeyFor, getEmailTagIds } from "@/lib/thread-utils";
 import { useKeywordFormat } from "@/hooks/use-keyword-format";
+import { useEmailTagScope } from "@/hooks/use-account-tags";
 import { useTagDisplay } from "@/hooks/use-tag-display";
 import { TagBadge } from "./tag-badge";
 import { useListRowShape, LIST_COLUMN_CLASS } from "@/hooks/use-list-row-shape";
@@ -43,7 +44,8 @@ export function ThreadEmailItem({
   const isStarred = email.keywords?.$flagged;
   const isAnswered = email.keywords?.$answered;
   const isForwarded = email.keywords?.$forwarded;
-  const { sortTagIds } = useKeywordFormat();
+  const tagScope = useEmailTagScope(email);
+  const { sortTagIds } = useKeywordFormat(tagScope);
   const { variant: tagVariant } = useTagDisplay();
   // A message inside an expanded thread carries its own tags; the collapsed
   // header pools them, so without this they disappear on the way in.
@@ -164,7 +166,7 @@ export function ThreadEmailItem({
               </span>
               <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
                 {tagIds.map((id) => (
-                  <TagBadge key={id} tagId={id} variant={tagVariant} />
+                  <TagBadge key={id} tagId={id} variant={tagVariant} scope={tagScope} />
                 ))}
                 <span className={cn("min-w-0 truncate", isUnread ? "text-muted-foreground" : "text-muted-foreground/70")}>
                   {cleanPreview(email.preview) || t('no_preview_available')}
@@ -295,7 +297,7 @@ export function ThreadEmailItem({
                 <Paperclip className="w-3 h-3 text-muted-foreground" />
               )}
               {tagIds.map((id) => (
-                <TagBadge key={id} tagId={id} variant={tagVariant} />
+                <TagBadge key={id} tagId={id} variant={tagVariant} scope={tagScope} />
               ))}
             </div>
 

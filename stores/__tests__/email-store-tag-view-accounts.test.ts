@@ -112,6 +112,21 @@ describe('tag view across the own and group accounts (#1038)', () => {
     expect(client.getEmails).toHaveBeenCalledWith(undefined, 'group', 50, 0, keyword, true, undefined, []);
   });
 
+  it('lists the group account only for a tag picked from its shared tags', async () => {
+    useEmailStore.setState({ selectedMailbox: ownInbox.id });
+    useEmailStore.getState().selectKeyword(label, 'group');
+
+    await useEmailStore.getState().fetchEmails(client);
+
+    expect(useEmailStore.getState().emails.map(e => e.id)).toEqual(['grp-1']);
+    expect(client.getEmails).toHaveBeenCalledTimes(1);
+    expect(client.getEmails).toHaveBeenCalledWith(undefined, 'group', 50, 0, keyword, true, undefined, []);
+
+    // A tag from the own list spans every account again.
+    useEmailStore.getState().selectKeyword(label);
+    expect(useEmailStore.getState().selectedKeywordAccountId).toBeNull();
+  });
+
   it('lists the same set while an own folder is selected', async () => {
     useEmailStore.setState({ selectedMailbox: ownInbox.id });
     useEmailStore.getState().selectKeyword(label);

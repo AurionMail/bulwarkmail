@@ -3311,9 +3311,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     }
   };
 
-  const handleTagSelect = async (keywordId: string | null) => {
+  const handleTagSelect = async (keywordId: string | null, accountId: string | null = null) => {
     setScheduledView(false);
-    selectKeyword(keywordId);
+    selectKeyword(keywordId, accountId);
 
     // On mobile, close sidebar and go to list view
     if (isMobile) {

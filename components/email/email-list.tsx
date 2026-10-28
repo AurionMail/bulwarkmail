@@ -44,6 +44,7 @@ import { useUnreadFirstSection } from "@/hooks/use-unread-first-section";
 import { unreadSectionRowCount } from "@/lib/unread-first";
 import { MvListSectionHeader } from "./mv-list-section-header";
 import { type OpenableEmail, PluginSearchResults } from "./plugin-search-results";
+import { commonTagScope } from "@/hooks/use-account-tags";
 
 interface EmailListProps {
   emails: Email[];
@@ -256,6 +257,7 @@ export function EmailList({
   const listHold = useEmailStore((state) => state.listHold);
   const viewingAccountId = useEmailStore((state) => state.viewingAccountId);
   const selectedKeyword = useEmailStore((state) => state.selectedKeyword);
+  const selectedKeywordAccountId = useEmailStore((state) => state.selectedKeywordAccountId);
   const searchMailboxId = useEmailStore((state) => state.searchMailboxId);
   const activeAccountId = useAuthStore((state) => state.activeAccountId);
   const activeTabId = useMessageListTabsStore((state) => state.activeTabId);
@@ -511,6 +513,7 @@ export function EmailList({
     viewingAccountId,
     selectedMailbox,
     selectedKeyword,
+    selectedKeywordAccountId,
     isUnifiedView && (crossView ?? unifiedRole),
     isScheduledView,
     activeTabId,
@@ -587,7 +590,8 @@ export function EmailList({
     const all: string[] = [];
     const some: string[] = [];
     for (const [tagId, count] of counts) (count === selected.length ? all : some).push(tagId);
-    return { all, some };
+    // A selection within one group account offers that account's shared tags.
+    return { all, some, scope: commonTagScope(selected) };
   }, [emails, selectedEmailKeys]);
 
   // A tag every selected message has comes off; any other goes onto all of
@@ -860,6 +864,7 @@ export function EmailList({
               title={tContextMenu('tag')}
               selectedIds={selectionTags.all}
               partialIds={selectionTags.some}
+              scope={selectionTags.scope}
               onToggle={handleBatchToggleTag}
               active={hasSelection && !isScheduledView}
               disabled={isProcessing}
@@ -1182,6 +1187,7 @@ export function EmailList({
           onBatchMarkAsRead={(read) => markSelectionRead(read)}
           batchTagIds={selectionTags.all}
           batchPartialTagIds={selectionTags.some}
+          batchTagScope={selectionTags.scope}
           onBatchToggleTag={handleBatchToggleTag}
           onBatchDelete={async () => {
             if (!client) return;

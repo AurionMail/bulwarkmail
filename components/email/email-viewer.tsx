@@ -30,6 +30,7 @@ import { TagBadge } from "./tag-badge";
 import { TagPicker } from "./tag-picker";
 import { useMeasuredTagDisplay } from "@/hooks/use-tag-display";
 import { useKeywordFormat } from "@/hooks/use-keyword-format";
+import { useAccountTags, useEmailTagScope } from "@/hooks/use-account-tags";
 import { getEmailTagIds } from "@/lib/thread-utils";
 import { getSecurityStatus, extractListHeaders, getSenderVerification } from "@/lib/email-headers";
 import { emailToReadView } from "@/lib/plugin-projection";
@@ -1120,8 +1121,10 @@ export function EmailViewer({
   const trustedSendersAddressBook = useSettingsStore((state) => state.trustedSendersAddressBook);
   const isTrustedAddressBookSender = useContactStore((state) => state.isTrustedAddressBookSender);
   const addToTrustedSendersBook = useContactStore((state) => state.addToTrustedSendersBook);
-  const emailKeywords = useSettingsStore((state) => state.emailKeywords);
-  const { sortTagIds, tagColor } = useKeywordFormat();
+  // A message in a group account is tagged with that account's shared tags.
+  const tagScope = useEmailTagScope(email);
+  const emailKeywords = useAccountTags(tagScope).definitions;
+  const { sortTagIds, tagColor } = useKeywordFormat(tagScope);
   const toolbarPosition = useSettingsStore((state) => state.toolbarPosition);
   const showToolbarLabelsSetting = useSettingsStore((state) => state.showToolbarLabels);
   const interfaceLayout = useSettingsStore((state) => state.interfaceLayout);
@@ -4110,6 +4113,7 @@ export function EmailViewer({
             <div className="absolute end-0 top-full mt-1 py-1 w-56 bg-background rounded-md shadow-lg border border-border z-10">
               <TagPicker
                 selectedIds={currentTagIds}
+                scope={tagScope}
                 onToggle={(tagId) => { if (email) onSetTag?.(email.id, tagId); }}
               />
             </div>
@@ -4404,6 +4408,7 @@ export function EmailViewer({
                     >
                       <TagPicker
                         selectedIds={currentTagIds}
+                        scope={tagScope}
                         onToggle={(tagId) => { if (email) onSetTag?.(email.id, tagId); }}
                       />
                     </SubMenuPanel>
@@ -4865,6 +4870,7 @@ export function EmailViewer({
             <TagPicker
               touch
               selectedIds={currentTagIds}
+              scope={tagScope}
               onToggle={(tagId) => { if (email) onSetTag?.(email.id, tagId); }}
             />
           )}
@@ -4948,6 +4954,7 @@ export function EmailViewer({
                       key={tagId}
                       tagId={tagId}
                       variant={headerTagVariant}
+                      scope={tagScope}
                       onRemove={onSetTag && email ? () => onSetTag(email.id, tagId) : undefined}
                     />
                   ))}

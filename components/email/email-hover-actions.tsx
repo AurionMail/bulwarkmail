@@ -11,6 +11,7 @@ import { useArchiveActionEnabled, withoutArchiveIfOff } from "@/lib/archive-gate
 import { useTranslations } from "next-intl";
 import { useIsMobile } from "@/hooks/use-media-query";
 import { TagPicker } from "@/components/email/tag-picker";
+import { useEmailTagScope } from "@/hooks/use-account-tags";
 import { getEmailTagIds } from "@/lib/thread-utils";
 import { PluginActions, useMessageActionTarget, usePluginActions } from "@/components/plugins/plugin-actions";
 
@@ -111,6 +112,7 @@ export function EmailHoverActions({
   spamApplicable = true,
   mailboxRole = null,
 }: EmailHoverActionsProps) {
+  const tagScope = useEmailTagScope(email);
   const configuredHoverActions = useSettingsStore((state) => state.hoverActions);
   const mountainView = useSettingsStore((state) => state.interfaceLayout === 'mountain-view');
   const archiveActionEnabled = useArchiveActionEnabled();
@@ -294,6 +296,7 @@ export function EmailHoverActions({
           >
             <TagPicker
               selectedIds={currentTagIds}
+              scope={tagScope}
               onToggle={(tagId) => onSetTag(tagId)}
             />
           </div>,
