@@ -130,7 +130,6 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 import { mailTitleContext } from "@/lib/tab-title";
 import { usePluginStore } from "@/stores/plugin-store";
 import { AppTopBannerSlot } from "@/components/plugins/app-top-banner-slot";
-import { useThemeStore } from "@/stores/theme-store";
 import { consumePendingMailto, subscribeToPendingMailto } from "@/lib/protocol-handlers/session";
 import { INTERNAL_MAILTO_EVENT, type ParsedMailto } from "@/lib/protocol-handlers/mailto";
 import { PLUGIN_REPLY_EVENT, type PluginReplyRequest } from "@/lib/plugin-sandbox/host-api-compose";
@@ -1339,10 +1338,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   }, [checkAuth]);
 
   // Initialize plugins on mount (re-activates enabled plugins after refresh)
-  // Also syncs server-managed plugins and themes to the client
+  // Also syncs server-managed plugins to the client; themes sync from
+  // PluginAppEvents on every page.
   useEffect(() => {
     usePluginStore.getState().initializePlugins();
-    useThemeStore.getState().syncServerThemes();
   }, []);
 
   // Hydrate persisted column widths from localStorage

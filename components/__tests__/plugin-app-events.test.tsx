@@ -3,6 +3,7 @@ import { act, render } from '@testing-library/react';
 import { appLifecycleHooks, clearAllHooks, routerHooks } from '@/lib/plugin-hooks';
 import { usePluginStore } from '@/stores/plugin-store';
 import { useAuthStore } from '@/stores/auth-store';
+import { useThemeStore } from '@/stores/theme-store';
 
 let pathname = '/';
 vi.mock('next/navigation', () => ({ usePathname: () => pathname }));
@@ -19,6 +20,7 @@ beforeEach(() => {
   clearAllHooks();
   pathname = '/';
   usePluginStore.setState({ initialized: false, initializePlugins: vi.fn().mockResolvedValue(undefined) });
+  useThemeStore.setState({ syncServerThemes: vi.fn().mockResolvedValue(undefined) });
   useAuthStore.setState({ isAuthenticated: false });
 });
 afterEach(() => {
@@ -81,6 +83,18 @@ describe('app events for plugins', () => {
     act(() => { useAuthStore.setState({ isAuthenticated: true }); });
 
     expect(usePluginStore.getState().initializePlugins).toHaveBeenCalledTimes(1);
+  });
+
+  // A theme the admin installed used to arrive only once the mail view had
+  // been opened, so Settings opened directly never listed it.
+  it('syncs the server themes once the user is signed in, on any page', () => {
+    pathname = '/settings';
+    render(<PluginAppEvents />);
+    expect(useThemeStore.getState().syncServerThemes).not.toHaveBeenCalled();
+
+    act(() => { useAuthStore.setState({ isAuthenticated: true }); });
+
+    expect(useThemeStore.getState().syncServerThemes).toHaveBeenCalledTimes(1);
   });
 
   it('reports navigation between pages', () => {

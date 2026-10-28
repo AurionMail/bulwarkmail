@@ -25,6 +25,12 @@ export function ThemesSettings({ embedded }: { embedded?: boolean } = {}) {
   const themePolicy = getThemePolicy();
   const forcedThemeId = getForcedThemeId(installedThemes.map((theme) => theme.id));
 
+  // Fetch again on open, so a theme the admin just installed in this tab
+  // shows up without a reload.
+  useEffect(() => {
+    void useThemeStore.getState().syncServerThemes();
+  }, []);
+
   // Render each preview in the variant matching the app's current mode, and
   // keep it in sync when the user toggles light/dark elsewhere.
   const [isDark, setIsDark] = useState(false);

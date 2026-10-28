@@ -9,6 +9,7 @@ import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { appLifecycleHooks, routerHooks, toastHooks, uiHooks } from '@/lib/plugin-hooks';
 import { usePluginStore } from '@/stores/plugin-store';
+import { useThemeStore } from '@/stores/theme-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAccountStore } from '@/stores/account-store';
 
@@ -126,8 +127,12 @@ export function PluginAppEvents() {
   // Start the plugins on whichever page the user lands on. They used to start
   // only from the mail view, so a plugin's sidebar entry, page or reminders
   // were missing on Calendar, Contacts, Files or Settings opened directly.
+  // Server themes had the same problem: one installed by the admin never
+  // reached the theme picker until the mail view had been opened.
   useEffect(() => {
-    if (signedIn) void usePluginStore.getState().initializePlugins();
+    if (!signedIn) return;
+    void usePluginStore.getState().initializePlugins();
+    void useThemeStore.getState().syncServerThemes();
   }, [signedIn]);
 
   const readyFired = useRef(false);

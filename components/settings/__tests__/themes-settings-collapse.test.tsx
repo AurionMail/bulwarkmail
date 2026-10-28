@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ThemesSettings } from '../themes-settings';
 import { useThemeStore } from '@/stores/theme-store';
 
@@ -16,7 +16,16 @@ function cardNames(): string[] {
 
 describe('ThemesSettings collapse', () => {
   beforeEach(() => {
-    act(() => { useThemeStore.setState({ activeThemeId: null }); });
+    act(() => {
+      useThemeStore.setState({ activeThemeId: null, syncServerThemes: vi.fn().mockResolvedValue(undefined) });
+    });
+  });
+
+  // Without this, a theme the admin installed in the same tab stayed out of
+  // the gallery until a reload.
+  it('fetches the server themes when it opens', () => {
+    render(<ThemesSettings embedded />);
+    expect(useThemeStore.getState().syncServerThemes).toHaveBeenCalledTimes(1);
   });
 
   it('shows three cards and a Show all button', () => {
