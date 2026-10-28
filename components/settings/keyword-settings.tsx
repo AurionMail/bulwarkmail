@@ -243,7 +243,15 @@ function KeywordEditForm({
           placeholder={t("label_placeholder")}
           autoFocus
           maxLength={30}
-          onKeyDown={(e) => e.key === "Enter" && handleSave()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSave();
+            // Like folders, calendars and address books: Escape cancels.
+            if (e.key === "Escape") {
+              e.preventDefault();
+              e.stopPropagation();
+              onCancel();
+            }
+          }}
         />
         {nestedTags && normalizedId.length > 0 && (
           <p className="text-xs text-muted-foreground font-mono mt-1 break-all">
