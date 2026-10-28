@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { FilterRule } from '@/lib/jmap/sieve-types';
 import { toast } from '@/stores/toast-store';
@@ -82,7 +82,8 @@ describe('FilterRuleModal incomplete action', () => {
 
     expect(onSave).not.toHaveBeenCalled();
     expect(toast.error).not.toHaveBeenCalled();
-    expect(screen.getByRole('alert').textContent).toBe('validation_empty_actions');
+    // The row is there; what it misses is the folder, not "an action".
+    expect(screen.getByRole('alert').textContent).toBe('validation_action_folder');
     const folder = screen.getByRole('combobox', { name: 'move_to_folder' });
     expect(folder.getAttribute('aria-invalid')).toBe('true');
 
@@ -90,6 +91,44 @@ describe('FilterRuleModal incomplete action', () => {
     expect(screen.queryByRole('alert')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'save' }));
     expect(onSave.mock.calls[0][0].actions).toEqual([{ type: 'move', mailboxId: 'news', value: 'News' }]);
+  });
+
+  it('marks the empty condition too, and focuses the first field to fix', async () => {
+    const onSave = vi.fn();
+    render(<FilterRuleModal mailboxes={mailboxes} onSave={onSave} onClose={() => {}} />);
+    fireEvent.change(screen.getByPlaceholderText('rule_name_placeholder'), { target: { value: 'News' } });
+    fireEvent.click(screen.getByRole('button', { name: 'save' }));
+
+    const value = screen.getByRole('textbox', { name: 'condition_value' });
+    const folder = screen.getByRole('combobox', { name: 'move_to_folder' });
+    expect(value.getAttribute('aria-invalid')).toBe('true');
+    expect(folder.getAttribute('aria-invalid')).toBe('true');
+    expect(screen.getAllByRole('alert').map((a) => a.textContent)).toEqual([
+      'validation_empty_conditions',
+      'validation_action_folder',
+    ]);
+    // The condition comes first on the form, so focus goes there, not to
+    // the folder.
+    await waitFor(() => expect(document.activeElement).toBe(value));
+
+    fireEvent.change(value, { target: { value: 'news@example.com' } });
+    expect(value.getAttribute('aria-invalid')).toBe('false');
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('does not save a second action left without its folder', () => {
+    const onSave = vi.fn();
+    render(<FilterRuleModal mailboxes={mailboxes} onSave={onSave} onClose={() => {}} />);
+    fireEvent.change(screen.getByPlaceholderText('rule_name_placeholder'), { target: { value: 'News' } });
+    fireEvent.change(screen.getByPlaceholderText('value_placeholder_multi'), { target: { value: 'news@example.com' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'move_to_folder' }), { target: { value: 'news' } });
+    fireEvent.click(screen.getByText('add_action'));
+    fireEvent.click(screen.getByRole('button', { name: 'save' }));
+
+    expect(onSave).not.toHaveBeenCalled();
+    const folders = screen.getAllByRole('combobox', { name: 'move_to_folder' });
+    expect(folders.map((f) => f.getAttribute('aria-invalid'))).toEqual(['false', 'true']);
+    expect(screen.getByRole('alert').textContent).toBe('validation_action_folder');
   });
 
   it('starts a changed action without a folder too, like a new row', () => {

@@ -50,7 +50,7 @@ export function IconPicker({ value, onChange, className }: IconPickerProps) {
     <div className={cn('space-y-2', className)}>
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Search className="absolute start-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -60,7 +60,7 @@ export function IconPicker({ value, onChange, className }: IconPickerProps) {
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               <X className="w-3 h-3" />
             </button>

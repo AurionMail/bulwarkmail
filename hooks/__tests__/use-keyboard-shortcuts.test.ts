@@ -130,3 +130,38 @@ describe('useKeyboardShortcuts: n opens the next unread message', () => {
     expect(KEYBOARD_SHORTCUTS.navigation).toContainEqual({ key: 'n', description: 'shortcuts.navigation.next_unread' });
   });
 });
+
+// Enter on the focused "Skip to message list" link (or any button) belongs to
+// that control: it must not open the selected message.
+describe('useKeyboardShortcuts: Enter on a link or button', () => {
+  function setup() {
+    const onOpenEmail = vi.fn();
+    renderHook(() =>
+      useKeyboardShortcuts({ enabled: true, emails: [], selectedEmailId: 'e1', handlers: { onOpenEmail } }),
+    );
+    return onOpenEmail;
+  }
+
+  it.each([
+    ['a link', () => { const a = document.createElement('a'); a.href = '#message-list'; return a; }],
+    ['a button', () => document.createElement('button')],
+  ])('leaves Enter on %s to it', (_name, make) => {
+    const onOpenEmail = setup();
+    const el = make();
+    document.body.appendChild(el);
+    try {
+      const event = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true });
+      el.dispatchEvent(event);
+      expect(onOpenEmail).not.toHaveBeenCalled();
+      expect(event.defaultPrevented).toBe(false);
+    } finally {
+      el.remove();
+    }
+  });
+
+  it('still opens the selected message with Enter elsewhere', () => {
+    const onOpenEmail = setup();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }));
+    expect(onOpenEmail).toHaveBeenCalledTimes(1);
+  });
+});

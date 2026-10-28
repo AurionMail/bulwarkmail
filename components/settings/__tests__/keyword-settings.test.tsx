@@ -89,6 +89,17 @@ describe('KeywordSettings', () => {
     expect(useSettingsStore.getState().emailKeywords.find((k) => k.id === 'red')).toBeUndefined();
   });
 
+  // A list of "Edit" / "Delete" with nothing else said which tag a screen
+  // reader user was on; each button is named after its tag now, as a full
+  // size icon button (32px, 44px hit area on touch).
+  it('names each tag row button after its tag', () => {
+    render(<KeywordSettings />);
+    expect(screen.getAllByRole('button', { name: 'edit_tag' })).toHaveLength(DEFAULT_KEYWORDS.length);
+    const deletes = screen.getAllByRole('button', { name: 'delete_tag' });
+    expect(deletes).toHaveLength(DEFAULT_KEYWORDS.length);
+    expect(deletes[0].className).toContain('h-8 w-8');
+  });
+
   it('shows edit form when edit button clicked', () => {
     render(<KeywordSettings />);
     const editButtons = screen.getAllByTitle('edit');

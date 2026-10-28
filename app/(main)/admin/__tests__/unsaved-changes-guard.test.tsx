@@ -21,27 +21,27 @@ describe('admin unsaved changes guard (#1255)', () => {
     expect(screen.queryByRole('alertdialog')).toBeNull();
   });
 
-  it('asks before leaving with unsaved edits; Stay keeps the admin on the page', () => {
+  it('asks before leaving with unsaved edits; Keep editing keeps the admin on the page', () => {
     render(<><UnsavedChangesGuard /><DirtySection dirty /></>);
     const action = vi.fn();
     act(() => useAdminUnsavedStore.getState().requestLeave(action));
-    expect(screen.getByRole('alertdialog')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Stay' }));
+    expect(screen.getByRole('alertdialog', { name: 'Discard changes?' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }));
     expect(action).not.toHaveBeenCalled();
     expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(useAdminUnsavedStore.getState().dirty).toEqual({ settings: true });
   });
 
-  it('Leave runs the action and drops the unsaved flag', () => {
+  it('Discard runs the action and drops the unsaved flag', () => {
     render(<><UnsavedChangesGuard /><DirtySection dirty /></>);
     const action = vi.fn();
     act(() => useAdminUnsavedStore.getState().requestLeave(action));
-    fireEvent.click(screen.getByRole('button', { name: 'Leave' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
     expect(action).toHaveBeenCalledTimes(1);
     expect(useAdminUnsavedStore.getState().dirty).toEqual({});
   });
 
-  it('Escape closes the prompt like Stay', () => {
+  it('Escape closes the prompt like Keep editing', () => {
     render(<><UnsavedChangesGuard /><DirtySection dirty /></>);
     const action = vi.fn();
     act(() => useAdminUnsavedStore.getState().requestLeave(action));
@@ -58,12 +58,12 @@ describe('admin unsaved changes guard (#1255)', () => {
 
     act(() => useAdminUnsavedStore.getState().setDirty('plugin-config', true));
     act(() => useAdminUnsavedStore.getState().requestLeave(back, 'plugin-config'));
-    fireEvent.click(screen.getByRole('button', { name: 'Leave' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
     expect(back).toHaveBeenCalledTimes(2);
     expect(useAdminUnsavedStore.getState().dirty).toEqual({ plugins: true });
   });
 
-  it('holds a link click until the admin picks Leave', () => {
+  it('holds a link click until the admin picks Discard', () => {
     const onLinkClick = vi.fn((e: React.MouseEvent) => e.preventDefault());
     render(
       <>
@@ -76,7 +76,7 @@ describe('admin unsaved changes guard (#1255)', () => {
     expect(onLinkClick).not.toHaveBeenCalled();
     expect(screen.getByRole('alertdialog')).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Leave' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
     expect(onLinkClick).toHaveBeenCalledTimes(1);
   });
 
@@ -103,7 +103,7 @@ describe('admin unsaved changes guard on Back', () => {
     await act(async () => { await done; });
   };
 
-  it('keeps the page and asks when Back is pressed with unsaved edits; Stay keeps guarding', async () => {
+  it('keeps the page and asks when Back is pressed with unsaved edits; Keep editing keeps guarding', async () => {
     window.history.pushState(null, '', '/admin/policy');
     window.history.pushState(null, '', '/admin/telemetry');
     render(<><UnsavedChangesGuard /><DirtySection dirty /></>);
@@ -112,7 +112,7 @@ describe('admin unsaved changes guard on Back', () => {
     expect(window.location.pathname).toBe('/admin/telemetry');
     expect(screen.getByRole('alertdialog')).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Stay' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }));
     expect(useAdminUnsavedStore.getState().dirty).toEqual({ settings: true });
 
     // Back asks again: the page is still guarded.
@@ -121,14 +121,14 @@ describe('admin unsaved changes guard on Back', () => {
     expect(screen.getByRole('alertdialog')).toBeTruthy();
   });
 
-  it('Leave goes back to the previous page', async () => {
+  it('Discard goes back to the previous page', async () => {
     window.history.pushState(null, '', '/admin/policy');
     window.history.pushState(null, '', '/admin/telemetry');
     render(<><UnsavedChangesGuard /><DirtySection dirty /></>);
 
     await back();
     const done = popped();
-    fireEvent.click(screen.getByRole('button', { name: 'Leave' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
     await act(async () => { await done; });
     expect(window.location.pathname).toBe('/admin/policy');
     expect(useAdminUnsavedStore.getState().dirty).toEqual({});

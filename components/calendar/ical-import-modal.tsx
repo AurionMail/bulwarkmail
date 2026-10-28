@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Upload, Check, RefreshCw, Globe } from "@/components/icons";
 import { Dialog } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
-import { format } from "date-fns";
 import type { CalendarEvent, Calendar } from "@/lib/jmap/types";
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import { getEventStartDate } from "@/lib/calendar-utils";
@@ -53,6 +52,9 @@ export function ICalImportModal({ calendars, client, onClose, initialUrl }: ICal
   const [urlInput, setUrlInput] = useState(initialUrl || "");
   const [isFetchingUrl, setIsFetchingUrl] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // The dialog opens on the drop zone, or on the address field for a link.
+  const dropZoneRef = useRef<HTMLButtonElement>(null);
+  const urlInputRef = useRef<HTMLInputElement>(null);
   const targetId = useId();
 
   const validateFile = useCallback((file: File): string | null => {
@@ -209,10 +211,15 @@ export function ICalImportModal({ calendars, client, onClose, initialUrl }: ICal
     if (!event.start) return "";
     try {
       const date = getEventStartDate(event as CalendarEvent);
-      const timeFmt = timeFormat === "12h" ? "h:mm a" : "HH:mm";
-      return event.showWithoutTime
-        ? format(date, "MMM d, yyyy")
-        : format(date, `MMM d, yyyy ${timeFmt}`);
+      // The locale's own order and month names, not an English pattern.
+      return date.toLocaleString(locale === "en" ? "en-US" : locale, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        ...(event.showWithoutTime ? {} : timeFormat === "12h"
+          ? { hour: "numeric", minute: "2-digit", hour12: true }
+          : { hour: "2-digit", minute: "2-digit", hour12: false }),
+      });
     } catch {
       return event.start;
     }
@@ -229,6 +236,7 @@ export function ICalImportModal({ calendars, client, onClose, initialUrl }: ICal
       onClose={close}
       title={t("title")}
       size="full-on-phone"
+      initialFocus={importMode === "url" ? urlInputRef : dropZoneRef}
       dirty={step !== "select" || urlInput.trim() !== (initialUrl ?? "")}
       footer={step !== "importing" ? (
         <>
@@ -281,6 +289,7 @@ export function ICalImportModal({ calendars, client, onClose, initialUrl }: ICal
               {importMode === "file" && (
                 <>
                 <button
+                  ref={dropZoneRef}
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   onDragOver={handleDragOver}
@@ -313,6 +322,7 @@ export function ICalImportModal({ calendars, client, onClose, initialUrl }: ICal
                   <p className="text-sm text-muted-foreground">{t("url_description")}</p>
                   <div className="flex gap-2">
                     <input
+                      ref={urlInputRef}
                       type="url"
                       value={urlInput}
                       onChange={(e) => setUrlInput(e.target.value)}

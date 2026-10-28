@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 
 /**
- * Bars pinned to the bottom of the screen on a phone (the tab bar, a
- * viewer's action bar) register here. While any is on screen,
+ * Bars pinned to the bottom of the screen register here: on a phone the tab
+ * bar and a viewer's action bar, on any screen an editor's Save/Cancel
+ * footer. While any is on screen,
  * `--bottom-controls-height` on <html> says how far from the bottom of the
  * window the topmost of them reaches, and toasts sit above it.
  */

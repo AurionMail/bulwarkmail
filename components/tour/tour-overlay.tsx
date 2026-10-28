@@ -9,6 +9,10 @@ import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { Button } from "@/components/ui/button";
 import { isEditableEventTarget } from "@/lib/keyboard";
 import { isDocumentRTL } from "@/i18n/direction";
+import { findTourTarget, isTourStepOnPage } from "./tour-steps";
+import { usePathname } from "@/i18n/navigation";
+
+export { findTourTarget };
 
 interface Rect {
   top: number;
@@ -21,23 +25,6 @@ const PADDING = 8;
 const TOOLTIP_GAP = 12;
 const TOOLTIP_MAX_W = 360;
 
-/**
- * The first element for the selector that is on screen. The same anchor can
- * exist twice (the rail and the phone's tab bar); one with no size is not
- * rendered in this layout, and one in a closed drawer (inert, or pushed off
- * the side of the screen) can't be seen: neither has anything to point at.
- */
-export function findTourTarget(selector: string): Element | null {
-  for (const el of document.querySelectorAll(selector)) {
-    if (el.closest("[inert]")) continue;
-    const r = el.getBoundingClientRect();
-    if (r.width === 0 && r.height === 0) continue;
-    if (r.right <= 0 || r.left >= window.innerWidth) continue;
-    return el;
-  }
-  return null;
-}
-
 function getTargetRect(selector: string): Rect | null {
   const el = findTourTarget(selector);
   if (!el) return null;
@@ -49,8 +36,10 @@ function getTargetRect(selector: string): Rect | null {
 const HIDDEN_TARGET_ATTEMPTS = 10;
 /** Polls before a step whose target never appeared (another page loading) is skipped. */
 const MISSING_TARGET_ATTEMPTS = 50;
+/** Polls while the step's app is still loading (a first visit compiles it in development). */
+const PAGE_LOAD_ATTEMPTS = 300;
 
-function computeTooltipPosition(
+export function computeTooltipPosition(
   target: Rect,
   placement: "top" | "bottom" | "left" | "right",
   tooltipSize: { width: number; height: number }
@@ -60,21 +49,25 @@ function computeTooltipPosition(
   const tw = Math.max(tooltipSize.width, 200); // minimum fallback width
   const th = Math.max(tooltipSize.height, 100); // minimum fallback height
 
+  // Along the side it sits on, the card slides to stay on screen: above a
+  // tab at the end of the phone's tab bar it can't be centred on the tab.
+  const alongX = (left: number) => Math.max(8, Math.min(left, vw - tw - 8));
+  const alongY = (top: number) => Math.max(8, Math.min(top, vh - th - 8));
   const positions = {
     bottom: {
       top: target.top + target.height + PADDING + TOOLTIP_GAP,
-      left: target.left + target.width / 2 - tw / 2,
+      left: alongX(target.left + target.width / 2 - tw / 2),
     },
     top: {
       top: target.top - PADDING - TOOLTIP_GAP - th,
-      left: target.left + target.width / 2 - tw / 2,
+      left: alongX(target.left + target.width / 2 - tw / 2),
     },
     right: {
-      top: target.top + target.height / 2 - th / 2,
+      top: alongY(target.top + target.height / 2 - th / 2),
       left: target.left + target.width + PADDING + TOOLTIP_GAP,
     },
     left: {
-      top: target.top + target.height / 2 - th / 2,
+      top: alongY(target.top + target.height / 2 - th / 2),
       left: target.left - PADDING - TOOLTIP_GAP - tw,
     },
   };
@@ -100,8 +93,13 @@ function computeTooltipPosition(
 
 export function TourOverlay() {
   const t = useTranslations();
-  const { currentStep, totalSteps, steps, nextStep, prevStep, stopTour } = useTour();
+  const { currentStep, totalSteps, steps, nextStep, prevStep, skipStep, stopTour } = useTour();
   const step = steps[currentStep];
+  // The same anchor can be in the app being left (the tab bar in Settings
+  // while Files loads): look for the target only once the step's app is up.
+  const pathname = usePathname();
+  const onPageRef = useRef(true);
+  onPageRef.current = !step || isTourStepOnPage(step, pathname);
 
   const [targetRect, setTargetRect] = useState<Rect | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
@@ -112,14 +110,12 @@ export function TourOverlay() {
 
   // Use refs for callbacks to avoid stale closures in timers/intervals
   const updatePositionRef = useRef<() => void>(() => {});
-  const nextStepRef = useRef<() => void>(() => {});
-  const prevStepRef = useRef<() => void>(() => {});
+  const skipStepRef = useRef<(direction: 1 | -1) => void>(() => {});
   // A step with nothing to point at is skipped in the direction the user went.
   const directionRef = useRef<1 | -1>(1);
   const goNext = useCallback(() => { directionRef.current = 1; nextStep(); }, [nextStep]);
   const goPrev = useCallback(() => { directionRef.current = -1; prevStep(); }, [prevStep]);
-  nextStepRef.current = nextStep;
-  prevStepRef.current = prevStep;
+  skipStepRef.current = skipStep;
 
   const focusTrapRef = useFocusTrap({
     isActive: visible,
@@ -172,6 +168,7 @@ export function TourOverlay() {
 
     const tryFind = () => {
       if (cancelled) return true;
+      if (!onPageRef.current) return false;
       const el = findTourTarget(step.target);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -195,7 +192,9 @@ export function TourOverlay() {
     // Poll for the element to appear (another page loading). One that is in
     // the DOM but not rendered in this layout (the rail on a phone) is given
     // up on sooner.
+    let loading = 0;
     const interval = setInterval(() => {
+      if (!onPageRef.current && ++loading < PAGE_LOAD_ATTEMPTS) return;
       attempts++;
       if (tryFind()) {
         clearInterval(interval);
@@ -205,8 +204,8 @@ export function TourOverlay() {
       if (attempts >= limit) {
         clearInterval(interval);
         if (cancelled) return;
-        if (directionRef.current === -1 && currentStep > 0) prevStepRef.current();
-        else nextStepRef.current();
+        // Dropped from this run, so the counter never counts it.
+        skipStepRef.current(directionRef.current);
       }
     }, 100);
 
@@ -301,6 +300,7 @@ export function TourOverlay() {
     <>
       {/* SVG overlay with cutout */}
       <svg
+        data-tour-layer=""
         className="fixed inset-0 z-[9998]"
         width="100%"
         height="100%"
@@ -335,6 +335,7 @@ export function TourOverlay() {
       {/* Click-through cutout zone for interactive steps */}
       {isInteractive && cutout && (
         <div
+          data-tour-layer=""
           className="fixed z-[9998]"
           style={{
             top: cutout.y,
@@ -350,6 +351,7 @@ export function TourOverlay() {
       {/* Non-interactive overlay click blocker around cutout */}
       {!isInteractive && cutout && (
         <div
+          data-tour-layer=""
           className="fixed z-[9998]"
           style={{
             top: cutout.y,
@@ -367,19 +369,23 @@ export function TourOverlay() {
           (tooltipRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
           (focusTrapRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
         }}
+        data-tour-layer=""
         role="dialog"
         aria-modal="true"
         aria-label={t(step.titleKey)}
+        aria-hidden={!visible || undefined}
         className={cn(
           "fixed z-[9999] transition-all",
-          visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+          // While the next target is looked for, the card is not there at
+          // all: an invisible card would still catch taps.
+          visible ? "opacity-100 translate-y-0" : "invisible opacity-0 translate-y-2"
         )}
         style={{
           top: tooltipPos?.top ?? -9999,
           left: tooltipPos?.left ?? -9999,
           maxWidth: TOOLTIP_MAX_W,
           transition: reducedMotion ? "none" : "opacity 200ms ease, transform 200ms ease, top 300ms ease, left 300ms ease",
-          pointerEvents: "auto",
+          pointerEvents: visible ? "auto" : "none",
         }}
         onClick={(e) => e.stopPropagation()}
       >

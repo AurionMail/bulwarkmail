@@ -10,6 +10,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { findContactPhotoEntry, getContactPhotoRef, type ContactPhotoRef } from "@/stores/contact-store";
 import type { ContactSaveOptions } from "@/lib/contact-media";
 import { cn } from "@/lib/utils";
+import { useBottomControls } from "@/hooks/use-bottom-controls";
 import type { ContactCard, ContactOnlineService, ContactAnniversary, ContactPersonalInfo, AddressBook, AnniversaryDate, PartialDate, ContactAddress, ContactMedia } from "@/lib/jmap/types";
 
 interface EmailEntry {
@@ -398,6 +399,9 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
   const [keywordsStr, setKeywordsStr] = useState(
     contact?.keywords ? Object.keys(contact.keywords).filter(k => contact.keywords![k]).join(", ") : ""
   );
+  // Text typed in the Categories field but not added with Enter yet: Save
+  // adds it, so it isn't lost.
+  const [categoryDraft, setCategoryDraft] = useState("");
 
   const [note, setNote] = useState(
     contact?.notes ? Object.values(contact.notes)[0]?.note || "" : ""
@@ -455,11 +459,12 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
   const fields = JSON.stringify([
     prefix, givenName, additionalName, surname, suffix, nickname, emails, phones, organization,
     department, isOrg, jobTitle, role, addresses, onlineServices, anniversaries, personalInfoEntries,
-    keywordsStr, note, genderSex, genderIdentity, calendarUri, schedulingUri, freeBusyUri, selectedBookId,
+    keywordsStr, categoryDraft, note, genderSex, genderIdentity, calendarUri, schedulingUri, freeBusyUri, selectedBookId,
   ]);
   const [initialFields] = useState(fields);
   const dirty = fields !== initialFields || photoEdit.kind !== "unchanged";
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
+  const footerRef = useBottomControls();
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -614,11 +619,14 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
     });
 
     const keywordsMap: Record<string, boolean> = {};
-    if (keywordsStr.trim()) {
-      keywordsStr.split(",").map(k => k.trim()).filter(Boolean).forEach(k => {
-        keywordsMap[k] = true;
-      });
-    }
+    keywordsStr.split(",").map(k => k.trim()).filter(Boolean).forEach(k => {
+      keywordsMap[k] = true;
+    });
+    // A typed category that matches an existing one takes its spelling.
+    categoryDraft.split(",").map(k => k.trim()).filter(Boolean).forEach(k => {
+      const existing = (allKeywords || []).find(kw => kw.toLowerCase() === k.toLowerCase());
+      keywordsMap[existing ?? k] = true;
+    });
 
     // Only send `kind` when this form owns the answer: switching a card between
     // person and organization. Leave other kinds (group, location, ...) untouched.
@@ -696,7 +704,7 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="px-6 py-4 max-w-3xl">
+        <div className="@container px-6 py-4 max-w-3xl">
           {error && (
             <div role="alert" className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md mb-4">
               {error}
@@ -816,10 +824,12 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-2">
+                {/* Two columns in a narrow pane (title and first name, last name and
+                    suffix), one row once there is room, so no name gets cut. */}
+                <div className="grid grid-cols-2 @lg:grid-cols-[auto_1fr_1fr_auto] gap-2">
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">{t("prefix")}</label>
-                    <Input value={prefix} onChange={(e) => setPrefix(e.target.value)} placeholder={t("prefix_placeholder")} className="w-20" />
+                    <Input value={prefix} onChange={(e) => setPrefix(e.target.value)} placeholder={t("prefix_placeholder")} className="@lg:w-20" />
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">{t("given_name")}</label>
@@ -831,7 +841,7 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">{t("suffix")}</label>
-                    <Input value={suffix} onChange={(e) => setSuffix(e.target.value)} placeholder={t("suffix_placeholder")} className="w-20" />
+                    <Input value={suffix} onChange={(e) => setSuffix(e.target.value)} placeholder={t("suffix_placeholder")} className="@lg:w-20" />
                   </div>
                 </div>
                 {/* Either name is enough (or an organization), so neither is starred. */}
@@ -1126,6 +1136,8 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
             <CategoryComboBox
               keywordsStr={keywordsStr}
               onChange={setKeywordsStr}
+              inputValue={categoryDraft}
+              onInputChange={setCategoryDraft}
               allKeywords={allKeywords || []}
               placeholder={t("categories_placeholder")}
               hint={t("categories_hint")}
@@ -1186,7 +1198,8 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border flex-shrink-0">
+      {/* Toasts sit above Save and Cancel, not on them. */}
+      <div ref={footerRef} className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border flex-shrink-0">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isSaving}>
           {t("cancel")}
         </Button>
@@ -1201,6 +1214,8 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
 function CategoryComboBox({
   keywordsStr,
   onChange,
+  inputValue,
+  onInputChange: setInputValue,
   allKeywords,
   placeholder,
   hint,
@@ -1208,6 +1223,9 @@ function CategoryComboBox({
 }: {
   keywordsStr: string;
   onChange: (value: string) => void;
+  /** The text typed but not added yet; the form adds it on Save. */
+  inputValue: string;
+  onInputChange: (value: string) => void;
   allKeywords: string[];
   placeholder: string;
   hint: string;
@@ -1215,7 +1233,6 @@ function CategoryComboBox({
 }) {
   const t = useTranslations("contacts.form");
   const [isOpen, setIsOpen] = useState(false);
-  const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Parse current keywords from comma-separated string
@@ -1243,7 +1260,7 @@ function CategoryComboBox({
     const next = [...currentKeywords, trimmed].join(", ");
     onChange(next);
     setInputValue("");
-  }, [currentKeywords, onChange]);
+  }, [currentKeywords, onChange, setInputValue]);
 
   const removeKeyword = useCallback((keyword: string) => {
     const next = currentKeywords.filter(k => k !== keyword).join(", ");

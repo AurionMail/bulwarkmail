@@ -206,10 +206,16 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
         run: go(pluginPageHref(page)),
       });
     }
+    // "c" and "/" compose and search only in Mail; another app may give the
+    // same keys its own meaning (Calendar: new event, search events), listed
+    // with its own commands above.
+    const inMail = pathname === "/" || pathname === "" || pathname === "/mail" || pathname.startsWith("/mail/");
+    const appKeys = new Set(list.map((c) => c.shortcut).filter(Boolean));
+    const mailKey = (key: string) => (inMail && !appKeys.has(key) ? key : undefined);
     list.push(
       { id: "go-settings", group: navigation, icon: Settings, label: t("go_to", { name: tSidebar("settings") }), run: go("/settings") },
-      { id: "compose", group: actions, icon: PenSquare, label: t("compose"), shortcut: "c", run: onMail("compose") },
-      { id: "search", group: actions, icon: Search, label: t("search"), shortcut: "/", run: onMail("search") },
+      { id: "compose", group: actions, icon: PenSquare, label: t("compose"), shortcut: mailKey("c"), run: onMail("compose") },
+      { id: "search", group: actions, icon: Search, label: t("search"), shortcut: mailKey("/"), run: onMail("search") },
       {
         id: "search-everything",
         group: actions,
@@ -257,7 +263,7 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
       });
     }
     return list;
-  }, [client, supportsCalendar, isFeatureEnabled, colorModeLocked, resolvedTheme, pluginActions, pluginPages, registeredGroups, accounts, activeAccountId, router, t, tSidebar, tGlobalSearch, onShowShortcuts, touch]);
+  }, [client, supportsCalendar, isFeatureEnabled, colorModeLocked, resolvedTheme, pluginActions, pluginPages, registeredGroups, accounts, activeAccountId, router, pathname, t, tSidebar, tGlobalSearch, onShowShortcuts, touch]);
 
   const needle = query.trim();
   const visible = needle

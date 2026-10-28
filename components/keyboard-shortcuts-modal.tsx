@@ -130,7 +130,9 @@ export function KeyboardShortcutsModal({ isOpen, onClose, app }: KeyboardShortcu
                 <h3 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wider">
                   {t(section.title)}
                 </h3>
-                <div className={cn(section.wide ? "grid grid-cols-1 md:grid-cols-2 gap-2" : "space-y-2")}>
+                {/* A wide section's two columns line up with the columns of the
+                    sections above it: the same 2rem gap as the panel grid. */}
+                <div className={cn(section.wide ? "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2" : "space-y-2")}>
                   {rows.map((shortcut) => (
                     <ShortcutRow
                       key={`${shortcut.key}:${shortcut.description}`}
@@ -176,15 +178,18 @@ function ShortcutRow({
   const keys = shortcutAlternatives(shortcutKey);
 
   return (
-    <div className="flex items-center justify-between py-1.5">
-      <span className="text-sm text-muted-foreground">{description}</span>
-      <div className="flex items-center gap-1.5 ms-4">
+    <div className="flex items-center justify-between gap-4 py-1.5">
+      <span className="min-w-0 text-sm text-muted-foreground">{description}</span>
+      {/* The description wraps first. A key never breaks inside ("Shift + ↓"),
+          and an alternative keeps its "or" with it ("n or c"); only a very
+          long list wraps, between alternatives. */}
+      <div className="flex flex-wrap items-center justify-end gap-x-1.5 gap-y-1 shrink-0 max-w-[75%]">
         {keys.map((key, index) => (
-          <span key={index}>
-            {index > 0 && <span className="text-muted-foreground/50 mx-1 text-xs">{t("or")}</span>}
+          <span key={index} className="inline-flex items-center gap-1.5 whitespace-nowrap">
+            {index > 0 && <span className="text-muted-foreground/50 text-xs">{t("or")}</span>}
             <kbd
               className={cn(
-                "inline-flex items-center justify-center",
+                "inline-flex items-center justify-center whitespace-nowrap",
                 "px-2 py-0.5 text-xs font-mono font-medium",
                 "bg-muted border border-border rounded",
                 "text-foreground shadow-sm",

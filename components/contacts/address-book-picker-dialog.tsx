@@ -30,7 +30,7 @@ export function AddressBookPickerDialog({ isOpen, onClose, addressBooks, current
       isOpen={isOpen}
       onClose={onClose}
       title={t("address_books.move_title")}
-      description={t("bulk.adding_contacts", { count })}
+      description={t("bulk.moving_contacts", { count })}
       onSubmit={(e) => {
         e.preventDefault();
         if (!choice) return;

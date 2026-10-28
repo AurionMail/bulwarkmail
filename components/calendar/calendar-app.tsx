@@ -91,6 +91,7 @@ import { useCalendarEventSearch } from "@/hooks/use-calendar-event-search";
 import { CalendarSearchField, CalendarSearchResults } from "@/components/calendar/calendar-search";
 import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
 import { useCalendarLocale } from "@/hooks/use-calendar-locale";
+import { useHoverPreviewGate } from "@/hooks/use-hover-preview-gate";
 import {
   computeScrollWindow, fixedScrollWindowState, freshScrollWindowState, growScrollWindow, normalizeScrollWindowState,
   scrollWindowContains, type CalendarFocus, type ScrollViewMode, type ScrollWindowOptions,
@@ -842,16 +843,20 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     [closeDetail, openEmptyContextMenu],
   );
 
+  // No preview over an open editor, card or dialog, nor after one closed
+  // until the pointer moves.
+  const canHoverPreview = useHoverPreviewGate(showEventModal || showTaskModal || detailPinned || quickDraft !== null);
+
   const handleHoverEvent = useCallback((event: CalendarEvent, anchorRect: DOMRect) => {
     if (isMobile) return;
     if (detailPinnedRef.current) return;
     if (calendarHoverPreview === 'off') return;
     if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); hoverTimerRef.current = null; }
-    // Don't show hover popover if the sidebar is already open for this event
-    if (showEventModal && editEvent?.id === event.id) return;
+    if (!canHoverPreview()) return;
     if (calendarHoverPreview === 'delay-500ms' || calendarHoverPreview === 'delay-1s' || calendarHoverPreview === 'delay-2s') {
       const ms = calendarHoverPreview === 'delay-500ms' ? 500 : calendarHoverPreview === 'delay-1s' ? 1000 : 2000;
       hoverTimerRef.current = setTimeout(() => {
+        if (!canHoverPreview()) return;
         setDetailEvent(event);
         setDetailAnchorRect(anchorRect);
       }, ms);
@@ -859,7 +864,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       setDetailEvent(event);
       setDetailAnchorRect(anchorRect);
     }
-  }, [isMobile, calendarHoverPreview, showEventModal, editEvent]);
+  }, [isMobile, calendarHoverPreview, canHoverPreview]);
 
   const handleHoverLeave = useCallback(() => {
     if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); hoverTimerRef.current = null; }
@@ -1790,6 +1795,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
             currentUserEmails={currentUserEmails}
             onSelectEvent={handleSelectEvent}
             onContextMenuEvent={handleContextMenuEvent}
+            onClearSearch={() => { setSearchQuery(""); searchInputRef.current?.focus(); }}
           />
         );
       }
@@ -2213,6 +2219,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
                 key={editTask?.id ?? 'new-task'}
                 task={editTask}
                 calendars={displayCalendars}
+                isSubscriptionCalendar={isSubscriptionCalendar}
                 onSave={handleSaveTask}
                 onDelete={handleDeleteTask}
                 onDirtyChange={setTaskEditorDirty}
@@ -2228,6 +2235,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               onClick={openCreateForView}
               className="absolute bottom-4 end-4 z-40 h-14 w-14 rounded-full shadow-lg"
               aria-label={createLabel}
+              data-tour="create-event-button"
             >
               <Plus className="h-6 w-6" />
             </Button>
@@ -2374,6 +2382,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
             key={editTask?.id ?? 'new-task'}
             task={editTask}
             calendars={displayCalendars}
+            isSubscriptionCalendar={isSubscriptionCalendar}
             onSave={handleSaveTask}
             onDelete={handleDeleteTask}
             onDirtyChange={setTaskEditorDirty}
@@ -2429,6 +2438,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
           && userOrganizes(pendingScopeAction.event, currentUserEmails)
           ? t("participants.cancel_notification")
           : undefined}
+        eventTitle={pendingScopeAction?.event.title || t("events.no_title")}
         onSelect={handleScopeSelect}
         onClose={() => setPendingScopeAction(null)}
       />

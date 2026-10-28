@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { Search, X, MapPin, Repeat } from "@/components/icons";
 import { Input } from "@/components/ui/input";
 import { IconButton } from "@/components/ui/icon-button";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
@@ -88,11 +89,13 @@ interface CalendarSearchResultsProps {
   currentUserEmails?: string[];
   onSelectEvent: (event: CalendarEvent, anchorRect: DOMRect) => void;
   onContextMenuEvent?: (e: React.MouseEvent, event: CalendarEvent) => void;
+  /** Empties the search box, back to the calendar (R9). */
+  onClearSearch?: () => void;
 }
 
 /** The events a calendar search found, upcoming first, then past ones. */
 export function CalendarSearchResults({
-  query, results, calendars, timeFormat = "24h", currentUserEmails, onSelectEvent, onContextMenuEvent,
+  query, results, calendars, timeFormat = "24h", currentUserEmails, onSelectEvent, onContextMenuEvent, onClearSearch,
 }: CalendarSearchResultsProps) {
   const t = useTranslations("calendar");
   const intlFormatter = useDisplayDateFormatter();
@@ -148,7 +151,7 @@ export function CalendarSearchResults({
               : { month: "short", day: "numeric", year: "numeric" })}
           </span>
           <span className="block text-xs text-muted-foreground tabular-nums">
-            {ev.showWithoutTime ? t("events.all_day") : `${formatTime(start)} – ${formatTime(end)}`}
+            {ev.showWithoutTime ? t("events.all_day") : <bdi dir="ltr">{`${formatTime(start)} – ${formatTime(end)}`}</bdi>}
           </span>
         </span>
         <span
@@ -157,13 +160,15 @@ export function CalendarSearchResults({
           aria-hidden="true"
         />
         <span className="flex-1 min-w-0">
-          <span className={cn("block text-sm font-medium truncate", isInactive && "line-through text-muted-foreground")} title={title}>
-            {title}
+          <span className="flex min-w-0">
+            <span dir="auto" className={cn("text-sm font-medium truncate", isInactive && "line-through text-muted-foreground")} title={title}>
+              {title}
+            </span>
           </span>
           {(meta || repeats) && (
             <span className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 min-w-0">
               {locationName && <MapPin className="w-3 h-3 flex-shrink-0" aria-hidden="true" />}
-              {meta && <span className="truncate" title={meta}>{meta}</span>}
+              {meta && <span dir="auto" className="truncate" title={meta}>{meta}</span>}
               {repeats && (
                 <span className="flex items-center gap-1 flex-shrink-0">
                   <Repeat className="w-3 h-3" aria-hidden="true" />
@@ -199,6 +204,11 @@ export function CalendarSearchResults({
           icon={Search}
           title={t("search.no_results", { query: query.trim() })}
           description={t("search.no_results_hint")}
+          actions={onClearSearch && (
+            <Button size="sm" variant="outline" onClick={onClearSearch}>
+              {t("search.clear")}
+            </Button>
+          )}
         />
       )}
       {section("calendar-search-upcoming", t("search.upcoming"), upcoming)}

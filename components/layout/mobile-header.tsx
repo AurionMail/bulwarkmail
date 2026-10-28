@@ -121,6 +121,7 @@ export function MobileHeader({
            nesting one inside another is invalid markup. */
         <div
           data-mobile-mail-search=""
+          data-tour="search-input"
           className={cn(
             "flex-1 min-w-0 h-10 flex items-center rounded-full pe-1",
             mountainView ? "mx-0 bg-transparent ps-2" : "mx-1 bg-muted ps-3"

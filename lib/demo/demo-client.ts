@@ -174,6 +174,8 @@ export class DemoJMAPClient implements IJMAPClient {
 
   setupPushNotifications(): boolean { return true; }
   closePushNotifications(): void { /* no-op in demo */ }
+  // Demo changes arrive through the state-change callback, not a live stream.
+  hasSSEStream(): boolean { return false; }
   onConnectionChange(callback: (connected: boolean) => void): void { this.connectionCallback = callback; }
   onRateLimit(): void { /* no-op in demo */ }
   isRateLimited(): boolean { return false; }
@@ -1425,8 +1427,10 @@ export class DemoJMAPClient implements IJMAPClient {
   }
 
   async updateFileNode(id: string, updates: Partial<Pick<FileNode, 'name' | 'parentId'>>): Promise<void> {
+    // A rename or move leaves `modified` alone, as on Stalwart: it dates the
+    // content, and a move or its Undo shouldn't make a file look edited.
     const node = this.data.fileNodes.find(n => n.id === id);
-    if (node) Object.assign(node, updates, { modified: new Date().toISOString() });
+    if (node) Object.assign(node, updates);
   }
 
   async updateFileNodes(updates: Record<string, Partial<Pick<FileNode, 'name' | 'parentId'>>>): Promise<{ updated: string[]; notUpdated: Record<string, string> }> {
@@ -1434,7 +1438,7 @@ export class DemoJMAPClient implements IJMAPClient {
     for (const [id, patch] of Object.entries(updates)) {
       const node = this.data.fileNodes.find(n => n.id === id);
       if (node) {
-        Object.assign(node, patch, { modified: new Date().toISOString() });
+        Object.assign(node, patch);
         updated.push(id);
       }
     }

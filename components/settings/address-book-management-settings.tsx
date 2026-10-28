@@ -9,6 +9,7 @@ import { useManagedAccountStore } from "@/stores/managed-account-store";
 import { toast } from "@/stores/toast-store";
 import { SettingsSection } from "./settings-section";
 import { cn } from "@/lib/utils";
+import { IconButton } from "@/components/ui/icon-button";
 import type { AddressBook, AddressBookRights } from "@/lib/jmap/types";
 import { ShareCollectionDialog } from "./share-collection-dialog";
 import { PromptDialog } from "@/components/ui/prompt-dialog";
@@ -138,7 +139,7 @@ export function AddressBookManagementSettings() {
   const handleDelete = async (book: AddressBook) => {
     if (!client) return;
     const ok = await confirm({
-      title: t("delete"),
+      title: t("delete_title"),
       message: t("confirm_delete", { name: book.name }),
       confirmText: t("delete"),
       variant: "destructive",
@@ -207,10 +208,10 @@ export function AddressBookManagementSettings() {
       >
         <Book className="w-4 h-4 text-muted-foreground flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <span className="text-sm font-medium truncate block">{book.name}</span>
+          <span className="text-sm font-medium truncate block" title={book.name} dir="auto">{book.name}</span>
         </div>
         {book.isDefault && (
-          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+          <span className="flex-shrink-0 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
             {t("default")}
           </span>
         )}
@@ -227,49 +228,31 @@ export function AddressBookManagementSettings() {
             </span>
           );
         })()}
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity">
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity">
           {canRename && (
-            <button
-              type="button"
-              onClick={() => setEditingId(book.id)}
-              className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-              title={t("rename")}
-            >
-              <Pencil className="w-3.5 h-3.5" />
-            </button>
+            <IconButton label={t("rename")} onClick={() => setEditingId(book.id)} className="text-muted-foreground">
+              <Pencil />
+            </IconButton>
           )}
           {canSetDefault && (
-            <button
-              type="button"
-              onClick={() => handleSetDefault(book)}
-              disabled={isLoading}
-              className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-              title={t("set_default")}
-            >
-              <Star className="w-3.5 h-3.5" />
-            </button>
+            <IconButton label={t("set_default")} onClick={() => handleSetDefault(book)} disabled={isLoading} className="text-muted-foreground">
+              <Star />
+            </IconButton>
           )}
           {!book.isShared && book.myRights?.mayShare && (
-            <button
-              type="button"
-              onClick={() => setSharingId(book.id)}
-              className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-              title={t("share")}
-            >
-              <Users className="w-3.5 h-3.5" />
-            </button>
+            <IconButton label={t("share")} onClick={() => setSharingId(book.id)} className="text-muted-foreground">
+              <Users />
+            </IconButton>
           )}
           {canDelete && (
-            <button
-              type="button"
+            <IconButton
+              label={t("delete")}
               onClick={() => void handleDelete(book)}
               disabled={isLoading}
-              className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
-              title={t("delete")}
-              aria-label={t("delete")}
+              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
             >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+              <Trash2 />
+            </IconButton>
           )}
         </div>
       </div>

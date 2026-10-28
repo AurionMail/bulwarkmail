@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Share2, Users } from "@/components/icons";
-import { cn } from "@/lib/utils";
+import { cn, formatFileSize } from "@/lib/utils";
 import { getEffectiveTimeZone } from "@/lib/timezone";
+import { getEffectiveLocale } from "@/i18n/detect-locale";
+import { useSettingsStore } from "@/stores/settings-store";
 import type { FileResource } from "@/stores/file-store";
 import { getFileIconByName, getFolderIcon, getSymlinkIcon, isImageFile, type FileIconSize } from "@/components/files/file-icons";
 
@@ -124,17 +126,33 @@ export function ShareBadge({ resource, t, className }: {
   return null;
 }
 
+/**
+ * A size that keeps its number before its unit ("6.7 KB") in a right-to-left
+ * layout too, where the bidi algorithm would otherwise show "KB 6.7".
+ */
+export function FileSize({ bytes }: { bytes: number }) {
+  return <bdi dir="ltr">{formatFileSize(bytes)}</bdi>;
+}
+
+/** Dates follow the app's language and 12/24-hour setting, as Mail's list does, not the browser's. */
+function dateLocale(): { locale: string; hour12: boolean } {
+  const locale = getEffectiveLocale();
+  return { locale: locale === "en" ? "en-US" : locale, hour12: useSettingsStore.getState().timeFormat === "12h" };
+}
+
 /** Full date and time, for tooltips and the details panel. */
 export function formatFullDate(value: string): string {
   if (!value) return "";
   try {
-    return new Date(value).toLocaleString(undefined, {
+    const { locale, hour12 } = dateLocale();
+    return new Date(value).toLocaleString(locale, {
       timeZone: getEffectiveTimeZone(),
       year: "numeric",
       month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      hour12,
     });
   } catch {
     return value;
@@ -149,12 +167,13 @@ export function formatShortDate(value: string, now = new Date()): string {
   const timeZone = getEffectiveTimeZone();
   const dayKey = (d: Date) => d.toLocaleDateString("en-CA", { timeZone });
   try {
+    const { locale, hour12 } = dateLocale();
     if (dayKey(date) === dayKey(now)) {
-      return date.toLocaleTimeString(undefined, { timeZone, hour: "2-digit", minute: "2-digit" });
+      return date.toLocaleTimeString(locale, { timeZone, hour: "2-digit", minute: "2-digit", hour12 });
     }
     const sameYear = date.toLocaleDateString("en-CA", { timeZone, year: "numeric" })
       === now.toLocaleDateString("en-CA", { timeZone, year: "numeric" });
-    return date.toLocaleDateString(undefined, {
+    return date.toLocaleDateString(locale, {
       timeZone,
       day: "numeric",
       month: "short",

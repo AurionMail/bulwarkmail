@@ -119,7 +119,7 @@
     "loading_mailboxes": "Loading mailboxes...",
     "push_connected": "Real-time updates active",
     "push_disconnected": "Real-time updates inactive",
-    "keyboard_shortcuts": "Keyboard Shortcuts",
+    "keyboard_shortcuts": "Keyboard shortcuts",
     "theme": {
       "light": "Light mode",
       "dark": "Dark mode",
@@ -232,25 +232,25 @@
     "switching_account": "Switching account..."
   },
   "sidebar_apps": {
-    "modal_title": "Sidebar Apps",
-    "add_new": "Add App",
-    "edit_app": "Edit App",
+    "modal_title": "Sidebar apps",
+    "add_new": "Add app",
+    "edit_app": "Edit app",
     "name_label": "Name",
-    "name_placeholder": "My App",
+    "name_placeholder": "My app",
     "name_required": "Name is required",
     "url_label": "URL",
     "url_required": "URL is required",
     "url_invalid": "Enter a valid http or https URL",
     "icon_label": "Icon",
     "icon_required": "Icon is required",
-    "open_mode_label": "Open Mode",
-    "open_new_tab": "New Tab",
+    "open_mode_label": "Open mode",
+    "open_new_tab": "New tab",
     "open_inline": "Inline",
     "cancel": "Cancel",
     "add": "Add",
     "update": "Update",
     "delete": "Delete",
-    "delete_confirm_title": "Delete App",
+    "delete_confirm_title": "Delete app",
     "delete_confirm": "Are you sure you want to delete \"{name}\"?",
     "no_apps": "No apps added yet",
     "no_apps_hint": "Add custom apps and links to your sidebar",
@@ -263,7 +263,7 @@
     "no_icons_found": "No icons found",
     "inline_badge": "Inline",
     "tab_badge": "Tab",
-    "show_on_mobile": "Show on Mobile"
+    "show_on_mobile": "Show on mobile"
   },
   "email_list": {
     "sections": {
@@ -1013,8 +1013,8 @@
     "email_tagged": "Email tagged",
     "emails_tagged": "{count} emails tagged",
     "tag_failed": "Tagging failed",
-    "identity_created": "Identity created successfully",
-    "identity_updated": "Identity updated successfully",
+    "identity_created": "Identity created",
+    "identity_updated": "Identity updated",
     "identity_deleted": "Identity deleted",
     "identity_set_primary": "Primary identity updated",
     "identity_create_failed": "Failed to create identity: {error}",
@@ -1024,10 +1024,10 @@
     "identity_not_found": "Identity not found",
     "vacation_saved": "Out of office settings saved",
     "vacation_save_failed": "Failed to save out of office settings",
-    "filters_saved": "Filters saved successfully",
+    "filters_saved": "Filters saved",
     "filters_save_failed": "Failed to save filters",
     "filters_deleted": "Filter rule deleted",
-    "templates_exported": "Templates exported successfully",
+    "templates_exported": "Templates exported",
     "templates_imported": "{count, plural, one {# template} other {# templates}} imported",
     "templates_import_errors": "Some templates could not be imported",
     "templates_import_empty": "No templates found in the file",
@@ -1120,8 +1120,8 @@
     "import_success": "Settings imported",
     "import_error": "Couldn't import settings",
     "reset_confirm": "Are you sure you want to reset all settings to defaults?",
-    "unsaved_changes": "You have unsaved changes",
-    "discard_changes": "Discard unsaved changes?",
+    "unsaved_changes": "Your changes haven't been saved.",
+    "discard_changes": "Discard changes?",
     "discard": "Discard",
     "keep_editing": "Keep editing",
     "search_placeholder": "Search settings",
@@ -1355,6 +1355,8 @@
       "id_exists": "This tag ID already exists",
       "edit": "Edit tag",
       "delete": "Delete tag",
+      "edit_tag": "Edit {name}",
+      "delete_tag": "Delete {name}",
       "deleted": "Tag deleted",
       "save": "Save",
       "add": "Add",
@@ -1948,7 +1950,7 @@
       "app_passwords": {
         "title": "App passwords",
         "description": "Create passwords for apps that don't support two-factor authentication",
-        "add": "Add",
+        "new": "New app password",
         "create": "Create",
         "cancel": "Cancel",
         "done": "Done",
@@ -1973,6 +1975,7 @@
       "api_keys": {
         "title": "API keys",
         "description": "Create API keys for scripts and integrations that talk to the server directly",
+        "new": "New API key",
         "name_label": "Key name",
         "name_placeholder": "e.g. Backup script, CI runner",
         "copy_now_warning": "Copy this API key now - it will not be shown again.",
@@ -2013,6 +2016,8 @@
         "key_placeholder": "Paste your public key here",
         "none": "No public keys configured",
         "title": "Public keys",
+        "add": "Add public key",
+        "add_submit": "Add",
         "added": "Public key added",
         "removed": "Public key deleted",
         "add_error": "Couldn't add the public key",
@@ -2026,7 +2031,7 @@
         "jmap_username_label": "JMAP username",
         "copy": "Copy",
         "copied": "Copied",
-        "password_instructions": "Use your JMAP username above along with an app password to sign in to your email client. Create an app password in the section above if you haven't already."
+        "password_instructions": "Use your JMAP username above along with an app password to sign in to your email client. Create an app password in the section below if you haven't already."
       },
       "link_device": {
         "title": "Link the mobile app",
@@ -2078,7 +2083,7 @@
       },
       "manage": "Manage identities",
       "sub_addressing": {
-        "label": "Sub-Addressing",
+        "label": "Sub-addressing",
         "description": "Use tags like user+tag@domain.com to organize incoming mail",
         "learn_more": "Learn more"
       }
@@ -2341,10 +2346,10 @@
       "export_label": "Export contacts",
       "export_description": "Export all contacts as a vCard (.vcf) file",
       "manage_title": "Address books",
-      "manage_description": "Rename your address books",
+      "manage_description": "Rename or delete your address books",
       "no_address_books": "No address books found",
       "categories_title": "Categories",
-      "categories_description": "Rename contact categories",
+      "categories_description": "Rename or delete contact categories",
       "no_categories": "No categories found"
     },
     "calendar_management": {
@@ -2486,6 +2491,7 @@
       "label_name": "Tag name",
       "label_placeholder": "Select tag",
       "header_name": "Header name",
+      "condition_value": "Condition value",
       "header_placeholder": "e.g., X-Mailing-List",
       "size_bytes": "Size in bytes",
       "size_placeholder": "e.g., 1000000",
@@ -2513,6 +2519,10 @@
       "validation_empty_name": "Rule name is required",
       "validation_empty_conditions": "At least one condition with a value is required",
       "validation_empty_actions": "At least one action is required",
+      "validation_action_folder": "Select a folder for this action",
+      "validation_action_tag": "Select a tag for this action",
+      "validation_action_forward": "Enter an address to forward to",
+      "validation_action_reject": "Enter the rejection message",
       "validation_header_name": "Header names may only contain the letters A-Z, digits, hyphens and underscores",
       "templates_section": "Start from template",
       "template_newsletters": "Move newsletters to folder",
@@ -2525,12 +2535,12 @@
         "script_content": "Sieve script",
         "valid": "Script is valid",
         "invalid": "Script has errors",
-        "save_warning": "Saving will overwrite any visual rules. This cannot be undone. Click Save again to confirm.",
         "validating": "Validating...",
         "validate": "Validate",
         "cancel": "Cancel",
         "save": "Save",
-        "confirm_save": "Save anyway",
+        "overwrite_title": "Replace your visual rules?",
+        "overwrite_message": "This script no longer holds the rules you made in the visual builder. Saving it replaces them, and this can't be undone.",
         "validation_failed": "Validation request failed"
       },
       "rule_summary": {
@@ -2610,20 +2620,20 @@
         "description": "Configure how files and folders are displayed"
       },
       "default_view": {
-        "label": "Default View",
+        "label": "Default view",
         "description": "Choose between grid and list layout",
         "list": "List",
         "grid": "Grid"
       },
       "default_sort": {
-        "label": "Default Sort",
+        "label": "Default sort",
         "description": "Choose the default sorting for files",
         "name": "Name",
         "size": "Size",
         "modified": "Modified"
       },
       "sort_direction": {
-        "label": "Sort Direction",
+        "label": "Sort direction",
         "description": "Choose ascending or descending order",
         "ascending": "Ascending",
         "descending": "Descending"
@@ -2633,15 +2643,15 @@
         "description": "Configure file icon appearance"
       },
       "show_icons": {
-        "label": "Show File Icons",
+        "label": "Show file icons",
         "description": "Display icons next to files and folders"
       },
       "colored_icons": {
-        "label": "Colored Icons",
+        "label": "Colored icons",
         "description": "Use colorful icons instead of monochrome"
       },
       "show_thumbnails": {
-        "label": "Show Thumbnails",
+        "label": "Show thumbnails",
         "description": "Display image previews instead of icons for image files"
       },
       "behavior": {
@@ -2649,7 +2659,7 @@
         "description": "Configure file browser behavior"
       },
       "show_hidden": {
-        "label": "Show Hidden Files",
+        "label": "Show hidden files",
         "description": "Display files and folders that start with a dot"
       },
       "preview": {
@@ -3022,7 +3032,7 @@
     "delete_with_contents_confirm": "Delete folder and messages"
   },
   "shortcuts": {
-    "title": "Keyboard Shortcuts",
+    "title": "Keyboard shortcuts",
     "tip": "Press ? anytime to show this help",
     "or": "or",
     "sections": {
@@ -3258,8 +3268,8 @@
     "empty_filtered_hint": "Try adjusting or clearing filters",
     "clear_search": "Clear search",
     "import_vcard": "Import vCard",
-    "delete_confirm_title": "Delete contact",
-    "delete_confirm": "Are you sure you want to delete this contact?",
+    "delete_named_title": "Delete {name}?",
+    "delete_details_message": "Email addresses, phone numbers, notes and all other details will be deleted. You can't undo this.",
     "local_mode": "Contacts are stored locally (server does not support JMAP Contacts)",
     "back_to_contacts": "Back to contacts",
     "back_to_email": "Back to email",
@@ -3295,6 +3305,7 @@
       "share": "Share address book",
       "new_contact_in_book": "New contact in this address book",
       "delete": "Delete address book",
+      "delete_title": "Delete address book?",
       "confirm_delete": "Delete \"{name}\"? All contacts in this address book will be removed.",
       "deleted": "Address book deleted",
       "delete_failed": "Couldn't delete the address book",
@@ -3499,7 +3510,7 @@
       "edit": "Edit group",
       "empty": "No groups yet",
       "delete_confirm_title": "Delete group",
-      "delete_confirm": "Are you sure you want to delete this group?",
+      "delete_message": "The group will be deleted. The contacts in it are kept.",
       "name_label": "Group name",
       "name_placeholder": "e.g., Team, Family",
       "name_required": "Group name is required",
@@ -3533,7 +3544,7 @@
       "file_too_large": "File is too large (max 5 MB)"
     },
     "export": {
-      "title": "Export Contacts",
+      "title": "Export contacts",
       "success": "{count, plural, one {1 contact exported} other {# contacts exported}}",
       "exporting": "Exporting..."
     },
@@ -3541,13 +3552,13 @@
       "selected": "{count, plural, one {1 selected} other {# selected}}",
       "select_all": "Select all",
       "delete": "Delete",
-      "delete_confirm_title": "Delete contacts",
       "delete_confirm": "Delete {count, plural, one {1 contact} other {# contacts}}?",
       "deleted": "{count, plural, one {1 contact deleted} other {# contacts deleted}}",
       "add_to_group": "Add to group",
       "choose_group": "Choose a group",
       "new_group": "New group…",
       "adding_contacts": "Adding {count, plural, one {1 contact} other {# contacts}}",
+      "moving_contacts": "Moving {count, plural, one {1 contact} other {# contacts}}",
       "added_to_group": "Contacts added to group",
       "export": "Export",
       "clear": "Clear selection"
@@ -3776,6 +3787,10 @@
     "recurrence_scope": {
       "edit_title": "Edit recurring event",
       "delete_title": "Delete recurring event",
+      "delete_question": "Delete recurring event?",
+      "delete_this_message": "Only this occurrence of \"{title}\" will be deleted. This can't be undone.",
+      "delete_following_message": "This and every later occurrence of \"{title}\" will be deleted. This can't be undone.",
+      "delete_all_message": "Every occurrence of \"{title}\" will be deleted. This can't be undone.",
       "description": "This is a recurring event. Which events would you like to modify?",
       "this_event": "This event only",
       "this_and_future": "This and following events",
@@ -4011,13 +4026,14 @@
       "color": "Color",
       "change_color": "Change color",
       "random_color": "New random color",
-      "add_calendar": "Add calendar",
+      "add_calendar": "New calendar",
       "edit": "Edit",
       "delete": "Delete",
       "save": "Save",
       "create": "Create",
       "cancel": "Cancel",
       "default": "Default",
+      "row_actions": "Actions for {name}",
       "confirm_delete": "Delete \"{name}\"? All events in this calendar will be removed.",
       "confirm_clear": "Clear all events from \"{name}\"? This cannot be undone.",
       "set_default": "Set as default",
@@ -5044,7 +5060,7 @@
     "loading": "Loading page",
     "not_available_title": "This page is not available",
     "not_available_description": "The plugin that added it is turned off or no longer installed.",
-    "back_to_mail": "Back to Mail"
+    "back_to_mail": "Back to mail"
   },
   "command_palette": {
     "title": "Command palette",

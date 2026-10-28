@@ -22,8 +22,11 @@ export interface CalendarSearchResults {
 }
 
 // One row per event: a series found as loaded occurrences and as the
-// server's base event shows once.
-const seriesKey = (event: CalendarEvent) => `${event.accountId ?? ""} ${event.uid || event.originalId || event.id}`;
+// server's base event shows once. An occurrence renamed on its own gets a
+// row of its own, so the series still shows under its own title: the next
+// occurrence being the renamed one hid the series.
+const seriesKey = (event: CalendarEvent) =>
+  `${event.accountId ?? ""} ${event.uid || event.originalId || event.id} ${event.title ?? ""}`;
 
 /**
  * Searches the user's events by title, place, description and participants

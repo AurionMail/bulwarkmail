@@ -27,6 +27,7 @@ import {
   X,
   type AppIcon,
 } from '@/components/icons';
+import { useRegisterCommands } from '@/lib/command-registry';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/icon-button';
 import { Input } from '@/components/ui/input';
@@ -262,6 +263,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   const router = useRouter();
   const t = useTranslations('settings');
   const tSidebar = useTranslations('sidebar');
+  const tPalette = useTranslations('command_palette');
   useDocumentTitle(tSidebar('settings'));
   const { client, isAuthenticated, logout, checkAuth, isLoading: authLoading } = useAuthStore();
   const { showAppsModal, inlineApp, loadedApps, handleManageApps, handleInlineApp, closeInlineApp, closeAppsModal } = useSidebarApps();
@@ -656,10 +658,6 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     }
   }, [activeTab]);
 
-  if (!isAuthenticated) {
-    return null;
-  }
-
   const supportsVacation = client?.supportsVacationResponse() ?? false;
   const supportsCalendar = client?.supportsCalendars() ?? false;
   const supportsSieve = client?.supportsSieve() ?? false;
@@ -786,6 +784,26 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     setPendingHighlight({ tab: tabId, label: sub.label, pluginId: sub.pluginId, advanced: sub.advanced });
   };
 
+  // Ctrl/⌘+K in Settings: one "Go to <page>" per page shown in the list,
+  // found by the same words as the settings search ("out of office", "app
+  // password", "add rule").
+  useRegisterCommands(
+    tSidebar('settings'),
+    visibleTabs.map((tab) => ({
+      id: `go-${tab.id}`,
+      label: tPalette('go_to', { name: tab.label }),
+      icon: tab.icon,
+      keywords: [tabSearchHaystacks[tab.id as Tab] ?? ''],
+      run: () => handleTabSelect(tab.id),
+      when: () => tab.id !== effectiveActiveTab,
+    })),
+    isAuthenticated,
+  );
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   const activeTabLabel = visibleTabs.find((tab) => tab.id === effectiveActiveTab)?.label ?? '';
 
   const renderTabContent = () => (
@@ -909,7 +927,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
           <PhoneHeaderActions />
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto" data-tour="settings-tabs">
           <div className="px-4 pt-3 pb-1">
             <div className="relative">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />

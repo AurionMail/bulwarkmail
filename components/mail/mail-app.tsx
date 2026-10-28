@@ -1136,7 +1136,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     handlers: keyboardHandlers,
   });
 
-  // Compose and search from the command palette (components/command-palette).
+  // Compose and search from the command palette (components/command-palette);
+  // the tour closes the phone's folder drawer and reader to point at the list
+  // and the tab bar.
   useAppCommands({
     compose: keyboardHandlers.onCompose,
     search: () => {
@@ -1144,6 +1146,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       else keyboardHandlers.onFocusSearch?.();
     },
     'all-inboxes': () => handleMailboxSelect(UNIFIED_MAILBOX_IDS.inbox),
+    'show-list': () => {
+      if (!isMobile) return;
+      if (sidebarOpen) setSidebarOpen(false);
+      if (!showComposer && (activeView !== "list" || selectedEmail)) handleMobileBack();
+    },
   }, isAuthenticated && !!client);
 
   // Shared mail refresh: re-fetch mailboxes (unread counts) + the active list
@@ -4215,6 +4222,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // "Go to" for every folder. Compose is the palette's own.
   const paletteEmail = isScheduledView ? null : selectedEmail;
   const hasPaletteEmail = () => !!paletteEmail;
+  const paletteMailboxesById = new Map(mailboxes.map((mb) => [mb.id, mb]));
+  const paletteMailboxName = (mb: Mailbox) => localizeMailboxName(mb.role, mb.name, (k) => t(`sidebar.mailboxes.${k}`));
   useRegisterCommands(t('sidebar.mail'), [
     { id: 'reply', label: t('context_menu.reply'), icon: Reply, shortcut: 'r', when: hasPaletteEmail, run: () => void handleReply() },
     { id: 'reply-all', label: t('context_menu.reply_all'), icon: ReplyAll, shortcut: 'a', when: hasPaletteEmail, run: () => void handleReplyAll() },
@@ -4248,12 +4257,17 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     ...mailboxes
       .filter((mb) => !mb.id.startsWith('shared-') && mb.id !== selectedMailbox)
       .map((mb) => {
-        const name = localizeMailboxName(mb.role, mb.name, (k) => t(`sidebar.mailboxes.${k}`));
+        const name = paletteMailboxName(mb);
+        // Two Inboxes (yours and a shared Support account's), or "2025" in
+        // Archive and in Receipts: say whose, or where, it is.
+        const parent = mb.parentId ? paletteMailboxesById.get(mb.parentId) : undefined;
+        const where = [mb.isShared ? mb.accountName : undefined, parent ? paletteMailboxName(parent) : undefined]
+          .filter(Boolean).join(' / ');
         return {
           id: `go-${mb.id}`,
-          label: t('context_menu.go_to_folder', { folder: name }),
+          label: t('context_menu.go_to_folder', { folder: where ? `${name} · ${where}` : name }),
           icon: Folder,
-          keywords: [name],
+          keywords: where ? [name, where] : [name],
           run: () => void handleMailboxSelect(mb.id),
         };
       }),

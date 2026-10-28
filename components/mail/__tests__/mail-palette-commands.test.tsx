@@ -108,6 +108,24 @@ describe('Mail in the command palette', () => {
     expect(ids).not.toContain('mark-read');
   });
 
+  it("says whose a shared folder is and where a subfolder is, so two Inboxes don't look the same", async () => {
+    const shared = { ...folder('support:inbox', 'inbox'), isShared: true, accountName: 'Support', accountId: 'support', originalId: 'inbox' } as Mailbox;
+    const archive = folder('archive', 'archive', 'Archive');
+    const year = { ...folder('y2025', undefined, '2025'), parentId: 'archive' } as Mailbox;
+    const all = [...folders, shared, archive, year];
+    useEmailStore.setState({ mailboxes: all, selectedMailbox: 'work' } as never);
+    client.getMailboxes = vi.fn().mockResolvedValue(all);
+    let groups: CommandGroup[] = [];
+    render(<><MailApp /><Palette onGroups={(g) => { groups = g; }} /></>);
+    await screen.findByText('viewer', {}, { timeout: 5000 });
+    await waitFor(() => expect(groups.find((g) => g.label === 'sidebar.mail')).toBeDefined());
+    // The test translator drops parameters; the place also goes in the keywords.
+    const where = (id: string) => groups.find((g) => g.label === 'sidebar.mail')!.commands.find((c) => c.id === id)!.keywords?.slice(1);
+    expect(where('go-support:inbox')).toEqual(['Support']);
+    expect(where('go-inbox')).toEqual([]);
+    expect(where('go-y2025')?.[0]).toMatch(/archive/i);
+  });
+
   it('moves the open message from "Move to…"', async () => {
     let groups: CommandGroup[] = [];
     render(<><MailApp /><Palette onGroups={(g) => { groups = g; }} /></>);

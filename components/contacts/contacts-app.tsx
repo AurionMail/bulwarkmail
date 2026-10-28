@@ -52,6 +52,7 @@ import { useLiteLinkSegments } from "@/hooks/use-lite-link-segments";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useRegisterCommands } from "@/lib/command-registry";
 import { useCloseOnBack } from "@/hooks/use-close-on-back";
+import { useLeaveGuard } from "@/lib/leave-guard";
 import { useDeleteCategory } from "@/hooks/use-delete-category";
 import { MvTopBar } from "@/components/layout/mv-top-bar";
 import { useMountainViewShell } from "@/hooks/use-mountain-view-shell";
@@ -172,18 +173,23 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   useEffect(() => {
     if (view !== "create" && view !== "edit" && view !== "group-create" && view !== "group-edit") setEditorDirty(false);
   }, [view, setEditorDirty]);
+  const askDiscard = useCallback(() => confirmDialog({
+    title: t("form.discard_title"),
+    message: t("form.discard_message"),
+    confirmText: t("form.discard"),
+    cancelText: t("form.keep_editing"),
+    variant: "destructive",
+  }), [confirmDialog, t]);
   const confirmDiscard = useCallback(async () => {
     if (!editorDirtyRef.current) return true;
-    const discard = await confirmDialog({
-      title: t("form.discard_title"),
-      message: t("form.discard_message"),
-      confirmText: t("form.discard"),
-      cancelText: t("form.keep_editing"),
-      variant: "destructive",
-    });
+    const discard = await askDiscard();
     if (discard) setEditorDirty(false);
     return discard;
-  }, [confirmDialog, t, setEditorDirty]);
+  }, [askDiscard, setEditorDirty]);
+  // The rail and the phone tab bar ask too, before they leave Contacts. Only
+  // ask there: leaving unmounts the form, and clearing it first would let the
+  // Back guard below take its history step back over the navigation.
+  useLeaveGuard(() => editorDirtyRef.current, askDiscard);
   const guard = <A extends unknown[]>(action: (...args: A) => unknown) => (...args: A): void => {
     if (!editorDirtyRef.current) {
       action(...args);
@@ -529,14 +535,31 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     setView("edit");
   };
 
-  const deleteContactById = useCallback(async (contactId: string) => {
-    const confirmed = await confirmDialog({
-      title: t("delete_confirm_title"),
-      message: t("delete_confirm"),
+  // R3: the confirm names what goes ("Delete Alice Smith?", "Delete 3
+  // contacts?") and says what is lost with it.
+  const confirmDeleteContacts = useCallback((ids: string[]) => {
+    const only = ids.length === 1 ? contacts.find((c) => c.id === ids[0]) : undefined;
+    const name = only ? getContactDisplayName(only).trim() : "";
+    return confirmDialog({
+      title: name ? t("delete_named_title", { name }) : t("bulk.delete_confirm", { count: ids.length }),
+      message: t("delete_details_message"),
       confirmText: t("form.delete"),
       variant: "destructive",
     });
-    if (!confirmed) return;
+  }, [contacts, confirmDialog, t]);
+  const confirmDeleteGroup = useCallback((groupId: string) => {
+    const group = contacts.find((c) => c.id === groupId);
+    const name = group ? getContactDisplayName(group).trim() : "";
+    return confirmDialog({
+      title: name ? t("delete_named_title", { name }) : t("groups.delete_confirm_title"),
+      message: t("groups.delete_message"),
+      confirmText: t("form.delete"),
+      variant: "destructive",
+    });
+  }, [contacts, confirmDialog, t]);
+
+  const deleteContactById = useCallback(async (contactId: string) => {
+    if (!(await confirmDeleteContacts([contactId]))) return;
 
     try {
       const deleted = supportsSync && client
@@ -550,7 +573,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
       console.error('Failed to delete contact:', error);
       toast.error(t("toast.error_delete"));
     }
-  }, [confirmDialog, t, supportsSync, client, deleteContact, deleteLocalContact, selectedContactId]);
+  }, [confirmDeleteContacts, t, supportsSync, client, deleteContact, deleteLocalContact, selectedContactId]);
 
   const handleDelete = async () => {
     if (!selectedContact) return;
@@ -773,13 +796,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   }, [openComposeInApp]);
 
   const handleDeleteGroupFromSidebar = useCallback(async (groupId: string) => {
-    const confirmed = await confirmDialog({
-      title: t("groups.delete_confirm_title"),
-      message: t("groups.delete_confirm"),
-      confirmText: t("form.delete"),
-      variant: "destructive",
-    });
-    if (!confirmed) return;
+    if (!(await confirmDeleteGroup(groupId))) return;
 
     try {
       await deleteGroup(supportsSync && client ? client : null, groupId);
@@ -793,18 +810,11 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
       console.error('Failed to delete group:', error);
       toast.error(t("toast.error_delete"));
     }
-  }, [confirmDialog, deleteGroup, supportsSync, client, selectedGroupId, t]);
+  }, [confirmDeleteGroup, deleteGroup, supportsSync, client, selectedGroupId, t]);
 
   const handleDeleteGroup = async () => {
     if (!selectedGroup) return;
-
-    const confirmed = await confirmDialog({
-      title: t("groups.delete_confirm_title"),
-      message: t("groups.delete_confirm"),
-      confirmText: t("form.delete"),
-      variant: "destructive",
-    });
-    if (!confirmed) return;
+    if (!(await confirmDeleteGroup(selectedGroup.id))) return;
 
     try {
       await deleteGroup(supportsSync && client ? client : null, selectedGroup.id);
@@ -855,13 +865,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   const handleBulkDelete = async () => {
     if (selectedContactIds.size === 0) return;
 
-    const confirmed = await confirmDialog({
-      title: t("bulk.delete_confirm_title"),
-      message: t("bulk.delete_confirm", { count: selectedContactIds.size }),
-      confirmText: t("bulk.delete"),
-      variant: "destructive",
-    });
-    if (!confirmed) return;
+    if (!(await confirmDeleteContacts(Array.from(selectedContactIds)))) return;
 
     try {
       if (!(await bulkDeleteContacts(
@@ -1193,7 +1197,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                       }))}
                       onDeleteAddressBook={client ? fromDrawer(async (book: AddressBook) => {
                         const ok = await confirmDialog({
-                          title: t("address_books.delete"),
+                          title: t("address_books.delete_title"),
                           message: t("address_books.confirm_delete", { name: book.name }),
                           variant: "destructive",
                           confirmText: t("address_books.delete"),
