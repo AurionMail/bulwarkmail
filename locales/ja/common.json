@@ -2949,6 +2949,8 @@
     "empty_state": "連絡先がありません",
     "empty_state_title": "連絡先がありません",
     "empty_state_subtitle": "最初の連絡先を作成するか、vCardファイルからインポートしてください",
+    "empty_view_title": "ここに連絡先はありません",
+    "empty_view_hint": "連絡先を追加するか、vCard ファイルを読み込んでください。",
     "empty_search": "検索に一致する連絡先がありません",
     "empty_search_hint": "別の検索語をお試しください",
     "empty_filtered": "フィルターに一致する連絡先がありません",

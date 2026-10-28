@@ -2949,6 +2949,8 @@
     "empty_state": "Žádné kontakty",
     "empty_state_title": "Žádné kontakty",
     "empty_state_subtitle": "Vytvořte první kontakt nebo importujte ze souboru vCard",
+    "empty_view_title": "Nejsou zde žádné kontakty",
+    "empty_view_hint": "Přidejte kontakt nebo importujte soubor vCard.",
     "empty_search": "Hledání neodpovídají žádné kontakty",
     "empty_search_hint": "Zkuste použít jiný hledaný výraz",
     "empty_filtered": "Žádné kontakty neodpovídají filtrům",

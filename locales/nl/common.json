@@ -2949,6 +2949,8 @@
     "empty_state": "Geen contacten",
     "empty_state_title": "Geen contacten",
     "empty_state_subtitle": "Maak uw eerste contact aan of importeer vanuit een vCard-bestand",
+    "empty_view_title": "Geen contacten hier",
+    "empty_view_hint": "Voeg een contact toe of importeer een vCard-bestand.",
     "empty_search": "Geen contacten gevonden",
     "empty_search_hint": "Probeer een andere zoekterm",
     "empty_filtered": "Geen contacten voldoen aan uw filters",

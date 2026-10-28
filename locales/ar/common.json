@@ -2949,6 +2949,8 @@
     "empty_state": "لا توجد جهات اتصال بعد",
     "empty_state_title": "لا توجد جهات اتصال بعد",
     "empty_state_subtitle": "أنشئ أول جهة اتصال أو استوردها من ملف vCard",
+    "empty_view_title": "لا توجد جهات اتصال هنا",
+    "empty_view_hint": "أضف جهة اتصال أو استورد ملف vCard.",
     "empty_search": "لا توجد جهات اتصال مطابقة لبحثك",
     "empty_search_hint": "جرّب مصطلح بحث مختلف",
     "empty_filtered": "لا توجد جهات اتصال مطابقة لمرشحاتك",

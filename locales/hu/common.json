@@ -2949,6 +2949,8 @@
     "empty_state": "Még nincsenek névjegyek",
     "empty_state_title": "Még nincsenek névjegyek",
     "empty_state_subtitle": "Hozd létre az első névjegyed vagy importálj vCard fájlból",
+    "empty_view_title": "Itt nincsenek névjegyek",
+    "empty_view_hint": "Adjon hozzá egy névjegyet, vagy importáljon egy vCard-fájlt.",
     "empty_search": "Nincs a keresésnek megfelelő névjegy",
     "empty_search_hint": "Próbálj meg más keresési kifejezést",
     "empty_filtered": "Nincs a szűrőknek megfelelő névjegy",

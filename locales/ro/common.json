@@ -2949,6 +2949,8 @@
     "empty_state": "Nu există încă contacte",
     "empty_state_title": "Nu există încă contacte",
     "empty_state_subtitle": "Creați primul dvs. contact sau importați-l dintr-un fișier „vCard”",
+    "empty_view_title": "Nu există contacte aici",
+    "empty_view_hint": "Adăugați un contact sau importați un fișier vCard.",
     "empty_search": "Nu există contacte care să corespundă căutării dvs.",
     "empty_search_hint": "Încercați un alt termen de căutare",
     "empty_filtered": "Nu există contacte care să corespundă filtrelor dvs.",

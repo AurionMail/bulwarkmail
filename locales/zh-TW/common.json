@@ -2949,6 +2949,8 @@
     "empty_state": "尚無聯絡人",
     "empty_state_title": "尚無聯絡人",
     "empty_state_subtitle": "建立第一位聯絡人，或從 vCard 檔案匯入",
+    "empty_view_title": "這裡沒有聯絡人",
+    "empty_view_hint": "新增聯絡人或匯入 vCard 檔案。",
     "empty_search": "沒有符合您搜尋條件的聯絡人",
     "empty_search_hint": "嘗試其他搜尋字詞",
     "empty_filtered": "沒有符合您篩選條件的聯絡人",

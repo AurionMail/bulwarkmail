@@ -224,4 +224,15 @@ describe('ContactsApp', () => {
       window.matchMedia = matchMedia;
     }
   });
+
+  it('says an empty address book is empty, not that the account has no contacts, and offers Import', () => {
+    renderContacts([alice]);
+    act(() => { useContactStore.setState({ addressBooks: [{ id: 'b2', name: 'Work', isDefault: false } as never] }); });
+    fireEvent.click(screen.getAllByRole('button', { name: 'open_categories' })[0]);
+    fireEvent.click(within(drawer()).getByText('Work'));
+    expect(screen.getByText('empty_view_title')).toBeInTheDocument();
+    expect(screen.queryByText('empty_state_title')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /import.title/ }));
+    expect(screen.getByRole('dialog', { name: 'import.title' })).toBeInTheDocument();
+  });
 });

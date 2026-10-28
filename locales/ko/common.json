@@ -2949,6 +2949,8 @@
     "empty_state": "아직 연락처가 없어요",
     "empty_state_title": "아직 연락처가 없어요",
     "empty_state_subtitle": "새 연락처를 만들거나 vCard 파일에서 가져와 보세요",
+    "empty_view_title": "여기에 연락처가 없습니다",
+    "empty_view_hint": "연락처를 추가하거나 vCard 파일을 가져오세요.",
     "empty_search": "검색된 연락처가 없어요",
     "empty_search_hint": "다른 검색어로 다시 시도해 보세요",
     "empty_filtered": "필터에 일치하는 연락처가 없어요",

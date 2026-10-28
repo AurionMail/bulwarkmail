@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { Search, BookUser, Trash2, Users, Download, X, UserPlus, CheckSquare, Square, Filter, Mail, Phone, Image as ImageIcon, RotateCcw, Menu, ArrowDownAZ, Loader2, FolderInput } from "@/components/icons";
+import { Search, BookUser, Trash2, Users, Download, X, UserPlus, CheckSquare, Square, Filter, Mail, Phone, Image as ImageIcon, RotateCcw, Menu, ArrowDownAZ, Loader2, FolderInput, Upload } from "@/components/icons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { IconButton } from "@/components/ui/icon-button";
 import { ContactListItem } from "./contact-list-item";
 import { ContactContextMenu } from "./contact-context-menu";
@@ -123,6 +124,9 @@ interface ContactListProps {
   onMoveContacts?: (ids: string[]) => void;
   /** Show a burger button at the start that opens the (overlay) categories sidebar. */
   onMenuClick?: () => void;
+  /** The list shows one address book, category or group, not the whole account. */
+  emptyView?: boolean;
+  onImport?: () => void;
   /** Contacts' own entries in the phone header's ⋮. */
   phoneMenuItems?: (close: () => void) => React.ReactNode;
   /** The first fetch is still running: show placeholders, not "No contacts yet". */
@@ -153,6 +157,8 @@ export function ContactList({
   onMoveContacts,
   onMenuClick,
   phoneMenuItems,
+  emptyView = false,
+  onImport,
   isLoading = false,
 }: ContactListProps) {
   const t = useTranslations("contacts");
@@ -651,21 +657,14 @@ export function ContactList({
             ))}
           </div>
         ) : sorted.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full px-6 text-center">
-            {searchQuery || activeFilters > 0 ? (
-              <>
-                {activeFilters > 0 && !searchQuery ? (
-                  <Filter className="w-10 h-10 mb-3 text-muted-foreground/30" />
-                ) : (
-                  <Search className="w-10 h-10 mb-3 text-muted-foreground/30" />
-                )}
-                <p className="text-sm font-medium text-foreground">
-                  {searchQuery ? t("empty_search") : t("empty_filtered")}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {searchQuery ? t("empty_search_hint") : t("empty_filtered_hint")}
-                </p>
-                <div className="flex gap-2 mt-3">
+          searchQuery || activeFilters > 0 ? (
+            <EmptyState
+              compact
+              icon={activeFilters > 0 && !searchQuery ? Filter : Search}
+              title={searchQuery ? t("empty_search") : t("empty_filtered")}
+              description={searchQuery ? t("empty_search_hint") : t("empty_filtered_hint")}
+              actions={
+                <>
                   {searchQuery && (
                     <Button variant="outline" size="sm" onClick={() => onSearchChange("")}>
                       {t("clear_search")}
@@ -677,20 +676,33 @@ export function ContactList({
                       {t("filters.clear")}
                     </Button>
                   )}
-                </div>
-              </>
-            ) : (
-              <>
-                <BookUser className="w-10 h-10 mb-3 text-muted-foreground/30" />
-                <p className="text-sm font-medium text-foreground">{t("empty_state_title")}</p>
-                <p className="text-xs text-muted-foreground mt-1">{t("empty_state_subtitle")}</p>
-                <Button size="sm" className="mt-3" onClick={onCreateNew}>
-                  <UserPlus className="w-4 h-4 me-1.5" />
-                  {t("create_new")}
-                </Button>
-              </>
-            )}
-          </div>
+                </>
+              }
+            />
+          ) : (
+            // The whole account is empty, or only the address book, category
+            // or group on screen: each says so, and both offer New and Import.
+            <EmptyState
+              compact
+              icon={BookUser}
+              title={emptyView ? t("empty_view_title") : t("empty_state_title")}
+              description={emptyView ? t("empty_view_hint") : t("empty_state_subtitle")}
+              actions={
+                <>
+                  <Button size="sm" onClick={onCreateNew}>
+                    <UserPlus className="w-4 h-4 me-1.5" />
+                    {t("create_new")}
+                  </Button>
+                  {onImport && (
+                    <Button variant="outline" size="sm" onClick={onImport}>
+                      <Upload className="w-4 h-4 me-1.5" />
+                      {t("import.title")}
+                    </Button>
+                  )}
+                </>
+              }
+            />
+          )
         ) : (
           (() => {
             const renderItem = (contact: ContactCard) => (

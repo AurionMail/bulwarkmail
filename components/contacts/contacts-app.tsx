@@ -1294,6 +1294,8 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                   onDuplicateContact={(contact) => void handleDuplicateContact(contact)}
                   onMoveContacts={canMoveContacts ? handleMoveContacts : undefined}
                   onMenuClick={isNarrow ? () => setNarrowSidebarOpen(true) : undefined}
+                  emptyView={activeCategory !== "all"}
+                  onImport={() => setShowImportDialog(true)}
                   phoneMenuItems={(close) => (
                     // On the phone these are otherwise only in the drawer's "+".
                     <>

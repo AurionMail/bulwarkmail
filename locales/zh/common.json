@@ -2949,6 +2949,8 @@
     "empty_state": "还没有联系人",
     "empty_state_title": "还没有联系人",
     "empty_state_subtitle": "创建您的第一个联系人或从 vCard 文件导入",
+    "empty_view_title": "此处没有联系人",
+    "empty_view_hint": "添加联系人或导入 vCard 文件。",
     "empty_search": "没有符合您搜索条件的联系人",
     "empty_search_hint": "尝试不同的搜索词",
     "empty_filtered": "没有符合您筛选条件的联系人",

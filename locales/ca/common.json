@@ -2949,6 +2949,8 @@
     "empty_state": "Encara no hi ha contactes",
     "empty_state_title": "Encara no hi ha contactes",
     "empty_state_subtitle": "Creeu el primer contacte o importeu-lo des d'un fitxer vCard",
+    "empty_view_title": "No hi ha contactes aquí",
+    "empty_view_hint": "Afegiu un contacte o importeu un fitxer vCard.",
     "empty_search": "Cap contacte coincideix amb la cerca",
     "empty_search_hint": "Proveu amb un altre terme de cerca",
     "empty_filtered": "Cap contacte coincideix amb els filtres",

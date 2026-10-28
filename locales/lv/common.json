@@ -2941,6 +2941,8 @@
     "empty_state": "Kontaktu vēl nav",
     "empty_state_title": "Kontaktu vēl nav",
     "empty_state_subtitle": "Izveidojiet pirmo kontaktu vai importējiet no vCard faila",
+    "empty_view_title": "Šeit nav kontaktpersonu",
+    "empty_view_hint": "Pievienojiet kontaktpersonu vai importējiet vCard failu.",
     "empty_search": "Nav kontaktu, kas atbilstu vaicājumam",
     "empty_search_hint": "Mēģiniet citu meklēšanas vaicājumu",
     "empty_filtered": "Nav kontaktu, kas atbilstu filtriem",

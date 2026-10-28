@@ -2949,6 +2949,8 @@
     "empty_state": "Nenhum contato",
     "empty_state_title": "Sem contatos",
     "empty_state_subtitle": "Crie seu primeiro contato ou importe de um arquivo vCard",
+    "empty_view_title": "Nenhum contato aqui",
+    "empty_view_hint": "Adicione um contato ou importe um arquivo vCard.",
     "empty_search": "Nenhum contato encontrado",
     "empty_search_hint": "Tente outro termo de pesquisa",
     "empty_filtered": "Nenhum contato corresponde aos seus filtros",

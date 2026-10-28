@@ -2949,6 +2949,8 @@
     "empty_state": "Brak kontaktów",
     "empty_state_title": "Brak kontaktów",
     "empty_state_subtitle": "Utwórz pierwszy kontakt lub zaimportuj z pliku vCard",
+    "empty_view_title": "Brak kontaktów",
+    "empty_view_hint": "Dodaj kontakt lub zaimportuj plik vCard.",
     "empty_search": "Żadne kontakty nie pasują do wyszukiwania",
     "empty_search_hint": "Spróbuj użyć innego wyszukiwanego hasła",
     "empty_filtered": "Żadne kontakty nie pasują do filtrów",

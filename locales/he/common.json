@@ -2867,6 +2867,8 @@
     "empty_state": "עדיין אין אנשי קשר",
     "empty_state_title": "עדיין אין אנשי קשר",
     "empty_state_subtitle": "צור את איש הקשר הראשון שלך או ייבא מקובץ vCard",
+    "empty_view_title": "אין כאן אנשי קשר",
+    "empty_view_hint": "הוסף איש קשר או ייבא קובץ vCard.",
     "empty_search": "אין אנשי קשר שתואמים לחיפוש שלך",
     "empty_search_hint": "נסה מונח חיפוש אחר",
     "clear_search": "נקה חיפוש",

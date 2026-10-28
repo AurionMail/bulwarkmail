@@ -2949,6 +2949,8 @@
     "empty_state": "Henüz kişi yok",
     "empty_state_title": "Henüz kişi yok",
     "empty_state_subtitle": "İlk kişinizi oluşturun veya vCard dosyasından içe aktarın",
+    "empty_view_title": "Burada kişi yok",
+    "empty_view_hint": "Bir kişi ekleyin veya bir vCard dosyası içe aktarın.",
     "empty_search": "Aramanızla eşleşen kişi yok",
     "empty_search_hint": "Farklı bir arama terimi deneyin",
     "empty_filtered": "Filtrelerinizle eşleşen kişi yok",

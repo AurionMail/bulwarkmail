@@ -2949,6 +2949,8 @@
     "empty_state": "Keine Kontakte",
     "empty_state_title": "Keine Kontakte",
     "empty_state_subtitle": "Erstellen Sie Ihren ersten Kontakt oder importieren Sie aus einer vCard-Datei",
+    "empty_view_title": "Hier sind keine Kontakte",
+    "empty_view_hint": "Fügen Sie einen Kontakt hinzu oder importieren Sie eine vCard-Datei.",
     "empty_search": "Keine Kontakte gefunden",
     "empty_search_hint": "Versuchen Sie einen anderen Suchbegriff",
     "empty_filtered": "Keine Kontakte entsprechen Ihren Filtern",

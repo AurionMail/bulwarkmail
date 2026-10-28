@@ -2949,6 +2949,8 @@
     "empty_state": "Kontakte veel pole",
     "empty_state_title": "Kontakte veel pole",
     "empty_state_subtitle": "Loo oma esimene kontakt või impordi vCard-failist",
+    "empty_view_title": "Siin pole kontakte",
+    "empty_view_hint": "Lisage kontakt või importige vCard-fail.",
     "empty_search": "Otsingule ei vastanud ükski kontakt",
     "empty_search_hint": "Proovi teistsugust otsisõna",
     "empty_filtered": "Filtritele ei vastanud ükski kontakt",

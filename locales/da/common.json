@@ -2949,6 +2949,8 @@
     "empty_state": "Ingen kontakter endnu",
     "empty_state_title": "Ingen kontakter endnu",
     "empty_state_subtitle": "Opret din første kontakt eller importér fra en vCard-fil",
+    "empty_view_title": "Ingen kontakter her",
+    "empty_view_hint": "Tilføj en kontakt, eller importér en vCard-fil.",
     "empty_search": "Ingen kontakter matcher din søgning",
     "empty_search_hint": "Prøv en anden søgeterm",
     "empty_filtered": "Ingen kontakter matcher dine filtre",
