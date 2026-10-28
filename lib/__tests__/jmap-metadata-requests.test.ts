@@ -5,12 +5,15 @@ import { JMAPClient } from '../jmap/client';
 
 /**
  * Stalwart 1.0 advertises JMAP Metadata (`urn:ietf:params:jmap:metadata`) by
- * default, but every handler behind it is still `todo!()`. Selecting
- * `metadata` / `privateMetadata` (or a `metadata/...` pointer) in a get, or
- * sending `ignoreMetadataOnlyChanges` to a /changes method, panics the request
- * on the server. 0.16 knows none of it. So Bulwark must never send any of it,
- * and the gets whose server default could grow to include metadata ask for an
- * explicit property list instead.
+ * default. Pre-release 1.0 builds left every handler behind it `todo!()`:
+ * selecting `metadata` / `privateMetadata` (or a `metadata/...` pointer) in a
+ * get, or sending `ignoreMetadataOnlyChanges` to a /changes method, panics the
+ * request there. The v1.0.0 release implements it; 0.16 knows none of it. So
+ * ordinary requests never send any of it, and the gets whose server default
+ * could grow to include metadata ask for an explicit property list instead.
+ * Only the Bulwark metadata adapter (lib/jmap/bulwark-metadata.ts and the
+ * client's *BulwarkMetadata methods) reads and writes it, in requests of its
+ * own and only after the server has answered one (organisation features).
  */
 
 const METADATA_CAPABILITY = 'urn:ietf:params:jmap:metadata';
@@ -214,12 +217,40 @@ describe('JMAP Metadata in the request-building sources', () => {
     /(['"`])metadata(\/[^'"`\n]*)?\1/,
   ];
 
-  it('never names a JMAP Metadata property, argument or capability in code', () => {
-    const files = SOURCE_DIRS.flatMap(sourceFiles);
+  // The metadata adapter is the one place allowed to name Metadata: its own
+  // module, and the bodies of the client's *BulwarkMetadata methods.
+  const ADAPTER_FILES = new Set(['lib/jmap/bulwark-metadata.ts']);
+  const ADAPTER_METHOD = /^\s+(?:async\s+)?\w*BulwarkMetadata\s*\(/;
+
+  function withoutAdapterMethods(source: string): string {
+    const lines = source.split('\n');
+    const kept: string[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (!ADAPTER_METHOD.test(lines[i])) {
+        kept.push(lines[i]);
+        continue;
+      }
+      // Skip to the line that closes the method's body.
+      let depth = 0;
+      let opened = false;
+      for (; i < lines.length; i++) {
+        for (const ch of lines[i]) {
+          if (ch === '{') { depth++; opened = true; }
+          if (ch === '}') depth--;
+        }
+        if (opened && depth <= 0) break;
+      }
+    }
+    return kept.join('\n');
+  }
+
+  it('never names a JMAP Metadata property, argument or capability in code outside the adapter', () => {
+    const files = SOURCE_DIRS.flatMap(sourceFiles).filter((file) => !ADAPTER_FILES.has(file));
     expect(files).toContain('lib/jmap/client.ts');
     const hits: string[] = [];
     for (const file of files) {
-      const code = withoutComments(readFileSync(path.join(root, file), 'utf8'));
+      let code = withoutComments(readFileSync(path.join(root, file), 'utf8'));
+      if (file === 'lib/jmap/client.ts') code = withoutAdapterMethods(code);
       for (const pattern of FORBIDDEN) {
         const match = code.match(pattern);
         if (match) hits.push(`${file}: ${match[0]}`);
