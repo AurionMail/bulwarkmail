@@ -19,7 +19,8 @@ import { ORG, ORG_PASSWORD, adminContext, contextOptions, getPolicy, putPolicy, 
 test.describe.configure({ mode: 'serial' });
 
 const SUBJECT = `Third-party check ${Date.now()}`;
-let seededId: string | null = null;
+const REMOTE_SUBJECT = `Remote picture check ${Date.now()}`;
+const seededIds: string[] = [];
 
 const allowedHosts = () => new Set([new URL(contextOptions().baseURL).host, new URL(JMAP_URL).host]);
 
@@ -73,16 +74,27 @@ test.beforeAll(async ({ browser }) => {
         bodyStructure: { partId: 't', type: 'text/plain' },
         bodyValues: { t: { value: 'Checking that nothing leaves for an outside host.' } },
       },
+      // A newsletter with a tracking picture on another host.
+      p: {
+        mailboxIds: { [inbox!.id]: true },
+        from: [{ name: 'Shop News', email: 'news@shop.example' }],
+        to: [{ name: 'Org Alice', email: ORG.alice }],
+        subject: REMOTE_SUBJECT,
+        receivedAt: new Date(Date.now() - 60_000).toISOString(),
+        bodyStructure: { partId: 'h', type: 'text/html' },
+        bodyValues: { h: { value: '<p>Our offers this week.</p><img src="https://track.shop.example/pixel.gif" width="1" height="1">' } },
+      },
     },
   }, '0']]);
-  seededId = r.methodResponses[0][1].created?.m?.id ?? null;
-  expect(seededId, JSON.stringify(r.methodResponses[0][1])).toBeTruthy();
+  const created = r.methodResponses[0][1].created ?? {};
+  for (const key of ['m', 'p']) if (created[key]?.id) seededIds.push(created[key].id);
+  expect(seededIds.length, JSON.stringify(r.methodResponses[0][1])).toBe(2);
 });
 
 test.afterAll(async () => {
-  if (!seededId) return;
+  if (seededIds.length === 0) return;
   const alice = await JmapClient.connect(ORG.alice, ORG_PASSWORD);
-  await alice.request([['Email/set', { accountId: alice.accountId, destroy: [seededId] }, '0']]);
+  await alice.request([['Email/set', { accountId: alice.accountId, destroy: seededIds }, '0']]);
 });
 
 test('signing in, reading, composing and settings reach no outside host', async ({ browser }) => {
@@ -99,6 +111,15 @@ test('signing in, reading, composing and settings reach no outside host', async 
   await expect(page.locator('img[src*="/api/favicon"]')).toHaveCount(0);
   await shot(page, 'thirdparty-reading');
 
+  // Remote pictures: the notice says the organisation blocks them, and
+  // nothing offers to load them or to trust the sender.
+  await emailItem(page, REMOTE_SUBJECT).first().click();
+  const notice = page.getByTestId('external-content-notice').first();
+  await expect(notice).toContainText('Your organisation blocks content from other servers', { timeout: 20000 });
+  await expect(page.getByRole('button', { name: 'Load images' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Always trust this sender' })).toHaveCount(0);
+  await shot(page, 'thirdparty-remote-blocked');
+
   await openComposer(page);
   await page.locator('[data-testid="composer-subject"]').fill('Not sent');
   await page.waitForTimeout(1500);
@@ -109,6 +130,9 @@ test('signing in, reading, composing and settings reach no outside host', async 
   await expect(pushNote).toBeVisible({ timeout: 20000 });
   await pushNote.scrollIntoViewIfNeeded();
   await shot(page, 'thirdparty-push-settings');
+  await page.goto('/settings/reading');
+  const externalContent = page.locator('[data-search-label="External Content"], [data-search-label="External content"]').first();
+  await expect(externalContent).toContainText('Set by your organisation', { timeout: 20000 });
   await page.goto('/settings/message_list');
   await expect(page.getByText(/Sender/).first()).toBeVisible({ timeout: 20000 });
   await expect(page.getByText('Sender Favicons', { exact: true })).toHaveCount(0);
