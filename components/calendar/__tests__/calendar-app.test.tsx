@@ -375,3 +375,53 @@ describe('CalendarApp dragging', () => {
     expect(store.updateEvent.mock.calls[1][2]).toMatchObject({ start: '2026-10-12T10:00:00', duration: 'PT1H' });
   });
 });
+
+describe('CalendarApp task feedback', () => {
+  const task = { id: 't1', '@type': 'Task', title: 'Buy milk', calendarIds: { cal: true }, progress: 'needs-action', priority: 0, due: null, showWithoutTime: true } as never;
+
+  it('says when a task couldn\'t be saved and keeps the form open', async () => {
+    setUp([], 'tasks');
+    Object.assign(client, { createCalendarTask: vi.fn().mockRejectedValue(new Error('boom')) });
+    renderApp();
+    fireEvent.keyDown(document.body, { key: 'n', code: 'KeyN' });
+    fireEvent.change(screen.getByPlaceholderText('tasks.title_placeholder'), { target: { value: 'Buy milk' } });
+    fireEvent.click(screen.getByRole('button', { name: 'tasks.save' }));
+    await waitFor(() => expect(toastTitles()).toContain('notifications.task_save_error'));
+    expect(screen.getByPlaceholderText('tasks.title_placeholder')).toHaveValue('Buy milk');
+  });
+
+  it('says when ticking a task off failed', async () => {
+    setUp([], 'tasks');
+    useTaskStore.setState({ tasks: [task] } as never);
+    client.getCalendarTasks.mockResolvedValue([task]);
+    Object.assign(client, { updateCalendarTask: vi.fn().mockRejectedValue(new Error('boom')) });
+    renderApp();
+    fireEvent.click(await screen.findByRole('button', { name: 'tasks.mark_complete' }));
+    await waitFor(() => expect(toastTitles()).toContain('notifications.task_update_error'));
+  });
+
+  it('adds a quick task to a calendar it may write to', async () => {
+    setUp([], 'tasks');
+    const readOnly = { ...calendars[0], id: 'ro', isDefault: false, myRights: { ...RIGHTS, mayWriteAll: false, mayWriteOwn: false } };
+    useCalendarStore.setState({ calendars: [readOnly, { ...calendars[0], isDefault: false }], selectedCalendarIds: ['ro', 'cal'] } as never);
+    const createCalendarTask = vi.fn().mockImplementation(async (data: object) => ({ ...data, id: 't9' }));
+    Object.assign(client, { createCalendarTask });
+    renderApp();
+    const input = await screen.findByPlaceholderText('tasks.quick_add_placeholder');
+    fireEvent.change(input, { target: { value: 'Call Bob' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(createCalendarTask).toHaveBeenCalled());
+    expect(createCalendarTask.mock.calls[0][0]).toMatchObject({ title: 'Call Bob', calendarIds: { cal: true } });
+    await waitFor(() => expect(toastTitles()).toContain('notifications.task_created'));
+  });
+
+  it('shows completed tasks under All', async () => {
+    setUp([], 'tasks');
+    const done = { ...(task as object), id: 't2', title: 'Pay rent', progress: 'completed' } as never;
+    useTaskStore.setState({ tasks: [task, done], filter: 'all', showCompleted: false } as never);
+    client.getCalendarTasks.mockResolvedValue([task, done]);
+    renderApp();
+    expect(await screen.findByText('Pay rent')).toBeInTheDocument();
+    expect(screen.queryByText('tasks.show_completed')).toBeNull();
+  });
+});

@@ -2,20 +2,20 @@
 
 import { useMemo, useCallback, useState } from "react";
 import { useTranslations } from "next-intl";
-import { format, parseISO, isBefore, isTomorrow } from "date-fns";
+import { parseISO, isBefore, isTomorrow } from "date-fns";
 import { displayNow, isDisplayToday } from "@/lib/timezone";
 import { Check, Flag, CalendarDays, ListTodo, Plus } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import type { CalendarTask, Calendar } from "@/lib/jmap/types";
 import type { TaskViewFilter } from "@/stores/task-store";
 import { useSettingsStore } from "@/stores/settings-store";
+import { useDisplayDateFormatter } from "@/hooks/use-display-date-formatter";
 
 interface TaskListViewProps {
   tasks: CalendarTask[];
   calendars: Calendar[];
   selectedCalendarIds: string[];
   filter: TaskViewFilter;
-  showCompleted: boolean;
   onSelectTask: (task: CalendarTask) => void;
   onToggleComplete: (task: CalendarTask) => void;
   selectedTaskId?: string | null;
@@ -29,7 +29,9 @@ function getTaskPriorityIcon(priority: number) {
   return null;
 }
 
-function getDueDateLabel(due: string, showWithoutTime: boolean, t: ReturnType<typeof useTranslations>, timeFormat: string): { label: string; className: string } {
+type FormatDate = ReturnType<typeof useDisplayDateFormatter>["dateTime"];
+
+function getDueDateLabel(due: string, showWithoutTime: boolean, t: ReturnType<typeof useTranslations>, timeFormat: string, formatDate: FormatDate): { label: string; className: string } {
   const dueDate = parseISO(due);
   const overdue = isBefore(dueDate, displayNow()) && !isDisplayToday(dueDate);
 
@@ -52,9 +54,10 @@ function getDueDateLabel(due: string, showWithoutTime: boolean, t: ReturnType<ty
     };
   }
 
+  // In the app's language, like every other date (R10).
   const formatted = showWithoutTime
-    ? format(dueDate, "MMM d")
-    : format(dueDate, timeFormat === "12h" ? "MMM d, h:mm a" : "MMM d, HH:mm");
+    ? formatDate(dueDate, { month: "short", day: "numeric" })
+    : formatDate(dueDate, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: timeFormat === "12h" });
 
   return {
     label: formatted,
@@ -62,21 +65,16 @@ function getDueDateLabel(due: string, showWithoutTime: boolean, t: ReturnType<ty
   };
 }
 
-/** The tasks the list shows, in its order: filtered by calendar and status. */
+/** The tasks the list shows, in its order: filtered by calendar and status. "All" is all of them. */
 export function filterTasksForList(
   tasks: CalendarTask[],
   selectedCalendarIds: string[],
   filter: TaskViewFilter,
-  showCompleted: boolean,
 ): CalendarTask[] {
   let result = tasks.filter(task => {
     const calIds = Object.keys(task.calendarIds);
     return calIds.some(id => selectedCalendarIds.includes(id));
   });
-
-  if (!showCompleted) {
-    result = result.filter(task => task.progress !== "completed" && task.progress !== "cancelled");
-  }
 
   switch (filter) {
     case "pending":
@@ -121,7 +119,6 @@ export function TaskListView({
   calendars,
   selectedCalendarIds,
   filter,
-  showCompleted,
   onSelectTask,
   onToggleComplete,
   selectedTaskId,
@@ -129,11 +126,12 @@ export function TaskListView({
 }: TaskListViewProps) {
   const t = useTranslations("calendar");
   const timeFormat = useSettingsStore((s) => s.timeFormat);
+  const { dateTime: formatDate } = useDisplayDateFormatter();
   const [quickAddTitle, setQuickAddTitle] = useState("");
 
   const filteredTasks = useMemo(
-    () => filterTasksForList(tasks, selectedCalendarIds, filter, showCompleted),
-    [tasks, selectedCalendarIds, filter, showCompleted],
+    () => filterTasksForList(tasks, selectedCalendarIds, filter),
+    [tasks, selectedCalendarIds, filter],
   );
 
   const handleToggle = useCallback((e: React.MouseEvent, task: CalendarTask) => {
@@ -199,7 +197,7 @@ export function TaskListView({
           const cal = calendars.find(c => task.calendarIds[c.id]);
           const isCompleted = task.progress === "completed";
           const priorityIcon = getTaskPriorityIcon(task.priority);
-          const dueDateInfo = task.due ? getDueDateLabel(task.due, task.showWithoutTime, t, timeFormat) : null;
+          const dueDateInfo = task.due ? getDueDateLabel(task.due, task.showWithoutTime, t, timeFormat, formatDate) : null;
 
           return (
             <div

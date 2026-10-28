@@ -722,20 +722,32 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
   }), [closeEventPanelForTask, whenEditorsDiscarded]);
 
   const handleToggleTaskComplete = useCallback((task: CalendarTask) => {
-    if (client) toggleTaskCompleteFn(client, task);
-  }, [client, toggleTaskCompleteFn]);
+    if (!client) return;
+    // The checkbox shows the result; only a failure needs saying.
+    toggleTaskCompleteFn(client, task).catch((error: unknown) => {
+      toast.error(describeError(error, t("notifications.task_update_error")));
+    });
+  }, [client, toggleTaskCompleteFn, describeError, t]);
 
-  // false: a plugin stopped it and said why, so the task form stays open.
+  // false: a plugin stopped it and said why, or the save failed: the task
+  // form stays open with what was typed.
   const handleSaveTask = useCallback(async (data: Partial<import("@/lib/jmap/types").CalendarTask>) => {
     if (!client) return false;
-    const saved = editTask
-      ? await taskStore.updateTask(client, editTask.id, data)
-      : (await taskStore.createTask(client, data)) !== null;
+    let saved: boolean;
+    try {
+      saved = editTask
+        ? await taskStore.updateTask(client, editTask.id, data)
+        : (await taskStore.createTask(client, data)) !== null;
+    } catch (error) {
+      toast.error(describeError(error, t("notifications.task_save_error")));
+      return false;
+    }
     if (!saved) return false;
+    toast.success(t(editTask ? "notifications.task_updated" : "notifications.task_created"));
     setShowTaskModal(false);
     setEditTask(null);
     return true;
-  }, [client, editTask, taskStore]);
+  }, [client, editTask, taskStore, describeError, t]);
 
   // A task delete can't be taken back: ask first (R3), then say how it went.
   const handleDeleteTask = useCallback(async (id: string) => {
@@ -1085,6 +1097,12 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     };
     await save(requestedScheduling);
   }, [client, editEvent, createEvent, updateEvent, focusCalendarOnEvent, confirmAction, describeError, t]);
+
+  // Calendars a new task can go into: writable, not a subscription.
+  const writableTaskCalendars = useMemo(
+    () => calendars.filter((c) => canCreateEventsIn(c, isSubscriptionCalendar)),
+    [calendars, isSubscriptionCalendar],
+  );
 
   // Calendars a new event can go into: never a subscription or read-only one (#762).
   const writableCalendars = useMemo(
@@ -1589,8 +1607,8 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
 
   // The tasks the task list shows; plugin buttons in its toolbar act on them.
   const listedTaskIds = useMemo(
-    () => filterTasksForList(taskStore.tasks, selectedCalendarIds, taskStore.filter, taskStore.showCompleted).map((task) => task.id),
-    [taskStore.tasks, selectedCalendarIds, taskStore.filter, taskStore.showCompleted],
+    () => filterTasksForList(taskStore.tasks, selectedCalendarIds, taskStore.filter).map((task) => task.id),
+    [taskStore.tasks, selectedCalendarIds, taskStore.filter],
   );
 
   // Tasks on the month, week and day grids follow the calendar filter like
@@ -1789,9 +1807,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               )}
               <TaskToolbar
                 filter={taskStore.filter}
-                showCompleted={taskStore.showCompleted}
                 onFilterChange={taskStore.setFilter}
-                onShowCompletedChange={taskStore.setShowCompleted}
                 onCreateTask={openCreateTaskModal}
                 taskIds={listedTaskIds}
                 compact={isMobile}
@@ -1801,14 +1817,20 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
                 calendars={displayCalendars}
                 selectedCalendarIds={selectedCalendarIds}
                 filter={taskStore.filter}
-                showCompleted={taskStore.showCompleted}
                 onSelectTask={openEditTaskModal}
                 onToggleComplete={handleToggleTaskComplete}
                 selectedTaskId={taskStore.selectedTaskId}
                 onQuickCreate={(title) => {
-                  if (client) {
-                    taskStore.createTask(client, { "@type": "Task", title, progress: "needs-action", calendarIds: { [calendars[0]?.id ?? ""]: true } });
+                  // Into a calendar that takes it: the default one, else the
+                  // first the user may write to.
+                  const target = writableTaskCalendars.find((c) => c.isDefault) ?? writableTaskCalendars[0];
+                  if (!client || !target) {
+                    toast.error(t("notifications.task_save_error"));
+                    return;
                   }
+                  taskStore.createTask(client, { "@type": "Task", title, progress: "needs-action", calendarIds: { [target.id]: true } })
+                    .then((created) => { if (created) toast.success(t("notifications.task_created")); })
+                    .catch((error: unknown) => toast.error(describeError(error, t("notifications.task_save_error"))));
                 }}
               />
             </div>
