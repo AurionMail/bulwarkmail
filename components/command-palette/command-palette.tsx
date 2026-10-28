@@ -28,6 +28,7 @@ import { useCalendarStore } from "@/stores/calendar-store";
 import { usePolicyStore } from "@/stores/policy-store";
 import { useThemeStore } from "@/stores/theme-store";
 import { usePluginActions } from "@/components/plugins/plugin-actions";
+import { usePluginPages, pluginPageHref } from "@/hooks/use-plugin-pages";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
 import { GlobalSearchPalette } from "@/components/global-search/global-search-palette";
 import { isContextMenuOpen } from "@/components/ui/context-menu";
@@ -151,6 +152,7 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
   const colorModeLocked = usePolicyStore((s) => s.getColorModePolicy().locked);
   const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
   const pluginActions = usePluginActions(surface);
+  const pluginPages = usePluginPages();
   const registeredGroups = useRegisteredCommandGroups();
   const accounts = useAccountStore((s) => s.accounts);
   const activeAccountId = useAuthStore((s) => s.activeAccountId);
@@ -192,6 +194,17 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
     }
     if ((client?.supportsFiles?.() ?? false) && isFeatureEnabled("filesEnabled")) {
       list.push({ id: "go-files", group: navigation, icon: Folder, label: t("go_to", { name: tSidebar("files") }), run: go("/files") });
+    }
+    // Plugin pages sit next to the built-in apps in the rail and the tab bar.
+    for (const page of pluginPages) {
+      list.push({
+        id: `go-page:${page.pluginId}:${page.id}`,
+        group: navigation,
+        icon: iconForName(page.icon) ?? Puzzle,
+        label: t("go_to", { name: page.title }),
+        source: page.pluginName,
+        run: go(pluginPageHref(page)),
+      });
     }
     list.push(
       { id: "go-settings", group: navigation, icon: Settings, label: t("go_to", { name: tSidebar("settings") }), run: go("/settings") },
@@ -244,7 +257,7 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
       });
     }
     return list;
-  }, [client, supportsCalendar, isFeatureEnabled, colorModeLocked, resolvedTheme, pluginActions, registeredGroups, accounts, activeAccountId, router, t, tSidebar, tGlobalSearch, onShowShortcuts, touch]);
+  }, [client, supportsCalendar, isFeatureEnabled, colorModeLocked, resolvedTheme, pluginActions, pluginPages, registeredGroups, accounts, activeAccountId, router, t, tSidebar, tGlobalSearch, onShowShortcuts, touch]);
 
   const needle = query.trim();
   const visible = needle

@@ -211,3 +211,15 @@ describe('command palette on a phone', () => {
     expect(screen.getByRole('option', { name: 'compose' })).toBeInTheDocument();
   });
 });
+
+describe('command palette and plugin pages', () => {
+  it('goes to a plugin page like to the built-in apps', async () => {
+    const pages = await import('@/lib/plugin-sandbox/pages');
+    act(() => pages.setPluginPages('kanban', 'Kanban', [{ id: 'board', title: 'Board' }]));
+    render(<CommandPaletteHost />);
+    pressCtrlK();
+    act(() => { fireEvent.click(screen.getByRole('option', { name: /go_to\(Board\)/ })); });
+    expect(nav.push).toHaveBeenCalledWith('/apps/kanban/board');
+    pages.resetPages();
+  });
+});
