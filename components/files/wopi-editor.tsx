@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { Loader2, X } from "@/components/icons";
 import { getActiveAccountSlotHeaders } from "@/lib/auth/active-account-slot";
 import { apiFetch } from "@/lib/browser-navigation";
+import { useCloseOnBack } from "@/hooks/use-close-on-back";
 
 /** What the overlay opens: a Files node, or a mail attachment (read-only, #1047). */
 export type WopiDocument =
@@ -21,6 +22,8 @@ interface WopiEditorProps {
    */
   slot?: number | null;
   onClose: () => void;
+  /** Back closes the editor (Files); Mail keeps its own history. */
+  closeOnBack?: boolean;
 }
 
 interface LaunchData {
@@ -36,8 +39,9 @@ interface LaunchData {
  * a form POST of the access token to the editor URL, targeted at an iframe.
  * Mail attachments open in the same overlay as a read-only viewer (#1047).
  */
-export function WopiEditor({ target, accountId, slot, onClose }: WopiEditorProps) {
+export function WopiEditor({ target, accountId, slot, onClose, closeOnBack = false }: WopiEditorProps) {
   const t = useTranslations("files");
+  useCloseOnBack(onClose, closeOnBack);
   const locale = useLocale();
   const [launch, setLaunch] = useState<LaunchData | null>(null);
   const [error, setError] = useState<string | null>(null);

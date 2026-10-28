@@ -183,4 +183,75 @@ describe('ContactList', () => {
     });
   });
 
+
+  it("writes to a contact from the right-click menu in the app's composer, not through mailto:", () => {
+    const onComposeContact = vi.fn();
+    const href = window.location.href;
+    render(<ContactList {...defaultProps} onComposeContact={onComposeContact} />);
+    fireEvent.contextMenu(screen.getByText('Alice Smith'));
+    fireEvent.click(screen.getByText('context_menu.send_email'));
+    expect(onComposeContact).toHaveBeenCalledWith(alice);
+    expect(window.location.href).toBe(href);
+  });
+
+  it("moves a contact to another address book from its right-click menu, and the selection from the bulk bar", () => {
+    const onMoveContacts = vi.fn();
+    const { unmount } = render(<ContactList {...defaultProps} onMoveContacts={onMoveContacts} />);
+    fireEvent.contextMenu(screen.getByText('Alice Smith'));
+    fireEvent.click(screen.getByText('address_books.move_to'));
+    expect(onMoveContacts).toHaveBeenCalledWith(['1']);
+    unmount();
+
+    render(<ContactList {...defaultProps} onMoveContacts={onMoveContacts} selectedContactIds={new Set(['1', '2'])} />);
+    fireEvent.click(screen.getByRole('button', { name: /address_books.move_to/ }));
+    expect(onMoveContacts).toHaveBeenLastCalledWith(['1', '2']);
+  });
+
+  it("moves through the list with the arrow keys and opens the contact, like Mail and Files", () => {
+    const onSelectContact = vi.fn();
+    render(<ContactList {...defaultProps} onSelectContact={onSelectContact} />);
+    const rows = screen.getAllByRole('option');
+    expect(rows[0]).toHaveAttribute('tabindex', '0');
+    expect(rows[1]).toHaveAttribute('tabindex', '-1');
+    rows[0].focus();
+    fireEvent.keyDown(rows[0], { key: 'ArrowDown' });
+    expect(onSelectContact).toHaveBeenLastCalledWith('2');
+    expect(document.activeElement).toBe(screen.getAllByRole('option')[1]);
+  });
+
+  it("selects all with Ctrl+A, deletes with Delete, clears with Escape, and searches with /", () => {
+    const onSelectAll = vi.fn();
+    const onBulkDelete = vi.fn();
+    const onClearSelection = vi.fn();
+    const { rerender } = render(<ContactList {...defaultProps} onSelectAll={onSelectAll} onBulkDelete={onBulkDelete} onClearSelection={onClearSelection} />);
+    const row = screen.getAllByRole('option')[0];
+    fireEvent.keyDown(row, { key: 'a', code: 'KeyA', ctrlKey: true });
+    expect(onSelectAll).toHaveBeenCalledWith(['1', '2']);
+
+    rerender(<ContactList {...defaultProps} selectedContactIds={new Set(['1'])} onSelectAll={onSelectAll} onBulkDelete={onBulkDelete} onClearSelection={onClearSelection} />);
+    fireEvent.keyDown(screen.getAllByRole('option')[0], { key: 'Delete' });
+    expect(onBulkDelete).toHaveBeenCalled();
+    fireEvent.keyDown(screen.getAllByRole('option')[0], { key: 'Escape' });
+    expect(onClearSelection).toHaveBeenCalled();
+
+    fireEvent.keyDown(document.body, { key: '/' });
+    expect(document.activeElement).toBe(screen.getByPlaceholderText('search_placeholder'));
+  });
+
+  it("opens a contact's menu on long-press, with Select to start selecting", () => {
+    vi.useFakeTimers();
+    try {
+      const onToggleSelection = vi.fn();
+      render(<ContactList {...defaultProps} onToggleSelection={onToggleSelection} />);
+      const row = screen.getAllByRole('option')[0];
+      const touchStart = new Event('touchstart', { bubbles: true });
+      Object.defineProperty(touchStart, 'touches', { value: [{ clientX: 5, clientY: 5 }] });
+      act(() => { row.dispatchEvent(touchStart); });
+      act(() => { vi.advanceTimersByTime(600); });
+      fireEvent.click(screen.getByText('filters.select'));
+      expect(onToggleSelection).toHaveBeenCalledWith('1');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, useId } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { IconButton } from "@/components/ui/icon-button";
 import { X, Trash2, CalendarDays, Bell, Flag } from "@/components/icons";
 import { format, parseISO } from "date-fns";
 
@@ -11,6 +12,8 @@ import type { CalendarTask, Calendar, CalendarEventAlert } from "@/lib/jmap/type
 import { withOwnAlertIds } from "@/lib/calendar-alerts";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { taskToView } from "@/lib/plugin-projection";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 interface TaskModalProps {
   task?: CalendarTask | null;
@@ -19,6 +22,8 @@ interface TaskModalProps {
   onSave: (data: Partial<CalendarTask>) => void | boolean | Promise<void | boolean>;
   onDelete?: (id: string) => void;
   onClose: () => void;
+  /** Told whether the form holds changes that aren't saved, so the page can ask before it drops them. */
+  onDirtyChange?: (dirty: boolean) => void;
   isMobile?: boolean;
 }
 
@@ -47,9 +52,12 @@ export function TaskModal({
   onSave,
   onDelete,
   onClose,
+  onDirtyChange,
   isMobile: _isMobile,
 }: TaskModalProps) {
   const t = useTranslations("calendar");
+  const tCommon = useTranslations("common");
+  const id = useId();
   const isEdit = !!task;
   const titleRef = useRef<HTMLInputElement>(null);
   // task-detail-section: the saved task, for an existing task only.
@@ -91,6 +99,30 @@ export function TaskModal({
   // whether the user actually changed it and only patch alerts then. (#504)
   const [alertTouched, setAlertTouched] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // A form with changes asks before X, Cancel or Escape drop them (R5).
+  const formState = JSON.stringify({ title, description, dueDate, dueTime, showTime, priority, progress, calendarId, alertOption });
+  const [initialForm] = useState(formState);
+  const isDirty = formState !== initialForm;
+  useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
+  const { dialogProps: discardDialogProps, confirm: confirmDiscard } = useConfirmDialog();
+  const askingRef = useRef(false);
+  const requestClose = useCallback(() => {
+    if (!isDirty) { onClose(); return; }
+    if (askingRef.current) return;
+    askingRef.current = true;
+    void confirmDiscard({
+      title: t("discard.title"),
+      message: t("discard.message"),
+      confirmText: t("discard.confirm"),
+      cancelText: t("discard.keep"),
+      variant: "destructive",
+    }).then((ok) => {
+      askingRef.current = false;
+      if (ok) onClose();
+    });
+  }, [isDirty, onClose, confirmDiscard, t]);
 
   useEffect(() => {
     titleRef.current?.focus();
@@ -164,13 +196,13 @@ export function TaskModal({
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       e.preventDefault();
-      onClose();
+      requestClose();
     }
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
       e.preventDefault();
       handleSave();
     }
-  }, [onClose, handleSave]);
+  }, [requestClose, handleSave]);
 
   return (
     <div className="flex flex-col h-full bg-background" onKeyDown={handleKeyDown}>
@@ -179,9 +211,9 @@ export function TaskModal({
         <h2 className="text-sm font-semibold">
           {isEdit ? t("tasks.edit") : t("tasks.create")}
         </h2>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
+        <IconButton label={tCommon("close")} onClick={requestClose}>
+          <X />
+        </IconButton>
       </div>
 
       {/* Body */}
@@ -192,6 +224,7 @@ export function TaskModal({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder={t("tasks.title_placeholder")}
+          aria-label={t("tasks.title_placeholder")}
           className="text-base font-medium"
         />
 
@@ -200,18 +233,20 @@ export function TaskModal({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder={t("tasks.description_placeholder")}
+          aria-label={t("form.description")}
           rows={3}
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
         />
 
         {/* Due Date */}
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+          <label htmlFor={`${id}-due`} id={`${id}-due-label`} className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
             <CalendarDays className="h-3.5 w-3.5" />
             {t("tasks.due_date")}
           </label>
           <div className="flex items-center gap-2">
             <input
+              id={`${id}-due`}
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
@@ -231,6 +266,7 @@ export function TaskModal({
             {showTime && (
               <input
                 type="time"
+                aria-labelledby={`${id}-due-label`}
                 value={dueTime}
                 onChange={(e) => setDueTime(e.target.value)}
                 className="rounded-md border border-input bg-background px-3 py-1.5 text-sm"
@@ -241,11 +277,12 @@ export function TaskModal({
 
         {/* Priority */}
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+          <label htmlFor={`${id}-priority`} className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
             <Flag className="h-3.5 w-3.5" />
             {t("tasks.priority")}
           </label>
           <select
+            id={`${id}-priority`}
             value={priority}
             onChange={(e) => setPriority(e.target.value as PriorityLevel)}
             className="rounded-md border border-input bg-background px-3 py-1.5 text-sm w-full"
@@ -259,10 +296,11 @@ export function TaskModal({
 
         {/* Progress */}
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">
+          <label htmlFor={`${id}-progress`} className="text-xs font-medium text-muted-foreground">
             {t("tasks.progress")}
           </label>
           <select
+            id={`${id}-progress`}
             value={progress}
             onChange={(e) => setProgress(e.target.value as CalendarTask["progress"])}
             className="rounded-md border border-input bg-background px-3 py-1.5 text-sm w-full"
@@ -277,10 +315,11 @@ export function TaskModal({
         {/* Calendar */}
         {writableCalendars.length > 1 && (
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">
+            <label htmlFor={`${id}-calendar`} className="text-xs font-medium text-muted-foreground">
               {t("tasks.calendar")}
             </label>
             <select
+              id={`${id}-calendar`}
               value={calendarId}
               onChange={(e) => setCalendarId(e.target.value)}
               className="rounded-md border border-input bg-background px-3 py-1.5 text-sm w-full"
@@ -294,11 +333,12 @@ export function TaskModal({
 
         {/* Alert */}
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+          <label htmlFor={`${id}-alert`} className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
             <Bell className="h-3.5 w-3.5" />
             {t("tasks.alert")}
           </label>
           <select
+            id={`${id}-alert`}
             value={alertOption}
             onChange={(e) => {
               setAlertOption(e.target.value as AlertOption);
@@ -335,7 +375,7 @@ export function TaskModal({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={onClose}>
+          <Button variant="outline" size="sm" onClick={requestClose}>
             {t("tasks.cancel")}
           </Button>
           <Button size="sm" onClick={handleSave} disabled={!title.trim() || saving}>
@@ -343,6 +383,7 @@ export function TaskModal({
           </Button>
         </div>
       </div>
+      <ConfirmDialog {...discardDialogProps} />
     </div>
   );
 }

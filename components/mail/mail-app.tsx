@@ -1420,6 +1420,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
   const handleMailtoProtocolRequest = useCallback(async (pending: ParsedMailto) => {
     if (!(await mailtoAllowed(pending))) return;
+    // From another app of this webmail: the account in use, no question.
+    if (pending.inApp) {
+      openMailtoDraft(pending);
+      return;
+    }
     const protocolAccounts = getMailtoProtocolAccounts();
     if (protocolAccounts.length > 1) {
       setPendingMailtoAccountChoice(pending);

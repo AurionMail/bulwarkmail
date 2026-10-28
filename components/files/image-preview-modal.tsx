@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Download } from "@/components/icons";
-import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { PreviewShell, type PreviewNeighbours } from "@/components/files/preview-shell";
 import { useTranslations } from "next-intl";
 import { ZoomableImage } from "@/components/files/zoomable-image";
 import { FilePreviewPluginSection } from "@/components/files/file-preview-plugin-section";
 import type { FileResourceView } from "@/lib/plugin-types";
+import { useCloseOnBack } from "@/hooks/use-close-on-back";
 
 interface ImagePreviewModalProps {
   name: string;
@@ -15,13 +16,18 @@ interface ImagePreviewModalProps {
   getImageUrl: (name: string) => Promise<string>;
   /** The previewed file as plugins see it (file-preview-section). */
   file?: FileResourceView | null;
+  /** The previous and next file of the folder, for ←/→. */
+  neighbours?: PreviewNeighbours;
 }
 
-export function ImagePreviewModal({ name, onClose, onDownload, getImageUrl, file }: ImagePreviewModalProps) {
+export function ImagePreviewModal({ name, onClose, onDownload, getImageUrl, file, neighbours }: ImagePreviewModalProps) {
   const t = useTranslations("files");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
+  // Back closes the preview instead of leaving Files, as for every other preview.
+  useCloseOnBack(onClose);
 
   useEffect(() => {
     let revoke: string | null = null;
@@ -49,61 +55,12 @@ export function ImagePreviewModal({ name, onClose, onDownload, getImageUrl, file
     };
   }, [name, getImageUrl]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", onKey, { capture: true });
-    return () => window.removeEventListener("keydown", onKey, { capture: true });
-  }, [onClose]);
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={name}
-      className="fixed inset-0 z-50 flex flex-col bg-black/90"
-      onClick={onClose}
-    >
-      {/* Same safe-area handling as FilePreviewModal: full-screen overlay +
-          `viewport-fit=cover` puts this bar under the iOS status bar in an
-          installed PWA (#936). */}
-      <div
-        className="flex items-center justify-between gap-3 pl-[calc(1rem+env(safe-area-inset-left))] pr-[calc(0.5rem+env(safe-area-inset-right))] pt-[calc(0.5rem+env(safe-area-inset-top))] pb-2 text-white"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <span className="text-sm font-medium truncate min-w-0">{name}</span>
-        <div className="flex items-center gap-1 shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 text-white hover:bg-white/15 hover:text-white"
-            onClick={() => void onDownload(name)}
-            aria-label={t("download")}
-            title={t("download")}
-          >
-            <Download className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 text-white hover:bg-white/15 hover:text-white"
-            onClick={onClose}
-            aria-label={t("close_preview")}
-            title={t("close_preview")}
-          >
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
-      </div>
-
+    <PreviewShell name={name} onClose={onClose} onDownload={() => void onDownload(name)} neighbours={neighbours}>
       <div className="relative flex-1 min-h-0">
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-10 h-10 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <Spinner label={t("loading")} className="w-8 h-8 text-white/80" />
           </div>
         )}
         {error && (
@@ -116,6 +73,6 @@ export function ImagePreviewModal({ name, onClose, onDownload, getImageUrl, file
         )}
       </div>
       <FilePreviewPluginSection file={file} />
-    </div>
+    </PreviewShell>
   );
 }

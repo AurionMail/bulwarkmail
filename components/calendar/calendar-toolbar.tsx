@@ -3,7 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Plus, Upload, CalendarDays, Globe, ChevronDown, ArrowLeft, Menu, MoreVertical } from "@/components/icons";
+import { IconButton } from "@/components/ui/icon-button";
+import { ChevronLeft, ChevronRight, Plus, Upload, CalendarDays, Globe, ChevronDown, ArrowLeft, Menu, MoreVertical, RefreshCw } from "@/components/icons";
+import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
+import { useContextMenu } from "@/hooks/use-context-menu";
 import { startOfWeek } from "date-fns";
 import { PhoneHeaderActions } from "@/components/layout/phone-header-actions";
 import { cn } from "@/lib/utils";
@@ -22,8 +25,12 @@ interface CalendarToolbarProps {
   onToday: () => void;
   onViewModeChange: (mode: CalendarViewMode) => void;
   onCreateEvent: () => void;
+  /** The create button's name: what it makes in the current view. */
+  createLabel?: string;
   onImport?: () => void;
   onSubscribe?: () => void;
+  /** Reload calendars, events and subscriptions. */
+  onRefresh?: () => void;
   isMobile?: boolean;
   firstDayOfWeek?: number;
   onNavigateBack?: () => void;
@@ -35,6 +42,8 @@ interface CalendarToolbarProps {
   onMenuClick?: () => void;
   /** Whether the sidebar is currently shown (for the burger's aria-expanded). */
   sidebarOpen?: boolean;
+  /** The burger shows and hides the sidebar beside the grid, rather than opening it over it. */
+  menuTogglesSidebar?: boolean;
   /**
    * Show a compact create button in the bar. The full "Create" button lives
    * at the top of the sidebar, so this is only needed while it is hidden.
@@ -60,8 +69,10 @@ export function CalendarToolbar({
   onToday,
   onViewModeChange,
   onCreateEvent,
+  createLabel,
   onImport,
   onSubscribe,
+  onRefresh,
   isMobile,
   firstDayOfWeek = 1,
   onNavigateBack,
@@ -71,9 +82,11 @@ export function CalendarToolbar({
   enableCalendarTasks,
   onMenuClick,
   sidebarOpen,
+  menuTogglesSidebar,
   showCreateButton,
 }: CalendarToolbarProps) {
   const t = useTranslations("calendar");
+  const tCommon = useTranslations("common");
   const {
     weekStartsOn,
     formatMonthYear,
@@ -89,8 +102,12 @@ export function CalendarToolbar({
   const menuViews: CalendarViewMode[] = enableCalendarTasks
     ? ["day", "week", "month", "agenda", "tasks"]
     : ["day", "week", "month", "agenda"];
-  const [showViewMenu, setShowViewMenu] = useState(false);
-  const viewMenuRef = useRef<HTMLDivElement>(null);
+  const {
+    contextMenu: viewMenu,
+    openContextMenuFrom: openViewMenuFrom,
+    closeContextMenu: closeViewMenu,
+    menuRef: viewMenuRef,
+  } = useContextMenu<true>();
   const [showCalendarDropdown, setShowCalendarDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -135,41 +152,49 @@ export function CalendarToolbar({
     }
   };
 
-  const [showImportDropdown, setShowImportDropdown] = useState(false);
-  const importDropdownRef = useRef<HTMLDivElement>(null);
+  // Tasks have no dates to step through.
+  const hasDateNav = viewMode !== "tasks";
 
+  // The ⋮ menu: what the calendar as a whole offers.
+  const {
+    contextMenu: moreMenu,
+    openContextMenuFrom: openMoreMenuFrom,
+    closeContextMenu: closeMoreMenu,
+    menuRef: moreMenuRef,
+  } = useContextMenu<true>();
+  const hasMoreMenu = !!(onImport || onSubscribe || onRefresh);
+  const pick = (fn: () => void) => () => { closeMoreMenu(); fn(); };
+  const moreButton = hasMoreMenu ? (
+    <>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className={cn(moreMenu.isOpen && "bg-accent text-accent-foreground")}
+        onClick={(e) => openMoreMenuFrom(e.currentTarget, true, "end")}
+        aria-label={t("toolbar.more")}
+        title={t("toolbar.more")}
+        aria-haspopup="menu"
+        aria-expanded={moreMenu.isOpen}
+      >
+        <MoreVertical />
+      </Button>
+      <ContextMenu ref={moreMenuRef} isOpen={moreMenu.isOpen} position={moreMenu.position} onClose={closeMoreMenu}>
+        {onImport && <ContextMenuItem icon={Upload} label={t("toolbar.import")} onClick={pick(onImport)} />}
+        {onSubscribe && <ContextMenuItem icon={Globe} label={t("toolbar.subscribe")} onClick={pick(onSubscribe)} />}
+        {onRefresh && (onImport || onSubscribe) && <ContextMenuSeparator />}
+        {onRefresh && <ContextMenuItem icon={RefreshCw} label={tCommon("refresh")} onClick={pick(onRefresh)} />}
+      </ContextMenu>
+    </>
+  ) : null;
+  // The same entries in the phone header's ⋮.
+  const phoneMenuItems = hasMoreMenu ? (close: () => void) => (
+    <>
+      {onImport && <ContextMenuItem icon={Upload} label={t("toolbar.import")} onClick={() => { close(); onImport(); }} />}
+      {onSubscribe && <ContextMenuItem icon={Globe} label={t("toolbar.subscribe")} onClick={() => { close(); onSubscribe(); }} />}
+      {onRefresh && <ContextMenuItem icon={RefreshCw} label={tCommon("refresh")} onClick={() => { close(); onRefresh(); }} />}
+    </>
+  ) : undefined;
 
-  useEffect(() => {
-    if (!showImportDropdown) return;
-    function handleClickOutside(e: MouseEvent) {
-      if (importDropdownRef.current && !importDropdownRef.current.contains(e.target as Node)) {
-        setShowImportDropdown(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showImportDropdown]);
-
-  useEffect(() => {
-    if (!showViewMenu && !showImportDropdown) return;
-    function handleClickOutside(e: MouseEvent) {
-      if (viewMenuRef.current && !viewMenuRef.current.contains(e.target as Node)) {
-        setShowViewMenu(false);
-      }
-    }
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setShowViewMenu(false);
-        setShowImportDropdown(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [showViewMenu, showImportDropdown]);
 
 
 
@@ -182,36 +207,35 @@ export function CalendarToolbar({
             {/* Row 1: Back / Date nav / Today */}
             <div className="flex items-center gap-1">
               {onMenuClick && (
-                <button
-                  onClick={onMenuClick}
-                  className="p-1.5 -ms-1 rounded-md hover:bg-muted transition-colors touch-manipulation"
-                  aria-label={t("nav_open_menu")}
-                >
-                  <Menu className="w-4 h-4" />
-                </button>
+                <IconButton size="icon-lg" label={t("nav_open_menu")} onClick={onMenuClick} className="-ms-1 touch-manipulation">
+                  <Menu />
+                </IconButton>
               )}
               {onNavigateBack && (
-                <button
-                  onClick={onNavigateBack}
-                  className="p-1.5 -ms-1 rounded-md hover:bg-muted transition-colors touch-manipulation"
-                  aria-label={t("back_to_month")}
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
+                <IconButton size="icon-lg" label={t("back_to_month")} onClick={onNavigateBack} className="-ms-1 touch-manipulation">
+                  <ArrowLeft />
+                </IconButton>
               )}
-              <button onClick={onPrev} className="p-1.5 rounded-md hover:bg-muted transition-colors touch-manipulation" aria-label={t("nav_prev")}>
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="text-sm font-semibold text-center flex-1 select-none truncate">
+              {hasDateNav && (
+                <IconButton size="icon-lg" label={t("nav_prev")} onClick={onPrev} className="touch-manipulation">
+                  <ChevronLeft />
+                </IconButton>
+              )}
+              <span className="text-sm font-semibold text-center flex-1 select-none truncate" title={getDateLabel()}>
                 {getDateLabel()}
               </span>
-              <button onClick={onNext} className="p-1.5 rounded-md hover:bg-muted transition-colors touch-manipulation" aria-label={t("nav_next")}>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-              <Button variant="ghost" size="sm" onClick={onToday} className="touch-manipulation text-xs h-7 px-2 ms-0.5">
-                {t("views.today")}
-              </Button>
-              <PhoneHeaderActions below="md" />
+              {hasDateNav && (
+                <>
+                  <IconButton size="icon-lg" label={t("nav_next")} onClick={onNext} className="touch-manipulation">
+                    <ChevronRight />
+                  </IconButton>
+                  <Button variant="ghost" size="xs" onClick={onToday} className="touch-manipulation ms-0.5">
+                    {t("views.today")}
+                  </Button>
+                </>
+              )}
+              {/* The shell's phone ⋮ (notifications, palette, account) with the calendar's own entries on top. */}
+              <PhoneHeaderActions below="md" menuItems={phoneMenuItems} />
             </div>
 
             {/* Row 2: View switcher pills + calendar toggle */}
@@ -222,7 +246,7 @@ export function CalendarToolbar({
                     key={v}
                     onClick={() => onViewModeChange(v)}
                     className={cn(
-                      "flex-1 py-1.5 text-[11px] font-medium transition-colors touch-manipulation",
+                      "flex-1 min-h-11 text-[11px] font-medium transition-colors touch-manipulation",
                       v === viewMode
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground active:bg-muted"
@@ -235,16 +259,16 @@ export function CalendarToolbar({
 
               {calendars && selectedCalendarIds && onToggleVisibility && (
                 <div className="relative" ref={dropdownRef}>
-                  <button
+                  <IconButton
+                    size="icon-lg"
+                    variant="outline"
+                    label={t("my_calendars")}
+                    aria-expanded={showCalendarDropdown}
                     onClick={() => setShowCalendarDropdown((v) => !v)}
-                    className={cn(
-                      "p-1.5 rounded-md border border-border transition-colors touch-manipulation",
-                      showCalendarDropdown ? "bg-muted" : "hover:bg-muted"
-                    )}
-                    aria-label={t("my_calendars")}
+                    className={cn("touch-manipulation", showCalendarDropdown && "bg-muted")}
                   >
-                    <CalendarDays className="w-4 h-4" />
-                  </button>
+                    <CalendarDays />
+                  </IconButton>
                   {showCalendarDropdown && (
                     <div className="absolute top-full end-0 mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg p-2 min-w-[180px]">
                       <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 px-1">
@@ -259,7 +283,7 @@ export function CalendarToolbar({
                               key={cal.id}
                               onClick={() => onToggleVisibility(cal.id)}
                               className={cn(
-                                "flex items-center gap-2 w-full px-2 py-2 rounded-md text-sm transition-colors duration-150 touch-manipulation",
+                                "flex items-center gap-2 w-full px-2 min-h-11 rounded-md text-sm transition-colors duration-150 touch-manipulation",
                                 "hover:bg-muted"
                               )}
                             >
@@ -270,7 +294,7 @@ export function CalendarToolbar({
                                 )}
                                 style={isVisible ? { backgroundColor: color, borderColor: color } : undefined}
                               />
-                              <span className={cn("truncate", !isVisible && "text-muted-foreground")}>
+                              <span className={cn("truncate", !isVisible && "text-muted-foreground")} title={cal.name}>
                                 {cal.name}
                               </span>
                             </button>
@@ -299,7 +323,7 @@ export function CalendarToolbar({
                                     key={cal.id}
                                     onClick={() => onToggleVisibility(cal.id)}
                                     className={cn(
-                                      "flex items-center gap-2 w-full px-2 py-2 rounded-md text-sm transition-colors duration-150 touch-manipulation",
+                                      "flex items-center gap-2 w-full px-2 min-h-11 rounded-md text-sm transition-colors duration-150 touch-manipulation",
                                       "hover:bg-muted"
                                     )}
                                   >
@@ -310,7 +334,7 @@ export function CalendarToolbar({
                                       )}
                                       style={isVisible ? { backgroundColor: color, borderColor: color } : undefined}
                                     />
-                                    <span className={cn("truncate", !isVisible && "text-muted-foreground")}>
+                                    <span className={cn("truncate", !isVisible && "text-muted-foreground")} title={cal.name}>
                                       {cal.name}
                                     </span>
                                   </button>
@@ -338,10 +362,11 @@ export function CalendarToolbar({
       {onMenuClick && (
         <Button
           variant="ghost"
-          size="icon"
+          size="icon-sm"
           onClick={onMenuClick}
-          className="h-8 w-8 -ms-1 me-1"
-          aria-label={t("nav_open_menu")}
+          className="-ms-1 me-1"
+          aria-label={menuTogglesSidebar ? t(sidebarOpen ? "nav_hide_sidebar" : "nav_show_sidebar") : t("nav_open_menu")}
+          title={menuTogglesSidebar ? t(sidebarOpen ? "nav_hide_sidebar" : "nav_show_sidebar") : t("nav_open_menu")}
           aria-expanded={sidebarOpen}
         >
           <Menu className="w-4 h-4" />
@@ -350,132 +375,85 @@ export function CalendarToolbar({
       {showCreateButton && (
         <Button
           variant="ghost"
-          size="icon"
+          size="icon-sm"
           onClick={onCreateEvent}
-          className="h-8 w-8"
-          aria-label={t("events.create")}
-          title={t("events.create")}
+          aria-label={createLabel ?? t("events.create")}
+          title={createLabel ?? t("events.create")}
           data-tour="create-event-button"
         >
           <Plus className="w-4 h-4" />
         </Button>
       )}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onToday}
-        className="h-8 me-1"
-        title={formatFullDate(displayNow())}
-      >
-        {t("views.today")}
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8"
-        onClick={onPrev}
-        aria-label={t("nav_prev")}
-      >
-        <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8"
-        onClick={onNext}
-        aria-label={t("nav_next")}
-      >
-        <ChevronRight className="w-4 h-4 rtl:rotate-180" />
-      </Button>
-      <h1 className="ms-2 text-base font-semibold truncate select-none">
+      {hasDateNav && (
+        <>
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={onToday}
+            className="me-1"
+            title={formatFullDate(displayNow())}
+          >
+            {t("views.today")}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onPrev}
+            aria-label={t("nav_prev")}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onNext}
+            aria-label={t("nav_next")}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </>
+      )}
+      <h1 className="ms-2 text-base font-semibold truncate select-none" title={getDateLabel()}>
         {getDateLabel()}
       </h1>
 
       <div className="flex-1" />
 
-      {(onImport || onSubscribe) && (
-        <div className="relative" ref={importDropdownRef}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "h-8 w-8",
-              showImportDropdown && "bg-accent text-accent-foreground",
-            )}
-            onClick={() => setShowImportDropdown((v) => !v)}
-            aria-label={t("toolbar.more")}
-            title={t("toolbar.more")}
-            aria-haspopup="menu"
-            aria-expanded={showImportDropdown}
-          >
-            <MoreVertical className="w-4 h-4" />
-          </Button>
-          {showImportDropdown && (
-            <div
-              role="menu"
-              className="absolute top-full end-0 mt-1 z-50 bg-background border border-border rounded-lg shadow-lg p-1 min-w-[180px]"
-            >
-              {onImport && (
-                <button
-                  role="menuitem"
-                  onClick={() => { onImport(); setShowImportDropdown(false); }}
-                  className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors text-foreground"
-                >
-                  <Upload className="w-4 h-4" />
-                  {t("import.title")}
-                </button>
-              )}
-              {onSubscribe && (
-                <button
-                  role="menuitem"
-                  onClick={() => { onSubscribe(); setShowImportDropdown(false); }}
-                  className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors text-foreground"
-                >
-                  <Globe className="w-4 h-4" />
-                  {t("subscription.title")}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      {moreButton}
 
-      <div className="relative ms-1" ref={viewMenuRef}>
+      <div className="relative ms-1">
         <Button
           variant="outline"
-          size="sm"
-          className="h-8 gap-1"
-          onClick={() => setShowViewMenu((v) => !v)}
+          size="xs"
+          className="gap-1"
+          onClick={(e) => openViewMenuFrom(e.currentTarget, true, "end")}
           aria-haspopup="menu"
-          aria-expanded={showViewMenu}
+          aria-expanded={viewMenu.isOpen}
           aria-label={t("toolbar.select_view", { view: currentViewLabel })}
           data-testid="calendar-view-menu"
         >
           {currentViewLabel}
           <ChevronDown className="w-3 h-3" />
         </Button>
-        {showViewMenu && (
-          <div
-            role="menu"
-            className="absolute top-full end-0 mt-1 z-50 bg-background border border-border rounded-lg shadow-lg p-1 min-w-[180px]"
-          >
-            {menuViews.map((v) => (
-              <button
-                key={v}
-                role="menuitemradio"
-                aria-checked={v === viewMode}
-                onClick={() => { onViewModeChange(v); setShowViewMenu(false); }}
-                className={cn(
-                  "flex items-center justify-between gap-6 w-full px-3 py-2 rounded-md text-sm transition-colors",
-                  v === viewMode ? "bg-accent text-accent-foreground font-medium" : "hover:bg-muted text-foreground",
-                )}
-              >
-                <span>{t(`views.${v}`)}</span>
-                <kbd className="font-sans text-xs text-muted-foreground">{VIEW_SHORTCUTS[v]}</kbd>
-              </button>
-            ))}
-          </div>
-        )}
+        <ContextMenu ref={viewMenuRef} isOpen={viewMenu.isOpen} position={viewMenu.position} onClose={closeViewMenu}>
+          {menuViews.map((v) => (
+            <button
+              key={v}
+              type="button"
+              role="menuitemradio"
+              aria-checked={v === viewMode}
+              onClick={() => { closeViewMenu(); onViewModeChange(v); }}
+              className={cn(
+                "flex items-center justify-between gap-6 w-full px-3 py-2 rounded-md text-sm transition-colors outline-none focus-visible:bg-accent",
+                v === viewMode ? "bg-accent text-accent-foreground font-medium" : "hover:bg-muted text-foreground",
+              )}
+            >
+              <span>{t(`views.${v}`)}</span>
+              {/* The key, on devices with a keyboard (R8). */}
+              <kbd className="font-sans text-xs text-muted-foreground pointer-coarse:hidden">{VIEW_SHORTCUTS[v]}</kbd>
+            </button>
+          ))}
+        </ContextMenu>
       </div>
     </div>
   );

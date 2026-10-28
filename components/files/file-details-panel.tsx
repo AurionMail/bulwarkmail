@@ -82,7 +82,7 @@ export function FileDetailsPanel({
         <div className="aspect-[4/3] rounded-lg bg-muted/50 flex items-center justify-center">
           {selection.length > 1
             ? <Files className="w-14 h-14 text-muted-foreground" />
-            : <FolderOpen className="w-14 h-14 text-blue-500" />}
+            : <FolderOpen className="w-14 h-14 text-primary" />}
         </div>
         <div>
           <p className="font-medium break-words">

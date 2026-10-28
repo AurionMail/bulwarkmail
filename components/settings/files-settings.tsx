@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Folder, FileText, FileCode, ImageIcon, FileAudio, File } from "@/components/icons";
 import { SettingsSection, SettingItem, ToggleSwitch, RadioGroup } from "./settings-section";
-import { loadFilesSettings, saveFilesSettings, type FilesSettings } from "@/components/files/files-settings";
+import { useFilesSettings, type FilesSettings } from "@/components/files/files-settings";
 import { cn } from "@/lib/utils";
 import { withBasePath } from "@/lib/browser-navigation";
 import { useConfig } from "@/hooks/use-config";
@@ -156,26 +156,7 @@ function FilesSettingsPreview({ settings }: { settings: FilesSettings }) {
 
 export function FilesSettingsComponent() {
   const t = useTranslations("settings.files");
-  const [settings, setSettings] = useState<FilesSettings>(loadFilesSettings);
-
-  // Listen for external changes (e.g. if file-browser updates settings)
-  useEffect(() => {
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === "files-settings") {
-        setSettings(loadFilesSettings());
-      }
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
-  }, []);
-
-  const update = useCallback((patch: Partial<FilesSettings>) => {
-    setSettings(prev => {
-      const next = { ...prev, ...patch };
-      saveFilesSettings(next);
-      return next;
-    });
-  }, []);
+  const [settings, update] = useFilesSettings();
 
   return (
     <div>

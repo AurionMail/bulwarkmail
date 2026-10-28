@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Clock, X } from "@/components/icons";
+import { IconButton } from "@/components/ui/icon-button";
 import type { Calendar } from "@/lib/jmap/types";
 import { useDisplayDateFormatter } from "@/hooks/use-display-date-formatter";
 
@@ -15,6 +16,8 @@ export interface QuickCreateDraft {
   end: Date;
   title: string;
   calendarId: string;
+  /** A day picked in the month view or the all-day row: an all-day event. */
+  allDay?: boolean;
 }
 
 interface QuickCreatePopoverProps {
@@ -63,6 +66,7 @@ export function QuickCreatePopover({
   onClose,
 }: QuickCreatePopoverProps) {
   const t = useTranslations("calendar");
+  const tCommon = useTranslations("common");
   const intlFormatter = useDisplayDateFormatter();
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -131,7 +135,7 @@ export function QuickCreatePopover({
 
   const timeFmt = timeFormat === "12h" ? "h:mm a" : "HH:mm";
   const dateLabel = intlFormatter.dateTime(draft.start, { weekday: "long", month: "long", day: "numeric" });
-  const timeLabel = `${format(draft.start, timeFmt)} – ${format(draft.end, timeFmt)}`;
+  const timeLabel = draft.allDay ? t("events.all_day") : `${format(draft.start, timeFmt)} – ${format(draft.end, timeFmt)}`;
 
   return createPortal(
     <div
@@ -148,14 +152,9 @@ export function QuickCreatePopover({
     >
       <form onSubmit={handleSubmit}>
         <div className="flex justify-end px-2 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-            aria-label={t("form.cancel")}
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <IconButton label={tCommon("close")} onClick={onClose} className="text-muted-foreground">
+            <X />
+          </IconButton>
         </div>
         <div className="px-4 pb-3 space-y-3">
           <Input
@@ -195,10 +194,10 @@ export function QuickCreatePopover({
           )}
         </div>
         <div className="flex items-center justify-end gap-2 px-4 py-2.5 border-t border-border">
-          <Button type="button" variant="ghost" size="sm" className="h-8" onClick={onMoreOptions}>
+          <Button type="button" variant="ghost" size="xs" onClick={onMoreOptions}>
             {t("quick_create.more_options")}
           </Button>
-          <Button type="submit" size="sm" className="h-8" disabled={!canSave}>
+          <Button type="submit" size="xs" disabled={!canSave}>
             {t("form.save")}
           </Button>
         </div>

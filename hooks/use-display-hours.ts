@@ -3,9 +3,16 @@ import { useSettingsStore } from "@/stores/settings-store";
 import { displayNow } from "@/lib/timezone";
 import { FULL_DAY_HOURS, resolveDisplayHours, type DisplayHours } from "@/lib/calendar-display-range";
 
+/** A time of day to bring into view, e.g. a new event's start; a new nonce asks again. */
+export interface RevealTime {
+  minutes: number;
+  nonce: number;
+}
+
 interface UseDisplayHoursOptions {
   scrollRef: RefObject<HTMLElement | null>;
   hourHeight: number;
+  revealAt?: RevealTime | null;
 }
 
 /**
@@ -14,7 +21,7 @@ interface UseDisplayHoursOptions {
  * position too - it opens an hour before now, and keeps the same hours in
  * place when the range changes underneath it.
  */
-export function useDisplayHours({ scrollRef, hourHeight }: UseDisplayHoursOptions) {
+export function useDisplayHours({ scrollRef, hourHeight, revealAt }: UseDisplayHoursOptions) {
   const limitHours = useSettingsStore((s) => s.calendarLimitHours);
   const startHour = useSettingsStore((s) => s.calendarDayStartHour);
   const endHour = useSettingsStore((s) => s.calendarDayEndHour);
@@ -63,6 +70,26 @@ export function useDisplayHours({ scrollRef, hourHeight }: UseDisplayHoursOption
     revealRef.current = minutes;
     setShowAllHours(true);
   }, []);
+
+  // A saved event lands where the user can see it: outside the shown hours
+  // the whole day opens, else the grid scrolls to it when it is out of view.
+  const revealNonce = revealAt?.nonce;
+  useEffect(() => {
+    if (!revealAt) return;
+    const { minutes } = revealAt;
+    if (minutes < hours.startMinutes || minutes >= hours.endMinutes) {
+      revealMinutes(minutes);
+      return;
+    }
+    const root = scrollRef.current;
+    if (!root) return;
+    const top = ((minutes - hours.startMinutes) / 60) * hourHeight;
+    if (top < root.scrollTop || top > root.scrollTop + root.clientHeight - 2 * hourHeight) {
+      root.scrollTop = Math.max(0, top - hourHeight / 2);
+    }
+    // Only a new request moves the grid, not a change of range under it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revealNonce]);
 
   return {
     hours,

@@ -10,9 +10,7 @@ import type { TaskViewFilter } from "@/stores/task-store";
 
 interface TaskToolbarProps {
   filter: TaskViewFilter;
-  showCompleted: boolean;
   onFilterChange: (filter: TaskViewFilter) => void;
-  onShowCompletedChange: (show: boolean) => void;
   onCreateTask: () => void;
   /** The tasks the list shows, in order: what plugin buttons here act on. */
   taskIds?: string[];
@@ -26,9 +24,7 @@ const FILTERS: TaskViewFilter[] = ["all", "pending", "completed", "overdue"];
 
 export function TaskToolbar({
   filter,
-  showCompleted,
   onFilterChange,
-  onShowCompletedChange,
   onCreateTask,
   taskIds = NO_IDS,
   compact,
@@ -54,16 +50,6 @@ export function TaskToolbar({
           </button>
         ))}
       </div>
-
-      <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none ms-2">
-        <input
-          type="checkbox"
-          checked={showCompleted}
-          onChange={(e) => onShowCompletedChange(e.target.checked)}
-          className="rounded border-border"
-        />
-        {t("tasks.show_completed")}
-      </label>
 
       <div className="flex-1" />
 

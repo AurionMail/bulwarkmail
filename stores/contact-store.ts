@@ -178,15 +178,16 @@ function resolveRawAddressBookIds(
 
 export function getContactDisplayName(contact: ContactCard): string {
   if (contact.name) {
-    // Try given + surname from components first
+    // The card's own display name (RFC 9553 name.full, vCard FN) first: an
+    // imported "Dr. Jürgen Müller" stays that, and this app's form keeps it
+    // in step with the parts it writes.
+    if (contact.name.full?.trim()) return contact.name.full.trim();
     if (contact.name.components && contact.name.components.length > 0) {
       const given = contact.name.components.find(c => c.kind === 'given')?.value || '';
       const surname = contact.name.components.find(c => c.kind === 'surname')?.value || '';
       const full = [given, surname].filter(Boolean).join(' ');
       if (full) return full;
     }
-    // Fall back to name.full (RFC 9553 - used by Stalwart and other JMAP servers)
-    if (contact.name.full) return contact.name.full;
   }
   if (contact.nicknames) {
     const nick = Object.values(contact.nicknames)[0];
@@ -463,6 +464,10 @@ interface ContactStore {
   removeAddressBook: (client: IJMAPClient, addressBook: AddressBook) => Promise<void>;
   shareAddressBook: (client: IJMAPClient, addressBook: AddressBook, principalId: string, rights: AddressBookRights | null) => Promise<void>;
   renameKeyword: (client: IJMAPClient | null, oldKeyword: string, newKeyword: string) => Promise<void>;
+  /** Take a category off every contact; returns the ids of the contacts that had it, for undo. */
+  removeKeyword: (client: IJMAPClient | null, keyword: string) => Promise<string[]>;
+  /** Put a category on contacts, e.g. to undo removing it. */
+  addKeyword: (client: IJMAPClient | null, keyword: string, contactIds: string[]) => Promise<void>;
 
   importContacts: (client: IJMAPClient | null, contacts: ContactCard[]) => Promise<number>;
 
@@ -1402,6 +1407,48 @@ export const useContactStore = create<ContactStore>()(
             set({ error: msg });
             throw error;
           }
+        }
+      },
+
+      removeKeyword: async (client, keyword) => {
+        set({ error: null });
+        const kw = keyword.trim();
+        const { contacts, supportsSync } = get();
+        const affected = contacts.filter(c => c.keywords?.[kw]);
+        const done: string[] = [];
+        for (const contact of affected) {
+          const { [kw]: _gone, ...rest } = contact.keywords || {};
+          void _gone;
+          if (supportsSync && client) {
+            const originalId = contact.originalId || contact.id;
+            const accountId = contact.isShared ? contact.accountId : undefined;
+            // JMAP patch: only this keyword goes; the card's others stay.
+            await client.updateContact(originalId, { keywords: rest }, accountId);
+          }
+          set((state) => ({
+            contacts: state.contacts.map(c => (c.id === contact.id ? { ...c, keywords: rest } : c)),
+          }));
+          done.push(contact.id);
+        }
+        return done;
+      },
+
+      addKeyword: async (client, keyword, contactIds) => {
+        set({ error: null });
+        const kw = keyword.trim();
+        const { contacts, supportsSync } = get();
+        for (const id of contactIds) {
+          const contact = contacts.find(c => c.id === id);
+          if (!contact || contact.keywords?.[kw]) continue;
+          const keywords = { ...(contact.keywords || {}), [kw]: true };
+          if (supportsSync && client) {
+            const originalId = contact.originalId || contact.id;
+            const accountId = contact.isShared ? contact.accountId : undefined;
+            await client.updateContact(originalId, { keywords }, accountId);
+          }
+          set((state) => ({
+            contacts: state.contacts.map(c => (c.id === id ? { ...c, keywords } : c)),
+          }));
         }
       },
 
