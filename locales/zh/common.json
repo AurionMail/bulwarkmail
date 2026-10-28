@@ -697,7 +697,8 @@
     "mv_position": "第 {index} 封，共 {total} 封",
     "plugin_panel_show": "显示插件面板",
     "plugin_panel_hide": "隐藏插件面板",
-    "copy": "复制"
+    "copy": "复制",
+    "contact_added": "已添加联系人"
   },
   "email_composer": {
     "select_from_directory": "从目录中选择",
@@ -989,6 +990,8 @@
     "undo": "撤销",
     "undo_done": "已移回",
     "undo_failed": "无法撤销",
+    "not_connected": "此账户未连接。请重新登录。",
+    "trash_not_found": "此账户没有废纸篓文件夹，因此没有删除任何内容。",
     "emails_copied": "{count} 封邮件已复制",
     "copy_failed": "复制失败",
     "move_error": "无法将邮件移至所选文件夹",

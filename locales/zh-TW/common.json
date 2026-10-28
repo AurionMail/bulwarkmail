@@ -697,7 +697,8 @@
     "mv_position": "第 {index} 封，共 {total} 封",
     "plugin_panel_show": "顯示外掛程式面板",
     "plugin_panel_hide": "隱藏外掛程式面板",
-    "copy": "複製"
+    "copy": "複製",
+    "contact_added": "已新增聯絡人"
   },
   "email_composer": {
     "select_from_directory": "從目錄中選取",
@@ -989,6 +990,8 @@
     "undo": "復原",
     "undo_done": "已移回",
     "undo_failed": "無法復原",
+    "not_connected": "此帳號未連線。請重新登入。",
+    "trash_not_found": "此帳號沒有垃圾桶資料夾，因此未刪除任何內容。",
     "emails_copied": "{count} 封郵件已複製",
     "copy_failed": "複製失敗",
     "move_error": "無法將郵件移至選取的信件匣",

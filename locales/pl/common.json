@@ -697,7 +697,8 @@
     "mv_position": "{index} z {total}",
     "plugin_panel_show": "Pokaż panel wtyczki",
     "plugin_panel_hide": "Ukryj panel wtyczki",
-    "copy": "Kopiuj"
+    "copy": "Kopiuj",
+    "contact_added": "Dodano kontakt"
   },
   "email_composer": {
     "select_from_directory": "Wybierz z katalogu",
@@ -989,6 +990,8 @@
     "undo": "Cofnij",
     "undo_done": "Przeniesiono z powrotem",
     "undo_failed": "Nie udało się cofnąć",
+    "not_connected": "To konto nie jest połączone. Zaloguj się ponownie.",
+    "trash_not_found": "To konto nie ma folderu Kosz, więc nic nie usunięto.",
     "emails_copied": "{count} wiadomości skopiowanych",
     "copy_failed": "Kopiowanie nie powiodło się",
     "move_error": "Nie można przenieść wiadomości do wybranego folderu",

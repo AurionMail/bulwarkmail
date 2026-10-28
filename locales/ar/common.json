@@ -697,7 +697,8 @@
     "mv_position": "{index} من {total}",
     "plugin_panel_show": "إظهار لوحة الإضافة",
     "plugin_panel_hide": "إخفاء لوحة الإضافة",
-    "copy": "نسخ"
+    "copy": "نسخ",
+    "contact_added": "أُضيفت جهة الاتصال"
   },
   "email_composer": {
     "select_from_directory": "الاختيار من الدليل",
@@ -989,6 +990,8 @@
     "undo": "تراجع",
     "undo_done": "تمت الإعادة إلى مكانها",
     "undo_failed": "تعذّر التراجع",
+    "not_connected": "هذا الحساب غير متصل. سجّل الدخول مرة أخرى.",
+    "trash_not_found": "لا يحتوي هذا الحساب على مجلد سلة المهملات، لذا لم يُحذف شيء.",
     "emails_copied": "تم نسخ {count} رسالة",
     "copy_failed": "فشل النسخ",
     "move_error": "تعذّر نقل الرسائل إلى المجلد المحدد",

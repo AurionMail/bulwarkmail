@@ -697,7 +697,8 @@
     "mv_position": "{index} di {total}",
     "plugin_panel_show": "Mostra il pannello del plugin",
     "plugin_panel_hide": "Nascondi il pannello del plugin",
-    "copy": "Copia"
+    "copy": "Copia",
+    "contact_added": "Contatto aggiunto"
   },
   "email_composer": {
     "select_from_directory": "Seleziona dalla rubrica aziendale",
@@ -989,6 +990,8 @@
     "undo": "Annulla",
     "undo_done": "Rimesso al suo posto",
     "undo_failed": "Impossibile annullare",
+    "not_connected": "Questo account non è connesso. Accedi di nuovo.",
+    "trash_not_found": "Questo account non ha un cestino, quindi non è stato eliminato nulla.",
     "emails_copied": "{count} messaggi copiati",
     "copy_failed": "Copia non riuscita",
     "move_error": "Impossibile spostare i messaggi nella cartella selezionata",

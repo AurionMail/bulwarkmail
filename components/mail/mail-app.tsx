@@ -37,7 +37,7 @@ import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
 import { messagePriorityFromHeaders, type MessagePriority } from "@/lib/message-priority";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
-import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, resolveEmailActionContext, emailWriteSource, emailLinkSource, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, isAggregateListView, removalFolder, canRemoveFromFolder, restoreBatchesFor, restoreBatchesForSelection, type EmailRestoreBatch } from "@/stores/email-store";
+import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, resolveEmailActionContext, emailWriteSource, emailLinkSource, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, isAggregateListView, removalFolder, canRemoveFromFolder, restoreBatchesFor, restoreBatchesForSelection, TrashMailboxNotFoundError, type EmailRestoreBatch } from "@/stores/email-store";
 import { findDraftIdentityIdForLogin, listRowSource, resolveDraftSource, type DraftSource } from "@/lib/draft-source";
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
@@ -2860,7 +2860,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       }
     } catch (error) {
       console.error("Failed to delete email:", error);
-      toast.error(t('notifications.error_deleting'), error instanceof Error ? error.message : undefined);
+      toast.error(
+        t('notifications.error_deleting'),
+        error instanceof TrashMailboxNotFoundError ? t('notifications.trash_not_found') : error instanceof Error ? error.message : undefined,
+      );
     }
   };
 
@@ -2877,7 +2880,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const archiveAccountId = archiveClientId ? emailToArchive.sourceAccountId : undefined;
     const archiveClient = archiveClientId ? useAuthStore.getState().getClientForAccount(archiveClientId) : client;
     if (!archiveClient) {
-      toast.error(t('notifications.error_archiving'), 'Not connected');
+      toast.error(t('notifications.error_archiving'), t('notifications.not_connected'));
       return;
     }
     // Read fresh mailboxes from the store – batch archive calls this in a loop,
@@ -3961,7 +3964,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const result = await sendEmail(
       client,
       recipients,
-      buildReplySubject(selectedEmail.subject || "(no subject)", t('email_composer.prefix.reply')),
+      buildReplySubject(selectedEmail.subject || t('email_viewer.no_subject'), t('email_composer.prefix.reply')),
       finalBody,
       undefined,
       undefined,

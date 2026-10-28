@@ -697,7 +697,8 @@
     "mv_position": "{index} de {total}",
     "plugin_panel_show": "Mostrar o painel do plugin",
     "plugin_panel_hide": "Ocultar o painel do plugin",
-    "copy": "Copiar"
+    "copy": "Copiar",
+    "contact_added": "Contacto adicionado"
   },
   "email_composer": {
     "select_from_directory": "Selecionar do diretório",
@@ -989,6 +990,8 @@
     "undo": "Desfazer",
     "undo_done": "Devolvido ao lugar",
     "undo_failed": "Não foi possível desfazer",
+    "not_connected": "Esta conta não está ligada. Inicie sessão novamente.",
+    "trash_not_found": "Esta conta não tem pasta Lixo, por isso nada foi eliminado.",
     "emails_copied": "{count} e-mails copiados",
     "copy_failed": "Falha ao copiar",
     "move_error": "Não foi possível mover os e-mails para a pasta selecionada",

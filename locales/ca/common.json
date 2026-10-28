@@ -697,7 +697,8 @@
     "mv_position": "{index} de {total}",
     "plugin_panel_show": "Mostra el tauler del connector",
     "plugin_panel_hide": "Amaga el tauler del connector",
-    "copy": "Copia"
+    "copy": "Copia",
+    "contact_added": "S'ha afegit el contacte"
   },
   "email_composer": {
     "select_from_directory": "Selecciona del directori",
@@ -989,6 +990,8 @@
     "undo": "Desfés",
     "undo_done": "S'ha tornat al lloc",
     "undo_failed": "No s'ha pogut desfer",
+    "not_connected": "Aquest compte no està connectat. Torna a iniciar la sessió.",
+    "trash_not_found": "Aquest compte no té carpeta de paperera, així que no s'ha suprimit res.",
     "emails_copied": "{count} correus copiats",
     "copy_failed": "No s'ha pogut copiar",
     "move_error": "No s'han pogut moure els correus a la carpeta seleccionada",

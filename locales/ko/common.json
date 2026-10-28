@@ -697,7 +697,8 @@
     "mv_position": "{index} / {total}",
     "plugin_panel_show": "플러그인 패널 표시",
     "plugin_panel_hide": "플러그인 패널 숨기기",
-    "copy": "복사"
+    "copy": "복사",
+    "contact_added": "연락처를 추가했어요"
   },
   "email_composer": {
     "select_from_directory": "디렉터리에서 선택",
@@ -989,6 +990,8 @@
     "undo": "실행 취소",
     "undo_done": "원래 위치로 되돌렸어요",
     "undo_failed": "실행 취소하지 못했어요",
+    "not_connected": "이 계정이 연결되어 있지 않아요. 다시 로그인하세요.",
+    "trash_not_found": "이 계정에 휴지통 폴더가 없어 아무것도 삭제하지 않았어요.",
     "emails_copied": "{count}개의 메일이 복사되었어요",
     "copy_failed": "복사에 실패했어요",
     "move_error": "선택한 폴더로 메일을 이동할 수 없어요",

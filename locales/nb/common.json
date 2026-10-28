@@ -697,7 +697,8 @@
     "mv_position": "{index} av {total}",
     "plugin_panel_show": "Vis tilleggspanel",
     "plugin_panel_hide": "Skjul tilleggspanel",
-    "copy": "Kopier"
+    "copy": "Kopier",
+    "contact_added": "Kontakt lagt til"
   },
   "email_composer": {
     "select_from_directory": "Velg fra katalog",
@@ -989,6 +990,8 @@
     "undo": "Angre",
     "undo_done": "Flyttet tilbake",
     "undo_failed": "Kunne ikke angre",
+    "not_connected": "Denne kontoen er ikke tilkoblet. Logg inn på nytt.",
+    "trash_not_found": "Kontoen har ingen papirkurv, så ingenting ble slettet.",
     "emails_copied": "{count} e-poster er kopiert",
     "copy_failed": "Kunne ikke kopiere",
     "move_error": "Kunne ikke flytte e-poster til den valgte mappen",

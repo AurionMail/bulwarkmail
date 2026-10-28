@@ -430,7 +430,7 @@ function EmailCard({
               "font-medium truncate",
               isUnread ? "text-foreground" : "text-muted-foreground"
             )}>
-              {sender?.name || (sender?.email && formatAddress(sender.email)) || "Unknown"}
+              {sender?.name || (sender?.email && formatAddress(sender.email)) || t('email_viewer.unknown_sender')}
             </span>
             {isStarred && (
               <Star className="w-4 h-4 fill-amber-400 text-amber-400 flex-shrink-0" />

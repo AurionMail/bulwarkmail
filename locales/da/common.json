@@ -697,7 +697,8 @@
     "mv_position": "{index} af {total}",
     "plugin_panel_show": "Vis pluginpanel",
     "plugin_panel_hide": "Skjul pluginpanel",
-    "copy": "Kopiér"
+    "copy": "Kopiér",
+    "contact_added": "Kontakt tilføjet"
   },
   "email_composer": {
     "select_from_directory": "Vælg fra adressefortegnelse",
@@ -989,6 +990,8 @@
     "undo": "Fortryd",
     "undo_done": "Flyttet tilbage",
     "undo_failed": "Kunne ikke fortrydes",
+    "not_connected": "Kontoen er ikke forbundet. Log ind igen.",
+    "trash_not_found": "Kontoen har ingen papirkurv, så intet blev slettet.",
     "emails_copied": "{count} e-mails kopieret",
     "copy_failed": "Kopiering mislykkedes",
     "move_error": "Kunne ikke flytte e-mails til den valgte mappe",

@@ -828,3 +828,13 @@ describe('ThreadListItem open message', () => {
     expect(container.querySelector('[aria-current="true"]') !== null).toBe(open);
   });
 });
+
+describe('ThreadListItem fallbacks', () => {
+  it('names a message without subject or sender in the user\'s language', () => {
+    renderRow(makeEmail({ subject: '', from: [] }));
+    // The i18n mock renders the keys.
+    expect(screen.getByText('no_subject')).toBeInTheDocument();
+    expect(screen.getByText('unknown_sender')).toBeInTheDocument();
+    expect(screen.queryByText('(no subject)')).toBeNull();
+  });
+});

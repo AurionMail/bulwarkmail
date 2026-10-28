@@ -697,7 +697,8 @@
     "mv_position": "{index} / {total}",
     "plugin_panel_show": "Eklenti panelini göster",
     "plugin_panel_hide": "Eklenti panelini gizle",
-    "copy": "Kopyala"
+    "copy": "Kopyala",
+    "contact_added": "Kişi eklendi"
   },
   "email_composer": {
     "select_from_directory": "Dizinden seç",
@@ -989,6 +990,8 @@
     "undo": "Geri al",
     "undo_done": "Geri taşındı",
     "undo_failed": "Geri alınamadı",
+    "not_connected": "Bu hesap bağlı değil. Yeniden oturum açın.",
+    "trash_not_found": "Bu hesabın Çöp Kutusu klasörü yok, bu yüzden hiçbir şey silinmedi.",
     "emails_copied": "{count} e-posta kopyalandı",
     "copy_failed": "Kopyalama başarısız",
     "move_error": "E-postalar seçilen klasöre taşınamadı",

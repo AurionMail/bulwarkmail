@@ -697,7 +697,8 @@
     "mv_position": "{index} no {total}",
     "plugin_panel_show": "Rādīt spraudņa paneli",
     "plugin_panel_hide": "Slēpt spraudņa paneli",
-    "copy": "Kopēt"
+    "copy": "Kopēt",
+    "contact_added": "Kontakts pievienots"
   },
   "email_composer": {
     "select_from_directory": "Izvēlēties no kataloga",
@@ -989,6 +990,8 @@
     "undo": "Atsaukt",
     "undo_done": "Pārvietots atpakaļ",
     "undo_failed": "Neizdevās atsaukt",
+    "not_connected": "Šis konts nav savienots. Piesakieties vēlreiz.",
+    "trash_not_found": "Šim kontam nav atkritnes, tāpēc nekas netika dzēsts.",
     "emails_copied": "{count} vēstules nokopētas",
     "copy_failed": "Kopēšanas kļūda",
     "move_error": "Neizdevās pārvietot vēstules uz izvēlēto mapi",

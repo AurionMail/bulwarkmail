@@ -697,7 +697,8 @@
     "mv_position": "{index} von {total}",
     "plugin_panel_show": "Plugin-Bereich einblenden",
     "plugin_panel_hide": "Plugin-Bereich ausblenden",
-    "copy": "Kopieren"
+    "copy": "Kopieren",
+    "contact_added": "Kontakt hinzugefügt"
   },
   "email_composer": {
     "select_from_directory": "Aus Verzeichnis auswählen",
@@ -989,6 +990,8 @@
     "undo": "Rückgängig",
     "undo_done": "Zurückverschoben",
     "undo_failed": "Konnte nicht rückgängig gemacht werden",
+    "not_connected": "Dieses Konto ist nicht verbunden. Melden Sie sich erneut an.",
+    "trash_not_found": "Dieses Konto hat keinen Papierkorb, daher wurde nichts gelöscht.",
     "emails_copied": "{count} E-Mails kopiert",
     "copy_failed": "Kopieren fehlgeschlagen",
     "move_error": "E-Mails konnten nicht in den ausgewählten Ordner verschoben werden",

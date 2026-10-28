@@ -697,7 +697,8 @@
     "mv_position": "{index} / {total}",
     "plugin_panel_show": "Näita pistikprogrammi paneeli",
     "plugin_panel_hide": "Peida pistikprogrammi paneel",
-    "copy": "Kopeeri"
+    "copy": "Kopeeri",
+    "contact_added": "Kontakt lisatud"
   },
   "email_composer": {
     "select_from_directory": "Vali kataloogist",
@@ -989,6 +990,8 @@
     "undo": "Võta tagasi",
     "undo_done": "Tõstetud tagasi",
     "undo_failed": "Tagasivõtmine ei õnnestunud",
+    "not_connected": "See konto pole ühendatud. Logige uuesti sisse.",
+    "trash_not_found": "Sellel kontol pole prügikasti, seega midagi ei kustutatud.",
     "emails_copied": "{count} kirja kopeeritud",
     "copy_failed": "Kopeerimine ebaõnnestus",
     "move_error": "E-kirju ei õnnestunud valitud kausta liigutada",

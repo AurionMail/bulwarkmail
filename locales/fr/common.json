@@ -697,7 +697,8 @@
     "mv_position": "{index} sur {total}",
     "plugin_panel_show": "Afficher le panneau du plugin",
     "plugin_panel_hide": "Masquer le panneau du plugin",
-    "copy": "Copier"
+    "copy": "Copier",
+    "contact_added": "Contact ajouté"
   },
   "email_composer": {
     "select_from_directory": "Choisir dans l'annuaire",
@@ -989,6 +990,8 @@
     "undo": "Annuler",
     "undo_done": "Remis à sa place",
     "undo_failed": "Impossible d'annuler",
+    "not_connected": "Ce compte n'est pas connecté. Reconnectez-vous.",
+    "trash_not_found": "Ce compte n'a pas de dossier Corbeille : rien n'a été supprimé.",
     "emails_copied": "{count} emails copiés",
     "copy_failed": "Échec de la copie",
     "move_error": "Impossible de déplacer les emails vers le dossier sélectionné",

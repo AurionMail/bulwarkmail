@@ -149,6 +149,14 @@ export function restoreBatchesForSelection(client: IJMAPClient): EmailRestoreBat
   return restoreBatchesFor(resolveSelectedEmails(useEmailStore.getState()), client);
 }
 
+/** Delete to Trash in an account that has no Trash folder; nothing was deleted. */
+export class TrashMailboxNotFoundError extends Error {
+  constructor() {
+    super('Trash mailbox not found - cannot move email to trash');
+    this.name = 'TrashMailboxNotFoundError';
+  }
+}
+
 /** Enough of an email to key a selection by its owning account. */
 type SelectableEmail = Pick<Email, 'id' | 'sourceClientAccountId' | 'sourceAccountId'>;
 
@@ -4264,7 +4272,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         // No trash folder found in this account. Surface the failure rather
         // than silently destroying the email - the user asked to move it to
         // trash, not to permanently delete it.
-        throw new Error('Trash mailbox not found - cannot move email to trash');
+        throw new TrashMailboxNotFoundError();
       }
 
       // Permanent delete - in the email's own account, like the batch path.

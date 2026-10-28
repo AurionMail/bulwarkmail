@@ -697,7 +697,8 @@
     "mv_position": "{index} din {total}",
     "plugin_panel_show": "Afișează panoul pluginului",
     "plugin_panel_hide": "Ascunde panoul pluginului",
-    "copy": "Copiază"
+    "copy": "Copiază",
+    "contact_added": "Contact adăugat"
   },
   "email_composer": {
     "select_from_directory": "Selectează din director",
@@ -989,6 +990,8 @@
     "undo": "Anulează",
     "undo_done": "Mutat înapoi",
     "undo_failed": "Nu s-a putut anula",
+    "not_connected": "Acest cont nu este conectat. Autentifică-te din nou.",
+    "trash_not_found": "Acest cont nu are dosar Coș, așa că nu s-a șters nimic.",
     "emails_copied": "{count} e-mailuri copiate",
     "copy_failed": "Copierea a eșuat",
     "move_error": "Nu s-au putut muta e-mailurile în folderul selectat",

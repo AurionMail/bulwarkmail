@@ -697,7 +697,8 @@
     "mv_position": "{index} / {total}",
     "plugin_panel_show": "プラグインパネルを表示",
     "plugin_panel_hide": "プラグインパネルを隠す",
-    "copy": "コピー"
+    "copy": "コピー",
+    "contact_added": "連絡先を追加しました"
   },
   "email_composer": {
     "select_from_directory": "ディレクトリから選択",
@@ -989,6 +990,8 @@
     "undo": "元に戻す",
     "undo_done": "元の場所に戻しました",
     "undo_failed": "元に戻せませんでした",
+    "not_connected": "このアカウントは接続されていません。もう一度サインインしてください。",
+    "trash_not_found": "このアカウントにはゴミ箱がないため、何も削除されませんでした。",
     "emails_copied": "{count}件のメールをコピーしました",
     "copy_failed": "コピーに失敗しました",
     "move_error": "選択したフォルダにメールを移動できませんでした",

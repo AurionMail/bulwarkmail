@@ -697,7 +697,8 @@
     "mv_position": "{index} van {total}",
     "plugin_panel_show": "Plug-inpaneel tonen",
     "plugin_panel_hide": "Plug-inpaneel verbergen",
-    "copy": "Kopiëren"
+    "copy": "Kopiëren",
+    "contact_added": "Contact toegevoegd"
   },
   "email_composer": {
     "select_from_directory": "Kiezen uit adresboek van de organisatie",
@@ -989,6 +990,8 @@
     "undo": "Ongedaan maken",
     "undo_done": "Teruggezet",
     "undo_failed": "Kon niet ongedaan worden gemaakt",
+    "not_connected": "Dit account is niet verbonden. Meld je opnieuw aan.",
+    "trash_not_found": "Dit account heeft geen prullenbak, dus er is niets verwijderd.",
     "emails_copied": "{count} e-mails gekopieerd",
     "copy_failed": "Kopiëren mislukt",
     "move_error": "Kan e-mails niet verplaatsen naar de geselecteerde map",

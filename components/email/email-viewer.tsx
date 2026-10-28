@@ -16,6 +16,7 @@ import { withBasePath } from "@/lib/browser-navigation";
 import { buildContactsPath, buildMailPath } from "@/lib/deep-links";
 import { useCopyLink } from "@/hooks/use-copy-link";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { Avatar } from "@/components/ui/avatar";
 import { SubMenuPanel } from "@/components/ui/context-menu";
 import { useBottomControls } from "@/hooks/use-bottom-controls";
@@ -562,13 +563,13 @@ export function ContactSidebarPanel({
                     <MailtoLink to={e.address} className="text-sm text-primary hover:underline truncate">
                       {e.address}
                     </MailtoLink>
-                    <button
+                    <IconButton
+                      label={t('copy')}
                       onClick={() => handleCopy(e.address)}
-                      className="p-1 rounded hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 shrink-0"
-                      title="Copy"
+                      className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 shrink-0 text-muted-foreground"
                     >
-                      <Copy className="w-3 h-3 text-muted-foreground" />
-                    </button>
+                      <Copy className="w-3.5 h-3.5" />
+                    </IconButton>
                   </div>
                 ))}
               </SidebarSection>
@@ -582,13 +583,13 @@ export function ContactSidebarPanel({
                     <a href={`tel:${p.number}`} className="text-sm text-primary hover:underline">
                       {p.number}
                     </a>
-                    <button
+                    <IconButton
+                      label={t('copy')}
                       onClick={() => handleCopy(p.number)}
-                      className="p-1 rounded hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 shrink-0"
-                      title="Copy"
+                      className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 shrink-0 text-muted-foreground"
                     >
-                      <Copy className="w-3 h-3 text-muted-foreground" />
-                    </button>
+                      <Copy className="w-3.5 h-3.5" />
+                    </IconButton>
                   </div>
                 ))}
               </SidebarSection>
@@ -1278,7 +1279,7 @@ export function EmailViewer({
     const sendClient = (email?.sourceClientAccountId
       ? useAuthStore.getState().getClientForAccount(email.sourceClientAccountId)
       : undefined) ?? client;
-    if (!sendClient) throw new Error('Not connected');
+    if (!sendClient) throw new Error(tNotifications('not_connected'));
 
     const recipientAddresses = [...(email?.to ?? []), ...(email?.cc ?? [])].map(r => r.email?.toLowerCase());
     // In unified views the owning account's identities are not loaded here -
@@ -3415,7 +3416,7 @@ export function EmailViewer({
   <div class="meta">
     <div><strong>${escapeHtml(t('from'))}:</strong> ${escapeHtml(senderText)}</div>
     ${toList ? `<div><strong>${escapeHtml(t('to'))}:</strong> ${toList}</div>` : ''}
-    ${ccList ? `<div><strong>CC:</strong> ${ccList}</div>` : ''}
+    ${ccList ? `<div><strong>${escapeHtml(t('cc'))}:</strong> ${ccList}</div>` : ''}
     ${date ? `<div><strong>${escapeHtml(t('date'))}:</strong> ${escapeHtml(date)}</div>` : ''}
   </div>
 </div>
@@ -4998,7 +4999,7 @@ export function EmailViewer({
                 {email.cc && email.cc.length > 0 && (
                   <>
                     <span className="text-muted-foreground/50">|</span>
-                    <span>CC:</span>
+                    <span>{t('cc')}:</span>
                     {renderClickableRecipients(email.cc, currentUserEmail, t, handleViewContactSidebar)}
                     {email.cc.length > 2 && (
                       <span className="text-muted-foreground">+{email.cc.length - 2}</span>
@@ -5248,7 +5249,7 @@ export function EmailViewer({
                 {email.cc && email.cc.length > 0 && (
                   <>
                     <span className="text-muted-foreground/50">|</span>
-                    <span>CC:</span>
+                    <span>{t('cc')}:</span>
                     {renderClickableRecipients(email.cc, currentUserEmail, t, handleViewContactSidebar)}
                     {email.cc.length > 2 && (
                       <span>+{email.cc.length - 2}</span>
@@ -6484,10 +6485,10 @@ export function EmailViewer({
             }} : {}),
           };
           if (client && supportsSync) {
-            createContact(client, contactData).then((created) => { if (created) toast.success('Contact added'); });
+            createContact(client, contactData).then((created) => { if (created) toast.success(t('contact_added')); });
           } else {
             void addLocalContact({ id: `local-${generateUUID()}`, addressBookIds: {}, ...contactData } as ContactCard)
-              .then((created) => { if (created) toast.success('Contact added'); });
+              .then((created) => { if (created) toast.success(t('contact_added')); });
           }
         }}
       />

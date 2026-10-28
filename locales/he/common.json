@@ -662,7 +662,8 @@
     "mv_position": "{index} מתוך {total}",
     "plugin_panel_show": "הצגת חלונית התוסף",
     "plugin_panel_hide": "הסתרת חלונית התוסף",
-    "copy": "העתק"
+    "copy": "העתק",
+    "contact_added": "איש הקשר נוסף"
   },
   "email_composer": {
     "select_from_directory": "בחירה מהספרייה",
@@ -954,6 +955,8 @@
     "undo": "בטל",
     "undo_done": "הוחזר למקומו",
     "undo_failed": "לא ניתן היה לבטל",
+    "not_connected": "החשבון לא מחובר. התחברו שוב.",
+    "trash_not_found": "לחשבון אין תיקיית אשפה, ולכן דבר לא נמחק.",
     "emails_copied": "{count} הודעות הועתקו",
     "copy_failed": "ההעתקה נכשלה",
     "move_error": "לא ניתן היה להעביר הודעות דוא\"ל לתיקיה שנבחרה",

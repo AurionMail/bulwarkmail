@@ -697,7 +697,8 @@
     "mv_position": "{index} de {total}",
     "plugin_panel_show": "Mostrar el panel del complemento",
     "plugin_panel_hide": "Ocultar el panel del complemento",
-    "copy": "Copiar"
+    "copy": "Copiar",
+    "contact_added": "Contacto añadido"
   },
   "email_composer": {
     "select_from_directory": "Seleccionar del directorio",
@@ -989,6 +990,8 @@
     "undo": "Deshacer",
     "undo_done": "Devuelto a su sitio",
     "undo_failed": "No se pudo deshacer",
+    "not_connected": "Esta cuenta no está conectada. Vuelve a iniciar sesión.",
+    "trash_not_found": "Esta cuenta no tiene carpeta Papelera, así que no se eliminó nada.",
     "emails_copied": "{count} correos copiados",
     "copy_failed": "Error al copiar",
     "move_error": "No se pudieron mover los correos a la carpeta seleccionada",

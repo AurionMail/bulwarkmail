@@ -159,7 +159,7 @@ export function ThreadEmailItem({
                   "min-w-0 truncate",
                   isUnread ? "font-semibold text-foreground" : "font-medium text-muted-foreground"
                 )}>
-                  {sender?.name || sender?.email?.split('@')[0] || "Unknown"}
+                  {sender?.name || sender?.email?.split('@')[0] || t('unknown_sender')}
                 </span>
               </span>
               <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
@@ -271,7 +271,7 @@ export function ThreadEmailItem({
                 ? "font-semibold text-foreground"
                 : "font-medium text-muted-foreground"
             )}>
-              {sender?.name || sender?.email?.split('@')[0] || "Unknown"}
+              {sender?.name || sender?.email?.split('@')[0] || t('unknown_sender')}
             </span>
 
             {/* Indicators */}

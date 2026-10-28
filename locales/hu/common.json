@@ -697,7 +697,8 @@
     "mv_position": "{index} / {total}",
     "plugin_panel_show": "Bővítménypanel megjelenítése",
     "plugin_panel_hide": "Bővítménypanel elrejtése",
-    "copy": "Másolás"
+    "copy": "Másolás",
+    "contact_added": "Névjegy hozzáadva"
   },
   "email_composer": {
     "select_from_directory": "Kiválasztás a címtárból",
@@ -989,6 +990,8 @@
     "undo": "Visszavonás",
     "undo_done": "Visszahelyezve",
     "undo_failed": "Nem sikerült visszavonni",
+    "not_connected": "Ez a fiók nincs csatlakoztatva. Jelentkezzen be újra.",
+    "trash_not_found": "Ennek a fióknak nincs Kuka mappája, így semmi sem törlődött.",
     "emails_copied": "{count} e-mail másolva",
     "copy_failed": "Másolás sikertelen",
     "move_error": "Nem sikerült áthelyezni az e-maileket a kiválasztott mappába",

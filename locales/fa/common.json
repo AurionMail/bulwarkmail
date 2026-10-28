@@ -697,7 +697,8 @@
     "mv_position": "{index} از {total}",
     "plugin_panel_show": "نمایش پنل افزونه",
     "plugin_panel_hide": "پنهان کردن پنل افزونه",
-    "copy": "کپی"
+    "copy": "کپی",
+    "contact_added": "مخاطب افزوده شد"
   },
   "email_composer": {
     "select_from_directory": "انتخاب از فهرست",
@@ -989,6 +990,8 @@
     "undo": "بازگردانی",
     "undo_done": "به جای قبلی برگردانده شد",
     "undo_failed": "بازگردانی ممکن نشد",
+    "not_connected": "این حساب متصل نیست. دوباره وارد شوید.",
+    "trash_not_found": "این حساب پوشهٔ زباله‌دان ندارد، پس چیزی حذف نشد.",
     "emails_copied": "{count} ایمیل کپی شد",
     "copy_failed": "کپی ناموفق بود",
     "move_error": "انتقال ایمیل‌ها به پوشه انتخاب شده ممکن نیست",

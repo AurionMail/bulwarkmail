@@ -697,7 +697,8 @@
     "mv_position": "{index} z {total}",
     "plugin_panel_show": "Zobrazit panel pluginu",
     "plugin_panel_hide": "Skrýt panel pluginu",
-    "copy": "Kopírovat"
+    "copy": "Kopírovat",
+    "contact_added": "Kontakt přidán"
   },
   "email_composer": {
     "select_from_directory": "Vybrat z adresáře",
@@ -989,6 +990,8 @@
     "undo": "Zpět",
     "undo_done": "Vráceno zpět",
     "undo_failed": "Nepodařilo se vrátit zpět",
+    "not_connected": "Tento účet není připojený. Přihlaste se znovu.",
+    "trash_not_found": "Tento účet nemá složku Koš, takže se nic nesmazalo.",
     "emails_copied": "{count} zpráv bylo zkopírováno",
     "copy_failed": "Kopírování selhalo",
     "move_error": "Zprávu nelze přesunout do vybrané složky",

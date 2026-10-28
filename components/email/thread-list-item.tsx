@@ -358,6 +358,8 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
     const tBatch = useTranslations('email_list.batch_actions');
     const tHover = useTranslations('settings.email_behavior.hover_actions');
     const tStatus = useTranslations('email_list');
+    const tUnknown = t('unknown_sender');
+    const tNoSubject = t('no_subject');
     const isUnread = !email.keywords?.$seen;
     const isStarred = email.keywords?.$flagged;
     const isPinned = email.keywords?.['$pinned'] === true;
@@ -690,10 +692,10 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                           </span>
                         )}
                         <span className="min-w-0 truncate">
-                          {sender?.name || (sender?.email && formatAddress(sender.email)) || 'Unknown'}
+                          {sender?.name || (sender?.email && formatAddress(sender.email)) || tUnknown}
                         </span>
                       </>
-                    ) : (sender?.name || (sender?.email && formatAddress(sender.email)) || 'Unknown')}
+                    ) : (sender?.name || (sender?.email && formatAddress(sender.email)) || tUnknown)}
                   </span>
                   <div className={cn("flex min-w-0 flex-1 items-center text-sm", mvRow ? "gap-0" : "gap-2")}>
                     {tagIds.length > 0 && (
@@ -707,7 +709,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                       'min-w-0 truncate',
                       isUnread ? (mvRow ? 'font-bold text-foreground' : 'font-semibold text-foreground') : 'text-foreground/90'
                     )}>
-                      <bdi>{subjectSnippet ? <SearchSnippetText snippet={subjectSnippet} /> : (email.subject || '(no subject)')}</bdi>
+                      <bdi>{subjectSnippet ? <SearchSnippetText snippet={subjectSnippet} /> : (email.subject || tNoSubject)}</bdi>
                     </span>
                     <PluginRowBadges email={email} className={mvRow ? "ms-2" : undefined} />
                     {(previewSnippet || inlinePreview) && (
@@ -775,7 +777,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                         ? "font-bold text-foreground"
                         : "font-medium text-muted-foreground"
                     )}>
-                      {sender?.name || (sender?.email && formatAddress(sender.email)) || "Unknown"}
+                      {sender?.name || (sender?.email && formatAddress(sender.email)) || tUnknown}
                     </span>
                     {tagPlacement === 'sender' && tagIds.length > 0 && (
                       <span className={TAG_GROUP_CLASS}>
@@ -852,7 +854,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                       ? "font-semibold text-foreground"
                       : "font-normal text-foreground/90"
                   )}>
-                    <bdi>{subjectSnippet ? <SearchSnippetText snippet={subjectSnippet} /> : (email.subject || "(no subject)")}</bdi>
+                    <bdi>{subjectSnippet ? <SearchSnippetText snippet={subjectSnippet} /> : (email.subject || tNoSubject)}</bdi>
                   </span>
                   <PluginRowBadges email={email} />
                 </div>
@@ -934,6 +936,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
     const tBatch = useTranslations('email_list.batch_actions');
     const tHover = useTranslations('settings.email_behavior.hover_actions');
     const tStatus = useTranslations('email_list');
+    const tNoSubject = tEmailViewer('no_subject');
     const showPreview = useSettingsStore((state) => state.showPreview);
     const density = useSettingsStore((state) => state.density);
     const timeFormat = useSettingsStore((state) => state.timeFormat);
@@ -1362,7 +1365,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                         'min-w-0 truncate',
                         hasUnread ? (mvRow ? 'font-bold text-foreground' : 'font-semibold text-foreground') : 'text-foreground/90'
                       )}>
-                        <bdi>{subjectSnippet ? <SearchSnippetText snippet={subjectSnippet} /> : (latestEmail.subject || '(no subject)')}</bdi>
+                        <bdi>{subjectSnippet ? <SearchSnippetText snippet={subjectSnippet} /> : (latestEmail.subject || tNoSubject)}</bdi>
                       </span>
                       <PluginRowBadges email={latestEmail} className={mvRow ? "ms-2" : undefined} />
                       {(previewSnippet || inlinePreview) && (
@@ -1514,7 +1517,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                         ? "font-semibold text-foreground"
                         : "font-normal text-foreground/90"
                     )}>
-                      <bdi>{subjectSnippet ? <SearchSnippetText snippet={subjectSnippet} /> : (latestEmail.subject || "(no subject)")}</bdi>
+                      <bdi>{subjectSnippet ? <SearchSnippetText snippet={subjectSnippet} /> : (latestEmail.subject || tNoSubject)}</bdi>
                     </span>
                     <PluginRowBadges email={latestEmail} />
                   </div>
