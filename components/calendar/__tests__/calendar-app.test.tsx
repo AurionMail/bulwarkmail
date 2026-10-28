@@ -425,3 +425,31 @@ describe('CalendarApp task feedback', () => {
     expect(screen.queryByText('tasks.show_completed')).toBeNull();
   });
 });
+
+describe('CalendarApp creating in the month view', () => {
+  it('opens the quick editor for an all-day event on a single click', async () => {
+    setUp([], 'month');
+    renderApp();
+    const day = screen.getAllByRole('gridcell').find((c) => /October 15, 2026/.test(c.getAttribute('aria-label') ?? ''))!;
+    fireEvent.click(day);
+    const quick = await screen.findByRole('dialog', { name: 'quick_create.aria_label' });
+    expect(within(quick).getByText('events.all_day')).toBeInTheDocument();
+    fireEvent.change(within(quick).getByLabelText('form.title'), { target: { value: 'Holiday' } });
+    fireEvent.click(within(quick).getByRole('button', { name: 'form.save' }));
+    await waitFor(() => expect(store.createEvent).toHaveBeenCalledTimes(1));
+    expect(store.createEvent.mock.calls[0][1]).toMatchObject({
+      title: 'Holiday', start: '2026-10-15T00:00:00', duration: 'P1D', showWithoutTime: true,
+    });
+  });
+
+  it('opens the day on a phone tap instead', () => {
+    media.mobile = true;
+    media.desktop = false;
+    setUp([], 'month');
+    renderApp();
+    const day = screen.getAllByRole('gridcell').find((c) => /October 15, 2026/.test(c.getAttribute('aria-label') ?? ''))!;
+    fireEvent.click(day);
+    expect(screen.queryByRole('dialog', { name: 'quick_create.aria_label' })).toBeNull();
+    expect(useCalendarStore.getState().viewMode).toBe('day');
+  });
+});

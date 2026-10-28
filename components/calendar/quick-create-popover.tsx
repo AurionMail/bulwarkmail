@@ -15,6 +15,8 @@ export interface QuickCreateDraft {
   end: Date;
   title: string;
   calendarId: string;
+  /** A day picked in the month view or the all-day row: an all-day event. */
+  allDay?: boolean;
 }
 
 interface QuickCreatePopoverProps {
@@ -131,7 +133,7 @@ export function QuickCreatePopover({
 
   const timeFmt = timeFormat === "12h" ? "h:mm a" : "HH:mm";
   const dateLabel = intlFormatter.dateTime(draft.start, { weekday: "long", month: "long", day: "numeric" });
-  const timeLabel = `${format(draft.start, timeFmt)} – ${format(draft.end, timeFmt)}`;
+  const timeLabel = draft.allDay ? t("events.all_day") : `${format(draft.start, timeFmt)} – ${format(draft.end, timeFmt)}`;
 
   return createPortal(
     <div

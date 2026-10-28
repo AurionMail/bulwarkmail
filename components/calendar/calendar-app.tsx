@@ -1112,12 +1112,12 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
 
   // A click or drag on empty grid space. On wide screens it opens the quick
   // editor at that spot; on phones the full editor, as before.
-  const handleGridCreate = useCallback((start: Date, end?: Date) => whenEditorsDiscarded(() => {
+  const handleGridCreate = useCallback((start: Date, end?: Date, allDay = false) => whenEditorsDiscarded(() => {
     if (isMobile) {
-      openCreateModal(start, end);
+      openCreateModal(start, end, allDay);
       return;
     }
-    const finalEnd = end ?? new Date(start.getTime() + 60 * 60 * 1000);
+    const finalEnd = end ?? (allDay ? start : new Date(start.getTime() + 60 * 60 * 1000));
     const preferred = writableCalendars.find((c) => c.isDefault) ?? writableCalendars[0];
     setShowEventModal(false);
     setEditEvent(null);
@@ -1128,11 +1128,20 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       start,
       end: finalEnd,
       title: "",
+      allDay,
       calendarId: prev && writableCalendars.some((c) => c.id === prev.calendarId)
         ? prev.calendarId
         : preferred?.id ?? "",
     }));
   }), [isMobile, openCreateModal, writableCalendars, closeDetail, whenEditorsDiscarded]);
+
+  // A day in the month view or the all-day row: an all-day event, the same
+  // quick editor as a slot in week and day view.
+  const handleGridCreateAllDay = useCallback((day: Date) => {
+    const start = new Date(day);
+    start.setHours(0, 0, 0, 0);
+    handleGridCreate(start, start, true);
+  }, [handleGridCreate]);
 
   const closeQuickCreate = useCallback(() => setQuickDraft(null), []);
 
@@ -1147,14 +1156,30 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
   const handleQuickCreateMoreOptions = useCallback(() => {
     if (!quickDraft) return;
     const draft = quickDraft;
-    openCreateModal(draft.start, draft.end);
+    openCreateModal(draft.start, draft.end, draft.allDay);
     setDefaultCalendarIdForCreate(draft.calendarId || undefined);
     setDefaultModalTitle(draft.title || undefined);
   }, [quickDraft, openCreateModal]);
 
   const handleQuickCreateSave = useCallback(async () => {
     if (!quickDraft) return;
-    const { start, end, title, calendarId } = quickDraft;
+    const { start, end, title, calendarId, allDay } = quickDraft;
+    if (allDay) {
+      setQuickDraft(null);
+      await handleSaveEvent({
+        uid: generateUUID(),
+        title: title.trim(),
+        start: format(start, "yyyy-MM-dd'T'00:00:00"),
+        duration: "P1D",
+        timeZone: null,
+        showWithoutTime: true,
+        calendarIds: { [calendarId]: true },
+        status: "confirmed",
+        freeBusyStatus: "busy",
+        privacy: "public",
+      });
+      return;
+    }
     const minutes = Math.max(15, Math.round((end.getTime() - start.getTime()) / 60000));
     const hours = Math.floor(minutes / 60);
     const rest = minutes % 60;
@@ -1183,7 +1208,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       start: quickDraft.start,
       end: quickDraft.end,
       title: quickDraft.title.trim() || t("events.no_title"),
-      allDay: false,
+      allDay: !!quickDraft.allDay,
       calendarId: quickDraft.calendarId,
     };
   }, [quickDraft, pendingPreview, t]);
@@ -1722,10 +1747,10 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               onHoverLeave={handleHoverLeave}
               onContextMenuEvent={handleContextMenuEvent}
               onContextMenuEmpty={handleContextMenuEmpty}
-              onCreateAtTime={openCreateModal}
+              onCreateAllDay={handleGridCreateAllDay}
               firstDayOfWeek={firstDayOfWeek}
               isMobile={isMobile}
-              pendingPreview={pendingPreview}
+              pendingPreview={gridPreview}
               tasks={calendarTasks}
               onToggleTaskComplete={handleToggleTaskComplete}
               onSelectTask={openEditTaskModal}
@@ -1749,6 +1774,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               onContextMenuEvent={handleContextMenuEvent}
               onContextMenuEmpty={handleContextMenuEmpty}
               onCreateAtTime={handleGridCreate}
+              onCreateAllDay={handleGridCreateAllDay}
               firstDayOfWeek={firstDayOfWeek}
               timeFormat={timeFormat}
               isMobile={isMobile}

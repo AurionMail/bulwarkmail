@@ -39,6 +39,8 @@ interface CalendarWeekViewProps extends ScrollWindowViewProps {
   onContextMenuEvent?: (e: React.MouseEvent, event: CalendarEvent) => void;
   onContextMenuEmpty?: (e: React.MouseEvent, date: Date, hour?: number, allDayArea?: boolean) => void;
   onCreateAtTime: (date: Date, endDate?: Date) => void;
+  /** A click on a day in the all-day row: a new all-day event there. */
+  onCreateAllDay?: (date: Date) => void;
   firstDayOfWeek?: number;
   timeFormat?: "12h" | "24h";
   isMobile?: boolean;
@@ -85,6 +87,7 @@ export function CalendarWeekView({
   onContextMenuEvent,
   onContextMenuEmpty,
   onCreateAtTime,
+  onCreateAllDay,
   firstDayOfWeek = 1,
   timeFormat = "24h",
   isMobile,
@@ -495,7 +498,8 @@ export function CalendarWeekView({
             {days.map((day) => (
               <div
                 key={format(day, "yyyy-MM-dd")}
-                className="bg-background min-h-[28px] border-e border-border last:border-e-0"
+                className={cn("bg-background min-h-[28px] border-e border-border last:border-e-0", onCreateAllDay && "cursor-pointer hover:bg-muted/30")}
+                onClick={onCreateAllDay ? () => onCreateAllDay(day) : undefined}
                 onContextMenu={onContextMenuEmpty ? (e) => onContextMenuEmpty(e, day, undefined, true) : undefined}
               />
             ))}
@@ -530,6 +534,31 @@ export function CalendarWeekView({
                 );
               })}
             </div>
+
+            {pendingPreview?.allDay && (() => {
+              const index = days.findIndex((d) => isSameDay(d, pendingPreview.start));
+              if (index === -1) return null;
+              const color = calendars.find((c) => c.id === pendingPreview.calendarId)?.color || "#3b82f6";
+              return (
+                <div
+                  data-pending-preview
+                  className="absolute px-0.5 pointer-events-none"
+                  style={{
+                    insetInlineStart: `calc(${(index / colCount) * 100}% + 1px)`,
+                    width: `calc(${(1 / colCount) * 100}% - 2px)`,
+                    top: dayEventRows[index] * 24 + 2,
+                    height: 20,
+                  }}
+                >
+                  <div
+                    className="h-full rounded-xs px-1.5 text-xs leading-[16px] font-medium truncate border-2 border-dashed"
+                    style={{ borderColor: color, color, backgroundColor: `${color}10` }}
+                  >
+                    {pendingPreview.title}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Task chips in all-day area, stacked under events of their day (#1107, #1270) */}
             <div className="absolute inset-0 pointer-events-none">

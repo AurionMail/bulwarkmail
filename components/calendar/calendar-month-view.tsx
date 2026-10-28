@@ -33,7 +33,8 @@ interface CalendarMonthViewProps extends ScrollWindowViewProps {
   onHoverLeave?: () => void;
   onContextMenuEvent?: (e: React.MouseEvent, event: CalendarEvent) => void;
   onContextMenuEmpty?: (e: React.MouseEvent, date: Date, hour?: number, allDayArea?: boolean) => void;
-  onCreateAtTime?: (date: Date) => void;
+  /** A click on a day's empty space: a new all-day event there (wide screens). */
+  onCreateAllDay?: (date: Date) => void;
   /** Open a day in the day view (its date number, or its "N more" link). */
   onOpenDay?: (date: Date) => void;
   firstDayOfWeek?: number;
@@ -77,7 +78,7 @@ export function CalendarMonthView({
   onHoverLeave,
   onContextMenuEvent,
   onContextMenuEmpty,
-  onCreateAtTime,
+  onCreateAllDay,
   onOpenDay,
   isMobile,
   pendingPreview,
@@ -365,8 +366,11 @@ export function CalendarMonthView({
                   role="gridcell"
                   aria-selected={selected}
                   aria-label={fullDateLabel}
-                  onClick={() => onSelectDate(day)}
-                  onDoubleClick={() => onCreateAtTime?.(day)}
+                  onClick={() => {
+                    onSelectDate(day);
+                    // On phones a tap opens the day instead.
+                    if (!isMobile) onCreateAllDay?.(day);
+                  }}
                   onContextMenu={onContextMenuEmpty ? (e) => onContextMenuEmpty(e, day, undefined, true) : undefined}
                   onDragOver={(e) => handleCellDragOver(e, key)}
                   onDragLeave={handleCellDragLeave}
@@ -395,7 +399,6 @@ export function CalendarMonthView({
                         e.stopPropagation();
                         onOpenDay(day);
                       }}
-                      onDoubleClick={(e) => e.stopPropagation()}
                       aria-label={fullDateLabel}
                       aria-current={today ? "date" : undefined}
                       className={cn(
@@ -474,6 +477,7 @@ export function CalendarMonthView({
                     }}
                   >
                     <div
+                      data-pending-preview
                       className={cn(
                         "h-full rounded text-[10px] font-medium truncate border-2 border-dashed",
                         isMobile ? "leading-[16px] px-1" : "leading-[20px] px-1.5"
