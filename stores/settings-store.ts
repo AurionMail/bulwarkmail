@@ -65,6 +65,14 @@ export function isSettingsLoadSettled(accountId: string): boolean {
   return settledLoads.has(accountId);
 }
 
+const settledListeners = new Set<(accountId: string) => void>();
+
+/** Called whenever an account's settings load finishes (with or without a copy). */
+export function onSettingsLoadSettled(listener: (accountId: string) => void): () => void {
+  settledListeners.add(listener);
+  return () => settledListeners.delete(listener);
+}
+
 /** The account whose server copy the local settings (and template list) mirror; null if none. */
 export function readSettingsOwner(): string | null {
   try {
@@ -1819,6 +1827,7 @@ export const useSettingsStore = create<SettingsState>()(
           return failWithoutForeignState();
         } finally {
           settledLoads.add(accountId);
+          for (const listener of settledListeners) listener(accountId);
         }
       },
 

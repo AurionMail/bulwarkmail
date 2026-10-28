@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useAccountTemplatesStore } from '@/stores/account-templates-store';
 import { refreshAccountTemplates, scheduleAccountSync } from '@/lib/templates/personal-templates';
 import { useTemplateStore } from '@/stores/template-store';
+import { onSettingsLoadSettled } from '@/stores/settings-store';
 import { refreshTeamTemplates } from '@/lib/templates/team-templates';
 
 /**
@@ -26,7 +27,16 @@ export function AccountTemplateSync() {
   // loaded, or a template changed there) is merged in at once.
   useEffect(() => {
     if (!isAuthenticated || !activeAccountId) return;
-    return useTemplateStore.subscribe(() => scheduleAccountSync(activeAccountId));
+    const unsubscribe = useTemplateStore.subscribe(() => scheduleAccountSync(activeAccountId));
+    // Once the account's synced settings have loaded, its browser list is
+    // known, even when the load changed nothing in it.
+    const unlisten = onSettingsLoadSettled((accountId) => {
+      if (accountId === activeAccountId) scheduleAccountSync(activeAccountId);
+    });
+    return () => {
+      unsubscribe();
+      unlisten();
+    };
   }, [activeAccountId, isAuthenticated]);
 
   useEffect(() => {
