@@ -59,7 +59,7 @@ import { deleteOccurrence, saveOccurrenceEdit, type EventEditorState } from "@/l
 import { useContactNameResolver } from "@/hooks/use-contact-name-resolver";
 import { getClientByLocalAccountId } from "@/stores/client-registry";
 import { useCalendarErrorMessage } from "@/hooks/use-calendar-error-message";
-import { getEventStartDate } from "@/lib/calendar-utils";
+import { getEventDisplayEndDate, getEventEndDate, getEventStartDate } from "@/lib/calendar-utils";
 import { displayNow, getEffectiveTimeZone } from "@/lib/timezone";
 import { canCreateEventsIn, getEventEditability, type EditabilityContext } from "@/lib/calendar-editability";
 import { QuickCreatePopover, type QuickCreateDraft } from "@/components/calendar/quick-create-popover";
@@ -73,7 +73,8 @@ import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { SchedulingDeniedError } from "@/lib/jmap/scheduling-error";
 import { CreateCalendarModal } from "@/components/calendar/create-calendar-modal";
 import { CalendarSidebarHeader } from "@/components/calendar/calendar-sidebar-header";
-import { getUserParticipantId, collectUserCalendarAddresses, userOrganizes } from "@/lib/calendar-participants";
+import { getUserParticipantId, collectUserCalendarAddresses, userOrganizes, getParticipantList } from "@/lib/calendar-participants";
+import type { MoveEventHandler } from "@/hooks/use-time-grid-interactions";
 import { generateBirthdayEvents, createBirthdayCalendar, BIRTHDAY_CALENDAR_ID } from "@/lib/birthday-calendar";
 import { sharedCalendarColorKey, pickUnusedCalendarColor } from "@/lib/shared-calendar-colors";
 import { debug } from "@/lib/debug";
@@ -1303,6 +1304,53 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     }
   }, [client, pendingScopeAction, updateEvent, deleteEvent, createEvent, findMasterEvent, currentUserEmails, resolveContactName, refetchCurrentRange, submitRsvp, describeError, t]);
 
+  // A drag or resize. A series asks which occurrences it covers, as the
+  // editor does; one event moves at once and can be moved back.
+  const handleMoveEvent = useCallback<MoveEventHandler>(async (event, updates, sendScheduling, kind) => {
+    if (!client) { toast.error(t("notifications.event_move_error")); return; }
+    if (isRecurringEvent(event)) {
+      const moved = { ...event, ...updates };
+      const allDay = !!event.showWithoutTime;
+      // The attendees stay as they are; the save works out the rest from
+      // where the occurrence went, as for a time changed in the editor.
+      const attendees = getParticipantList(event, { resolveName: resolveContactName })
+        .filter((p) => !p.isOrganizer && p.email)
+        .map((p) => ({ name: p.name, email: p.email.trim() }));
+      setPendingScopeAction({
+        type: "edit",
+        event,
+        updates,
+        sendScheduling,
+        editor: {
+          initialAttendees: attendees,
+          attendees,
+          when: { allDay, start: getEventStartDate(moved), end: allDay ? getEventDisplayEndDate(moved) : getEventEndDate(moved) },
+          ruleChanged: false,
+        },
+      });
+      return;
+    }
+    try {
+      // false: a plugin stopped it and said why.
+      if (!(await updateEvent(client, event.id, updates, sendScheduling))) return;
+    } catch (error) {
+      toast.error(describeError(error, t(kind === "resize" ? "notifications.event_resize_error" : "notifications.event_move_error")));
+      return;
+    }
+    const before: Partial<CalendarEvent> = { start: event.start, duration: event.duration };
+    if (updates.timeZone !== undefined) before.timeZone = event.timeZone;
+    toast.success(t(kind === "resize" ? "notifications.event_updated" : "notifications.event_moved"), {
+      action: {
+        label: t("notifications.undo"),
+        onClick: () => {
+          void updateEvent(client, event.id, before, sendScheduling).catch((error: unknown) => {
+            toast.error(describeError(error, t("notifications.event_move_error")));
+          });
+        },
+      },
+    });
+  }, [client, updateEvent, resolveContactName, describeError, t]);
+
   const handleRsvp = useCallback(async (eventId: string, participantId: string, status: CalendarParticipant['participationStatus']) => {
     if (!client) return;
     // An answer on one occurrence of a series asks whether it covers just
@@ -1665,6 +1713,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               onSelectTask={openEditTaskModal}
               currentUserEmails={currentUserEmails}
               canEditEvent={canEditEvent}
+              onMoveEvent={handleMoveEvent}
             />
           );
         case "week":
@@ -1691,6 +1740,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               onSelectTask={openEditTaskModal}
               currentUserEmails={currentUserEmails}
               canEditEvent={canEditEvent}
+              onMoveEvent={handleMoveEvent}
             />
           );
         case "day":
@@ -1714,6 +1764,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               onSelectTask={openEditTaskModal}
               currentUserEmails={currentUserEmails}
               canEditEvent={canEditEvent}
+              onMoveEvent={handleMoveEvent}
             />
           );
         case "agenda":

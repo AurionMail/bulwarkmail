@@ -339,3 +339,39 @@ describe('CalendarApp read-only events', () => {
     expect(screen.getAllByRole('button', { name: /Standup/ })[0]).toHaveAttribute('draggable', 'true');
   });
 });
+
+function dropOnMonthDay(day: RegExp, event: CalendarEvent) {
+  const cell = screen.getAllByRole('gridcell').find((c) => day.test(c.getAttribute('aria-label') ?? ''));
+  if (!cell) throw new Error(`no cell ${day}`);
+  const json = JSON.stringify({ type: 'calendar-event', eventId: event.id, originalStart: event.start, duration: event.duration });
+  fireEvent.drop(cell, { dataTransfer: { types: ['application/x-calendar-event'], getData: () => json } });
+}
+
+describe('CalendarApp dragging', () => {
+  it('asks which occurrences a drag of a series moves', async () => {
+    setUp([weekly], 'month');
+    renderApp();
+    dropOnMonthDay(/October 14, 2026/, weekly);
+    const scope = await screen.findByRole('dialog', { name: 'edit_title' });
+    expect(store.updateEvent).not.toHaveBeenCalled();
+    fireEvent.click(within(scope).getByRole('button', { name: 'cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'edit_title' })).toBeNull());
+    expect(store.updateEvent).not.toHaveBeenCalled();
+  });
+
+  it('moves one event at once and can move it back', async () => {
+    setUp([makeEvent()], 'month');
+    renderApp();
+    dropOnMonthDay(/October 14, 2026/, makeEvent());
+    await waitFor(() => expect(store.updateEvent).toHaveBeenCalledTimes(1));
+    expect(store.updateEvent.mock.calls[0][2]).toMatchObject({ start: '2026-10-14T10:00:00' });
+    const moved = await waitFor(() => {
+      const found = useToastStore.getState().toasts.find((t) => t.title === 'notifications.event_moved');
+      expect(found).toBeTruthy();
+      return found!;
+    });
+    moved.action!.onClick();
+    await waitFor(() => expect(store.updateEvent).toHaveBeenCalledTimes(2));
+    expect(store.updateEvent.mock.calls[1][2]).toMatchObject({ start: '2026-10-12T10:00:00', duration: 'PT1H' });
+  });
+});

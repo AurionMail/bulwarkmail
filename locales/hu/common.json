@@ -3544,6 +3544,8 @@
     "notifications": {
       "event_created": "Esemény létrehozva",
       "event_updated": "Esemény frissítve",
+      "event_moved": "Esemény áthelyezve",
+      "undo": "Visszavonás",
       "event_deleted": "Esemény törölve",
       "event_delete_error": "Nem sikerült törölni az eseményt",
       "task_deleted": "Feladat törölve",

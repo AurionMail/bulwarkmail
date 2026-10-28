@@ -15,7 +15,7 @@ import { displayNow, isDisplayToday } from "@/lib/timezone";
 import { groupTasksByDueDay } from "@/lib/calendar-tasks";
 import type { CalendarEvent, Calendar, CalendarTask } from "@/lib/jmap/types";
 import { useDisplayHours } from "@/hooks/use-display-hours";
-import { useTimeGridInteractions } from "@/hooks/use-time-grid-interactions";
+import { useTimeGridInteractions, type MoveEventHandler } from "@/hooks/use-time-grid-interactions";
 import { useScrollWindow, getScrollStart, setScrollStart, scrollToStart } from "@/hooks/use-scroll-window";
 import { dayKey, type ScrollWindowViewProps } from "@/lib/calendar-scroll-window";
 import type { PendingEventPreview } from "./event-modal";
@@ -46,6 +46,11 @@ interface CalendarDayViewProps extends ScrollWindowViewProps {
   currentUserEmails?: string[];
   /** Whether the user may change an event: only those can be dragged or resized. */
   canEditEvent?: (event: CalendarEvent) => boolean;
+  /**
+   * Save a drag or resize. The page asks which occurrences a change to a
+   * series covers; without it the change goes straight to the store.
+   */
+  onMoveEvent?: MoveEventHandler;
 }
 
 const HOUR_HEIGHT = 64;
@@ -78,6 +83,7 @@ export function CalendarDayView({
   onSelectTask,
   currentUserEmails,
   canEditEvent = () => true,
+  onMoveEvent,
 }: CalendarDayViewProps) {
   const t = useTranslations("calendar");
   const describeError = useCalendarErrorMessage();
@@ -280,6 +286,7 @@ export function CalendarDayView({
     describeError,
     currentUserEmails,
     isMobile,
+    onMoveEvent,
   });
 
   const formatHour = (h: number): string => {

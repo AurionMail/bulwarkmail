@@ -3518,6 +3518,8 @@
     "notifications": {
       "event_created": "Termin erstellt",
       "event_updated": "Termin aktualisiert",
+      "event_moved": "Termin verschoben",
+      "undo": "Rückgängig",
       "event_deleted": "Termin gelöscht",
       "event_delete_error": "Termin konnte nicht gelöscht werden",
       "task_deleted": "Aufgabe gelöscht",

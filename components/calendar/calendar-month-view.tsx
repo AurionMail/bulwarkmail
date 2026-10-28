@@ -21,6 +21,7 @@ import { useScrollWindow } from "@/hooks/use-scroll-window";
 import { dayKey, parseDayKey, type ScrollWindowViewProps } from "@/lib/calendar-scroll-window";
 import { useCalendarErrorMessage } from "@/hooks/use-calendar-error-message";
 import { PluginDayLabel } from "./plugin-day-label";
+import type { MoveEventHandler } from "@/hooks/use-time-grid-interactions";
 
 interface CalendarMonthViewProps extends ScrollWindowViewProps {
   selectedDate: Date;
@@ -48,6 +49,11 @@ interface CalendarMonthViewProps extends ScrollWindowViewProps {
   currentUserEmails?: string[];
   /** Whether the user may change an event: only those can be dragged or resized. */
   canEditEvent?: (event: CalendarEvent) => boolean;
+  /**
+   * Save a drag or resize. The page asks which occurrences a change to a
+   * series covers; without it the change goes straight to the store.
+   */
+  onMoveEvent?: MoveEventHandler;
 }
 
 /** Fraction of the viewport height at which the "current month" is sampled. */
@@ -80,6 +86,7 @@ export function CalendarMonthView({
   onSelectTask,
   currentUserEmails,
   canEditEvent = () => true,
+  onMoveEvent,
 }: CalendarMonthViewProps) {
   const t = useTranslations("calendar");
   const describeError = useCalendarErrorMessage();
@@ -290,11 +297,12 @@ export function CalendarMonthView({
       const client = useAuthStore.getState().client;
       if (!client) return;
       const moved = movedEventUpdates(event, { start: newStartISO }, currentUserEmails ?? []);
-      await useCalendarStore.getState().updateEvent(client, data.eventId, moved.updates, moved.sendSchedulingMessages);
+      if (event && onMoveEvent) await onMoveEvent(event, moved.updates, moved.sendSchedulingMessages, "move");
+      else await useCalendarStore.getState().updateEvent(client, data.eventId, moved.updates, moved.sendSchedulingMessages);
     } catch (error) {
       toast.error(describeError(error, t("notifications.event_move_error")));
     }
-  }, [t, describeError, currentUserEmails]);
+  }, [t, describeError, currentUserEmails, onMoveEvent]);
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden" role="grid" aria-label={formatFullDate(selectedDate)}>

@@ -3544,6 +3544,8 @@
     "notifications": {
       "event_created": "Udalosť bola vytvorená",
       "event_updated": "Udalosť bola aktualizovaná",
+      "event_moved": "Udalosť bola presunutá",
+      "undo": "Späť",
       "event_deleted": "Udalosť bola odstránená",
       "event_delete_error": "Udalosť sa nepodarilo odstrániť",
       "task_deleted": "Úloha bola odstránená",

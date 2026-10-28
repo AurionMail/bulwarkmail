@@ -3544,6 +3544,8 @@
     "notifications": {
       "event_created": "Hendelsen er opprettet",
       "event_updated": "Hendelsen er oppdatert",
+      "event_moved": "Hendelsen er flyttet",
+      "undo": "Angre",
       "event_deleted": "Hendelsen er slettet",
       "event_delete_error": "Kunne ikke slette hendelsen",
       "task_deleted": "Oppgaven er slettet",

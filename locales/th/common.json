@@ -2858,6 +2858,8 @@
     "notifications": {
       "event_created": "สร้างกิจกรรมแล้ว",
       "event_updated": "อัปเดตกิจกรรมแล้ว",
+      "event_moved": "ย้ายกิจกรรมแล้ว",
+      "undo": "เลิกทำ",
       "event_deleted": "ลบกิจกรรมแล้ว",
       "event_delete_error": "ไม่สามารถลบกิจกรรมได้",
       "task_deleted": "ลบงานแล้ว",

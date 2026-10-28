@@ -3544,6 +3544,8 @@
     "notifications": {
       "event_created": "رویداد ایجاد شد",
       "event_updated": "رویداد به‌روزرسانی شد",
+      "event_moved": "رویداد منتقل شد",
+      "undo": "بازگردانی",
       "event_deleted": "رویداد حذف شد",
       "event_delete_error": "حذف رویداد ممکن نشد",
       "task_deleted": "وظیفه حذف شد",

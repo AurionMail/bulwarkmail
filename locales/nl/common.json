@@ -3518,6 +3518,8 @@
     "notifications": {
       "event_created": "Evenement aangemaakt",
       "event_updated": "Evenement bijgewerkt",
+      "event_moved": "Evenement verplaatst",
+      "undo": "Ongedaan maken",
       "event_deleted": "Evenement verwijderd",
       "event_delete_error": "Kan afspraak niet verwijderen",
       "task_deleted": "Taak verwijderd",

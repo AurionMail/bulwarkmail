@@ -3544,6 +3544,8 @@
     "notifications": {
       "event_created": "Evento criado",
       "event_updated": "Evento atualizado",
+      "event_moved": "Evento movido",
+      "undo": "Desfazer",
       "event_deleted": "Evento excluído",
       "event_delete_error": "Não foi possível excluir o evento",
       "task_deleted": "Tarefa excluída",

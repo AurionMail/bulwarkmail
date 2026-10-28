@@ -3544,6 +3544,8 @@
     "notifications": {
       "event_created": "Eveniment creat",
       "event_updated": "Eveniment actualizat",
+      "event_moved": "Eveniment mutat",
+      "undo": "Anulează",
       "event_deleted": "Eveniment șters",
       "event_delete_error": "Evenimentul nu a putut fi șters",
       "task_deleted": "Sarcină ștearsă",

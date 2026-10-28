@@ -3544,6 +3544,8 @@
     "notifications": {
       "event_created": "Sündmus loodud",
       "event_updated": "Sündmus uuendatud",
+      "event_moved": "Sündmus liigutatud",
+      "undo": "Võta tagasi",
       "event_deleted": "Sündmus kustutatud",
       "event_delete_error": "Sündmust ei saanud kustutada",
       "task_deleted": "Ülesanne kustutatud",

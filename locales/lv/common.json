@@ -3517,6 +3517,8 @@
     "notifications": {
       "event_created": "Pasākums izveidots",
       "event_updated": "Pasākums atjaunināts",
+      "event_moved": "Pasākums pārvietots",
+      "undo": "Atsaukt",
       "event_deleted": "Pasākums izdzēsts",
       "event_delete_error": "Neizdevās dzēst notikumu",
       "task_deleted": "Uzdevums izdzēsts",

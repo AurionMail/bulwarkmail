@@ -3544,6 +3544,8 @@
     "notifications": {
       "event_created": "Begivenhed oprettet",
       "event_updated": "Begivenhed opdateret",
+      "event_moved": "Begivenhed flyttet",
+      "undo": "Fortryd",
       "event_deleted": "Begivenhed slettet",
       "event_delete_error": "Begivenheden kunne ikke slettes",
       "task_deleted": "Opgave slettet",

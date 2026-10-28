@@ -3518,6 +3518,8 @@
     "notifications": {
       "event_created": "Событие создано",
       "event_updated": "Событие обновлено",
+      "event_moved": "Событие перемещено",
+      "undo": "Отменить",
       "event_deleted": "Событие удалено",
       "event_delete_error": "Не удалось удалить событие",
       "task_deleted": "Задача удалена",

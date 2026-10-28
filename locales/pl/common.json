@@ -3518,6 +3518,8 @@
     "notifications": {
       "event_created": "Wydarzenie utworzono",
       "event_updated": "Wydarzenie zaktualizowano",
+      "event_moved": "Wydarzenie przeniesiono",
+      "undo": "Cofnij",
       "event_deleted": "Wydarzenie usunięto",
       "event_delete_error": "Nie udało się usunąć wydarzenia",
       "task_deleted": "Zadanie usunięto",

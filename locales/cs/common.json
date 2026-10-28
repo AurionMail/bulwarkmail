@@ -3518,6 +3518,8 @@
     "notifications": {
       "event_created": "Událost byla vytvořena",
       "event_updated": "Událost byla aktualizována",
+      "event_moved": "Událost byla přesunuta",
+      "undo": "Zpět",
       "event_deleted": "Událost byla odstraněna",
       "event_delete_error": "Událost se nepodařilo odstranit",
       "task_deleted": "Úkol byl odstraněn",

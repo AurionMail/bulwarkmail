@@ -3544,6 +3544,8 @@
     "notifications": {
       "event_created": "活動已建立",
       "event_updated": "活動已更新",
+      "event_moved": "活動已移動",
+      "undo": "復原",
       "event_deleted": "活動已刪除",
       "event_delete_error": "無法刪除活動",
       "task_deleted": "任務已刪除",

@@ -3544,6 +3544,8 @@
     "notifications": {
       "event_created": "Event created",
       "event_updated": "Event updated",
+      "event_moved": "Event moved",
+      "undo": "Undo",
       "event_deleted": "Event deleted",
       "event_delete_error": "Couldn't delete event",
       "task_deleted": "Task deleted",

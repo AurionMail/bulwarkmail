@@ -3544,6 +3544,8 @@
     "notifications": {
       "event_created": "تم إنشاء الحدث",
       "event_updated": "تم تحديث الحدث",
+      "event_moved": "تم نقل الحدث",
+      "undo": "تراجع",
       "event_deleted": "تم حذف الحدث",
       "event_delete_error": "تعذّر حذف الحدث",
       "task_deleted": "تم حذف المهمة",

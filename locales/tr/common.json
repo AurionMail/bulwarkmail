@@ -3544,6 +3544,8 @@
     "notifications": {
       "event_created": "Etkinlik oluşturuldu",
       "event_updated": "Etkinlik güncellendi",
+      "event_moved": "Etkinlik taşındı",
+      "undo": "Geri al",
       "event_deleted": "Etkinlik silindi",
       "event_delete_error": "Etkinlik silinemedi",
       "task_deleted": "Görev silindi",

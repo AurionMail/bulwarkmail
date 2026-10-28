@@ -3544,6 +3544,8 @@
     "notifications": {
       "event_created": "Үйл явдал үүсгэсэн",
       "event_updated": "Үйл явдал шинэчлэгдсэн",
+      "event_moved": "Үйл явдлыг зөөсөн",
+      "undo": "Цуцлах",
       "event_deleted": "Үйл явдал устгагдсан",
       "event_delete_error": "Арга хэмжээг устгаж чадсангүй",
       "task_deleted": "Даалгавар устгагдсан",

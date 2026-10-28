@@ -3518,6 +3518,8 @@
     "notifications": {
       "event_created": "Evento creado",
       "event_updated": "Evento actualizado",
+      "event_moved": "Evento movido",
+      "undo": "Deshacer",
       "event_deleted": "Evento eliminado",
       "event_delete_error": "No se pudo eliminar el evento",
       "task_deleted": "Tarea eliminada",

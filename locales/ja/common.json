@@ -3518,6 +3518,8 @@
     "notifications": {
       "event_created": "予定を作成しました",
       "event_updated": "予定を更新しました",
+      "event_moved": "予定を移動しました",
+      "undo": "元に戻す",
       "event_deleted": "予定を削除しました",
       "event_delete_error": "予定を削除できませんでした",
       "task_deleted": "タスクを削除しました",

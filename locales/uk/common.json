@@ -3518,6 +3518,8 @@
     "notifications": {
       "event_created": "Подія створена",
       "event_updated": "Подію оновлено",
+      "event_moved": "Подію переміщено",
+      "undo": "Скасувати",
       "event_deleted": "Подію видалено",
       "event_delete_error": "Не вдалося видалити подію",
       "task_deleted": "Завдання видалено",

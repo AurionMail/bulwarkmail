@@ -3518,6 +3518,8 @@
     "notifications": {
       "event_created": "일정이 만들어졌어요",
       "event_updated": "일정이 업데이트되었어요",
+      "event_moved": "일정을 이동했어요",
+      "undo": "실행 취소",
       "event_deleted": "일정이 삭제되었어요",
       "event_delete_error": "일정을 삭제하지 못했습니다",
       "task_deleted": "할 일이 삭제되었습니다",

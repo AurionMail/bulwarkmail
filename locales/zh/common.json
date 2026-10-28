@@ -3518,6 +3518,8 @@
     "notifications": {
       "event_created": "活动已创建",
       "event_updated": "活动已更新",
+      "event_moved": "活动已移动",
+      "undo": "撤销",
       "event_deleted": "活动已删除",
       "event_delete_error": "无法删除事件",
       "task_deleted": "任务已删除",

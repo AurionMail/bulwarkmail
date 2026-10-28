@@ -3436,6 +3436,8 @@
     "notifications": {
       "event_created": "האירוע נוצר",
       "event_updated": "האירוע עודכן",
+      "event_moved": "האירוע הועבר",
+      "undo": "בטל",
       "event_deleted": "האירוע נמחק",
       "event_delete_error": "לא ניתן היה למחוק את האירוע",
       "task_deleted": "המשימה נמחקה",

@@ -3518,6 +3518,8 @@
     "notifications": {
       "event_created": "Evento creato",
       "event_updated": "Evento aggiornato",
+      "event_moved": "Evento spostato",
+      "undo": "Annulla",
       "event_deleted": "Evento eliminato",
       "event_delete_error": "Impossibile eliminare l'evento",
       "task_deleted": "Attività eliminata",
