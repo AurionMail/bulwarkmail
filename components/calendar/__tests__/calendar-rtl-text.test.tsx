@@ -49,7 +49,6 @@ describe('user text and times in a right-to-left layout', () => {
   it('does the same in the agenda', () => {
     render(
       <CalendarAgendaView
-        selectedDate={new Date(2026, 9, 28)}
         focus={{ date: new Date(2026, 9, 28), nonce: 0 }}
         windowKey="agenda:2026-10-28"
         rangeStart={new Date(2026, 9, 28)}
