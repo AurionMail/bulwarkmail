@@ -201,7 +201,7 @@ export {
   IconScissors as Scissors,
   IconFileText as ScrollText,
   IconSearch as Search,
-  IconSearchOff as SearchX,
+  IconZoomCancel as SearchX,
   IconSend as Send,
   IconServer as Server,
   IconSettings as Settings,

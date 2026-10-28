@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { CheckCircle2, AlertTriangle, AlertCircle, Server, ShieldCheck, KeyRound, FileText, Palette, Lock, ShieldAlert } from '@/components/icons';
+import { Check, CheckCircle2, AlertTriangle, AlertCircle, Server, ShieldCheck, KeyRound, FileText, Palette, Lock, ShieldAlert } from '@/components/icons';
 import { apiFetch, getPathPrefix, withBasePath } from '@/lib/browser-navigation';
 import { takeSetupTokenFromUrl } from '@/lib/setup/url-token';
 
@@ -338,18 +338,7 @@ function CompletedScreen() {
     <CenteredCard>
       <div className="text-center">
         <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-6 w-6 text-primary"
-          >
-            <path d="M20 6 9 17l-5-5" />
-          </svg>
+          <Check className="h-6 w-6 text-primary" aria-hidden="true" />
         </div>
         <h1 className="text-xl font-semibold">{t('done.title')}</h1>
         <p className="text-sm text-muted-foreground mt-2">
@@ -421,18 +410,7 @@ function AlreadyConfiguredScreen() {
     <CenteredCard>
       <div className="text-center">
         <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-6 w-6 text-primary"
-          >
-            <path d="M20 6 9 17l-5-5" />
-          </svg>
+          <Check className="h-6 w-6 text-primary" aria-hidden="true" />
         </div>
         <h1 className="text-xl font-semibold">{t('already.title')}</h1>
         <p className="text-sm text-muted-foreground mt-2">

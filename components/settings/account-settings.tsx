@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Check, GripVertical, Plus, Star, AlertCircle, ChevronRight } from '@/components/icons';
+import { Check, GripVertical, Plus, Star, AlertCircle, ChevronRight, ChevronUp, ChevronDown } from '@/components/icons';
 import { useAuthStore } from '@/stores/auth-store';
 import { useEmailStore } from '@/stores/email-store';
 import { useAccountStore, type AccountEntry } from '@/stores/account-store';
@@ -448,9 +448,7 @@ function AccountRow({
           title={labels.moveUp}
           aria-label={labels.moveUp}
         >
-          <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M4 10l4-4 4 4" />
-          </svg>
+          <ChevronUp className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
         <button
           type="button"
@@ -460,9 +458,7 @@ function AccountRow({
           title={labels.moveDown}
           aria-label={labels.moveDown}
         >
-          <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M4 6l4 4 4-4" />
-          </svg>
+          <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
       </div>
     </div>
