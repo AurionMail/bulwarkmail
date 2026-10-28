@@ -57,6 +57,14 @@ function renderView(overrides: Partial<Props> = {}) {
 }
 
 describe('CalendarAgendaView infinite scroll', () => {
+  it('shows one empty state with a create button when the window holds no events', () => {
+    const onCreateEvent = vi.fn();
+    renderView({ events: [], onCreateEvent });
+    expect(screen.queryByText('events.today_header')).toBeNull();
+    screen.getByRole('button', { name: 'events.new_event' }).click();
+    expect(onCreateEvent).toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 8, 9, 10, 0, 0));
@@ -148,7 +156,7 @@ describe('CalendarAgendaView infinite scroll', () => {
   });
 
   it('only anchors a "Today" row when today lies inside the loaded window', () => {
-    renderView();
+    renderView({ events: [makeEvent('b', '2026-09-20T09:00:00')] });
     expect(screen.getByText('events.today_header')).toBeInTheDocument();
     cleanup();
 

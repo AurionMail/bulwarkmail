@@ -155,7 +155,7 @@ export function DirectoryBrowser({
             {pageAllSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
           </button>
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               ref={searchRef}
               type="text"
@@ -169,7 +169,7 @@ export function DirectoryBrowser({
               <button
                 type="button"
                 onClick={() => { setQuery(""); setPage(0); }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                className="absolute end-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                 aria-label={tContacts("clear_search")}
               >
                 <X className="w-4 h-4" />
@@ -258,7 +258,7 @@ export function DirectoryBrowser({
                 className="p-1.5 rounded-md hover:bg-muted hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
                 aria-label={t("previous_page")}
               >
-                <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
+                <ChevronLeft className="w-4 h-4" />
               </button>
               <span className="tabular-nums">{t("page", { page: currentPage + 1, count: pageCount })}</span>
               <button
@@ -268,7 +268,7 @@ export function DirectoryBrowser({
                 className="p-1.5 rounded-md hover:bg-muted hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
                 aria-label={t("next_page")}
               >
-                <ChevronRight className="w-4 h-4 rtl:rotate-180" />
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           )}

@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { printContact } from '../contact-print';
+import { printContact, printLabels } from '../contact-print';
 import { useAuthStore } from '@/stores/auth-store';
 import { clearContactPhotoCache } from '@/lib/contact-photo-cache';
 import type { ContactCard } from '@/lib/jmap/types';
+
+const LABELS = printLabels((key) => key, 'en');
 
 const base: ContactCard = {
   id: 'c1',
@@ -36,7 +38,7 @@ describe('printContact', () => {
   it('opens the window right away and prints a Stalwart 1.0 photo inline as a data: URI', async () => {
     fetchBlob.mockResolvedValue(new Blob([new Uint8Array([0xff, 0xd8, 0xff])], { type: 'image/jpeg' }));
 
-    const done = printContact({ ...base, media: { photo: { kind: 'photo', blobId: 'dbcX', mediaType: 'image/jpeg' } } });
+    const done = printContact({ ...base, media: { photo: { kind: 'photo', blobId: 'dbcX', mediaType: 'image/jpeg' } } }, LABELS);
     // Before anything is awaited, while the click still allows a popup.
     expect(open).toHaveBeenCalledTimes(1);
     await done;
@@ -47,7 +49,7 @@ describe('printContact', () => {
   });
 
   it('prints a Stalwart 0.16 photo as it is', async () => {
-    await printContact({ ...base, media: { photo: { kind: 'photo', uri: 'data:base64,/9j/' } } });
+    await printContact({ ...base, media: { photo: { kind: 'photo', uri: 'data:base64,/9j/' } } }, LABELS);
 
     expect(fetchBlob).not.toHaveBeenCalled();
     expect(written()).toContain('src="data:image/jpeg;base64,/9j/"');
@@ -57,7 +59,7 @@ describe('printContact', () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     fetchBlob.mockRejectedValue(new Error('Failed to fetch blob: 404'));
 
-    const done = printContact({ ...base, media: { photo: { kind: 'photo', blobId: 'dbcGone' } } });
+    const done = printContact({ ...base, media: { photo: { kind: 'photo', blobId: 'dbcGone' } } }, LABELS);
     await vi.advanceTimersByTimeAsync(1000);
     await done;
 
@@ -68,9 +70,21 @@ describe('printContact', () => {
 
   it('does not write into a window the user already closed', async () => {
     fetchBlob.mockResolvedValue(new Blob(['x'], { type: 'image/jpeg' }));
-    const done = printContact({ ...base, media: { photo: { kind: 'photo', blobId: 'dbcX' } } });
+    const done = printContact({ ...base, media: { photo: { kind: 'photo', blobId: 'dbcX' } } }, LABELS);
     printWindow.closed = true;
     await done;
     expect(printWindow.document.write).not.toHaveBeenCalled();
+  });
+
+  it('prints the headings and dates in the language of the app', async () => {
+    const de = printLabels((key) => ({ 'detail.emails': 'E-Mail-Adressen', 'detail.anniversaries': 'Jahrestage', 'detail.anniversary_birth': 'Geburtstag' } as Record<string, string>)[key] ?? key, 'de');
+    await printContact({
+      ...base,
+      emails: { e: { address: 'ann@example.com' } },
+      anniversaries: { b: { kind: 'birth', date: { year: 1988, month: 3, day: 15 } } },
+    } as ContactCard, de);
+    expect(written()).toContain('<h2>E-Mail-Adressen</h2>');
+    expect(written()).toContain('<dt>Geburtstag</dt><dd>15. März 1988</dd>');
+    expect(written()).not.toContain('>Email<');
   });
 });

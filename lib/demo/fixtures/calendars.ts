@@ -14,6 +14,11 @@ const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const rights = (mayDelete: boolean, mayWriteAll = true) => ({
   mayReadFreeBusy: true, mayReadItems: true, mayWriteAll, mayWriteOwn: true, mayUpdatePrivate: true, mayRSVP: true, mayShare: mayWriteAll, mayDelete,
 });
+// Birthdays come from the contacts, like the real birthday calendar: they
+// can't be edited, moved or deleted here.
+const readOnly = {
+  mayReadFreeBusy: true, mayReadItems: true, mayWriteAll: false, mayWriteOwn: false, mayUpdatePrivate: false, mayRSVP: false, mayShare: false, mayDelete: false,
+};
 
 export function createDemoCalendars(): Calendar[] {
   const base = { description: null, isSubscribed: true, isVisible: true, includeInAvailability: 'all' as const, defaultAlertsWithTime: null, defaultAlertsWithoutTime: null, timeZone: null, shareWith: null };
@@ -21,7 +26,7 @@ export function createDemoCalendars(): Calendar[] {
     { ...base, id: CAL.work, name: 'Work', color: '#db2d54', sortOrder: 1, isDefault: true, myRights: rights(false) },
     { ...base, id: CAL.personal, name: 'Personal', color: '#3b82f6', sortOrder: 2, isDefault: false, myRights: rights(true) },
     { ...base, id: CAL.team, name: 'Beacon team', description: 'Shared by Alice Johnson', color: '#8b5cf6', sortOrder: 3, isDefault: false, myRights: rights(false, false) },
-    { ...base, id: CAL.birthdays, name: 'Birthdays', color: '#eab308', sortOrder: 4, isDefault: false, includeInAvailability: 'none', myRights: rights(true) },
+    { ...base, id: CAL.birthdays, name: 'Birthdays', color: '#eab308', sortOrder: 4, isDefault: false, includeInAvailability: 'none', myRights: readOnly },
   ];
 }
 

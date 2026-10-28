@@ -1,34 +1,24 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
-import { useTranslations } from "next-intl";
-import { Mail, Phone, Building, MapPin, StickyNote, Pencil, Trash2, BookUser, Copy, Send, Globe, Cake, KeyRound, Users, Briefcase, Heart, Languages, Calendar, UserCircle, Download, MoreHorizontal, Printer } from "@/components/icons";
+import { useEffect, useRef, useMemo } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { contactDateParts, formatContactDate } from "@/lib/contact-dates";
+import { Mail, Phone, Building, MapPin, StickyNote, Pencil, BookUser, Copy, Send, Globe, Cake, KeyRound, Users, Briefcase, Heart, Languages, Calendar, UserCircle, MoreVertical } from "@/components/icons";
 import { Avatar } from "@/components/ui/avatar";
 import { MailtoLink } from "@/components/ui/mailto-link";
 import { Button } from "@/components/ui/button";
-import { ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
-import type { ContactCard, AnniversaryDate, PartialDate } from "@/lib/jmap/types";
+import type { ContactCard, AnniversaryDate } from "@/lib/jmap/types";
 import { getContactDisplayName, getContactPrimaryEmail, getContactPhotoRef } from "@/stores/contact-store";
 import { ContactActivity } from "./contact-activity";
 import { toast } from "@/stores/toast-store";
-import { exportContact, useContactExportBusy } from "./contact-export";
-import { printContact } from "./contact-print";
+import { ContactContextMenu } from "./contact-context-menu";
+import { useContextMenu } from "@/hooks/use-context-menu";
+import { IconButton } from "@/components/ui/icon-button";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { contactHooks } from "@/lib/plugin-hooks";
 import { contactToView } from "@/lib/plugin-projection";
-
-type MoreItem =
-  | {
-      icon: React.ComponentType<{ className?: string }>;
-      label: string;
-      onClick: () => void;
-      destructive?: boolean;
-      disabled?: boolean;
-      separator?: false;
-    }
-  | { separator: true };
 
 interface ContactDetailProps {
   contact: ContactCard | null;
@@ -36,6 +26,8 @@ interface ContactDetailProps {
   onDelete: () => void;
   onAddToGroup?: () => void;
   onDuplicate?: () => void;
+  /** Move to another address book; undefined where there is none to move to. */
+  onMoveTo?: () => void;
   /** Compose an email to this contact in the app (no OS mailto handoff). */
   onCompose?: () => void;
   isMobile?: boolean;
@@ -64,32 +56,8 @@ function formatPhoneFeatures(features: Record<string, boolean> | undefined, labe
   return Object.keys(features).filter(k => features[k]).map(label).join(", ");
 }
 
-function getDateParts(dateInput: AnniversaryDate): { year?: number; month?: number; day?: number } {
-  if (typeof dateInput === "object" && dateInput !== null) {
-    if (dateInput["@type"] === "Timestamp" && typeof dateInput.utc === "string") {
-      const d = new Date(dateInput.utc);
-      if (!isNaN(d.getTime())) {
-        return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() };
-      }
-      return {};
-    }
-    const pd = dateInput as PartialDate;
-    return { year: pd.year, month: pd.month, day: pd.day };
-  }
-  const s = String(dateInput);
-  if (s.startsWith("--")) {
-    const parts = s.substring(2).split("-");
-    return { month: parseInt(parts[0], 10), day: parts[1] ? parseInt(parts[1], 10) : undefined };
-  }
-  const d = new Date(s);
-  if (!isNaN(d.getTime())) {
-    return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate() };
-  }
-  return {};
-}
-
 function getCompletedYears(dateInput: AnniversaryDate): number | null {
-  const { year, month, day } = getDateParts(dateInput);
+  const { year, month, day } = contactDateParts(dateInput);
   if (!year) return null;
   const now = new Date();
   let years = now.getFullYear() - year;
@@ -102,50 +70,17 @@ function getCompletedYears(dateInput: AnniversaryDate): number | null {
   return years;
 }
 
-function formatDate(dateInput: AnniversaryDate): string {
-  if (typeof dateInput === 'object' && dateInput !== null) {
-    if (dateInput['@type'] === 'Timestamp' && typeof dateInput.utc === 'string') {
-      try {
-        const d = new Date(dateInput.utc as string);
-        if (!isNaN(d.getTime())) {
-          return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
-        }
-      } catch { /* fallback */ }
-      return String(dateInput.utc);
-    }
-    const pd = dateInput as PartialDate;
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const parts: string[] = [];
-    if (pd.month && monthNames[pd.month - 1]) parts.push(monthNames[pd.month - 1]);
-    if (pd.day) parts.push(String(pd.day));
-    if (pd.year) parts.push(String(pd.year));
-    return parts.join(' ') || String(dateInput);
-  }
-  const dateStr = String(dateInput);
-  if (dateStr.startsWith("--")) {
-    const parts = dateStr.substring(2).split("-");
-    const month = parseInt(parts[0], 10);
-    const day = parts[1] ? parseInt(parts[1], 10) : undefined;
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return day ? `${monthNames[month - 1]} ${day}` : monthNames[month - 1];
-  }
-  try {
-    const d = new Date(dateStr);
-    if (!isNaN(d.getTime())) {
-      return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
-    }
-  } catch { /* fallback */ }
-  return dateStr;
-}
 
-export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDuplicate, onCompose, isMobile, className }: ContactDetailProps) {
+export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDuplicate, onMoveTo, onCompose, isMobile, className }: ContactDetailProps) {
   const t = useTranslations("contacts");
+  const locale = useLocale();
+  // The ⋮ shows the contact's menu, the one right-click shows in the list (R6).
+  const moreMenu = useContextMenu<ContactCard>();
   const contextLabel = (key: string) => (CONTEXT_LABEL_KEYS[key] ? t(CONTEXT_LABEL_KEYS[key]) : key);
   const featureLabel = (key: string) => (PHONE_FEATURE_LABEL_KEYS[key] ? t(PHONE_FEATURE_LABEL_KEYS[key]) : key);
 
   const cryptoKeys = contact?.cryptoKeys ? Object.values(contact.cryptoKeys) : [];
   const hasCryptoKeysSlotOffers = usePluginSlotOffers('contact-cryptokeys').length > 0;
-  const exporting = useContactExportBusy();
   const pluginContactProps = useMemo(() => (contact ? { contact: contactToView(contact) } : null), [contact]);
 
   // Tell plugins once per contact shown here, not on every edit of that card.
@@ -172,25 +107,6 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
   const photo = getContactPhotoRef(contact) ?? null;
   const phone = contact.phones ? Object.values(contact.phones)[0]?.number : undefined;
 
-  const handleExport = async () => {
-    if (await exportContact(contact)) toast.success(t("export.success", { count: 1 }));
-  };
-
-  const handlePrint = () => {
-    void printContact(contact, name);
-  };
-
-  const moreItems: MoreItem[] = [];
-  if (onAddToGroup) {
-    moreItems.push({ icon: Users, label: t("context_menu.add_to_group"), onClick: onAddToGroup });
-  }
-  if (onDuplicate) {
-    moreItems.push({ icon: Copy, label: t("context_menu.duplicate"), onClick: onDuplicate });
-  }
-  moreItems.push({ icon: Download, label: t("context_menu.export_vcard"), onClick: handleExport, disabled: exporting });
-  moreItems.push({ icon: Printer, label: t("context_menu.print"), onClick: handlePrint });
-  moreItems.push({ separator: true });
-  moreItems.push({ icon: Trash2, label: t("context_menu.delete"), onClick: onDelete, destructive: true });
   const emails = contact.emails ? Object.values(contact.emails) : [];
   const phones = contact.phones ? Object.values(contact.phones) : [];
   const orgs = contact.organizations ? Object.values(contact.organizations) : [];
@@ -221,7 +137,7 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
     <div className={cn("flex flex-col h-full overflow-y-auto", className)}>
       <div className={cn("border-b border-border", isMobile ? "px-4 py-4" : "px-6 py-6")}>
         <div className={cn("flex gap-4", isMobile ? "flex-col" : "flex-wrap items-start justify-between")}>
-          <div className="flex items-center gap-4 min-w-0 flex-1 basis-60">
+          <div className={cn("flex items-center gap-4 min-w-0 flex-1", !isMobile && "basis-60")}>
             <Avatar name={name} email={email} contactPhoto={photo} size={isMobile ? "md" : "lg"} />
             <div className="min-w-0 flex-1">
               <h2 className={cn("font-semibold truncate", isMobile ? "text-lg" : "text-xl")}>{name || "-"}</h2>
@@ -258,7 +174,32 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
               <Pencil className="w-4 h-4 me-1" />
               {t("form.edit_title")}
             </Button>
-            <MoreActionsMenu items={moreItems} label={t("detail.more_actions")} />
+            <IconButton
+              variant="outline"
+              size="sm"
+              label={t("detail.more_actions")}
+              aria-haspopup="menu"
+              aria-expanded={moreMenu.contextMenu.isOpen}
+              onClick={(e) => moreMenu.openContextMenuFrom(e.currentTarget, contact, "end")}
+              className="touch-manipulation"
+            >
+              <MoreVertical />
+            </IconButton>
+            {moreMenu.contextMenu.data && (
+              <ContactContextMenu
+                contact={moreMenu.contextMenu.data}
+                position={moreMenu.contextMenu.position}
+                isOpen={moreMenu.contextMenu.isOpen}
+                onClose={moreMenu.closeContextMenu}
+                menuRef={moreMenu.menuRef}
+                inDetail
+                onCompose={onCompose}
+                onDelete={onDelete}
+                onAddToGroup={onAddToGroup}
+                onDuplicate={onDuplicate}
+                onMoveTo={onMoveTo}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -391,7 +332,7 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
                 return (
                   <FieldRow key={`an${i}`} icon={Cake} label={t(`detail.anniversary_${ann.kind}`)}>
                     <div className="text-sm">
-                      {formatDate(ann.date)}
+                      {formatContactDate(ann.date, locale)}
                       {years !== null && (
                         <span className="text-muted-foreground"> · {t(suffixKey, { count: years })}</span>
                       )}
@@ -538,8 +479,8 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
 
         {(contact.created || contact.updated) && (
           <div className="py-4 text-xs text-muted-foreground space-y-1">
-            {contact.created && <div>{t("detail.created")}: {formatDate(contact.created)}</div>}
-            {contact.updated && <div>{t("detail.updated")}: {formatDate(contact.updated)}</div>}
+            {contact.created && <div>{t("detail.created")}: {formatContactDate(contact.created, locale)}</div>}
+            {contact.updated && <div>{t("detail.updated")}: {formatContactDate(contact.updated, locale)}</div>}
           </div>
         )}
       </div>
@@ -577,71 +518,6 @@ function RowActions({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
       {children}
-    </div>
-  );
-}
-
-function MoreActionsMenu({ items, label }: { items: MoreItem[]; label: string }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDocMouseDown = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", onDocMouseDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDocMouseDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  if (items.length === 0) return null;
-
-  return (
-    <div ref={ref} className="relative">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setOpen((o) => !o)}
-        title={label}
-        aria-label={label}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        className="touch-manipulation"
-      >
-        <MoreHorizontal className="w-4 h-4" />
-      </Button>
-      {open && (
-        <div
-          role="menu"
-          className="absolute end-0 top-full mt-1 z-30 min-w-[200px] bg-background rounded-md shadow-lg border border-border py-1"
-        >
-          {items.map((item, i) => {
-            if (item.separator) {
-              return <ContextMenuSeparator key={i} />;
-            }
-            return (
-              <ContextMenuItem
-                key={i}
-                icon={item.icon}
-                label={item.label}
-                destructive={item.destructive}
-                disabled={item.disabled}
-                onClick={() => {
-                  item.onClick();
-                  setOpen(false);
-                }}
-              />
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }

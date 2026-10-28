@@ -181,14 +181,14 @@ export function ParticipantAvailability({ attendees, start, end }: ParticipantAv
             <span
               className={cn(
                 "inline-block h-2 w-2 shrink-0 rounded-full",
-                status === "free" && "bg-emerald-500",
-                status === "busy" && "bg-red-500",
-                status === "tentative" && "bg-amber-500",
+                status === "free" && "bg-success",
+                status === "busy" && "bg-destructive",
+                status === "tentative" && "bg-warning",
                 (status === "no_busy_times" || status === "unknown" || status === "error" || status === "checking") && "bg-muted-foreground/40",
               )}
               aria-hidden="true"
             />
-            <span className="min-w-0 truncate text-foreground/90">{a.name || a.email}</span>
+            <span className="min-w-0 truncate text-foreground/90" title={a.email}>{a.name || a.email}</span>
             <span className="ms-auto flex shrink-0 items-center gap-1 text-muted-foreground">
               {status === "checking" && <Loader2 className="h-3 w-3 animate-spin" />}
               {t(status)}

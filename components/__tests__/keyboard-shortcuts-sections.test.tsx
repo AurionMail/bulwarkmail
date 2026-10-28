@@ -9,6 +9,10 @@ vi.mock('@/lib/keyboard-shortcuts/calendar', () => ({
   CALENDAR_SECTIONS: [{ id: 'views', title: 'calendar.views', entries: [{ key: 'd', description: 'calendar.day_view' }] }],
 }));
 
+// Apps without keys get no tab; Contacts and Files are left empty here for that.
+vi.mock('@/lib/keyboard-shortcuts/contacts', () => ({ CONTACTS_SECTIONS: [] }));
+vi.mock('@/lib/keyboard-shortcuts/files', () => ({ FILES_SECTIONS: [] }));
+
 const { KeyboardShortcutsModal } = await import('../keyboard-shortcuts-modal');
 
 describe('keyboard shortcuts help per app', () => {

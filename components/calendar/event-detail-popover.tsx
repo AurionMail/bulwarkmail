@@ -4,10 +4,11 @@ import { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect } fr
 import { useTranslations, useLocale } from "next-intl";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { LinkifiedText } from "@/components/ui/linkified-text";
 import {
   X, Clock, MapPin, Video, Users, Repeat, Bell, AlignLeft,
-  Pencil, Trash2, Copy, Send, Check, MoreVertical, Calendar as CalendarIcon,
+  Pencil, Trash2, Copy, CopyPlus, Send, Check, MoreVertical, Calendar as CalendarIcon,
 } from "@/components/icons";
 import { format, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,8 @@ import { useContactNameResolver } from "@/hooks/use-contact-name-resolver";
 import { findMeetingLink, locationAction, mapsUrl, primaryLocationName } from "@/lib/event-links";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { eventToView } from "@/lib/plugin-projection";
+import { ParticipantStatusBadge, RsvpButtons } from "./rsvp-buttons";
+import { isEditableEventTarget } from "@/lib/keyboard";
 
 interface EventDetailPopoverProps {
   event: CalendarEvent;
@@ -46,10 +49,15 @@ interface EventDetailPopoverProps {
   isSubscriptionCalendar?: (calendarId: string) => boolean;
   timeFormat?: "12h" | "24h";
   isMobile?: boolean;
+  /**
+   * Opened by a click or Enter rather than shown on hover: it takes the
+   * focus, and gives it back to the event when it closes.
+   */
+  pinned?: boolean;
 }
 
 const POPOVER_WIDTH = 360;
-const HEADER_BUTTON = "p-1.5 rounded-md hover:bg-muted transition-colors duration-150 text-muted-foreground hover:text-foreground";
+const HEADER_BUTTON = "text-muted-foreground hover:text-foreground";
 const POPOVER_GAP = 8;
 const VIEWPORT_MARGIN = 12;
 const MAX_HEIGHT = 480;
@@ -124,8 +132,10 @@ export function EventDetailPopover({
   isSubscriptionCalendar,
   timeFormat = "24h",
   isMobile,
+  pinned = false,
 }: EventDetailPopoverProps) {
   const t = useTranslations("calendar");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
   const popoverRef = useRef<HTMLDivElement>(null);
   const noteInputRef = useRef<HTMLTextAreaElement>(null);
@@ -133,7 +143,6 @@ export function EventDetailPopover({
   const [ready, setReady] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [noteExpanded, setNoteExpanded] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isSavingNote, setIsSavingNote] = useState(false);
 
   // Bare addresses (the organizer above all — Stalwart drops its display name)
@@ -229,7 +238,7 @@ export function EventDetailPopover({
     const height = popoverRef.current.offsetHeight;
     setPosition(computePosition(anchorRect, height));
     if (!ready) requestAnimationFrame(() => setReady(true));
-  }, [anchorRect, noteExpanded, showDeleteConfirm, ready]);
+  }, [anchorRect, noteExpanded, ready]);
 
   // Content that grows after the popover was placed (a plugin section reports
   // its height a moment later) moves it again, so it stays in the window.
@@ -245,13 +254,22 @@ export function EventDetailPopover({
   }, [anchorRect, isMobile]);
 
   useEffect(() => {
+    if (!pinned) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const node = popoverRef.current;
+    node?.querySelector<HTMLElement>("button")?.focus({ preventScroll: true });
+    return () => {
+      const active = document.activeElement;
+      if (opener?.isConnected && (!active || active === document.body || node?.contains(active))) opener.focus({ preventScroll: true });
+    };
+  }, [pinned]);
+
+  useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
-      const target = e.target as HTMLElement;
-      const tag = target?.tagName?.toLowerCase();
-      if (tag === "input" || tag === "textarea" || tag === "select") return;
-      if (target?.getAttribute("contenteditable") === "true") return;
-      if (e.key === "e" && !noteExpanded && canEditBody) {
+      if (isEditableEventTarget(e)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      if (e.code === "KeyE" && !noteExpanded && canEditBody) {
         e.preventDefault();
         onEdit();
       }
@@ -338,69 +356,38 @@ export function EventDetailPopover({
       {/* Actions sit at the top, the event's colour square beside its title. */}
       <div className="flex items-center justify-end gap-0.5 px-2 pt-2">
         {canEditBody && (
-          <button
-            type="button"
+          <IconButton
             onClick={onEdit}
             className={HEADER_BUTTON}
-            aria-label={t("events.edit")}
-            title={t("events.edit")}
+            label={t("events.edit")}
           >
             <Pencil className="w-4 h-4" />
-          </button>
+          </IconButton>
         )}
         {canEditBody && (
-          <button
-            type="button"
-            onClick={() => setShowDeleteConfirm(true)}
+          <IconButton
+            onClick={onDelete}
             className={HEADER_BUTTON}
-            aria-label={t("events.delete")}
-            title={t("events.delete")}
+            label={t("events.delete")}
           >
             <Trash2 className="w-4 h-4" />
-          </button>
+          </IconButton>
         )}
-        <button
-          type="button"
+        <IconButton
           onClick={onMore ?? onDuplicate}
           className={HEADER_BUTTON}
-          aria-label={onMore ? t("toolbar.more") : t("events.duplicate")}
-          title={onMore ? t("toolbar.more") : t("events.duplicate")}
+          label={onMore ? t("toolbar.more") : t("events.duplicate")}
         >
-          {onMore ? <MoreVertical className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-        </button>
-        <button
-          type="button"
+          {onMore ? <MoreVertical className="w-4 h-4" /> : <CopyPlus className="w-4 h-4" />}
+        </IconButton>
+        <IconButton
           onClick={onClose}
           className={HEADER_BUTTON}
-          aria-label={t("form.cancel")}
+          label={tCommon("close")}
         >
           <X className="w-4 h-4" />
-        </button>
+        </IconButton>
       </div>
-
-      {showDeleteConfirm && (
-        <div className="mx-4 mt-1 mb-2 flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2">
-          <span className="text-sm text-destructive flex-1">
-            {t("detail.delete_confirm")}
-          </span>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={onDelete}
-            className="h-7 text-xs"
-          >
-            {t("events.delete")}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowDeleteConfirm(false)}
-            className="h-7 text-xs"
-          >
-            {t("form.cancel")}
-          </Button>
-        </div>
-      )}
 
       <div className="flex items-start gap-2.5 px-4 pb-1">
         <span
@@ -416,12 +403,12 @@ export function EventDetailPopover({
             {event.title || t("events.no_title")}
           </h3>
           {event.status === "tentative" && (
-            <span className="mt-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-warning/15 text-warning">
+            <span className="mt-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-warning/15 text-amber-600 dark:text-amber-400">
               {t("detail.tentative")}
             </span>
           )}
           {event.status === "cancelled" && (
-            <span className="mt-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 line-through">
+            <span className="mt-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-destructive/10 text-red-600 dark:text-red-400 line-through">
               {t("detail.cancelled")}
             </span>
           )}
@@ -547,7 +534,7 @@ export function EventDetailPopover({
               <div className="mt-1 space-y-0.5">
                 {participants.slice(0, 5).map((p) => (
                   <div key={p.id} className="flex items-center justify-between gap-2 text-xs">
-                    <span className="truncate text-foreground">
+                    <span className="truncate text-foreground" title={p.email}>
                       {p.name || p.email}
                       {p.isOrganizer && (
                         <span className="text-muted-foreground ms-1">
@@ -555,7 +542,7 @@ export function EventDetailPopover({
                         </span>
                       )}
                     </span>
-                    <ParticipantStatusBadge status={p.status} t={t} />
+                    <ParticipantStatusBadge status={p.status} className="text-[10px]" />
                   </div>
                 ))}
                 {participants.length > 5 && (
@@ -588,7 +575,7 @@ export function EventDetailPopover({
         {calendar && (
           <div className="flex items-start gap-2.5">
             <CalendarIcon className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-            <span className="text-sm text-foreground truncate">{calendar.name}</span>
+            <span className="text-sm text-foreground truncate" title={calendar.name}>{calendar.name}</span>
           </div>
         )}
 
@@ -623,20 +610,18 @@ export function EventDetailPopover({
               <div className="flex justify-end gap-1.5">
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="xs"
                   onClick={() => {
                     setNoteText("");
                     setNoteExpanded(false);
                   }}
-                  className="h-7 text-xs"
                 >
                   {t("form.cancel")}
                 </Button>
                 <Button
-                  size="sm"
+                  size="xs"
                   onClick={handleSaveNote}
                   disabled={!noteText.trim() || isSavingNote}
-                  className="h-7 text-xs"
                 >
                   <Send className="w-3 h-3 me-1" />
                   {t("detail.save_note")}
@@ -661,47 +646,7 @@ export function EventDetailPopover({
           <p className="text-xs font-medium text-muted-foreground mb-2">
             {t("participants.rsvp_label")}
           </p>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant={userCurrentStatus === "accepted" ? "default" : "outline"}
-              onClick={() => onRsvp("accepted")}
-              className={
-                userCurrentStatus === "accepted"
-                  ? "bg-success hover:bg-success/80 text-success-foreground"
-                  : "text-success border-success/30 hover:bg-success/10"
-              }
-            >
-              {userCurrentStatus === "accepted" && <Check className="w-3.5 h-3.5 me-1" />}
-              {t("participants.accepted")}
-            </Button>
-            <Button
-              size="sm"
-              variant={userCurrentStatus === "tentative" ? "default" : "outline"}
-              onClick={() => onRsvp("tentative")}
-              className={
-                userCurrentStatus === "tentative"
-                  ? "bg-warning hover:bg-warning/80 text-warning-foreground"
-                  : "border border-warning/30 text-warning hover:bg-warning/10"
-              }
-            >
-              {userCurrentStatus === "tentative" && <Check className="w-3.5 h-3.5 me-1" />}
-              {t("participants.tentative")}
-            </Button>
-            <Button
-              size="sm"
-              variant={userCurrentStatus === "declined" ? "default" : "ghost"}
-              onClick={() => onRsvp("declined")}
-              className={
-                userCurrentStatus === "declined"
-                  ? "bg-destructive hover:bg-destructive/80 text-destructive-foreground"
-                  : "text-destructive hover:bg-destructive/10"
-              }
-            >
-              {userCurrentStatus === "declined" && <Check className="w-3.5 h-3.5 me-1" />}
-              {t("participants.declined")}
-            </Button>
-          </div>
+          <RsvpButtons status={userCurrentStatus} onRespond={onRsvp} size="xs" />
         </div>
       )}
 
@@ -709,30 +654,4 @@ export function EventDetailPopover({
   );
 
   return createPortal(popover, document.body);
-}
-
-function ParticipantStatusBadge({
-  status,
-  t,
-}: {
-  status: CalendarParticipant["participationStatus"];
-  t: ReturnType<typeof useTranslations>;
-}) {
-  const colors: Record<string, string> = {
-    accepted: "text-success",
-    declined: "text-destructive",
-    tentative: "text-warning",
-    "needs-action": "text-muted-foreground",
-  };
-  const labels: Record<string, string> = {
-    accepted: "participants.accepted",
-    declined: "participants.declined",
-    tentative: "participants.tentative",
-    "needs-action": "participants.needs_action",
-  };
-  return (
-    <span className={`text-[10px] flex-shrink-0 ${colors[status] || ""}`}>
-      {t(labels[status] || labels["needs-action"])}
-    </span>
-  );
 }

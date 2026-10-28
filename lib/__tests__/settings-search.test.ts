@@ -61,7 +61,7 @@ describe('settings search index (English messages)', () => {
   // SET-6: these found nothing, or not the right row.
   it('finds the settings people searched for', () => {
     expect(resultsFor('message_list', 'inbox type').map((r) => r.label)).toEqual(['Inbox type']);
-    expect(resultsFor('calendar', 'import calendar').map((r) => r.label)).toContain('Import Calendar');
+    expect(resultsFor('calendar', 'import calendar').map((r) => r.label)).toContain('Import calendar');
     expect(resultsFor('composing', 'mention').map((r) => r.label).slice(0, 2)).toEqual(['Mention recipients with @', 'Contacts in @ mentions']);
     expect(resultsFor('security', 'two-factor').map((r) => r.label)).toContain('Two-factor authentication');
     expect(resultsFor('filters', 'new rule').map((r) => r.label)).toEqual(['New rule']);

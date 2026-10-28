@@ -17,8 +17,8 @@ import { clipToDisplayHours, indexOfDayOnOrAfter, partitionByDisplayHours, remap
 import { displayNow, isDisplayToday } from "@/lib/timezone";
 import type { CalendarEvent, Calendar, CalendarTask } from "@/lib/jmap/types";
 import { useSettingsStore } from "@/stores/settings-store";
-import { useDisplayHours } from "@/hooks/use-display-hours";
-import { useTimeGridInteractions } from "@/hooks/use-time-grid-interactions";
+import { useDisplayHours, type RevealTime } from "@/hooks/use-display-hours";
+import { useTimeGridInteractions, type MoveEventHandler } from "@/hooks/use-time-grid-interactions";
 import { useScrollWindow, getScrollStart, setScrollStart, scrollToStart } from "@/hooks/use-scroll-window";
 import { dayKey, type ScrollWindowViewProps } from "@/lib/calendar-scroll-window";
 import type { PendingEventPreview } from "./event-modal";
@@ -39,6 +39,8 @@ interface CalendarWeekViewProps extends ScrollWindowViewProps {
   onContextMenuEvent?: (e: React.MouseEvent, event: CalendarEvent) => void;
   onContextMenuEmpty?: (e: React.MouseEvent, date: Date, hour?: number, allDayArea?: boolean) => void;
   onCreateAtTime: (date: Date, endDate?: Date) => void;
+  /** A click on a day in the all-day row: a new all-day event there. */
+  onCreateAllDay?: (date: Date) => void;
   firstDayOfWeek?: number;
   timeFormat?: "12h" | "24h";
   isMobile?: boolean;
@@ -51,6 +53,17 @@ interface CalendarWeekViewProps extends ScrollWindowViewProps {
    * Moving an event they organize also asks its attendees again.
    */
   currentUserEmails?: string[];
+  /** Whether the user may change an event: only those can be dragged or resized. */
+  canEditEvent?: (event: CalendarEvent) => boolean;
+  /** The event whose card or editor is open: drawn with the selection ring. */
+  selectedEventId?: string | null;
+  /**
+   * Save a drag or resize. The page asks which occurrences a change to a
+   * series covers; without it the change goes straight to the store.
+   */
+  onMoveEvent?: MoveEventHandler;
+  /** A time to bring into view, such as a just-saved event's start. */
+  revealAt?: RevealTime | null;
 }
 
 const HOUR_HEIGHT = 60;
@@ -78,6 +91,7 @@ export function CalendarWeekView({
   onContextMenuEvent,
   onContextMenuEmpty,
   onCreateAtTime,
+  onCreateAllDay,
   firstDayOfWeek = 1,
   timeFormat = "24h",
   isMobile,
@@ -86,6 +100,10 @@ export function CalendarWeekView({
   onToggleTaskComplete,
   onSelectTask,
   currentUserEmails,
+  canEditEvent = () => true,
+  selectedEventId,
+  onMoveEvent,
+  revealAt,
 }: CalendarWeekViewProps) {
   const t = useTranslations("calendar");
   const describeError = useCalendarErrorMessage();
@@ -194,7 +212,7 @@ export function CalendarWeekView({
 
   const {
     hours, canToggle: canToggleHours, configured: configuredHours, showAllHours, toggleAllHours, revealMinutes,
-  } = useDisplayHours({ scrollRef: rootRef, hourHeight: HOUR_HEIGHT });
+  } = useDisplayHours({ scrollRef: rootRef, hourHeight: HOUR_HEIGHT, revealAt });
   const firstHour = hours.startMinutes / 60;
   const visibleHours = HOURS.slice(firstHour, hours.endMinutes / 60);
   const gridHeight = visibleHours.length * HOUR_HEIGHT;
@@ -370,6 +388,7 @@ export function CalendarWeekView({
     describeError,
     currentUserEmails,
     isMobile,
+    onMoveEvent,
   });
 
   const formatHour = (h: number): string => {
@@ -460,7 +479,7 @@ export function CalendarWeekView({
             {isExpandable && (
               <button
                 type="button"
-                aria-label="all-day-expand"
+                aria-label={isAllDayExpanded ? t("events.show_less") : t("events.show_more")}
                 aria-expanded={isAllDayExpanded}
                 onClick={() => setIsAllDayExpanded((prev) => !prev)}
                 className="self-end mt-auto text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 rounded px-1 py-0.5 hover:bg-muted transition-colors cursor-pointer"
@@ -485,7 +504,8 @@ export function CalendarWeekView({
             {days.map((day) => (
               <div
                 key={format(day, "yyyy-MM-dd")}
-                className="bg-background min-h-[28px] border-e border-border last:border-e-0"
+                className={cn("bg-background min-h-[28px] border-e border-border last:border-e-0", onCreateAllDay && "cursor-pointer hover:bg-muted/30")}
+                onClick={onCreateAllDay ? () => onCreateAllDay(day) : undefined}
                 onContextMenu={onContextMenuEmpty ? (e) => onContextMenuEmpty(e, day, undefined, true) : undefined}
               />
             ))}
@@ -498,7 +518,7 @@ export function CalendarWeekView({
                     key={`${segment.event.id}-${segment.startIndex}-${segment.row}`}
                     className="absolute px-0.5 pointer-events-auto"
                     style={{
-                      left: `calc(${(segment.startIndex / colCount) * 100}% + 1px)`,
+                      insetInlineStart: `calc(${(segment.startIndex / colCount) * 100}% + 1px)`,
                       width: `calc(${(segment.span / colCount) * 100}% - 2px)`,
                       top: segment.row * 24 + 2,
                       height: 20,
@@ -506,6 +526,7 @@ export function CalendarWeekView({
                   >
                     <EventCard
                       event={segment.event}
+                        isSelected={segment.event.id === selectedEventId}
                       calendar={calId ? calendarMap.get(calId) : undefined}
                       variant="span"
                       continuesBefore={segment.continuesBefore}
@@ -521,6 +542,31 @@ export function CalendarWeekView({
               })}
             </div>
 
+            {pendingPreview?.allDay && (() => {
+              const index = days.findIndex((d) => isSameDay(d, pendingPreview.start));
+              if (index === -1) return null;
+              const color = calendars.find((c) => c.id === pendingPreview.calendarId)?.color || "#3b82f6";
+              return (
+                <div
+                  data-pending-preview
+                  className="absolute px-0.5 pointer-events-none"
+                  style={{
+                    insetInlineStart: `calc(${(index / colCount) * 100}% + 1px)`,
+                    width: `calc(${(1 / colCount) * 100}% - 2px)`,
+                    top: dayEventRows[index] * 24 + 2,
+                    height: 20,
+                  }}
+                >
+                  <div
+                    className="h-full rounded-xs px-1.5 text-xs leading-[16px] font-medium truncate border-2 border-dashed"
+                    style={{ borderColor: color, color, backgroundColor: `${color}10` }}
+                  >
+                    {pendingPreview.title}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Task chips in all-day area, stacked under events of their day (#1107, #1270) */}
             <div className="absolute inset-0 pointer-events-none">
               {days.map((day, dayIndex) => {
@@ -532,7 +578,7 @@ export function CalendarWeekView({
                     key={`task-${task.id}`}
                     className="absolute px-0.5 pointer-events-auto"
                     style={{
-                      left: `calc(${(dayIndex / colCount) * 100}% + 1px)`,
+                      insetInlineStart: `calc(${(dayIndex / colCount) * 100}% + 1px)`,
                       width: `calc(${(1 / colCount) * 100}% - 2px)`,
                       top: (baseRow + taskIndex) * 24 + 2,
                       height: 20,
@@ -568,7 +614,7 @@ export function CalendarWeekView({
                     inside its row, where the header cannot cover it. */}
                 {(h > firstHour || firstHour > 0) && (
                   <span className={cn(
-                    "absolute right-2 leading-none",
+                    "absolute end-2 leading-none",
                     h > firstHour ? "top-0 -translate-y-1/2" : "top-1",
                     isMobile ? "text-[9px]" : "text-[10px]",
                   )}>
@@ -637,6 +683,7 @@ export function CalendarWeekView({
                       gridHeight - baseHeight,
                     ));
                     const isResizing = resizeVisual?.eventId === ev.id;
+                    const editable = canEditEvent(ev);
                     const top = isResizing ? resizeVisual!.topPx : baseTop;
                     const height = isResizing ? resizeVisual!.heightPx : baseHeight;
                     const calId = getPrimaryCalendarId(ev);
@@ -648,10 +695,11 @@ export function CalendarWeekView({
                         key={ev.id}
                         className="absolute z-10 group/event"
                         data-calendar-event
-                        style={{ top, height, left: `${leftPct}%`, width: `${widthPct}%`, paddingLeft: 1, paddingRight: 1 }}
+                        style={{ top, height, insetInlineStart: `${leftPct}%`, width: `${widthPct}%`, paddingInline: 1 }}
                       >
                         <EventCard
                           event={ev}
+                            isSelected={ev.id === selectedEventId}
                           calendar={calId ? calendarMap.get(calId) : undefined}
                           variant="block"
                           onClick={(rect) => onSelectEvent(ev, rect)}
@@ -659,31 +707,31 @@ export function CalendarWeekView({
                           onMouseLeave={onHoverLeave}
                           onContextMenu={onContextMenuEvent}
                           currentUserEmails={currentUserEmails}
-                          draggable
+                          draggable={editable}
                         />
                         {/* An edge beyond the visible hours has nothing to grab. */}
-                        {!clip.clippedStart && (
+                        {editable && !clip.clippedStart && (
                         <div
                           data-resize-handle
-                          className="absolute top-0 left-1 right-1 h-3 cursor-n-resize z-20 flex items-start justify-center opacity-0 group-hover/event:opacity-100 transition-opacity"
+                          className="absolute top-0 inset-x-1 h-1 cursor-n-resize z-20 flex items-start justify-center opacity-0 group-hover/event:opacity-100 transition-opacity"
                           aria-label={t("events.resize")}
                           onPointerDown={(e) => handleResizePointerDown(ev.id, "top", startMinutes, durMin, e)}
                           onPointerMove={handleResizePointerMove}
                           onPointerUp={handleResizePointerUp}
                         >
-                          <div className="w-8 h-1 rounded-full bg-foreground/30 mt-0.5" />
+                          <div className="w-8 h-0.5 rounded-full bg-foreground/30" />
                         </div>
                         )}
-                        {!clip.clippedEnd && (
+                        {editable && !clip.clippedEnd && (
                         <div
                           data-resize-handle
-                          className="absolute bottom-0 left-1 right-1 h-3 cursor-s-resize z-20 flex items-end justify-center opacity-0 group-hover/event:opacity-100 transition-opacity"
+                          className="absolute bottom-0 inset-x-1 h-1 cursor-s-resize z-20 flex items-end justify-center opacity-0 group-hover/event:opacity-100 transition-opacity"
                           aria-label={t("events.resize")}
                           onPointerDown={(e) => handleResizePointerDown(ev.id, "bottom", startMinutes, durMin, e)}
                           onPointerMove={handleResizePointerMove}
                           onPointerUp={handleResizePointerUp}
                         >
-                          <div className="w-8 h-1 rounded-full bg-foreground/30 mb-0.5" />
+                          <div className="w-8 h-0.5 rounded-full bg-foreground/30" />
                         </div>
                         )}
                       </div>
@@ -733,7 +781,7 @@ export function CalendarWeekView({
                         <div className="w-2 h-2 rounded-full bg-primary -ms-1" />
                         <div className="flex-1 h-0.5 bg-primary rounded-full" />
                       </div>
-                      <div className="absolute -top-4 left-2 text-[10px] font-medium text-primary bg-background/90 px-1 rounded shadow-sm">
+                      <div className="absolute -top-4 start-2 text-[10px] font-medium text-primary bg-background/90 px-1 rounded shadow-sm">
                         {formatSnapTime(dropTarget.minutes, timeFormat)}
                       </div>
                     </div>

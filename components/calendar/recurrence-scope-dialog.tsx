@@ -13,6 +13,8 @@ interface RecurrenceScopeDialogProps {
   actionType: "edit" | "delete" | "rsvp";
   onSelect: (scope: RecurrenceEditScope) => void;
   onClose: () => void;
+  /** A line under the question, e.g. that the participants get a cancellation. */
+  note?: string;
 }
 
 export function RecurrenceScopeDialog({
@@ -20,6 +22,7 @@ export function RecurrenceScopeDialog({
   actionType,
   onSelect,
   onClose,
+  note,
 }: RecurrenceScopeDialogProps) {
   const t = useTranslations("calendar.recurrence_scope");
   const id = useId();
@@ -74,6 +77,7 @@ export function RecurrenceScopeDialog({
               <p id={`${id}-desc`} className="text-sm text-muted-foreground mt-1">
                 {isRsvp ? t("rsvp_description") : t("description")}
               </p>
+              {note && <p className="text-sm text-muted-foreground mt-1">{note}</p>}
             </div>
           </div>
 

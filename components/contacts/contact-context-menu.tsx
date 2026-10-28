@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   ContextMenu,
   ContextMenuItem,
@@ -18,11 +18,13 @@ import {
   Trash2,
   Copy,
   Printer,
+  FolderInput,
+  CheckSquare,
 } from "@/components/icons";
 import type { ContactCard } from "@/lib/jmap/types";
 import { getContactPrimaryEmail } from "@/stores/contact-store";
 import { exportContact, useContactExportBusy } from "./contact-export";
-import { printContact } from "./contact-print";
+import { printContact, printLabels } from "./contact-print";
 import { toast } from "@/stores/toast-store";
 
 function getContactPrimaryPhone(contact: ContactCard): string {
@@ -43,11 +45,22 @@ interface ContactContextMenuProps {
   menuRef: React.RefObject<HTMLDivElement | null>;
   isMultiSelect?: boolean;
   selectedCount?: number;
-  onOpen: () => void;
-  onEdit: () => void;
+  /** Left out where the contact is already open (the detail's ⋮). */
+  onOpen?: () => void;
+  /** Touch: start selecting with this contact (there is no Ctrl+click). */
+  onSelect?: () => void;
+  /** Left out where Edit is a button next to the menu. */
+  onEdit?: () => void;
   onDelete: () => void;
-  onAddToGroup: () => void;
+  onAddToGroup?: () => void;
+  /** Leave out what the detail shows as buttons of its own. */
+  inDetail?: boolean;
+  /** Writes to the contact in the app's composer. */
+  onCompose?: () => void;
   onDuplicate?: () => void;
+  /** Move to another address book; undefined where there is none to move to. */
+  onMoveTo?: () => void;
+  onBatchMoveTo?: () => void;
   onBatchExport?: () => void;
   onBatchAddToGroup?: () => void;
   onBatchDelete?: () => void;
@@ -62,15 +75,21 @@ export function ContactContextMenu({
   isMultiSelect = false,
   selectedCount = 1,
   onOpen,
+  onSelect,
   onEdit,
   onDelete,
   onAddToGroup,
+  onCompose,
   onDuplicate,
+  onMoveTo,
+  onBatchMoveTo,
+  inDetail = false,
   onBatchExport,
   onBatchAddToGroup,
   onBatchDelete,
 }: ContactContextMenuProps) {
   const t = useTranslations("contacts");
+  const locale = useLocale();
   const email = getContactPrimaryEmail(contact);
   const phone = getContactPrimaryPhone(contact);
   const showBatchActions = isMultiSelect && selectedCount > 1;
@@ -79,11 +98,6 @@ export function ContactContextMenu({
   const handle = (fn: () => void) => () => {
     fn();
     onClose();
-  };
-
-  const handleSendEmail = () => {
-    if (!email) return;
-    window.location.href = `mailto:${email}`;
   };
 
   const handleCall = () => {
@@ -108,7 +122,7 @@ export function ContactContextMenu({
   };
 
   const handlePrint = () => {
-    void printContact(contact);
+    void printContact(contact, printLabels(t, locale));
   };
 
   if (showBatchActions) {
@@ -123,6 +137,9 @@ export function ContactContextMenu({
           onClick={handle(() => onBatchAddToGroup?.())}
           disabled={!onBatchAddToGroup}
         />
+        {onBatchMoveTo && (
+          <ContextMenuItem icon={FolderInput} label={t("address_books.move_to")} onClick={handle(onBatchMoveTo)} />
+        )}
         <ContextMenuItem
           icon={Download}
           label={t("bulk.export")}
@@ -143,22 +160,42 @@ export function ContactContextMenu({
 
   return (
     <ContextMenu ref={menuRef} isOpen={isOpen} position={position} onClose={onClose}>
-      <ContextMenuItem icon={Eye} label={t("context_menu.open")} onClick={handle(onOpen)} />
-      <ContextMenuItem icon={Pencil} label={t("context_menu.edit")} onClick={handle(onEdit)} />
-      {(email || phone) && <ContextMenuSeparator />}
-      {email && (
+      {/* R6 order: Open, write, Edit, then the rest; the detail's ⋮ leaves
+          out what it has as buttons (Edit, Send email, Call). */}
+      {onOpen && <ContextMenuItem icon={Eye} label={t("context_menu.open")} onClick={handle(onOpen)} />}
+      {onSelect && <ContextMenuItem icon={CheckSquare} label={t("filters.select")} onClick={handle(onSelect)} />}
+      {email && onCompose && !inDetail && (
         <ContextMenuItem
           icon={Mail}
           label={t("context_menu.send_email")}
-          onClick={handle(handleSendEmail)}
+          onClick={handle(onCompose)}
         />
       )}
-      {phone && (
+      {phone && !inDetail && (
         <ContextMenuItem
           icon={Phone}
           label={t("context_menu.call")}
           onClick={handle(handleCall)}
         />
+      )}
+      {onEdit && <ContextMenuItem icon={Pencil} label={t("context_menu.edit")} onClick={handle(onEdit)} />}
+      {!inDetail && <ContextMenuSeparator />}
+      {onAddToGroup && (
+        <ContextMenuItem
+          icon={Users}
+          label={t("context_menu.add_to_group")}
+          onClick={handle(onAddToGroup)}
+        />
+      )}
+      {onDuplicate && (
+        <ContextMenuItem
+          icon={Copy}
+          label={t("context_menu.duplicate")}
+          onClick={handle(onDuplicate)}
+        />
+      )}
+      {onMoveTo && (
+        <ContextMenuItem icon={FolderInput} label={t("address_books.move_to")} onClick={handle(onMoveTo)} />
       )}
       {email && (
         <ContextMenuItem
@@ -172,19 +209,6 @@ export function ContactContextMenu({
           icon={ClipboardCopy}
           label={t("detail.copy_phone")}
           onClick={handle(() => handleCopy(phone))}
-        />
-      )}
-      <ContextMenuSeparator />
-      <ContextMenuItem
-        icon={Users}
-        label={t("context_menu.add_to_group")}
-        onClick={handle(onAddToGroup)}
-      />
-      {onDuplicate && (
-        <ContextMenuItem
-          icon={Copy}
-          label={t("context_menu.duplicate")}
-          onClick={handle(onDuplicate)}
         />
       )}
       <ContextMenuItem

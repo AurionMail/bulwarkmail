@@ -7,7 +7,8 @@ import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useAuthStore, redirectToLogin, saveRedirectAfterLogin } from '@/stores/auth-store';
 import { useAccountStore } from "@/stores/account-store";
 import { useEmailStore } from "@/stores/email-store";
-import { useFileStore, isSharedLocation, linkedPreviewResource, resourceServerRef, resourceToView, type UploadReport } from "@/stores/file-store";
+import { useFileStore, deletesToTrash, isSharedLocation, linkedPreviewResource, resourceServerRef, resourceToView, type UploadReport } from "@/stores/file-store";
+import { isTrashLocation } from "@/lib/files-trash";
 import { fileErrorKind, isPartialCopy } from "@/lib/file-errors";
 import { toast } from "@/stores/toast-store";
 import { cn, formatFileSize } from "@/lib/utils";
@@ -88,7 +89,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     createTextFile,
     duplicateResource,
     downloadResources,
+    downloadZip,
     moveToFolderId,
+    moveNode,
     cutResources,
     copyResources,
     pasteResources,
@@ -109,6 +112,11 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     lastAction,
     shareResource,
     openSharedNode,
+    trashResources,
+    trashNode,
+    restoreResources,
+    purgeResources,
+    emptyTrash,
   } = useFileStore();
 
   const isMobile = useIsMobile();
@@ -397,42 +405,6 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     }
   }, [uploadFolder, t, maxSizeUpload, showUploadReport, failureReason]);
 
-  const handleDelete = useCallback(async (name: string) => {
-    const confirmed = await confirmDialog({
-      title: t("delete_confirm_title"),
-      message: t("delete_confirm_message", { name }),
-      confirmText: t("delete"),
-      variant: "destructive",
-    });
-    if (!confirmed) return;
-
-    try {
-      if (!await deleteResource(name)) return;
-      toast.success(t("delete_success"));
-    } catch (err) {
-      console.error("Failed to delete:", err);
-      toast.error(t("delete_error"), failureReason(err));
-    }
-  }, [deleteResource, confirmDialog, t, failureReason]);
-
-  const handleBatchDelete = useCallback(async (names: string[]) => {
-    const confirmed = await confirmDialog({
-      title: t("delete_confirm_title"),
-      message: t("batch_delete_confirm_message", { count: names.length }),
-      confirmText: t("delete"),
-      variant: "destructive",
-    });
-    if (!confirmed) return;
-
-    try {
-      if (!await deleteResources(names)) return;
-      toast.success(t("batch_delete_success", { count: names.length }));
-    } catch (err) {
-      console.error("Failed to batch delete:", err);
-      toast.error(t("delete_error"), failureReason(err));
-    }
-  }, [deleteResources, confirmDialog, t, failureReason]);
-
   const handleUndo = useCallback(async () => {
     try {
       await undoLastAction();
@@ -442,6 +414,93 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       toast.error(t("undo_error"), failureReason(err));
     }
   }, [undoLastAction, t, failureReason]);
+
+  // Delete (R3): in the own drive items go to the trash, with Undo and no
+  // question; in the trash and in a drive someone shared they are gone for
+  // good, so that asks first.
+  const currentParentIdForDelete = useFileStore((s) => s.currentParentId);
+  const handleDeleteNames = useCallback(async (names: string[]) => {
+    if (names.length === 0) return;
+    if (isTrashLocation(currentParentIdForDelete)) {
+      const confirmed = await confirmDialog({
+        title: t("delete_forever_title", { count: names.length }),
+        message: names.length === 1
+          ? t("delete_forever_message", { name: names[0] })
+          : t("delete_forever_message_count", { count: names.length }),
+        confirmText: t("delete_forever"),
+        variant: "destructive",
+      });
+      if (!confirmed) return;
+      try {
+        const count = await purgeResources(names);
+        if (count > 0) toast.success(t("deleted_forever", { count }));
+      } catch (err) {
+        console.error("Failed to delete:", err);
+        toast.error(t("delete_error"), failureReason(err));
+      }
+      return;
+    }
+    if (deletesToTrash(currentParentIdForDelete)) {
+      try {
+        const count = await trashResources(names);
+        if (count > 0) {
+          toast.success(t("moved_to_trash", { count }), {
+            action: { label: t("undo"), onClick: handleUndo },
+          });
+        }
+      } catch (err) {
+        console.error("Failed to delete:", err);
+        toast.error(t("delete_error"), failureReason(err));
+      }
+      return;
+    }
+    const confirmed = await confirmDialog({
+      title: t("delete_forever_title", { count: names.length }),
+      message: names.length === 1
+        ? t("delete_forever_message", { name: names[0] })
+        : t("delete_forever_message_count", { count: names.length }),
+      confirmText: t("delete_forever"),
+      variant: "destructive",
+    });
+    if (!confirmed) return;
+    try {
+      if (names.length === 1 ? !await deleteResource(names[0]) : !await deleteResources(names)) return;
+      toast.success(t("deleted_forever", { count: names.length }));
+    } catch (err) {
+      console.error("Failed to delete:", err);
+      toast.error(t("delete_error"), failureReason(err));
+    }
+  }, [currentParentIdForDelete, confirmDialog, t, purgeResources, trashResources, deleteResource, deleteResources, handleUndo, failureReason]);
+  const handleDelete = useCallback((name: string) => handleDeleteNames([name]), [handleDeleteNames]);
+  const handleBatchDelete = handleDeleteNames;
+
+  const handleRestore = useCallback(async (names: string[]) => {
+    try {
+      const count = await restoreResources(names);
+      if (count > 0) toast.success(t("restored", { count }));
+    } catch (err) {
+      console.error("Failed to restore:", err);
+      toast.error(t("restore_error"), failureReason(err));
+    }
+  }, [restoreResources, t, failureReason]);
+
+  const trashCount = useFileStore((s) => s.trashCount);
+  const handleEmptyTrash = useCallback(async () => {
+    const confirmed = await confirmDialog({
+      title: t("empty_trash_title"),
+      message: t("empty_trash_message", { count: trashCount }),
+      confirmText: t("empty_trash"),
+      variant: "destructive",
+    });
+    if (!confirmed) return;
+    try {
+      await emptyTrash();
+      toast.success(t("trash_emptied"));
+    } catch (err) {
+      console.error("Failed to empty the trash:", err);
+      toast.error(t("empty_trash_error"), failureReason(err));
+    }
+  }, [confirmDialog, t, trashCount, emptyTrash, failureReason]);
 
   const handleRename = useCallback(async (oldName: string, newName: string) => {
     try {
@@ -479,6 +538,31 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     }
   }, [downloadResources, t]);
 
+  // A folder (or a selection with folders) comes as a zip built here; a
+  // progress toast shows how far it is and can cancel it.
+  const handleDownloadZip = useCallback(async (ids: string[], zipName: string) => {
+    const controller = new AbortController();
+    const toastId = toast.progress(t("zipping", { name: zipName }), {
+      progress: 0,
+      action: { label: t("cancel"), onClick: () => controller.abort() },
+    });
+    try {
+      await downloadZip(ids, zipName, {
+        signal: controller.signal,
+        onProgress: ({ progress, current }) => toast.update(toastId, { progress, message: current }),
+      });
+      toast.dismiss(toastId);
+    } catch (err) {
+      toast.dismiss(toastId);
+      if (err instanceof DOMException && err.name === "AbortError") {
+        toast.info(t("download_canceled"));
+        return;
+      }
+      console.error("Failed to download the zip:", err);
+      toast.error(t("zip_error", { name: zipName }), failureReason(err));
+    }
+  }, [downloadZip, t, failureReason]);
+
   const handleCreateTextFile = useCallback(async (name: string) => {
     try {
       await createTextFile(name);
@@ -511,6 +595,18 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     }
   }, [moveToFolderId, t, handleUndo, failureReason]);
 
+  const handleMoveNode = useCallback(async (id: string, targetId: string | null) => {
+    try {
+      if (!await moveNode(id, targetId)) return;
+      toast.success(t("move_success", { count: 1 }), {
+        action: { label: t("undo"), onClick: handleUndo },
+      });
+    } catch (err) {
+      console.error("Failed to move:", err);
+      toast.error(t("move_error"), failureReason(err));
+    }
+  }, [moveNode, t, handleUndo, failureReason]);
+
   const handlePaste = useCallback(async () => {
     try {
       if (!await pasteResources()) return;
@@ -541,26 +637,39 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       });
     } catch (err) {
       console.error("Failed to rename:", err);
-      toast.error(t("rename_error"));
+      toast.error(t("rename_error"), failureReason(err));
     }
-  }, [renameNode, t, handleUndo]);
+  }, [renameNode, t, handleUndo, failureReason]);
 
   const handleDeleteNode = useCallback(async (id: string, name: string) => {
+    // A folder of the own drive goes to the trash; one of a shared drive is gone for good.
+    if (deletesToTrash(id)) {
+      try {
+        if (!await trashNode(id)) return;
+        toast.success(t("moved_to_trash", { count: 1 }), {
+          action: { label: t("undo"), onClick: handleUndo },
+        });
+      } catch (err) {
+        console.error("Failed to delete:", err);
+        toast.error(t("delete_error"), failureReason(err));
+      }
+      return;
+    }
     const confirmed = await confirmDialog({
-      title: t("delete_confirm_title"),
-      message: t("delete_confirm_message", { name }),
-      confirmText: t("delete"),
+      title: t("delete_forever_title", { count: 1 }),
+      message: t("delete_forever_message", { name }),
+      confirmText: t("delete_forever"),
       variant: "destructive",
     });
     if (!confirmed) return;
     try {
       if (!await deleteNode(id)) return;
-      toast.success(t("delete_success"));
+      toast.success(t("deleted_forever", { count: 1 }));
     } catch (err) {
       console.error("Failed to delete:", err);
-      toast.error(t("delete_error"));
+      toast.error(t("delete_error"), failureReason(err));
     }
-  }, [deleteNode, confirmDialog, t]);
+  }, [deleteNode, trashNode, confirmDialog, handleUndo, t, failureReason]);
 
   const handleDownloadNode = useCallback(async (id: string) => {
     try {
@@ -600,6 +709,29 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
 
   // The previewed file as plugins see it (file-preview-section).
   const previewedName = previewFile ?? previewImage;
+  // ←/→ in a preview go through the folder's other previewable files.
+  const previewNeighbours = useMemo(() => {
+    if (!previewedName) return undefined;
+    const names = resources
+      .filter((r) => !r.isDirectory && !r.isSymlink && (isImageFile(r.name) || isFilePreviewable(r.name)))
+      .map((r) => r.name);
+    const i = names.indexOf(previewedName);
+    if (i === -1) return undefined;
+    return {
+      previous: names[i - 1] ?? null,
+      next: names[i + 1] ?? null,
+      onGo: (name: string) => {
+        addRecentFile(name, resources.find((r) => r.name === name)?.id ?? name);
+        if (isImageFile(name)) {
+          setPreviewFile(null);
+          setPreviewImage(name);
+        } else {
+          setPreviewImage(null);
+          setPreviewFile(name);
+        }
+      },
+    };
+  }, [previewedName, resources, addRecentFile]);
   const previewedView = useMemo(() => {
     const resource = previewedName ? resources.find((r) => r.name === previewedName) : undefined;
     return resource ? resourceToView(resource, currentPath) : null;
@@ -691,7 +823,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
               {!filesEnabled ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="max-w-lg text-center space-y-3 px-4">
-                    <AlertTriangle className="w-10 h-10 text-yellow-500 mx-auto" />
+                    <AlertTriangle className="w-10 h-10 text-amber-600 dark:text-amber-400 mx-auto" />
                     <p className="text-sm font-medium">{t("disabled_title")}</p>
                     <p className="text-xs text-muted-foreground">{t("disabled_description")}</p>
                   </div>
@@ -716,9 +848,12 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
                   onCancelUpload={cancelUpload}
                   onDelete={handleDelete}
                   onBatchDelete={handleBatchDelete}
+                  onRestore={handleRestore}
+                  onEmptyTrash={() => void handleEmptyTrash()}
                   onRename={handleRename}
                   onDownload={handleDownload}
                   onBatchDownload={handleBatchDownload}
+                  onDownloadZip={handleDownloadZip}
                   onRefresh={refresh}
                   onToggleSelect={toggleSelect}
                   onClearSelection={clearSelection}
@@ -727,6 +862,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
                   onCopy={copyResources}
                   onPaste={handlePaste}
                   onMoveTo={handleMoveTo}
+                  onMoveNode={handleMoveNode}
                   onPreviewImage={handlePreviewImage}
                   onPreviewFile={handlePreviewFile}
                   isOfficeEditable={isOfficeEditable}
@@ -776,6 +912,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
           onDownload={handleDownload}
           getImageUrl={getImageUrl}
           file={previewedView}
+          neighbours={previewNeighbours}
         />
       )}
 
@@ -787,6 +924,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
           onDownload={() => handleDownload(previewFile)}
           getFileContent={() => getFileContent(previewFile)}
           file={previewedView}
+          neighbours={previewNeighbours}
         />
       )}
 
@@ -806,6 +944,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
             target={{ kind: "file", id: node.id, name: editResource.name }}
             accountId={node.accountId ?? filesAccountId}
             slot={slot}
+            closeOnBack
             onClose={() => {
               setEditFile(null);
               // The editor may have saved new content - pick up size/mtime.

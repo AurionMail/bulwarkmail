@@ -67,6 +67,12 @@ function downloadVcf(content: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-function sanitizeFilename(name: string): string {
-  return name.replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 50);
+// Letters of any script stay ("Jürgen_Müller.vcf"); only what file systems
+// refuse or treat specially becomes "_".
+export function sanitizeFilename(name: string): string {
+  const safe = Array.from(name.normalize("NFC"), (ch) => (ch.charCodeAt(0) < 32 || '\\/:*?"<>|.'.includes(ch) || /\s/.test(ch) ? "_" : ch))
+    .join("")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+  return safe.substring(0, 50) || "contact";
 }

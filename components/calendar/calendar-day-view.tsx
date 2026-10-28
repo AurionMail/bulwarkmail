@@ -5,8 +5,8 @@ import { useTranslations } from "next-intl";
 import { useDisplayDateFormatter } from "@/hooks/use-display-date-formatter";
 import { format, isSameDay, eachDayOfInterval, differenceInCalendarDays } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Check } from "@/components/icons";
 import { EventCard } from "./event-card";
+import { CalendarTaskChip } from "./task-chip";
 import { QuickEventInput } from "./quick-event-input";
 import { AllHoursToggle, HiddenEventsIndicator } from "./display-hours-controls";
 import { formatSnapTime, getEventDayBounds, getPrimaryCalendarId, isTimedEventFullDayOnDate, layoutOverlappingEvents } from "@/lib/calendar-utils";
@@ -14,8 +14,8 @@ import { clipToDisplayHours, partitionByDisplayHours } from "@/lib/calendar-disp
 import { displayNow, isDisplayToday } from "@/lib/timezone";
 import { groupTasksByDueDay } from "@/lib/calendar-tasks";
 import type { CalendarEvent, Calendar, CalendarTask } from "@/lib/jmap/types";
-import { useDisplayHours } from "@/hooks/use-display-hours";
-import { useTimeGridInteractions } from "@/hooks/use-time-grid-interactions";
+import { useDisplayHours, type RevealTime } from "@/hooks/use-display-hours";
+import { useTimeGridInteractions, type MoveEventHandler } from "@/hooks/use-time-grid-interactions";
 import { useScrollWindow, getScrollStart, setScrollStart, scrollToStart } from "@/hooks/use-scroll-window";
 import { dayKey, type ScrollWindowViewProps } from "@/lib/calendar-scroll-window";
 import type { PendingEventPreview } from "./event-modal";
@@ -44,6 +44,17 @@ interface CalendarDayViewProps extends ScrollWindowViewProps {
    * Moving an event they organize also asks its attendees again.
    */
   currentUserEmails?: string[];
+  /** Whether the user may change an event: only those can be dragged or resized. */
+  canEditEvent?: (event: CalendarEvent) => boolean;
+  /** The event whose card or editor is open: drawn with the selection ring. */
+  selectedEventId?: string | null;
+  /**
+   * Save a drag or resize. The page asks which occurrences a change to a
+   * series covers; without it the change goes straight to the store.
+   */
+  onMoveEvent?: MoveEventHandler;
+  /** A time to bring into view, such as a just-saved event's start. */
+  revealAt?: RevealTime | null;
 }
 
 const HOUR_HEIGHT = 64;
@@ -75,6 +86,10 @@ export function CalendarDayView({
   onToggleTaskComplete,
   onSelectTask,
   currentUserEmails,
+  canEditEvent = () => true,
+  selectedEventId,
+  onMoveEvent,
+  revealAt,
 }: CalendarDayViewProps) {
   const t = useTranslations("calendar");
   const describeError = useCalendarErrorMessage();
@@ -162,7 +177,7 @@ export function CalendarDayView({
 
   const {
     hours, canToggle: canToggleHours, configured: configuredHours, showAllHours, toggleAllHours, revealMinutes,
-  } = useDisplayHours({ scrollRef: rootRef, hourHeight: HOUR_HEIGHT });
+  } = useDisplayHours({ scrollRef: rootRef, hourHeight: HOUR_HEIGHT, revealAt });
   const firstHour = hours.startMinutes / 60;
   const visibleHours = HOURS.slice(firstHour, hours.endMinutes / 60);
   const gridHeight = visibleHours.length * HOUR_HEIGHT;
@@ -277,6 +292,7 @@ export function CalendarDayView({
     describeError,
     currentUserEmails,
     isMobile,
+    onMoveEvent,
   });
 
   const formatHour = (h: number): string => {
@@ -363,6 +379,7 @@ export function CalendarDayView({
                                 <EventCard
                                   key={ev.id}
                                   event={ev}
+                            isSelected={ev.id === selectedEventId}
                                   calendar={calId ? calendarMap.get(calId) : undefined}
                                   variant="chip"
                                   onClick={(rect) => onSelectEvent(ev, rect)}
@@ -380,37 +397,17 @@ export function CalendarDayView({
                         <>
                           <div className={cn("text-[10px] text-muted-foreground mb-1", allDayEvents.length > 0 && "mt-2")}>{t("tasks.label")}</div>
                           <div className="space-y-0.5">
-                            {dayTasks.map((task) => {
-                              const isCompleted = task.progress === "completed";
-                              const cal = calendars.find(c => task.calendarIds[c.id]);
-                              const color = cal?.color || "#3b82f6";
-                              return (
-                                <div
-                                  key={task.id}
-                                  data-calendar-task={task.id}
-                                  onClick={() => onSelectTask?.(task)}
-                                  className="flex items-center gap-1.5 px-1.5 py-0.5 rounded text-xs cursor-pointer hover:bg-muted/50 transition-colors"
-                                  style={{ borderInlineStart: `3px solid ${color}` }}
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); onToggleTaskComplete?.(task); }}
-                                    className={cn(
-                                      "flex-shrink-0 w-3.5 h-3.5 rounded-full border flex items-center justify-center",
-                                      isCompleted
-                                        ? "bg-success border-success text-success-foreground"
-                                        : "border-muted-foreground/40 hover:border-primary"
-                                    )}
-                                    aria-label={isCompleted ? t("tasks.mark_incomplete") : t("tasks.mark_complete")}
-                                  >
-                                    {isCompleted && <Check className="h-2.5 w-2.5" />}
-                                  </button>
-                                  <span className={cn("truncate", isCompleted && "line-through text-muted-foreground")}>
-                                    {task.title || t("tasks.no_title")}
-                                  </span>
-                                </div>
-                              );
-                            })}
+                            {/* The same chip as the month and week grids. */}
+                            {dayTasks.map((task) => (
+                              <div key={task.id} className="h-5">
+                                <CalendarTaskChip
+                                  task={task}
+                                  calendar={calendars.find((c) => task.calendarIds[c.id])}
+                                  onToggleComplete={onToggleTaskComplete}
+                                  onSelect={onSelectTask}
+                                />
+                              </div>
+                            ))}
                           </div>
                         </>
                       )}
@@ -435,7 +432,7 @@ export function CalendarDayView({
                       inside its row, where the header cannot cover it. */}
                   {(h > firstHour || firstHour > 0) && (
                     <span className={cn(
-                      "absolute right-2 leading-none",
+                      "absolute end-2 leading-none",
                       h > firstHour ? "top-0 -translate-y-1/2" : "top-1",
                       isMobile ? "text-[10px]" : "text-xs",
                     )}>
@@ -504,6 +501,7 @@ export function CalendarDayView({
                         gridHeight - baseHeight,
                       ));
                       const isResizing = resizeVisual?.eventId === ev.id;
+                      const editable = canEditEvent(ev);
                       const top = isResizing ? resizeVisual!.topPx : baseTop;
                       const height = isResizing ? resizeVisual!.heightPx : baseHeight;
                       const calId = getPrimaryCalendarId(ev);
@@ -515,10 +513,11 @@ export function CalendarDayView({
                           key={ev.id}
                           className="absolute z-10 group/event"
                           data-calendar-event
-                          style={{ top, height, left: `${leftPct}%`, width: `${widthPct}%`, paddingLeft: 2, paddingRight: 2 }}
+                          style={{ top, height, insetInlineStart: `${leftPct}%`, width: `${widthPct}%`, paddingInline: 2 }}
                         >
                           <EventCard
                             event={ev}
+                            isSelected={ev.id === selectedEventId}
                             calendar={calId ? calendarMap.get(calId) : undefined}
                             variant="block"
                             onClick={(rect) => onSelectEvent(ev, rect)}
@@ -526,31 +525,31 @@ export function CalendarDayView({
                             onMouseLeave={onHoverLeave}
                             onContextMenu={onContextMenuEvent}
                             currentUserEmails={currentUserEmails}
-                            draggable
+                            draggable={editable}
                           />
                           {/* An edge beyond the visible hours has nothing to grab. */}
-                          {!clip.clippedStart && (
+                          {editable && !clip.clippedStart && (
                           <div
                             data-resize-handle
-                            className="absolute top-0 left-1 right-1 h-3 cursor-n-resize z-20 flex items-start justify-center opacity-0 group-hover/event:opacity-100 transition-opacity"
+                            className="absolute top-0 inset-x-1 h-1 cursor-n-resize z-20 flex items-start justify-center opacity-0 group-hover/event:opacity-100 transition-opacity"
                             aria-label={t("events.resize")}
                             onPointerDown={(e) => handleResizePointerDown(ev.id, "top", startMinutes, durMin, e)}
                             onPointerMove={handleResizePointerMove}
                             onPointerUp={handleResizePointerUp}
                           >
-                            <div className="w-8 h-1 rounded-full bg-foreground/30 mt-0.5" />
+                            <div className="w-8 h-0.5 rounded-full bg-foreground/30" />
                           </div>
                           )}
-                          {!clip.clippedEnd && (
+                          {editable && !clip.clippedEnd && (
                           <div
                             data-resize-handle
-                            className="absolute bottom-0 left-1 right-1 h-3 cursor-s-resize z-20 flex items-end justify-center opacity-0 group-hover/event:opacity-100 transition-opacity"
+                            className="absolute bottom-0 inset-x-1 h-1 cursor-s-resize z-20 flex items-end justify-center opacity-0 group-hover/event:opacity-100 transition-opacity"
                             aria-label={t("events.resize")}
                             onPointerDown={(e) => handleResizePointerDown(ev.id, "bottom", startMinutes, durMin, e)}
                             onPointerMove={handleResizePointerMove}
                             onPointerUp={handleResizePointerUp}
                           >
-                            <div className="w-8 h-1 rounded-full bg-foreground/30 mb-0.5" />
+                            <div className="w-8 h-0.5 rounded-full bg-foreground/30" />
                           </div>
                           )}
                         </div>
@@ -600,7 +599,7 @@ export function CalendarDayView({
                           <div className="w-2.5 h-2.5 rounded-full bg-primary -ms-1" />
                           <div className="flex-1 h-0.5 bg-primary rounded-full" />
                         </div>
-                        <div className="absolute -top-4 left-2 text-[10px] font-medium text-primary bg-background/90 px-1 rounded shadow-sm">
+                        <div className="absolute -top-4 start-2 text-[10px] font-medium text-primary bg-background/90 px-1 rounded shadow-sm">
                           {formatSnapTime(dropTarget.minutes, timeFormat)}
                         </div>
                       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, type CSSProperties, type DragEvent } from "react";
+import { useCallback, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import type { CalendarEvent, Calendar } from "@/lib/jmap/types";
@@ -10,6 +10,7 @@ import { getParticipantCount, isDeclinedByUser } from "@/lib/calendar-participan
 import { getEventEndDate, getEventStartDate } from "@/lib/calendar-utils";
 import { useSettingsStore } from "@/stores/settings-store";
 import { readableTextOn } from "@/lib/color-transform";
+import { useLongPress } from "@/hooks/use-long-press";
 
 interface EventCardProps {
   event: CalendarEvent;
@@ -109,6 +110,8 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
     try { return format(d, fmt); } catch { return "--:--"; }
   };
   const timeString = `${safeFormat(startDate, timeFmt)} – ${safeFormat(endTime, timeFmt)}`;
+  // An all-day event is read out as such, not as "00:00 – 23:00".
+  const spokenTime = event.showWithoutTime ? t("events.all_day") : timeString;
   // iTIP CANCEL marks the attendee's copy with status "cancelled" instead of
   // deleting it (#572), and a declined invitation stays on the calendar too
   // (#1110) - render both struck through and dimmed.
@@ -116,7 +119,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
   const isDeclined = !isCancelled && isDeclinedByUser(event, currentUserEmails);
   const isInactive = isCancelled || isDeclined;
   const statusLabel = isCancelled ? t("detail.cancelled") : isDeclined ? t("participants.declined") : null;
-  const ariaLabel = `${event.title || t("events.no_title")}, ${timeString}${calendarName ? `, ${calendarName}` : ""}${statusLabel ? `, ${statusLabel}` : ""}`;
+  const ariaLabel = `${event.title || t("events.no_title")}, ${spokenTime}${calendarName ? `, ${calendarName}` : ""}${statusLabel ? `, ${statusLabel}` : ""}`;
 
   const handleDragStart = useCallback((e: DragEvent) => {
     e.stopPropagation();
@@ -144,10 +147,28 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
     draggable: true as const,
     onDragStart: handleDragStart,
     onDragEnd: handleDragEnd,
-    "aria-roledescription": "draggable event",
+    "aria-roledescription": t("events.draggable_role"),
   } : {};
 
   const handleContextMenu = onContextMenu ? (e: React.MouseEvent) => onContextMenu(e, event) : undefined;
+
+  // Touch screens have no right-click: a long press opens the same menu,
+  // at the finger (R7).
+  const pressedRef = useRef<HTMLElement | null>(null);
+  const longPress = useLongPress(({ clientX, clientY }) => {
+    const target = pressedRef.current;
+    if (!onContextMenu || !target) return;
+    onContextMenu({
+      type: "contextmenu", clientX, clientY, detail: 1, currentTarget: target, target,
+      preventDefault: () => {}, stopPropagation: () => {},
+    } as unknown as React.MouseEvent, event);
+  }, !!onContextMenu);
+  const touchProps = onContextMenu ? {
+    onTouchStart: (e: React.TouchEvent<HTMLElement>) => { pressedRef.current = e.currentTarget; longPress.onTouchStart(e); },
+    onTouchMove: longPress.onTouchMove,
+    onTouchEnd: longPress.onTouchEnd,
+    onTouchCancel: longPress.onTouchCancel,
+  } : {};
 
   if (variant === "chip") {
     return (
@@ -156,6 +177,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
         onMouseEnter={(e) => onMouseEnter?.(e.currentTarget.getBoundingClientRect())}
         onMouseLeave={() => onMouseLeave?.()}
         onContextMenu={handleContextMenu}
+        {...touchProps}
         aria-label={ariaLabel}
         {...dragProps}
         className={cn(
@@ -179,6 +201,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
         onMouseEnter={(e) => onMouseEnter?.(e.currentTarget.getBoundingClientRect())}
         onMouseLeave={() => onMouseLeave?.()}
         onContextMenu={handleContextMenu}
+        {...touchProps}
         aria-label={ariaLabel}
         {...dragProps}
         className={cn(
@@ -207,6 +230,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
       onMouseEnter={(e) => onMouseEnter?.(e.currentTarget.getBoundingClientRect())}
       onMouseLeave={() => onMouseLeave?.()}
       onContextMenu={handleContextMenu}
+      {...touchProps}
       aria-label={ariaLabel}
       {...dragProps}
       data-calendar-event

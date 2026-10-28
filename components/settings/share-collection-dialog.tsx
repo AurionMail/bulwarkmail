@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
-import { X, Loader2, UserPlus, Trash2, Users, ChevronDown } from "@/components/icons";
+import { Loader2, UserPlus, Trash2, ChevronDown, Share2 } from "@/components/icons";
+import { Dialog } from "@/components/ui/dialog";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import type { Principal, PrincipalDirectoryStatus, CalendarRights, AddressBookRights, FileNodeRights, MailboxRights } from "@/lib/jmap/types";
 import { loadPrincipalDirectory } from "@/lib/jmap/principal-directory";
@@ -151,7 +152,6 @@ export function ShareCollectionDialog({
 }: ShareCollectionDialogProps) {
   const t = useTranslations("sharing");
   const tCommon = useTranslations("common");
-  const modalRef = useRef<HTMLDivElement>(null);
   const [allPrincipals, setAllPrincipals] = useState<Principal[]>([]);
   const [directoryStatus, setDirectoryStatus] = useState<PrincipalDirectoryStatus>("ok");
   const [directoryQueriesOff, setDirectoryQueriesOff] = useState(false);
@@ -188,15 +188,6 @@ export function ShareCollectionDialog({
     const existing = new Set(Object.keys(shareWith || {}));
     return allPrincipals.filter((p) => p.id !== ownAccountId && !existing.has(p.id));
   }, [allPrincipals, ownAccountId, shareWith]);
-
-  // Close on Escape, focus trap, click outside
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
 
   const handleSetRights = async (principalId: string, preset: RolePreset) => {
     if (preset === "custom") return; // custom is read-only here
@@ -260,30 +251,17 @@ export function ShareCollectionDialog({
     : ["read", "readWrite", "manager"] as const;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px]" onClick={onClose} aria-hidden="true" />
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={t("title", { name: collectionName })}
-        className="relative bg-background border border-border rounded-lg shadow-xl w-full max-w-lg mx-4 animate-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col"
-      >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold">{t("title", { name: collectionName })}</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-md hover:bg-muted transition-colors duration-150 text-muted-foreground hover:text-foreground"
-            aria-label={tCommon("close")}
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="px-6 py-4 space-y-4 overflow-y-auto">
+    // The shared dialog shell (R4): focus moves in and comes back, Escape
+    // and the close X work from anywhere in it.
+    <Dialog
+      isOpen
+      onClose={onClose}
+      title={t("title", { name: collectionName })}
+      icon={<Share2 className="w-5 h-5 text-primary shrink-0 mt-1" />}
+      size="lg"
+      footer={<Button onClick={onClose}>{tCommon("close")}</Button>}
+    >
+        <div className="pt-4 space-y-4">
           <p className="text-sm text-muted-foreground">{t("description")}</p>
 
           {sharedEntries.length === 0 && !showAdd && (
@@ -440,10 +418,6 @@ export function ShareCollectionDialog({
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border">
-          <Button onClick={onClose}>{tCommon("close")}</Button>
-        </div>
-      </div>
-    </div>
+    </Dialog>
   );
 }

@@ -127,7 +127,7 @@ describe('calendar display hours and working days (#1164)', () => {
     expect(eventBlock('weekend')).toBeNull();
     const trip = screen.getByText('Event trip').closest<HTMLElement>('.absolute')!;
     // Column 5 of 6, two columns wide (jsdom rounds the percentages)
-    expect(trip.style.left).toBe('calc(66.6667% + 1px)');
+    expect(trip.style.insetInlineStart).toBe('calc(66.6667% + 1px)');
     expect(trip.style.width).toBe('calc(33.3333% - 2px)');
   });
 
