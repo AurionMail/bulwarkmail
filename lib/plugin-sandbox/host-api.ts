@@ -61,6 +61,7 @@ import { doNotificationsShow } from './host-api-notify';
 import { doAccountDataGet, doAccountDataSet, doUserFindPeople, doUserGetMailAccounts, doUserGetSelf } from './host-api-account';
 import { setSectionTitle } from './section-titles';
 import { requestPanel } from './panel-requests';
+import { requestPageNavigation } from './page-navigation';
 import { doComposerAttach, doComposerGetBody, doComposerGetSelection, doComposerReplaceBody, doComposerReplaceSelection } from './host-api-composer';
 import { pluginAllowed, wkdAllowed } from '../outgoing-hosts';
 
@@ -237,6 +238,8 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   'ui.setListFilters': 'ui:message-list',
   'ui.setDayLabels': 'ui:calendar-action',
   'ui.setPages': 'ui:app-page',
+  // Move the tab to one of the plugin's own pages (never anywhere else).
+  'ui.openPage': 'ui:app-page',
   'ui.setSectionTitle': 'ui:sidebar-widget',
   // Open, close or toggle the panel the plugin's slot sits in; the panel's
   // own permission is checked per call (see the slot catalogue).
@@ -2000,6 +2003,7 @@ export async function dispatchApiCall(
     case 'ui.setListFilters': setPluginListFilters(plugin.id, plugin.name, checkListFilters(args[0])); return undefined;
     case 'ui.setDayLabels': setDayLabels(plugin.id, plugin.name, checkDayLabels(args[0])); return undefined;
     case 'ui.setPages': setPluginPages(plugin.id, plugin.name, checkPages(args[0])); return undefined;
+    case 'ui.openPage': return requestPageNavigation(plugin.id, args[0], args[1]);
     case 'ui.setSectionTitle': setSectionTitle(plugin.id, args[0]); return undefined;
     case 'ui.setPanel': {
       const slot = args[0];

@@ -667,6 +667,15 @@ function buildPluginApi(manifest: PluginManifest) {
       setPages: (pages: Array<{ id: string; title: string; icon?: string }>) =>
         callApi('ui.setPages', [pages]) as Promise<void>,
       /**
+       * Moves this tab to one of this plugin's own pages (set with setPages),
+       * e.g. from a dialog's link to the record its page shows. `path` is
+       * what the `app-page` slot gets as `path` (segments joined by "/").
+       * Resolves to false when the app could not take it, so the plugin can
+       * open the page in a new tab with openExternalUrl instead.
+       */
+      openPage: (pageId: string, path?: string) =>
+        callApi('ui.openPage', [pageId, path]) as Promise<boolean>,
+      /**
        * The header of this plugin's sidebar section (the host draws it like
        * Folders and Tags), e.g. a translated "Upcoming birthdays". null goes
        * back to the plugin's name. At most 40 characters.

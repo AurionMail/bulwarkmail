@@ -11,6 +11,7 @@ import { ProInterfaceRedirect } from "@/components/pro/pro-interface-redirect";
 import { ImpersonationReconciler } from "@/components/impersonation/impersonation-reconciler";
 import { PluginDialogHost } from "@/components/plugins/plugin-dialog-host";
 import { ExternalRecipientConfirmHost } from "@/components/email/external-recipient-confirm";
+import { PluginPageNavigator } from "@/components/plugins/plugin-page-navigator";
 import { CommandPaletteHost } from "@/components/command-palette/command-palette";
 import { TotpReauthDialog } from "@/components/totp-reauth-dialog";
 import { PluginConnectDialog } from "@/components/plugins/plugin-connect-dialog";
@@ -77,6 +78,7 @@ export default async function LocaleLayout({
                   <PluginConsentDialog />
                   <PluginOAuthCallbackListener />
                   <PluginAppEvents />
+                  <PluginPageNavigator />
                   <PWAInstallPrompt />
                   <PushNotificationPrompt />
                   {/* Lite is a static bundle: no server keeps an archive there. */}
