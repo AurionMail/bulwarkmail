@@ -40,6 +40,8 @@ interface CalendarToolbarProps {
   onMenuClick?: () => void;
   /** Whether the sidebar is currently shown (for the burger's aria-expanded). */
   sidebarOpen?: boolean;
+  /** The burger shows and hides the sidebar beside the grid, rather than opening it over it. */
+  menuTogglesSidebar?: boolean;
   /**
    * Show a compact create button in the bar. The full "Create" button lives
    * at the top of the sidebar, so this is only needed while it is hidden.
@@ -78,6 +80,7 @@ export function CalendarToolbar({
   enableCalendarTasks,
   onMenuClick,
   sidebarOpen,
+  menuTogglesSidebar,
   showCreateButton,
 }: CalendarToolbarProps) {
   const t = useTranslations("calendar");
@@ -374,7 +377,8 @@ export function CalendarToolbar({
           size="icon"
           onClick={onMenuClick}
           className="h-8 w-8 -ms-1 me-1"
-          aria-label={t("nav_open_menu")}
+          aria-label={menuTogglesSidebar ? t(sidebarOpen ? "nav_hide_sidebar" : "nav_show_sidebar") : t("nav_open_menu")}
+          title={menuTogglesSidebar ? t(sidebarOpen ? "nav_hide_sidebar" : "nav_show_sidebar") : t("nav_open_menu")}
           aria-expanded={sidebarOpen}
         >
           <Menu className="w-4 h-4" />

@@ -3251,6 +3251,12 @@
     "my_calendars": "Kalendarze",
     "birthday_calendar": "Urodziny",
     "mini_calendar_change": "Kliknij, aby zmienić miesiąc",
+    "mini_prev_month": "Poprzedni miesiąc",
+    "mini_next_month": "Następny miesiąc",
+    "mini_prev_year": "Poprzedni rok",
+    "mini_next_year": "Następny rok",
+    "mini_prev_years": "Wcześniejsze lata",
+    "mini_next_years": "Późniejsze lata",
     "views": {
       "month": "Miesiąc",
       "week": "Tydzień",
@@ -3280,6 +3286,7 @@
       "show_less": "Pokaż mniej",
       "no_title": "(Bez tytułu)",
       "resize": "Zmień rozmiar wydarzenia",
+      "draggable_role": "wydarzenie do przeniesienia",
       "duplicate": "Duplikuj",
       "today_header": "Dzisiaj",
       "tomorrow_header": "Jutro",
@@ -3755,6 +3762,8 @@
       "esf": "Esfand"
     },
     "nav_open_menu": "Otwórz menu",
+    "nav_hide_sidebar": "Ukryj pasek boczny",
+    "nav_show_sidebar": "Pokaż pasek boczny",
     "toolbar": {
       "more": "Więcej działań",
       "select_view": "Zmień widok, obecnie {view}",

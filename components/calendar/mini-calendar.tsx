@@ -127,7 +127,7 @@ export function MiniCalendar({
         <button
           onClick={handlePrev}
           className="p-1 rounded hover:bg-muted transition-colors"
-          aria-label={t("nav_prev")}
+          aria-label={t(pickerView === "days" ? "mini_prev_month" : pickerView === "months" ? "mini_prev_year" : "mini_prev_years")}
         >
           <ChevronLeft className="w-4 h-4 text-muted-foreground" />
         </button>
@@ -149,7 +149,7 @@ export function MiniCalendar({
         <button
           onClick={handleNext}
           className="p-1 rounded hover:bg-muted transition-colors"
-          aria-label={t("nav_next")}
+          aria-label={t(pickerView === "days" ? "mini_next_month" : pickerView === "months" ? "mini_next_year" : "mini_next_years")}
         >
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
         </button>

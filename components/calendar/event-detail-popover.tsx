@@ -134,6 +134,7 @@ export function EventDetailPopover({
   pinned = false,
 }: EventDetailPopoverProps) {
   const t = useTranslations("calendar");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
   const popoverRef = useRef<HTMLDivElement>(null);
   const noteInputRef = useRef<HTMLTextAreaElement>(null);
@@ -388,7 +389,8 @@ export function EventDetailPopover({
           type="button"
           onClick={onClose}
           className={HEADER_BUTTON}
-          aria-label={t("form.cancel")}
+          aria-label={tCommon("close")}
+          title={tCommon("close")}
         >
           <X className="w-4 h-4" />
         </button>

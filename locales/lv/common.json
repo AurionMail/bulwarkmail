@@ -3250,6 +3250,12 @@
     "back_to_month": "Atpakaļ uz mēneša skatu",
     "my_calendars": "Kalendāri",
     "mini_calendar_change": "Noklikšķiniet, lai mainītu mēnesi",
+    "mini_prev_month": "Iepriekšējais mēnesis",
+    "mini_next_month": "Nākamais mēnesis",
+    "mini_prev_year": "Iepriekšējais gads",
+    "mini_next_year": "Nākamais gads",
+    "mini_prev_years": "Agrākie gadi",
+    "mini_next_years": "Vēlākie gadi",
     "views": {
       "month": "Mēnesis",
       "week": "Nedēļa",
@@ -3279,6 +3285,7 @@
       "show_less": "Rādīt mazāk",
       "no_title": "(Bez virsraksta)",
       "resize": "Mainīt pasākuma laiku",
+      "draggable_role": "pārvietojams notikums",
       "duplicate": "Dublēt",
       "today_header": "Šodien",
       "tomorrow_header": "Rīt",
@@ -3755,6 +3762,8 @@
       "esf": "Esfand"
     },
     "nav_open_menu": "Atvērt izvēlni",
+    "nav_hide_sidebar": "Paslēpt sānjoslu",
+    "nav_show_sidebar": "Rādīt sānjoslu",
     "toolbar": {
       "more": "Citas darbības",
       "select_view": "Mainīt skatu, pašlaik {view}",

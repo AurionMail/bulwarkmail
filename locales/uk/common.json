@@ -3251,6 +3251,12 @@
     "my_calendars": "Календарі",
     "birthday_calendar": "Дні народження",
     "mini_calendar_change": "Натисніть, щоб змінити місяць",
+    "mini_prev_month": "Попередній місяць",
+    "mini_next_month": "Наступний місяць",
+    "mini_prev_year": "Попередній рік",
+    "mini_next_year": "Наступний рік",
+    "mini_prev_years": "Попередні роки",
+    "mini_next_years": "Наступні роки",
     "views": {
       "month": "місяць",
       "week": "тиждень",
@@ -3280,6 +3286,7 @@
       "show_less": "Показувати менше",
       "no_title": "(Без назви)",
       "resize": "Змінити розмір події",
+      "draggable_role": "переміщувана подія",
       "duplicate": "дублікат",
       "today_header": "Сьогодні",
       "tomorrow_header": "завтра",
@@ -3755,6 +3762,8 @@
       "esf": "Esfand"
     },
     "nav_open_menu": "Відкрити меню",
+    "nav_hide_sidebar": "Сховати бічну панель",
+    "nav_show_sidebar": "Показати бічну панель",
     "toolbar": {
       "more": "Інші дії",
       "select_view": "Змінити вигляд, зараз {view}",

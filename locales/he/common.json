@@ -3169,6 +3169,12 @@
     "my_calendars": "לוחות שנה",
     "birthday_calendar": "ימי הולדת",
     "mini_calendar_change": "לחץ כדי לשנות חודש",
+    "mini_prev_month": "החודש הקודם",
+    "mini_next_month": "החודש הבא",
+    "mini_prev_year": "השנה הקודמת",
+    "mini_next_year": "השנה הבאה",
+    "mini_prev_years": "שנים קודמות",
+    "mini_next_years": "השנים הבאות",
     "views": {
       "month": "חודש",
       "week": "שבוע",
@@ -3198,6 +3204,7 @@
       "show_less": "הצג פחות",
       "no_title": "(ללא כותרת)",
       "resize": "שנה את גודל האירוע",
+      "draggable_role": "אירוע שניתן להזיז",
       "duplicate": "שכפול",
       "today_header": "היום",
       "tomorrow_header": "מחר",
@@ -3664,6 +3671,8 @@
       "esf": "Esfand"
     },
     "nav_open_menu": "פתח תפריט",
+    "nav_hide_sidebar": "הסתרת סרגל הצד",
+    "nav_show_sidebar": "הצגת סרגל הצד",
     "webcal_action": {
       "title": "פתח קישור לוח שנה",
       "description": "כיצד היית רוצה להשתמש ב־\"{name}\"?",

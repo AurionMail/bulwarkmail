@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Clock, X } from "@/components/icons";
+import { IconButton } from "@/components/ui/icon-button";
 import type { Calendar } from "@/lib/jmap/types";
 import { useDisplayDateFormatter } from "@/hooks/use-display-date-formatter";
 
@@ -65,6 +66,7 @@ export function QuickCreatePopover({
   onClose,
 }: QuickCreatePopoverProps) {
   const t = useTranslations("calendar");
+  const tCommon = useTranslations("common");
   const intlFormatter = useDisplayDateFormatter();
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -150,14 +152,9 @@ export function QuickCreatePopover({
     >
       <form onSubmit={handleSubmit}>
         <div className="flex justify-end px-2 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-            aria-label={t("form.cancel")}
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <IconButton label={tCommon("close")} onClick={onClose} className="text-muted-foreground">
+            <X />
+          </IconButton>
         </div>
         <div className="px-4 pb-3 space-y-3">
           <Input

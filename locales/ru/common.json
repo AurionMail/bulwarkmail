@@ -3251,6 +3251,12 @@
     "my_calendars": "Календари",
     "birthday_calendar": "Дни рождения",
     "mini_calendar_change": "Нажмите для смены месяца",
+    "mini_prev_month": "Предыдущий месяц",
+    "mini_next_month": "Следующий месяц",
+    "mini_prev_year": "Предыдущий год",
+    "mini_next_year": "Следующий год",
+    "mini_prev_years": "Предыдущие годы",
+    "mini_next_years": "Следующие годы",
     "views": {
       "month": "Месяц",
       "week": "Неделя",
@@ -3280,6 +3286,7 @@
       "show_less": "Свернуть",
       "no_title": "(Без названия)",
       "resize": "Изменить размер события",
+      "draggable_role": "перемещаемое событие",
       "duplicate": "Дублировать",
       "today_header": "Сегодня",
       "tomorrow_header": "Завтра",
@@ -3755,6 +3762,8 @@
       "esf": "Esfand"
     },
     "nav_open_menu": "Открыть меню",
+    "nav_hide_sidebar": "Скрыть боковую панель",
+    "nav_show_sidebar": "Показать боковую панель",
     "toolbar": {
       "more": "Другие действия",
       "select_view": "Сменить вид, сейчас {view}",

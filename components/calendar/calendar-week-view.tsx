@@ -473,7 +473,7 @@ export function CalendarWeekView({
             {isExpandable && (
               <button
                 type="button"
-                aria-label="all-day-expand"
+                aria-label={isAllDayExpanded ? t("events.show_less") : t("events.show_more")}
                 aria-expanded={isAllDayExpanded}
                 onClick={() => setIsAllDayExpanded((prev) => !prev)}
                 className="self-end mt-auto text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 rounded px-1 py-0.5 hover:bg-muted transition-colors cursor-pointer"

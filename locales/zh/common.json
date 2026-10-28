@@ -3251,6 +3251,12 @@
     "my_calendars": "日历",
     "birthday_calendar": "生日",
     "mini_calendar_change": "点击更改月份",
+    "mini_prev_month": "上个月",
+    "mini_next_month": "下个月",
+    "mini_prev_year": "上一年",
+    "mini_next_year": "下一年",
+    "mini_prev_years": "更早的年份",
+    "mini_next_years": "更晚的年份",
     "views": {
       "month": "月",
       "week": "周",
@@ -3280,6 +3286,7 @@
       "show_less": "收起",
       "no_title": "（无标题）",
       "resize": "调整事件大小",
+      "draggable_role": "可移动的事件",
       "duplicate": "复制",
       "today_header": "今天",
       "tomorrow_header": "明天",
@@ -3755,6 +3762,8 @@
       "esf": "Esfand"
     },
     "nav_open_menu": "打开菜单",
+    "nav_hide_sidebar": "隐藏侧边栏",
+    "nav_show_sidebar": "显示侧边栏",
     "toolbar": {
       "more": "更多操作",
       "select_view": "切换视图，当前为{view}",

@@ -3251,6 +3251,12 @@
     "my_calendars": "Kalendáře",
     "birthday_calendar": "Narozeniny",
     "mini_calendar_change": "Kliknutím změníte měsíc",
+    "mini_prev_month": "Předchozí měsíc",
+    "mini_next_month": "Další měsíc",
+    "mini_prev_year": "Předchozí rok",
+    "mini_next_year": "Další rok",
+    "mini_prev_years": "Dřívější roky",
+    "mini_next_years": "Pozdější roky",
     "views": {
       "month": "Měsíc",
       "week": "Týden",
@@ -3280,6 +3286,7 @@
       "show_less": "Zobrazit méně",
       "no_title": "(Bez názvu)",
       "resize": "Změnit velikost události",
+      "draggable_role": "přesunutelná událost",
       "duplicate": "Duplikovat",
       "today_header": "Dnes",
       "tomorrow_header": "Zítra",
@@ -3755,6 +3762,8 @@
       "esf": "Esfand"
     },
     "nav_open_menu": "Otevřít nabídku",
+    "nav_hide_sidebar": "Skrýt postranní panel",
+    "nav_show_sidebar": "Zobrazit postranní panel",
     "toolbar": {
       "more": "Další akce",
       "select_view": "Změnit zobrazení, nyní {view}",

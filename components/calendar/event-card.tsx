@@ -110,6 +110,8 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
     try { return format(d, fmt); } catch { return "--:--"; }
   };
   const timeString = `${safeFormat(startDate, timeFmt)} – ${safeFormat(endTime, timeFmt)}`;
+  // An all-day event is read out as such, not as "00:00 – 23:00".
+  const spokenTime = event.showWithoutTime ? t("events.all_day") : timeString;
   // iTIP CANCEL marks the attendee's copy with status "cancelled" instead of
   // deleting it (#572), and a declined invitation stays on the calendar too
   // (#1110) - render both struck through and dimmed.
@@ -117,7 +119,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
   const isDeclined = !isCancelled && isDeclinedByUser(event, currentUserEmails);
   const isInactive = isCancelled || isDeclined;
   const statusLabel = isCancelled ? t("detail.cancelled") : isDeclined ? t("participants.declined") : null;
-  const ariaLabel = `${event.title || t("events.no_title")}, ${timeString}${calendarName ? `, ${calendarName}` : ""}${statusLabel ? `, ${statusLabel}` : ""}`;
+  const ariaLabel = `${event.title || t("events.no_title")}, ${spokenTime}${calendarName ? `, ${calendarName}` : ""}${statusLabel ? `, ${statusLabel}` : ""}`;
 
   const handleDragStart = useCallback((e: DragEvent) => {
     e.stopPropagation();
@@ -145,7 +147,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
     draggable: true as const,
     onDragStart: handleDragStart,
     onDragEnd: handleDragEnd,
-    "aria-roledescription": "draggable event",
+    "aria-roledescription": t("events.draggable_role"),
   } : {};
 
   const handleContextMenu = onContextMenu ? (e: React.MouseEvent) => onContextMenu(e, event) : undefined;

@@ -3251,6 +3251,12 @@
     "my_calendars": "Takvimler",
     "birthday_calendar": "Doğum Günleri",
     "mini_calendar_change": "Ayı değiştirmek için tıklayın",
+    "mini_prev_month": "Önceki ay",
+    "mini_next_month": "Sonraki ay",
+    "mini_prev_year": "Önceki yıl",
+    "mini_next_year": "Sonraki yıl",
+    "mini_prev_years": "Önceki yıllar",
+    "mini_next_years": "Sonraki yıllar",
     "views": {
       "month": "Ay",
       "week": "Hafta",
@@ -3280,6 +3286,7 @@
       "show_less": "Daha az göster",
       "no_title": "(Başlık yok)",
       "resize": "Etkinliği yeniden boyutlandır",
+      "draggable_role": "taşınabilir etkinlik",
       "duplicate": "Çoğalt",
       "today_header": "Bugün",
       "tomorrow_header": "Yarın",
@@ -3755,6 +3762,8 @@
       "overdue": "Gecikmiş"
     },
     "nav_open_menu": "Menüyü aç",
+    "nav_hide_sidebar": "Kenar çubuğunu gizle",
+    "nav_show_sidebar": "Kenar çubuğunu göster",
     "toolbar": {
       "more": "Diğer işlemler",
       "select_view": "Görünümü değiştir, şu an {view}",

@@ -265,6 +265,7 @@ export function EventModal({
   isMobile = false,
 }: EventModalProps) {
   const t = useTranslations("calendar");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
   const timeFormat = useSettingsStore((s) => s.timeFormat);
   const timeDisplayFmt = timeFormat === "12h" ? "h:mm a" : "HH:mm";
@@ -972,9 +973,9 @@ export function EventModal({
               <MoreVertical />
             </IconButton>
           )}
-          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-muted transition-colors duration-150 text-muted-foreground hover:text-foreground" aria-label={t("form.cancel")}>
-            <X className="w-5 h-5" />
-          </button>
+          <IconButton label={tCommon("close")} onClick={onClose} className="flex-shrink-0 text-muted-foreground">
+            <X />
+          </IconButton>
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -1105,9 +1106,9 @@ export function EventModal({
               <MoreVertical />
             </IconButton>
           )}
-          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-muted transition-colors duration-150 flex-shrink-0 mt-0.5 text-muted-foreground hover:text-foreground" aria-label={t("form.cancel")}>
-            <X className="w-5 h-5" />
-          </button>
+          <IconButton label={tCommon("close")} onClick={onClose} className="flex-shrink-0 mt-0.5 text-muted-foreground">
+            <X />
+          </IconButton>
         </div>
 
         {/* Content */}
@@ -1291,9 +1292,9 @@ export function EventModal({
         <h2 className="text-lg font-semibold">
           {isEdit ? t("events.edit") : t("events.create")}
         </h2>
-        <button onClick={requestClose} className="p-1.5 rounded-md hover:bg-muted transition-colors duration-150 text-muted-foreground hover:text-foreground" aria-label={t("form.cancel")}>
-          <X className="w-5 h-5" />
-        </button>
+        <IconButton label={tCommon("close")} onClick={requestClose} className="flex-shrink-0 text-muted-foreground">
+          <X />
+        </IconButton>
       </div>
 
       <div className="flex-1 overflow-y-auto">

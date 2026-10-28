@@ -3251,6 +3251,12 @@
     "my_calendars": "Meine Kalender",
     "birthday_calendar": "Geburtstage",
     "mini_calendar_change": "Klicken, um den Monat zu wechseln",
+    "mini_prev_month": "Vorheriger Monat",
+    "mini_next_month": "Nächster Monat",
+    "mini_prev_year": "Vorheriges Jahr",
+    "mini_next_year": "Nächstes Jahr",
+    "mini_prev_years": "Frühere Jahre",
+    "mini_next_years": "Spätere Jahre",
     "views": {
       "month": "Monat",
       "week": "Woche",
@@ -3280,6 +3286,7 @@
       "show_less": "Weniger anzeigen",
       "no_title": "(Kein Titel)",
       "resize": "Termingröße ändern",
+      "draggable_role": "verschiebbarer Termin",
       "duplicate": "Duplizieren",
       "today_header": "Heute",
       "tomorrow_header": "Morgen",
@@ -3755,6 +3762,8 @@
       "esf": "Esfand"
     },
     "nav_open_menu": "Menü öffnen",
+    "nav_hide_sidebar": "Seitenleiste ausblenden",
+    "nav_show_sidebar": "Seitenleiste einblenden",
     "toolbar": {
       "more": "Weitere Aktionen",
       "select_view": "Ansicht wechseln, aktuell {view}",

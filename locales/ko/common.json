@@ -3251,6 +3251,12 @@
     "my_calendars": "내 캘린더",
     "birthday_calendar": "생일",
     "mini_calendar_change": "클릭해서 달을 변경하세요",
+    "mini_prev_month": "이전 달",
+    "mini_next_month": "다음 달",
+    "mini_prev_year": "이전 연도",
+    "mini_next_year": "다음 연도",
+    "mini_prev_years": "이전 연도들",
+    "mini_next_years": "이후 연도들",
     "views": {
       "month": "월",
       "week": "주",
@@ -3280,6 +3286,7 @@
       "show_less": "간략히 보기",
       "no_title": "(제목 없음)",
       "resize": "일정 크기 조절",
+      "draggable_role": "이동 가능한 일정",
       "duplicate": "복제",
       "today_header": "오늘",
       "tomorrow_header": "내일",
@@ -3755,6 +3762,8 @@
       "esf": "Esfand"
     },
     "nav_open_menu": "메뉴 열기",
+    "nav_hide_sidebar": "사이드바 숨기기",
+    "nav_show_sidebar": "사이드바 표시",
     "toolbar": {
       "more": "추가 작업",
       "select_view": "보기 변경, 현재 {view}",

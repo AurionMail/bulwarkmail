@@ -157,6 +157,7 @@ export function TaskListView({
                   }
                 }}
                 placeholder={t("tasks.quick_add_placeholder")}
+                aria-label={t("tasks.quick_add_placeholder")}
                 className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
             </div>
@@ -187,6 +188,7 @@ export function TaskListView({
                 }
               }}
               placeholder={t("tasks.quick_add_placeholder")}
+              aria-label={t("tasks.quick_add_placeholder")}
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             />
           </div>

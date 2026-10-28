@@ -3251,6 +3251,12 @@
     "my_calendars": "Meus calendários",
     "birthday_calendar": "Aniversários",
     "mini_calendar_change": "Clique para mudar o mês",
+    "mini_prev_month": "Mês anterior",
+    "mini_next_month": "Próximo mês",
+    "mini_prev_year": "Ano anterior",
+    "mini_next_year": "Próximo ano",
+    "mini_prev_years": "Anos anteriores",
+    "mini_next_years": "Anos seguintes",
     "views": {
       "month": "Mês",
       "week": "Semana",
@@ -3280,6 +3286,7 @@
       "show_less": "Mostrar menos",
       "no_title": "(Sem título)",
       "resize": "Redimensionar evento",
+      "draggable_role": "evento móvel",
       "duplicate": "Duplicar",
       "today_header": "Hoje",
       "tomorrow_header": "Amanhã",
@@ -3755,6 +3762,8 @@
       "overdue": "Atrasada"
     },
     "nav_open_menu": "Abrir menu",
+    "nav_hide_sidebar": "Ocultar barra lateral",
+    "nav_show_sidebar": "Mostrar barra lateral",
     "toolbar": {
       "more": "Mais ações",
       "select_view": "Mudar vista, atualmente {view}",

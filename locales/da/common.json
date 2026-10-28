@@ -3251,6 +3251,12 @@
     "my_calendars": "Kalendere",
     "birthday_calendar": "Fødselsdage",
     "mini_calendar_change": "Klik for at skifte måned",
+    "mini_prev_month": "Forrige måned",
+    "mini_next_month": "Næste måned",
+    "mini_prev_year": "Forrige år",
+    "mini_next_year": "Næste år",
+    "mini_prev_years": "Tidligere år",
+    "mini_next_years": "Senere år",
     "views": {
       "month": "Måned",
       "week": "Uge",
@@ -3280,6 +3286,7 @@
       "show_less": "Vis mindre",
       "no_title": "(Ingen titel)",
       "resize": "Tilpas størrelse på begivenhed",
+      "draggable_role": "flytbar begivenhed",
       "duplicate": "Duplikér",
       "today_header": "I dag",
       "tomorrow_header": "I morgen",
@@ -3755,6 +3762,8 @@
       "overdue": "Forfalden"
     },
     "nav_open_menu": "Åbn menu",
+    "nav_hide_sidebar": "Skjul sidepanel",
+    "nav_show_sidebar": "Vis sidepanel",
     "toolbar": {
       "more": "Flere handlinger",
       "select_view": "Skift visning, aktuelt {view}",

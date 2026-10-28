@@ -157,9 +157,8 @@ describe('CalendarApp in the Tasks view', () => {
 
   it('has no date navigation', () => {
     renderApp();
-    // The one left is the mini calendar's month arrow.
-    expect(screen.queryAllByRole('button', { name: 'nav_prev' })).toHaveLength(1);
-    expect(screen.queryAllByRole('button', { name: 'nav_next' })).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'nav_prev' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'nav_next' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'views.today' })).toBeNull();
   });
 
@@ -532,5 +531,35 @@ describe('CalendarApp from the keyboard', () => {
     renderApp();
     fireEvent.click(await screen.findByRole('button', { name: /Buy milk/ }));
     expect(screen.getByRole('heading', { name: 'tasks.edit' })).toBeInTheDocument();
+  });
+});
+
+describe('CalendarApp control names', () => {
+  it('names close buttons Close and tells the arrows apart', async () => {
+    renderApp();
+    fireEvent.keyDown(document.body, { key: 'n', code: 'KeyN' });
+    expect(screen.getByRole('button', { name: 'close' })).toBeInTheDocument();
+    // Cancel is the text button in the footer, not the X.
+    expect(screen.getAllByRole('button', { name: 'form.cancel' })).toHaveLength(1);
+    // The mini calendar's arrows step months, the toolbar's the view.
+    expect(screen.getByRole('button', { name: 'mini_prev_month' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'nav_prev' })).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'nav_hide_sidebar' })).toBeInTheDocument();
+  });
+
+  it('names the task editor fields and its close button', async () => {
+    setUp([], 'tasks');
+    renderApp();
+    fireEvent.keyDown(document.body, { key: 'n', code: 'KeyN' });
+    expect(screen.getByRole('button', { name: 'close' })).toBeInTheDocument();
+    expect(screen.getByLabelText('tasks.due_date')).toHaveAttribute('type', 'date');
+    expect(screen.getByLabelText('tasks.priority').tagName).toBe('SELECT');
+    expect(screen.getByLabelText('tasks.quick_add_placeholder')).toBeInTheDocument();
+  });
+
+  it('reads an all-day event as all day, not as midnight to 23:00', () => {
+    setUp([makeEvent({ title: 'Trip', showWithoutTime: true, start: '2026-10-12T00:00:00', duration: 'P1D' })], 'month');
+    renderApp();
+    expect(screen.getAllByRole('button', { name: /Trip/ })[0].getAttribute('aria-label')).toContain('events.all_day');
   });
 });

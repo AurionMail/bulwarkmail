@@ -3251,6 +3251,12 @@
     "my_calendars": "マイカレンダー",
     "birthday_calendar": "誕生日",
     "mini_calendar_change": "クリックで月を変更",
+    "mini_prev_month": "前の月",
+    "mini_next_month": "次の月",
+    "mini_prev_year": "前の年",
+    "mini_next_year": "次の年",
+    "mini_prev_years": "前の年代",
+    "mini_next_years": "次の年代",
     "views": {
       "month": "月",
       "week": "週",
@@ -3280,6 +3286,7 @@
       "show_less": "折りたたむ",
       "no_title": "(タイトルなし)",
       "resize": "イベントのサイズ変更",
+      "draggable_role": "移動できる予定",
       "duplicate": "複製",
       "today_header": "今日",
       "tomorrow_header": "明日",
@@ -3755,6 +3762,8 @@
       "esf": "Esfand"
     },
     "nav_open_menu": "メニューを開く",
+    "nav_hide_sidebar": "サイドバーを隠す",
+    "nav_show_sidebar": "サイドバーを表示",
     "toolbar": {
       "more": "その他の操作",
       "select_view": "表示を切り替え（現在: {view}）",

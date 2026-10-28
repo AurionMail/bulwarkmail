@@ -1894,6 +1894,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       enableCalendarTasks={enableCalendarTasks}
       onMenuClick={isNarrow ? () => setNarrowSidebarOpen(true) : isMobile ? undefined : toggleSidebarCollapsed}
       sidebarOpen={isNarrow ? narrowSidebarOpen : !sidebarCollapsed}
+      menuTogglesSidebar={!isNarrow}
       showCreateButton={isNarrow || sidebarCollapsed}
     />
   );

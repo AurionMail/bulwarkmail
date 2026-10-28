@@ -3251,6 +3251,12 @@
     "my_calendars": "Mijn agenda's",
     "birthday_calendar": "Verjaardagen",
     "mini_calendar_change": "Klik om van maand te wisselen",
+    "mini_prev_month": "Vorige maand",
+    "mini_next_month": "Volgende maand",
+    "mini_prev_year": "Vorig jaar",
+    "mini_next_year": "Volgend jaar",
+    "mini_prev_years": "Eerdere jaren",
+    "mini_next_years": "Latere jaren",
     "views": {
       "month": "Maand",
       "week": "Week",
@@ -3280,6 +3286,7 @@
       "show_less": "Minder tonen",
       "no_title": "(Geen titel)",
       "resize": "Evenement formaat wijzigen",
+      "draggable_role": "verplaatsbare afspraak",
       "duplicate": "Dupliceren",
       "today_header": "Vandaag",
       "tomorrow_header": "Morgen",
@@ -3755,6 +3762,8 @@
       "esf": "Esfand"
     },
     "nav_open_menu": "Menu openen",
+    "nav_hide_sidebar": "Zijbalk verbergen",
+    "nav_show_sidebar": "Zijbalk tonen",
     "toolbar": {
       "more": "Meer acties",
       "select_view": "Weergave wijzigen, nu {view}",
