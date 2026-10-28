@@ -57,6 +57,14 @@ describe('policy store scopes', () => {
     expect(usePolicyStore.getState().isFeatureEnabled('calendarEnabled')).toBe(false);
   });
 
+  it('knows which domains the fetched scopes cover', async () => {
+    expect(usePolicyStore.getState().coversAddress('x@anywhere.test')).toBe(true);
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(POLICY), { headers: { 'X-Bulwark-Policy-Domains': 'example.org' } }));
+    await usePolicyStore.getState().fetchPolicy();
+    expect(usePolicyStore.getState().coversAddress('org-alice@Example.org')).toBe(true);
+    expect(usePolicyStore.getState().coversAddress('org-dave@org-two.test')).toBe(false);
+  });
+
   it('resolves another account without switching to it', () => {
     usePolicyStore.getState().setPolicySubject({ email: 'org-carol@example.org', groups: [] });
     const other = usePolicyStore.getState().resolveFor({ email: 'org-bob@example.org', groups: ['org-team@example.org'] });

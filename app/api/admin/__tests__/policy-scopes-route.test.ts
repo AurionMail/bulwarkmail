@@ -60,6 +60,14 @@ describe('GET /api/admin/policy scopes', () => {
     expect(body.organisation.disclaimer.text).toBe('Acme GmbH');
   });
 
+  it('says which domains the scopes were picked for, and nothing when all are sent', async () => {
+    who.identity = { admin: false, addresses: ['org-alice@example.org', 'org-dave@org-two.test'] };
+    const res = await GET(new NextRequest('https://mail.example/api/admin/policy'));
+    expect(res.headers.get('x-bulwark-policy-domains')).toBe('example.org,org-two.test');
+    who.identity = { admin: true };
+    expect((await GET(new NextRequest('https://mail.example/api/admin/policy'))).headers.get('x-bulwark-policy-domains')).toBeNull();
+  });
+
   it('gives the admin every scope', async () => {
     who.identity = { admin: true };
     expect((await get()).scopes).toHaveLength(2);

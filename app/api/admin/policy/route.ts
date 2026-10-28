@@ -3,7 +3,7 @@ import { configManager } from '@/lib/admin/config-manager';
 import { requireAdminAuth, getClientIP } from '@/lib/admin/session';
 import { auditLog } from '@/lib/admin/audit';
 import { logger } from '@/lib/logger';
-import { POLICY_SCOPE_HEADER, type SettingsPolicy } from '@/lib/admin/types';
+import { POLICY_DOMAINS_HEADER, POLICY_SCOPE_HEADER, type SettingsPolicy } from '@/lib/admin/types';
 import { canSeeInstanceDetails, signedInIdentity } from '@/lib/auth/instance-details';
 import { scopesVisibleTo } from '@/lib/admin/policy-scopes';
 import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
@@ -42,11 +42,17 @@ export async function GET(request: NextRequest) {
     // Without a session secret the server can't tell who is asking and
     // answers with all of them (documented).
     const identity = await signedInIdentity();
-    const scopes = identity === null || identity.admin
-      ? policy.scopes ?? []
-      : scopesVisibleTo(policy.scopes ?? [], identity.addresses);
+    const filtered = identity !== null && !identity.admin;
+    const scopes = filtered
+      ? scopesVisibleTo(policy.scopes ?? [], identity.addresses)
+      : policy.scopes ?? [];
+    // Which domains the scopes were picked for, so a browser that signs in
+    // to an account of another domain knows to fetch again.
+    const domains = filtered
+      ? [...new Set(identity.addresses.map((a) => a.slice(a.lastIndexOf('@') + 1)).filter(Boolean))].join(',')
+      : null;
     return NextResponse.json({ ...policy, scopes }, {
-      headers: { 'Cache-Control': 'no-store' },
+      headers: { 'Cache-Control': 'no-store', ...(domains !== null ? { [POLICY_DOMAINS_HEADER]: domains } : {}) },
     });
   } catch (error) {
     logger.error('Policy read error', { error: error instanceof Error ? error.message : 'Unknown error' });

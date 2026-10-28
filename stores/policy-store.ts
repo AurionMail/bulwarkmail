@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { SettingsPolicy, FeatureGates, SettingRestriction, ThemePolicy, ColorMode } from '@/lib/admin/types';
-import { DEFAULT_POLICY, DEFAULT_THEME_POLICY, POLICY_SCOPE_HEADER } from '@/lib/admin/types';
+import { DEFAULT_POLICY, DEFAULT_THEME_POLICY, POLICY_DOMAINS_HEADER, POLICY_SCOPE_HEADER } from '@/lib/admin/types';
 import { apiFetch } from '@/lib/browser-navigation';
 import { IS_LITE, IS_LITE_STALWART, LITE_POLICY_PATH, withLiteBuildId } from '@/lib/lite';
 import { applyLitePolicy } from '@/lib/lite-config';
@@ -22,6 +22,13 @@ interface PolicyState {
   matchedScopes: string[];
   /** What set each non-default value of `policy` (see ResolvedPolicy.sources). */
   sources: Record<string, PolicySource>;
+  /**
+   * The domains the server picked the scopes for, or null when it sent all
+   * of them. An account of another domain needs a fresh fetch.
+   */
+  scopeDomains: string[] | null;
+  /** Whether the fetched scopes cover this address's domain. */
+  coversAddress: (email: string) => boolean;
   loaded: boolean;
   /**
    * The server answered with the public subset (not signed in yet); the
@@ -81,6 +88,7 @@ const INITIAL = resolved({ ...DEFAULT_POLICY }, null);
 export const usePolicyStore = create<PolicyState>()((set, get) => ({
   ...INITIAL,
   subject: null,
+  scopeDomains: null,
   loaded: false,
   partial: false,
   demoFeatureOverrides: {},
@@ -105,7 +113,9 @@ export const usePolicyStore = create<PolicyState>()((set, get) => ({
         const data = await res.json();
         if (request !== policyRequest) return;
         const partial = res.headers?.get?.(POLICY_SCOPE_HEADER) === 'public';
-        set({ ...resolved(IS_LITE ? applyLitePolicy(data) : data, get().subject), loaded: true, partial });
+        const domainsHeader = res.headers?.get?.(POLICY_DOMAINS_HEADER);
+        const scopeDomains = typeof domainsHeader === 'string' ? domainsHeader.split(',').filter(Boolean) : null;
+        set({ ...resolved(IS_LITE ? applyLitePolicy(data) : data, get().subject), loaded: true, partial, scopeDomains });
       } else {
         set({ ...(fallback.policy ? resolved(fallback.policy, get().subject) : {}), loaded: true });
       }
@@ -120,6 +130,13 @@ export const usePolicyStore = create<PolicyState>()((set, get) => ({
   },
 
   resolveFor: (subject) => resolvePolicy(get().rawPolicy, subject).policy,
+
+  coversAddress: (email) => {
+    const domains = get().scopeDomains;
+    if (!domains) return true;
+    const domain = email.slice(email.lastIndexOf('@') + 1).toLowerCase();
+    return domains.includes(domain);
+  },
 
   getOrganisation: () => get().policy.organisation ?? DEFAULT_ORGANISATION_POLICY,
 

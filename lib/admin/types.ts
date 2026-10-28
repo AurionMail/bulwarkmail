@@ -208,6 +208,12 @@ export interface SettingsPolicy {
 /** Set to `public` on a policy answered with the pre-login subset. */
 export const POLICY_SCOPE_HEADER = 'X-Bulwark-Policy-Scope';
 
+/**
+ * The domains a policy's scopes were picked for (comma-separated); absent
+ * when it holds every scope (admin, or a server that can't tell users apart).
+ */
+export const POLICY_DOMAINS_HEADER = 'X-Bulwark-Policy-Domains';
+
 export const DEFAULT_POLICY: SettingsPolicy = {
   restrictions: {},
   features: { ...DEFAULT_FEATURE_GATES },
