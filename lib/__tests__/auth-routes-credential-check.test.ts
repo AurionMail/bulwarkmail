@@ -56,6 +56,7 @@ vi.mock('@/lib/stalwart/auth-context', () => ({
   setStalwartAuthContext: (...args: unknown[]) => setStalwartAuthContext(...args),
   setStalwartAuthContextInStore: (...args: unknown[]) => setStalwartAuthContextInStore(...args),
   clearStalwartAuthContextInStore: vi.fn(),
+  readStalwartAuthContextFromStore: () => null,
 }));
 
 const recordLogin = vi.fn();

@@ -23,6 +23,7 @@ import { revokeWopiTokens } from '@/lib/wopi/revocation';
 import { clearPairReauthInStore } from '@/lib/auth/pair-reauth';
 import { loginClientAddress } from '@/lib/auth/client-address';
 import { LOGIN_BUDGET_RETRY_AFTER_SECONDS, reserveLoginAttempt } from '@/lib/auth/verify-budget';
+import { isPastMaxAge, limitsEnforcedSince, maxSessionHoursFor, SESSION_TOO_OLD } from '@/lib/auth/session-age';
 
 function sessionCookieOptions() {
   return {
@@ -71,6 +72,37 @@ function getSlot(request: NextRequest): number {
   const slot = parseInt(raw, 10);
   if (isNaN(slot) || slot < 0 || slot >= MAX_ACCOUNT_SLOTS) return 0;
   return slot;
+}
+
+/**
+ * The organisation's maximum session length for a remembered session
+ * (lib/auth/session-age.ts). A cookie from before sign-in times were
+ * recorded counts as signed in when the server first enforced the limits,
+ * a fixed time, so a kept copy of it runs out like any other. Returns the
+ * sign-in time, or the limit when the session is too old: its cookies are
+ * cleared then.
+ */
+async function checkSessionAge(
+  cookieStore: Awaited<ReturnType<typeof cookies>>,
+  slot: number,
+  credentials: SessionCredentials,
+): Promise<{ signedInAt: number } | { maxHours: number }> {
+  const signedInAt = credentials.signedInAt ?? await limitsEnforcedSince();
+  // An impersonation login is `target%master`; the policy is the target's.
+  const maxHours = await maxSessionHoursFor(credentials.username.split('%', 1)[0]);
+  if (isPastMaxAge(signedInAt, maxHours)) {
+    cookieStore.delete(sessionCookieName(slot));
+    clearStalwartAuthContextInStore(cookieStore, slot);
+    return { maxHours };
+  }
+  return { signedInAt };
+}
+
+function sessionTooOld(maxHours: number) {
+  return NextResponse.json(
+    { error: SESSION_TOO_OLD, maxHours },
+    { status: 401, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } },
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -162,7 +194,9 @@ export async function POST(request: NextRequest) {
       throw error;
     }
     refund();
-    const token = encryptSession(normalizedServerUrl, username, accessToken ? { token: accessToken } : password);
+    // A remembered sign-in starts the maximum session length.
+    const signedInAt = Date.now();
+    const token = encryptSession(normalizedServerUrl, username, accessToken ? { token: accessToken } : password, signedInAt);
     const cookieStore = await cookies();
     cookieStore.set(cookieName, token, sessionCookieOptions());
     setStalwartAuthContextInStore(cookieStore, slot, {
@@ -176,7 +210,8 @@ export async function POST(request: NextRequest) {
 
     const warning = insecureCookieHint(request);
     if (warning) logger.warn(`session: ${warning}`);
-    return NextResponse.json(warning ? { ok: true, warning } : { ok: true });
+    // The browser counts the maximum session length from the server's time.
+    return NextResponse.json(warning ? { ok: true, warning, signedInAt } : { ok: true, signedInAt });
   } catch (error) {
     if (error instanceof JmapAuthVerificationError) {
       return NextResponse.json(
@@ -202,11 +237,14 @@ export async function GET(request: NextRequest) {
     }
 
     const credentials = decryptSession(token);
-    if (!credentials) {
+    if (!credentials || holdsMasterPassword(credentials)) {
       cookieStore.delete(cookieName);
       clearStalwartAuthContextInStore(cookieStore, slot);
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
+
+    const age = await checkSessionAge(cookieStore, slot, credentials);
+    if ('maxHours' in age) return sessionTooOld(age.maxHours);
 
     setStalwartAuthContextInStore(cookieStore, slot, {
       serverUrl: credentials.serverUrl,
@@ -217,7 +255,7 @@ export async function GET(request: NextRequest) {
     // Only return non-sensitive fields. Use PUT to retrieve full credentials.
     const { serverUrl, username } = credentials;
     return NextResponse.json(
-      { serverUrl, username },
+      { serverUrl, username, signedInAt: age.signedInAt },
       { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } },
     );
   } catch (error) {
@@ -258,13 +296,17 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
 
+    const age = await checkSessionAge(cookieStore, slot, credentials);
+    if ('maxHours' in age) return sessionTooOld(age.maxHours);
+
     setStalwartAuthContextInStore(cookieStore, slot, {
       serverUrl: credentials.serverUrl,
       username: credentials.username,
       authHeader: sessionAuthHeader(credentials),
     });
 
-    return NextResponse.json(credentials, {
+    // The browser counts the maximum session length from the server's time.
+    return NextResponse.json({ ...credentials, signedInAt: age.signedInAt }, {
       headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
     });
   } catch (error) {
