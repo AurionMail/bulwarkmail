@@ -78,6 +78,8 @@ describe('Organisation > Signatures', () => {
     fireEvent.focus(text);
     fireEvent.click(screen.getByRole('button', { name: '{department}' }));
     await waitFor(() => expect((screen.getByTestId('org-signature-text') as HTMLTextAreaElement).value).toBe('{department}'));
+    // Branding per domain goes by the web address Bulwark is opened on, not the sender's domain.
+    expect(screen.getByText('company name from Branding, for the web address Bulwark is opened on')).toBeInTheDocument();
   });
 
   it('sets a disclaimer for a scope, with a preview', async () => {

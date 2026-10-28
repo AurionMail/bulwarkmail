@@ -30,7 +30,7 @@ const PLACEHOLDER_HELP: Record<SignaturePlaceholder, string> = {
   name: 'name of the address the mail is sent from',
   email: 'that address',
   identity: 'name and address, as in From',
-  company: 'company name from Branding (per domain)',
+  company: 'company name from Branding, for the web address Bulwark is opened on',
   domain: 'domain of the address',
   title: 'job title the user fills in',
   department: 'department the user fills in',
