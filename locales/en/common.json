@@ -232,25 +232,25 @@
     "switching_account": "Switching account..."
   },
   "sidebar_apps": {
-    "modal_title": "Sidebar Apps",
-    "add_new": "Add App",
-    "edit_app": "Edit App",
+    "modal_title": "Sidebar apps",
+    "add_new": "Add app",
+    "edit_app": "Edit app",
     "name_label": "Name",
-    "name_placeholder": "My App",
+    "name_placeholder": "My app",
     "name_required": "Name is required",
     "url_label": "URL",
     "url_required": "URL is required",
     "url_invalid": "Enter a valid http or https URL",
     "icon_label": "Icon",
     "icon_required": "Icon is required",
-    "open_mode_label": "Open Mode",
-    "open_new_tab": "New Tab",
+    "open_mode_label": "Open mode",
+    "open_new_tab": "New tab",
     "open_inline": "Inline",
     "cancel": "Cancel",
     "add": "Add",
     "update": "Update",
     "delete": "Delete",
-    "delete_confirm_title": "Delete App",
+    "delete_confirm_title": "Delete app",
     "delete_confirm": "Are you sure you want to delete \"{name}\"?",
     "no_apps": "No apps added yet",
     "no_apps_hint": "Add custom apps and links to your sidebar",
@@ -263,7 +263,7 @@
     "no_icons_found": "No icons found",
     "inline_badge": "Inline",
     "tab_badge": "Tab",
-    "show_on_mobile": "Show on Mobile"
+    "show_on_mobile": "Show on mobile"
   },
   "email_list": {
     "sections": {

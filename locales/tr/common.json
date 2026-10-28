@@ -232,9 +232,9 @@
     "switching_account": "Hesap değiştiriliyor..."
   },
   "sidebar_apps": {
-    "modal_title": "Kenar Çubuğu Uygulamaları",
-    "add_new": "Uygulama Ekle",
-    "edit_app": "Uygulamayı Düzenle",
+    "modal_title": "Kenar çubuğu uygulamaları",
+    "add_new": "Uygulama ekle",
+    "edit_app": "Uygulamayı düzenle",
     "name_label": "Ad",
     "name_placeholder": "Uygulamam",
     "name_required": "Ad zorunludur",
@@ -243,14 +243,14 @@
     "url_invalid": "Geçerli bir http veya https URL girin",
     "icon_label": "Simge",
     "icon_required": "Simge zorunludur",
-    "open_mode_label": "Açılış Modu",
-    "open_new_tab": "Yeni Sekme",
+    "open_mode_label": "Açılış modu",
+    "open_new_tab": "Yeni sekme",
     "open_inline": "Yerleşik",
     "cancel": "İptal",
     "add": "Ekle",
     "update": "Güncelle",
     "delete": "Sil",
-    "delete_confirm_title": "Uygulamayı Sil",
+    "delete_confirm_title": "Uygulamayı sil",
     "delete_confirm": "\"{name}\" uygulamasını silmek istediğinizden emin misiniz?",
     "no_apps": "Henüz uygulama eklenmedi",
     "no_apps_hint": "Kenar çubuğunuza özel uygulamalar ve bağlantılar ekleyin",
@@ -263,7 +263,7 @@
     "no_icons_found": "Simge bulunamadı",
     "inline_badge": "Yerleşik",
     "tab_badge": "Sekme",
-    "show_on_mobile": "Mobilde Göster"
+    "show_on_mobile": "Mobilde göster"
   },
   "email_list": {
     "sections": {
