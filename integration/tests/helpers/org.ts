@@ -12,6 +12,7 @@
  */
 import { type Browser, type BrowserContext, type Page, expect } from '@playwright/test';
 import { existsSync, mkdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { WEBMAIL_URL } from './config';
 import { accountSwitcher, neutralizeDevOverlay } from './app';
@@ -44,7 +45,9 @@ export function contextOptions(phone = false) {
   };
 }
 
-const stateDir = path.join(process.cwd(), 'integration', 'test-results');
+// Not under integration/test-results: Playwright empties that folder on
+// every run, which would cost an admin login per run.
+const stateDir = path.join(tmpdir(), 'bulwark-org-it');
 const adminStatePath = () => path.join(stateDir, `org-admin-${new URL(WEBMAIL_URL).port || '80'}.json`);
 
 /**
