@@ -126,6 +126,18 @@ describe('CalendarApp keyboard shortcuts', () => {
     fireEvent.keyDown(document.body, { key: 'm', code: 'KeyM' });
     expect(useCalendarStore.getState().viewMode).toBe('month');
   });
+
+  // New 6: the preview opened on top of the open editor.
+  it('opens no hover preview while an editor is open', async () => {
+    setUp([makeEvent(), makeEvent({ id: 'e2', uid: 'u2', title: 'Retro', start: '2026-10-13T14:00:00' })]);
+    renderApp();
+    fireEvent.click(screen.getAllByRole('button', { name: /Standup/ })[0]);
+    fireEvent.click(await screen.findByRole('button', { name: 'events.edit' }));
+    await screen.findByRole('dialog', { name: 'events.edit' });
+    fireEvent.mouseEnter(screen.getAllByRole('button', { name: /Retro/ })[0]);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByRole('dialog', { name: 'Retro' })).toBeNull();
+  });
 });
 
 
