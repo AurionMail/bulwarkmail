@@ -131,7 +131,7 @@ export function TemplatePicker({ isOpen, onClose, onSelect }: TemplatePickerProp
         className="max-h-[70vh]"
         bodyClassName="px-0 pb-0 mt-3 border-t border-border"
         footer={
-          <Button variant="outline" size="sm" className="me-auto mt-3" onClick={() => setShowManager(true)}>
+          <Button variant="outline" size="sm" className="me-auto mt-3 gap-2" onClick={() => setShowManager(true)}>
             <Settings className="w-4 h-4" />
             {t('manage')}
           </Button>
