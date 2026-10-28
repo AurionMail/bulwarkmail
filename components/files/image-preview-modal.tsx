@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { ZoomableImage } from "@/components/files/zoomable-image";
 import { FilePreviewPluginSection } from "@/components/files/file-preview-plugin-section";
 import type { FileResourceView } from "@/lib/plugin-types";
+import { useCloseOnBack } from "@/hooks/use-close-on-back";
 
 interface ImagePreviewModalProps {
   name: string;
@@ -22,6 +23,9 @@ export function ImagePreviewModal({ name, onClose, onDownload, getImageUrl, file
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
+  // Back closes the preview instead of leaving Files, as for every other preview.
+  useCloseOnBack(onClose);
 
   useEffect(() => {
     let revoke: string | null = null;

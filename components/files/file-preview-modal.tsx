@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { generateUUID } from "@/lib/utils";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { X, Download, Loader2, ExternalLink } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import { FilePreviewPluginSection } from "@/components/files/file-preview-plugin
 import { canOpenUrlInNewWindow } from "@/lib/standalone-display";
 import { emailIframeCsp, sanitizeEmailBodyForIframe } from "@/lib/email-sanitization";
 import { useSettingsStore } from "@/stores/settings-store";
+import { useCloseOnBack } from "@/hooks/use-close-on-back";
 import type { FileResourceView } from "@/lib/plugin-types";
 
 /**
@@ -138,10 +138,6 @@ function processInline(text: string): React.ReactNode {
   return parts.length === 1 ? parts[0] : <>{parts}</>;
 }
 
-// Closing one preview can leave an asynchronous Back traversal in flight.
-// A replacement must not install its popstate listener until that completes.
-let pendingPreviewHistoryBack: Promise<void> | null = null;
-
 export function FilePreviewModal({ name, onClose, onDownload, getFileContent, file }: FilePreviewModalProps) {
   const t = useTranslations("files");
   const [content, setContent] = useState<string | null>(null);
@@ -182,43 +178,8 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
     }
   }, []);
 
-  // Keep the latest onClose for the back-button handler without re-subscribing.
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-
-  // Defer history setup so Strict Mode's setup/cleanup/setup replay can
-  // cancel the first setup without scheduling a browser Back traversal.
-  useEffect(() => {
-    const entryId = generateUUID();
-    let cancelled = false;
-    let started = false;
-    let poppedByBack = false;
-    const onPop = () => {
-      poppedByBack = true;
-      onCloseRef.current();
-    };
-    const timer = window.setTimeout(async () => {
-      if (pendingPreviewHistoryBack) await pendingPreviewHistoryBack;
-      if (cancelled) return;
-      window.history.pushState({ ...window.history.state, __filePreview: entryId }, "");
-      started = true;
-      window.addEventListener("popstate", onPop);
-    }, 0);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-      window.removeEventListener("popstate", onPop);
-      if (started && !poppedByBack && window.history.state?.__filePreview === entryId) {
-        pendingPreviewHistoryBack = new Promise<void>(resolve => {
-          window.addEventListener("popstate", () => {
-            pendingPreviewHistoryBack = null;
-            resolve();
-          }, { once: true });
-        });
-        window.history.back();
-      }
-    };
-  }, []);
+  // Back closes the preview instead of leaving Files.
+  useCloseOnBack(onClose);
 
   const fileType = resolvedFileType;
 

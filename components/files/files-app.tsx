@@ -806,6 +806,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
             target={{ kind: "file", id: node.id, name: editResource.name }}
             accountId={node.accountId ?? filesAccountId}
             slot={slot}
+            closeOnBack
             onClose={() => {
               setEditFile(null);
               // The editor may have saved new content - pick up size/mtime.
