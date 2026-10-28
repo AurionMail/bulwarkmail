@@ -1171,18 +1171,29 @@ export function EmailComposer({
   const prevSignatureSeparatorRef = useRef<boolean>(signatureSeparatorEnabled);
   const prevPluginSignatureRevisionRef = useRef(pluginSignatureRevision);
   const prevSignatureIdentityRef = useRef(signatureIdentity);
+  // The signature's text, for a change under the same identity: the
+  // organisation policy arriving after the composer opened, or the user's
+  // details changing.
+  const signatureContent = JSON.stringify([signatureIdentity?.htmlSignature ?? "", signatureIdentity?.textSignature ?? ""]);
+  const prevSignatureContentRef = useRef(signatureContent);
 
   useEffect(() => {
     const editor = editorRef.current;
     const identityChanged = prevSignatureIdentityIdRef.current !== signatureIdentity?.id;
     const separatorChanged = prevSignatureSeparatorRef.current !== signatureSeparatorEnabled;
     const pluginSignatureChanged = prevPluginSignatureRevisionRef.current !== pluginSignatureRevision;
+    const contentChanged = prevSignatureContentRef.current !== signatureContent;
     const previousIdentity = prevSignatureIdentityRef.current;
     prevSignatureIdentityIdRef.current = signatureIdentity?.id;
     prevSignatureSeparatorRef.current = signatureSeparatorEnabled;
     prevPluginSignatureRevisionRef.current = pluginSignatureRevision;
     prevSignatureIdentityRef.current = signatureIdentity;
-    if (!identityChanged && !separatorChanged && !pluginSignatureChanged) return;
+    prevSignatureContentRef.current = signatureContent;
+    if (!identityChanged && !separatorChanged && !pluginSignatureChanged && !contentChanged) return;
+    // A signature that arrives where there was none comes into the body like
+    // a new identity's; one the user removed stays removed.
+    const hadSignature = !!(previousIdentity?.htmlSignature || previousIdentity?.textSignature);
+    const bringsSignature = identityChanged || (contentChanged && !hadSignature);
     // Replies/forwards only embed when configured for "above quote". Compose
     // always embeds (see getInitialBody), so swap on identity change there too.
     const isReplyLike = mode === 'reply' || mode === 'replyAll' || mode === 'forward';
@@ -1192,7 +1203,7 @@ export function EmailComposer({
     if (plainTextMode) {
       // A new plain-text message carries the signature at the end of the
       // body, a reply or forward above its quote header.
-      if (!identityChanged) return;
+      if (!identityChanged && !contentChanged) return;
       const options = { separator: signatureSeparatorEnabled };
       if (mode === 'compose') {
         setBody((prev) => replacePlainTextSignature(prev, previousIdentity, signatureIdentity, options));
@@ -1215,8 +1226,8 @@ export function EmailComposer({
     // quoted body - see removeSignatureRange), or removed when the new
     // identity has no signature.
     const currentHtml = serializeEditorContent(editor);
-    // Only a new identity brings a signature back into a body without one.
-    if (!identityChanged && !containsEmbeddedSignature(currentHtml)) return;
+    // Only a new identity (or a first signature) brings one into a body without one.
+    if (!bringsSignature && !containsEmbeddedSignature(currentHtml)) return;
     const nextHtml = replaceEmbeddedSignature(currentHtml, buildEmbeddedSignatureHtml(signatureIdentity, {
       embed: true,
       separator: signatureSeparatorEnabled,
@@ -1229,7 +1240,7 @@ export function EmailComposer({
     // would re-run on unrelated identity-field changes and re-splice the
     // signature into the live editor.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signatureIdentity?.id, signatureIdentity?.htmlSignature, signatureIdentity?.textSignature, signatureSeparatorEnabled, signaturePosition, mode, plainTextMode, pluginSignatureRevision]);
+  }, [signatureIdentity?.id, signatureContent, signatureSeparatorEnabled, signaturePosition, mode, plainTextMode, pluginSignatureRevision]);
 
   useEffect(() => {
     const handleClickOutsideSendMenu = (event: MouseEvent) => {

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import React from 'react';
 import { EmailComposer } from '../email-composer';
@@ -411,6 +411,56 @@ describe('organisation signature in the composer', () => {
       fireEvent.change(fromSelect(), { target: { value: 'id-team' } });
       await waitFor(() => expect(editorState.html).toContain('ACME Ltd'));
       expectOrgSignatureOnce(await send(onSend), 'Team');
+    });
+  });
+
+  describe('a signature that changes while the composer is open', () => {
+    const PROPS = { prefill: { to: ['bob@example.com'] } };
+
+    it('swaps in a locked signature whose policy arrives after the composer opened', async () => {
+      setOrgPolicy({ signature: null });
+      const onSend = vi.fn();
+      render(<EmailComposer {...PROPS} onSend={onSend} />);
+      await waitFor(() => expect(editorState.html).toContain('<b>Alice</b>'));
+      act(() => setOrgPolicy({ locked: true }));
+      await waitFor(() => expect(editorState.html).toContain('ACME Ltd'));
+      expectOrgSignatureOnce(await send(onSend), 'Me');
+    });
+
+    it('brings in a default that arrives late for an identity without a signature', async () => {
+      setOrgPolicy({ signature: null });
+      const onSend = vi.fn();
+      render(<EmailComposer {...PROPS} onSend={onSend} />);
+      fireEvent.change(fromSelect(), { target: { value: 'id-team' } });
+      await waitFor(() => expect(editorState.html).not.toContain('Alice'));
+      act(() => setOrgPolicy());
+      await waitFor(() => expect(editorState.html).toContain('ACME Ltd'));
+      expectOrgSignatureOnce(await send(onSend), 'Team');
+    });
+
+    it('fills in the details again when they change', async () => {
+      setOrgPolicy({ locked: true });
+      const onSend = vi.fn();
+      const { rerender } = render(<EmailComposer {...PROPS} onSend={onSend} />);
+      await waitFor(() => expect(editorState.html).toContain('CEO'));
+      useSettingsStore.setState({ signatureDetails: { title: 'CTO', department: '', phone: '+49 30 1', mobile: '' } } as never);
+      rerender(<EmailComposer {...PROPS} onSend={onSend} />);
+      await waitFor(() => expect(editorState.html).toContain('CTO'));
+      const sent = await send(onSend);
+      expect(countOf(sent.htmlBody!, 'ACME Ltd')).toBe(1);
+      expect(sent.htmlBody).not.toContain('CEO');
+    });
+
+    it('swaps a plain-text signature whose policy arrives late', async () => {
+      useSettingsStore.setState({ plainTextMode: true });
+      setOrgPolicy({ signature: null });
+      const onSend = vi.fn();
+      render(<EmailComposer {...PROPS} onSend={onSend} />);
+      const textarea = () => document.querySelector('textarea') as HTMLTextAreaElement;
+      await waitFor(() => expect(textarea().value).toContain('Alice'));
+      act(() => setOrgPolicy({ locked: true }));
+      await waitFor(() => expect(textarea().value).toContain('ACME Ltd'));
+      expectOrgSignatureOnce(await send(onSend), 'Me');
     });
   });
 });
