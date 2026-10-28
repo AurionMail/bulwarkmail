@@ -1,5 +1,9 @@
 import { useEffect, useRef } from 'react';
 
+// The traps that are active, the one opened last at the end. Only that one
+// answers Escape, so a dialog over a dialog closes alone.
+const activeTraps: object[] = [];
+
 interface UseFocusTrapOptions {
   isActive: boolean;
   onEscape?: () => void;
@@ -29,6 +33,15 @@ export function useFocusTrap({
     previousActiveElement.current = document.activeElement as HTMLElement;
 
     const container = containerRef.current;
+    const token = {};
+    activeTraps.push(token);
+    const isTopmost = () => activeTraps[activeTraps.length - 1] === token;
+
+    // A click on text in the dialog (a heading, a paragraph) would otherwise
+    // move the focus to <body>, out of reach of the keydown listener below:
+    // focusable, the container takes it instead.
+    const addedTabIndex = !container.hasAttribute('tabindex');
+    if (addedTabIndex) container.setAttribute('tabindex', '-1');
 
     // Get all focusable elements
     const getFocusableElements = () => {
@@ -55,7 +68,7 @@ export function useFocusTrap({
     const handleKeyDown = (e: KeyboardEvent) => {
       // Handle Escape
       if (e.key === 'Escape' && onEscapeRef.current) {
-        onEscapeRef.current();
+        if (isTopmost()) onEscapeRef.current();
         return;
       }
 
@@ -66,8 +79,9 @@ export function useFocusTrap({
         const lastElement = focusableElements[focusableElements.length - 1];
 
         if (e.shiftKey) {
-          // Shift+Tab
-          if (document.activeElement === firstElement) {
+          // Shift+Tab; from the container itself too, which has the focus
+          // after a click on text and sits before the first element.
+          if (document.activeElement === firstElement || document.activeElement === container) {
             lastElement?.focus();
             e.preventDefault();
           }
@@ -82,6 +96,18 @@ export function useFocusTrap({
     };
 
     container.addEventListener('keydown', handleKeyDown);
+
+    // Escape with the focus outside the dialog: after a click on the
+    // backdrop the focus is on <body>. The listener above has answered every
+    // Escape from inside; a widget outside that already used the key (a
+    // portalled dropdown closing) marks it handled.
+    const handleDocumentKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || !onEscapeRef.current) return;
+      if (e.target instanceof Node && container.contains(e.target)) return;
+      if (!isTopmost()) return;
+      onEscapeRef.current();
+    };
+    document.addEventListener('keydown', handleDocumentKeyDown);
 
     // A view change in the dialog (a list giving way to a form) can remove
     // the element that had the focus, which then drops to the page behind,
@@ -100,6 +126,10 @@ export function useFocusTrap({
       observer.disconnect();
       container.removeEventListener('focusin', handleFocusIn);
       container.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleDocumentKeyDown);
+      const index = activeTraps.indexOf(token);
+      if (index !== -1) activeTraps.splice(index, 1);
+      if (addedTabIndex) container.removeAttribute('tabindex');
 
       // Restore focus to previous element
       if (restoreFocus && previousActiveElement.current) {

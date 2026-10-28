@@ -87,4 +87,57 @@ describe('useFocusTrap', () => {
     await Promise.resolve();
     expect(document.activeElement).toBe(document.body);
   });
+
+  it('closes on Escape after a click on text inside the dialog', () => {
+    const onEscape = vi.fn();
+    render(<Page open onEscape={onEscape} note="Heading" />);
+    const dialog = screen.getByRole('dialog');
+    // A click on non-focusable content focuses its nearest focusable
+    // ancestor; the dialog has to be one, or the focus drops to <body>.
+    expect(dialog).toHaveAttribute('tabindex', '-1');
+    dialog.focus();
+    fireEvent.keyDown(screen.getByText('Heading'), { key: 'Escape' });
+    expect(onEscape).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes on Escape after a click on the backdrop moved the focus to the page', () => {
+    const onEscape = vi.fn();
+    render(<Page open onEscape={onEscape} />);
+    (document.activeElement as HTMLElement).blur();
+    expect(document.activeElement).toBe(document.body);
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(onEscape).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets only the dialog opened last answer Escape', () => {
+    const outer = vi.fn();
+    const inner = vi.fn();
+    function Nested() {
+      const outerRef = useFocusTrap({ isActive: true, onEscape: outer });
+      const innerRef = useFocusTrap({ isActive: true, onEscape: inner });
+      return (
+        <div ref={outerRef}>
+          <button type="button">outer</button>
+          <div ref={innerRef}><button type="button">inner</button></div>
+        </div>
+      );
+    }
+    render(<Nested />);
+    fireEvent.keyDown(screen.getByText('inner'), { key: 'Escape' });
+    (document.activeElement as HTMLElement).blur();
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(inner).toHaveBeenCalledTimes(2);
+    expect(outer).not.toHaveBeenCalled();
+  });
+
+  it('removes the tabindex it added when the dialog closes', () => {
+    function Panel({ active }: { active: boolean }) {
+      const ref = useFocusTrap({ isActive: active });
+      return <div ref={ref} data-testid="panel"><button type="button">x</button></div>;
+    }
+    const { rerender } = render(<Panel active />);
+    expect(screen.getByTestId('panel')).toHaveAttribute('tabindex', '-1');
+    rerender(<Panel active={false} />);
+    expect(screen.getByTestId('panel')).not.toHaveAttribute('tabindex');
+  });
 });
