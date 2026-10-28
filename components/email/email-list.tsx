@@ -182,6 +182,7 @@ export function EmailList({
   const tNotifications = useTranslations('notifications');
   const tViewer = useTranslations('email_viewer');
   const tSidebar = useTranslations('sidebar');
+  const mountainViewList = useSettingsStore((state) => state.interfaceLayout === 'mountain-view');
   const undo = undoLabels(tNotifications);
   const { client } = useAuthStore(useShallow((state) => ({ client: state.client })));
   const {
@@ -1055,7 +1056,9 @@ export function EmailList({
         // The mail shell's "Skip to message list" lands here.
         id="message-list"
         tabIndex={-1}
-        className="flex-1 overflow-y-auto bg-background relative outline-none"
+        // Room under the last row for the round Compose button, which would
+        // otherwise sit on that row's actions (Mountain View has no such button).
+        className={cn("flex-1 overflow-y-auto bg-background relative outline-none", !mountainViewList && "pb-20")}
         data-tour="email-list"
         // The column header above keeps the same gutter, so its titles stay over the columns.
         style={listColumns ? { scrollbarGutter: 'stable' } : undefined}

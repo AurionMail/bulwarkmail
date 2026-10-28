@@ -424,7 +424,6 @@ function renderClickableRecipients(
 
     return (
       <span key={r.email + index} className="inline-flex items-center">
-        {index > 0 && <span className="text-muted-foreground me-1">,</span>}
         <RecipientPopover
           name={r.name}
           email={r.email}
@@ -432,6 +431,7 @@ function renderClickableRecipients(
           onViewContact={onViewContact}
           className="text-sm"
         />
+        {index < visible.length - 1 && <span className="text-muted-foreground">,</span>}
       </span>
     );
   });
@@ -3847,7 +3847,7 @@ export function EmailViewer({
               title={t('send_now')}
             >
               <Send className="w-4 h-4" />
-              {showToolbarLabels && <span className="hidden sm:inline text-sm">{t('send_now')}</span>}
+              {showToolbarLabels && <span className="hidden sm:inline text-sm whitespace-nowrap">{t('send_now')}</span>}
             </Button>
             <Button
               variant="ghost"
@@ -3859,16 +3859,16 @@ export function EmailViewer({
               title={t('reschedule_send')}
             >
               <CalendarClock className="w-4 h-4" />
-              {showToolbarLabels && <span className="hidden sm:inline text-sm">{t('reschedule_send')}</span>}
+              {showToolbarLabels && <span className="hidden sm:inline text-sm whitespace-nowrap">{t('reschedule_send')}</span>}
             </Button>
             <Button variant="ghost" size="sm" onClick={onCancelScheduledForEdit} className="hidden sm:flex sm:h-8 sm:gap-1.5 sm:py-0" title={email.isSmimeScheduled ? t('cancel_and_compose_again') : t('cancel_and_edit')}>
               <Pencil className="w-4 h-4" />
-              {showToolbarLabels && <span className="hidden sm:inline text-sm">{email.isSmimeScheduled ? t('cancel_and_compose_again') : t('cancel_and_edit')}</span>}
+              {showToolbarLabels && <span className="hidden sm:inline text-sm whitespace-nowrap">{email.isSmimeScheduled ? t('cancel_and_compose_again') : t('cancel_and_edit')}</span>}
             </Button>
             {onCancelScheduledSend && !email.isSmimeScheduled && (
               <Button variant="ghost" size="sm" onClick={onCancelScheduledSend} className="hidden sm:flex sm:h-8 sm:gap-1.5 sm:py-0" title={t('cancel_scheduled_send')} data-testid="cancel-scheduled-send">
                 <CalendarX className="w-4 h-4" />
-                {showToolbarLabels && <span className="hidden sm:inline text-sm">{t('cancel_scheduled_send')}</span>}
+                {showToolbarLabels && <span className="hidden sm:inline text-sm whitespace-nowrap">{t('cancel_scheduled_send')}</span>}
               </Button>
             )}
           </>
@@ -3897,7 +3897,7 @@ export function EmailViewer({
           title={t('tooltips.reply')}
         >
           <Reply className="w-4 h-4" />
-          {showToolbarLabels && <span className="hidden sm:inline text-sm">{t('reply')}</span>}
+          {showToolbarLabels && <span className="hidden sm:inline text-sm whitespace-nowrap">{t('reply')}</span>}
         </Button>
         <Button
           variant="ghost"
@@ -3909,7 +3909,7 @@ export function EmailViewer({
           title={t('tooltips.reply_all')}
         >
           <ReplyAll className="w-4 h-4" />
-          {showToolbarLabels && <span className="hidden sm:inline text-sm">{t('reply_all')}</span>}
+          {showToolbarLabels && <span className="hidden sm:inline text-sm whitespace-nowrap">{t('reply_all')}</span>}
         </Button>
         <Button
           variant="ghost"
@@ -3921,7 +3921,7 @@ export function EmailViewer({
           title={t('tooltips.forward')}
         >
           <Forward className="w-4 h-4" />
-          {showToolbarLabels && <span className="hidden sm:inline text-sm">{t('forward')}</span>}
+          {showToolbarLabels && <span className="hidden sm:inline text-sm whitespace-nowrap">{t('forward')}</span>}
         </Button>
         </>)}
         <PluginSlot name="toolbar-actions" />
@@ -4088,7 +4088,7 @@ export function EmailViewer({
           title={t('print')}
         >
           <Printer className="w-4 h-4" />
-          {showToolbarLabels && <span className="hidden sm:inline text-sm">{t('print')}</span>}
+          {showToolbarLabels && <span className="hidden sm:inline text-sm whitespace-nowrap">{t('print')}</span>}
         </Button>
         )}
 
@@ -4998,7 +4998,7 @@ export function EmailViewer({
                     {email.to.length > 2 && (
                       <button
                         onClick={() => setShowFullHeaders(!showFullHeaders)}
-                        className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                        className="text-primary hover:underline text-sm"
                       >
                         {t('more_count', { count: email.to.length - 2 })}
                       </button>
@@ -5011,7 +5011,12 @@ export function EmailViewer({
                     <span>{t('cc')}:</span>
                     {renderClickableRecipients(email.cc, currentUserEmail, t, handleViewContactSidebar)}
                     {email.cc.length > 2 && (
-                      <span className="text-muted-foreground">+{email.cc.length - 2}</span>
+                      <button
+                        onClick={() => setShowFullHeaders(!showFullHeaders)}
+                        className="text-primary hover:underline text-sm"
+                      >
+                        {t('more_count', { count: email.cc.length - 2 })}
+                      </button>
                     )}
                   </>
                 )}
@@ -5271,7 +5276,12 @@ export function EmailViewer({
                     <span>{t('cc')}:</span>
                     {renderClickableRecipients(email.cc, currentUserEmail, t, handleViewContactSidebar)}
                     {email.cc.length > 2 && (
-                      <span>+{email.cc.length - 2}</span>
+                      <button
+                        onClick={() => setShowFullHeaders(!showFullHeaders)}
+                        className="text-primary hover:underline text-sm"
+                      >
+                        {t('more_count', { count: email.cc.length - 2 })}
+                      </button>
                     )}
                   </>
                 )}

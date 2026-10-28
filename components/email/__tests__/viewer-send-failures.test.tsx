@@ -282,3 +282,23 @@ describe('viewer send failures', () => {
     });
   });
 });
+
+describe('recipients in the header', () => {
+  it('puts the comma after a name and makes Cc "+N" open the full list', () => {
+    const { container } = render(
+      <EmailViewer
+        email={makeEmail({
+          to: [{ name: 'Alice Johnson', email: 'alice@example.com' }, { name: 'Bob Chen', email: 'bob@example.com' }],
+          cc: [{ email: 'c1@example.com' }, { email: 'c2@example.com' }, { email: 'c3@example.com' }],
+        })}
+        mailboxes={mailboxes}
+        selectedMailbox="inbox"
+        currentMailboxRole="inbox"
+      />,
+    );
+    const alice = screen.getAllByText('Alice Johnson')[0].closest('span.inline-flex')!;
+    expect(alice.textContent).toBe('Alice Johnson,');
+    expect(container.textContent).not.toContain('+1');
+    expect(screen.getAllByRole('button', { name: 'more_count' }).length).toBeGreaterThan(0);
+  });
+});
