@@ -2339,10 +2339,10 @@
       "export_label": "Ekspordi kontaktid",
       "export_description": "Ekspordi kõik kontaktid vCard (.vcf) failina",
       "manage_title": "Aadressiraamatud",
-      "manage_description": "Nimeta oma aadressiraamatud ümber",
+      "manage_description": "Nimeta oma aadressiraamatud ümber või kustuta need",
       "no_address_books": "Aadressiraamatuid ei leitud",
       "categories_title": "Kategooriad",
-      "categories_description": "Nimeta kontaktikategooriad ümber",
+      "categories_description": "Nimeta kontaktikategooriad ümber või kustuta need",
       "no_categories": "Kategooriaid ei leitud"
     },
     "calendar_management": {

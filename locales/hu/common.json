@@ -2335,10 +2335,10 @@
       "export_label": "Névjegyek exportálása",
       "export_description": "Összes névjegy exportálása vCard (.vcf) fájlként",
       "manage_title": "Címjegyzékek",
-      "manage_description": "Címjegyzékeid átnevezése",
+      "manage_description": "Címjegyzékeid átnevezése vagy törlése",
       "no_address_books": "Nincs címjegyzék",
       "categories_title": "Kategóriák",
-      "categories_description": "Névjegy kategóriák átnevezése",
+      "categories_description": "Névjegy kategóriák átnevezése vagy törlése",
       "no_categories": "Nincs kategória"
     },
     "calendar_management": {

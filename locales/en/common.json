@@ -2339,10 +2339,10 @@
       "export_label": "Export contacts",
       "export_description": "Export all contacts as a vCard (.vcf) file",
       "manage_title": "Address books",
-      "manage_description": "Rename your address books",
+      "manage_description": "Rename or delete your address books",
       "no_address_books": "No address books found",
       "categories_title": "Categories",
-      "categories_description": "Rename contact categories",
+      "categories_description": "Rename or delete contact categories",
       "no_categories": "No categories found"
     },
     "calendar_management": {

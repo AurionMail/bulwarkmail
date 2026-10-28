@@ -4518,10 +4518,10 @@
       "export_label": "ส่งออกผู้ติดต่อ",
       "export_description": "ส่งออกผู้ติดต่อทั้งหมดเป็นไฟล์ vCard (.vcf)",
       "manage_title": "สมุดที่อยู่",
-      "manage_description": "เปลี่ยนชื่อสมุดที่อยู่ของคุณ",
+      "manage_description": "เปลี่ยนชื่อหรือลบสมุดที่อยู่ของคุณ",
       "no_address_books": "ไม่พบสมุดที่อยู่",
       "categories_title": "หมวดหมู่",
-      "categories_description": "เปลี่ยนชื่อหมวดหมู่ผู้ติดต่อ",
+      "categories_description": "เปลี่ยนชื่อหรือลบหมวดหมู่ผู้ติดต่อ",
       "no_categories": "ไม่พบหมวดหมู่"
     },
     "calendar_management": {

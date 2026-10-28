@@ -2339,10 +2339,10 @@
       "export_label": "Exporta contactes",
       "export_description": "Exporteu tots els contactes com a fitxer vCard (.vcf)",
       "manage_title": "Llibretes d'adreces",
-      "manage_description": "Canvieu el nom de les llibretes d'adreces",
+      "manage_description": "Canvieu el nom de les llibretes d'adreces o suprimiu-les",
       "no_address_books": "No s'ha trobat cap llibreta d'adreces",
       "categories_title": "Categories",
-      "categories_description": "Canvieu el nom de les categories de contactes",
+      "categories_description": "Canvieu el nom de les categories de contactes o suprimiu-les",
       "no_categories": "No s'ha trobat cap categoria"
     },
     "calendar_management": {

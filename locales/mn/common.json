@@ -2339,10 +2339,10 @@
       "export_label": "Харилцагчдыг экспортлох",
       "export_description": "Бүх харилцагчдыг vCard (.vcf) файл болгон экспортлох",
       "manage_title": "Хаягийн дэвтэр",
-      "manage_description": "Хаягийн дэвтэрийнхээ нэрийг өөрчлөх",
+      "manage_description": "Хаягийн дэвтрийнхээ нэрийг өөрчлөх эсвэл устгах",
       "no_address_books": "Хаягийн дэвтэр олдсонгүй",
       "categories_title": "Ангилал",
-      "categories_description": "Харилцах ангиллын нэрийг өөрчлөх",
+      "categories_description": "Харилцагчийн ангиллын нэрийг өөрчлөх эсвэл устгах",
       "no_categories": "Ангилал олдсонгүй"
     },
     "calendar_management": {

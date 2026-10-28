@@ -2339,10 +2339,10 @@
       "export_label": "Exportați contactele",
       "export_description": "Exportați toate contactele ca fișier VCF (vCard).",
       "manage_title": "Agende de adrese",
-      "manage_description": "Redenumiți agendele de adrese",
+      "manage_description": "Redenumiți sau ștergeți agendele de adrese",
       "no_address_books": "Nu s-au găsit agende de adrese",
       "categories_title": "Categorii",
-      "categories_description": "Redenumiți categoriile de contacte",
+      "categories_description": "Redenumiți sau ștergeți categoriile de contacte",
       "no_categories": "Nu s-au găsit categorii"
     },
     "calendar_management": {

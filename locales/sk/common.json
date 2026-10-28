@@ -2339,10 +2339,10 @@
       "export_label": "Exportovať kontakty",
       "export_description": "Exportovať všetky kontakty ako súbor vCard (.vcf)",
       "manage_title": "Adresáre",
-      "manage_description": "Premenovať svoje adresáre",
+      "manage_description": "Premenovať alebo zmazať svoje adresáre",
       "no_address_books": "Neboli nájdené žiadne adresáre",
       "categories_title": "Kategórie",
-      "categories_description": "Premenovať kategórie kontaktov",
+      "categories_description": "Premenovať alebo zmazať kategórie kontaktov",
       "no_categories": "Neboli nájdené žiadne kategórie"
     },
     "calendar_management": {

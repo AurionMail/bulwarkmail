@@ -2339,10 +2339,10 @@
       "export_label": "匯出聯絡人",
       "export_description": "將所有聯絡人匯出為 vCard（.vcf）檔案",
       "manage_title": "通訊錄",
-      "manage_description": "重新命名您的通訊錄",
+      "manage_description": "重新命名或刪除您的通訊錄",
       "no_address_books": "找不到通訊錄",
       "categories_title": "類別",
-      "categories_description": "重新命名聯絡人類別",
+      "categories_description": "重新命名或刪除聯絡人類別",
       "no_categories": "找不到類別"
     },
     "calendar_management": {

@@ -2339,10 +2339,10 @@
       "export_label": "خروجی مخاطبین",
       "export_description": "خروجی همه مخاطبین به صورت فایل vCard (.vcf)",
       "manage_title": "دفترچه‌های آدرس",
-      "manage_description": "تغییر نام دفترچه‌های آدرس",
+      "manage_description": "تغییر نام یا حذف دفترچه‌های آدرس",
       "no_address_books": "دفترچه آدرسی یافت نشد",
       "categories_title": "دسته‌بندی‌ها",
-      "categories_description": "تغییر نام دسته‌بندی‌های مخاطبین",
+      "categories_description": "تغییر نام یا حذف دسته‌بندی‌های مخاطبین",
       "no_categories": "دسته‌بندی یافت نشد"
     },
     "calendar_management": {

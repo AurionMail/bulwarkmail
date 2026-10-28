@@ -2335,10 +2335,10 @@
       "export_label": "Eksportér kontakter",
       "export_description": "Eksportér alle kontakter som en vCard-fil (.vcf)",
       "manage_title": "Adressebøger",
-      "manage_description": "Omdøb dine adressebøger",
+      "manage_description": "Omdøb eller slet dine adressebøger",
       "no_address_books": "Ingen adressebøger fundet",
       "categories_title": "Kategorier",
-      "categories_description": "Omdøb kontaktkategorier",
+      "categories_description": "Omdøb eller slet kontaktkategorier",
       "no_categories": "Ingen kategorier fundet"
     },
     "calendar_management": {

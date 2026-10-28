@@ -2339,10 +2339,10 @@
       "export_label": "Eksporter kontakter",
       "export_description": "Eksporter alle kontakter som en vCard-fil (.vcf).",
       "manage_title": "Adressebøker",
-      "manage_description": "Gi nytt navn til adressebøkene dine",
+      "manage_description": "Gi nytt navn til eller slett adressebøkene dine",
       "no_address_books": "Ingen adressebøker funnet",
       "categories_title": "Kategorier",
-      "categories_description": "Gi nytt navn til kontaktkategorier",
+      "categories_description": "Gi nytt navn til eller slett kontaktkategorier",
       "no_categories": "Ingen kategorier funnet"
     },
     "calendar_management": {

@@ -2332,10 +2332,10 @@
       "export_label": "Kişileri Dışa Aktar",
       "export_description": "Tüm kişileri vCard (.vcf) dosyası olarak dışa aktarın",
       "manage_title": "Adres Defterleri",
-      "manage_description": "Adres defterlerinizi yeniden adlandırın",
+      "manage_description": "Adres defterlerinizi yeniden adlandırın veya silin",
       "no_address_books": "Adres defteri bulunamadı",
       "categories_title": "Kategoriler",
-      "categories_description": "Kişi kategorilerini yeniden adlandırın",
+      "categories_description": "Kişi kategorilerini yeniden adlandırın veya silin",
       "no_categories": "Kategori bulunamadı"
     },
     "calendar_management": {

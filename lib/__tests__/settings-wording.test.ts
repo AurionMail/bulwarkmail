@@ -66,6 +66,12 @@ describe('settings wording', () => {
     expect(text('settings.security.email_client.password_instructions')).toContain('in the section below');
   });
 
+  // Settings > Contacts deletes address books and categories as well.
+  it('says the contact lists can be deleted, not only renamed', () => {
+    expect(text('settings.contacts.manage_description')).toBe('Rename or delete your address books');
+    expect(text('settings.contacts.categories_description')).toBe('Rename or delete contact categories');
+  });
+
   // R5: every editor asks the same question with the same buttons, in every
   // language: Settings and Contacts say what Calendar says.
   it('asks "Discard changes?" with Keep editing / Discard everywhere', () => {

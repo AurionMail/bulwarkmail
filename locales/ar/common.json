@@ -2339,10 +2339,10 @@
       "export_label": "تصدير جهات الاتصال",
       "export_description": "تصدير جميع جهات الاتصال كملف vCard (‎.vcf)",
       "manage_title": "دفاتر العناوين",
-      "manage_description": "إعادة تسمية دفاتر عناوينك",
+      "manage_description": "إعادة تسمية دفاتر عناوينك أو حذفها",
       "no_address_books": "لم يتم العثور على دفاتر عناوين",
       "categories_title": "الفئات",
-      "categories_description": "إعادة تسمية فئات جهات الاتصال",
+      "categories_description": "إعادة تسمية فئات جهات الاتصال أو حذفها",
       "no_categories": "لم يتم العثور على فئات"
     },
     "calendar_management": {
