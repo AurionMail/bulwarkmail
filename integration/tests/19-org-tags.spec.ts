@@ -170,7 +170,7 @@ test.describe('on a server with metadata', () => {
     await form.getByRole('button', { name: 'Save' }).click();
     await expect(account.locator('[data-testid="shared-tag-row"][data-tag-id="urgent"]')).toBeVisible();
     await shot(alice, 'tags-settings-editor');
-    await expect.poll(sharedTagsOnServer).toEqual({ list: [{ id: 'urgent', label: 'Urgent', color: 'red' }] });
+    await expect.poll(sharedTagsOnServer).toEqual({ tags: { urgent: { label: 'Urgent', color: 'red' } } });
 
     await alice.goto('/');
     await openTeamInbox(alice);
@@ -189,6 +189,16 @@ test.describe('on a server with metadata', () => {
     await expect.poll(async () => (await messageKeywords())['$label:urgent']).toBe(true);
     await alice.keyboard.press('Escape');
     await expect(row.getByTitle('Urgent')).toBeVisible();
+
+    // The group's tag in the sidebar counts and lists that group's mail
+    // only: her own message with the same keyword stays out.
+    const sharedRow = alice.getByTestId('shared-account-tags').getByTestId('folder-row').filter({ hasText: 'Urgent' });
+    await expect(sharedRow.getByTestId('folder-counts')).toHaveAttribute('data-total', '1', { timeout: 30000 });
+    await sharedRow.click();
+    await expect(emailItem(alice, SUBJECT).first()).toBeVisible({ timeout: 30000 });
+    await expect(emailItem(alice, OWN_SUBJECT)).toHaveCount(0);
+    await expect(sharedRow).toHaveAttribute('data-selected', 'true');
+    await shot(alice, 'tags-sidebar-group-view');
     await alice.context().close();
   });
 
@@ -203,11 +213,11 @@ test.describe('on a server with metadata', () => {
 
     // Another member's edit arrives without a reload (push: the Inbox's
     // Mailbox state changes with its metadata).
-    await jmap([['Mailbox/set', { accountId: api!.team, update: { [api!.inbox]: { 'metadata/org.bulwarkmail.tags': { list: [{ id: 'urgent', label: 'Very urgent', color: 'orange' }] } } } }, 's']], META_USING);
+    await jmap([['Mailbox/set', { accountId: api!.team, update: { [api!.inbox]: { 'metadata/org.bulwarkmail.tags/tags/urgent': { label: 'Very urgent', color: 'orange' } } } }, 's']], META_USING);
     const renamed = emailItem(bob, SUBJECT).first().getByTitle('Very urgent');
     await expect(renamed).toBeVisible({ timeout: 30000 });
     await expect(renamed).toHaveClass(/bg-orange-500\/10/);
-    await jmap([['Mailbox/set', { accountId: api!.team, update: { [api!.inbox]: { 'metadata/org.bulwarkmail.tags': { list: [{ id: 'urgent', label: 'Urgent', color: 'red' }] } } } }, 's']], META_USING);
+    await jmap([['Mailbox/set', { accountId: api!.team, update: { [api!.inbox]: { 'metadata/org.bulwarkmail.tags/tags/urgent': { label: 'Urgent', color: 'red' } } } }, 's']], META_USING);
     await expect(emailItem(bob, SUBJECT).first().getByTitle('Urgent')).toBeVisible({ timeout: 30000 });
     await bob.context().close();
   });
@@ -235,6 +245,23 @@ test.describe('on a server with metadata', () => {
     await alice.context().close();
     await putPolicy(admin, policy);
     await admin.close();
+  });
+
+  test('deleting a shared tag warns that it is for everyone, at phone width too', async ({ browser }) => {
+    const alice = await userPage(browser, ORG.alice, true);
+    const account = await openSharedTagSettings(alice, true);
+    await account.getByRole('button', { name: 'Delete Urgent' }).click();
+    const confirm = account.getByTestId('shared-tag-delete-confirm');
+    await expect(confirm.getByText('Delete for everyone? The tag stays on its messages.')).toBeVisible();
+    for (const name of ['Delete', 'Cancel']) {
+      const box = await confirm.getByRole('button', { name, exact: true }).boundingBox();
+      expect(box!.height).toBeGreaterThanOrEqual(44);
+    }
+    await shot(alice, 'tags-delete-confirm-phone');
+    await confirm.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(account.getByRole('button', { name: 'Edit Urgent' })).toBeFocused();
+    expect(await sharedTagsOnServer()).toEqual({ tags: { urgent: { label: 'Urgent', color: 'red' } } });
+    await alice.context().close();
   });
 
   test('a lock applies only to the scope that sets it, read-only with the reason in place', async ({ browser }) => {
@@ -276,7 +303,7 @@ test.describe('on a server with metadata', () => {
     const bobTags = await openSharedTagSettings(bob);
     await expect(bobTags.getByText('Set by your organisation')).toBeVisible();
     await expect(bobTags.getByRole('button', { name: 'Add shared tag' })).toHaveCount(0);
-    await expect(bobTags.getByRole('button', { name: 'Edit tag' })).toHaveCount(0);
+    await expect(bobTags.getByRole('button', { name: /^(Edit|Delete|Name) / })).toHaveCount(0);
     await expect(bobTags.locator('[data-tag-id="urgent"]')).toBeVisible();
     await shot(bob, 'tags-settings-locked');
     // Tagging with the shared tags still works.
@@ -322,12 +349,15 @@ test.describe('on a server without metadata', () => {
     await expect(alice.getByTestId('shared-account-tags')).toHaveCount(0);
 
     const account = await openSharedTagSettings(alice);
-    await expect(account.getByTestId('shared-tags-unsupported')).toBeVisible();
+    // 0.16 has no metadata; the 1.0 test build has it but drops the request.
+    await expect(account.getByTestId(ORG_SERVER === '1.0' ? 'shared-tags-unavailable' : 'shared-tags-unsupported')).toBeVisible();
     await expect(account.getByRole('button', { name: 'Add shared tag' })).toHaveCount(0);
     await shot(alice, 'tags-settings-unsupported');
 
     // The 1.0 test build drops the connection on Mailbox/get with metadata;
-    // that must not leave the app reconnecting. 0.16 gets no such request.
+    // that must not leave the app reconnecting. Had the failed read reported
+    // the login offline (onConnectionChange), the banner would stay until the
+    // next good keep-alive ping, 30 s later. 0.16 gets no such request.
     await alice.goto('/');
     await openTeamInbox(alice);
     await alice.waitForTimeout(3000);
