@@ -20,6 +20,8 @@ import { inputClass } from '@/components/admin/config-items';
 import { ExtensionIcon } from '@/components/admin/extension-icon';
 import { cn } from '@/lib/utils';
 import { useExtensionIcons } from './use-extension-icons';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 
 export interface ConfigField {
   type: 'string' | 'secret' | 'boolean' | 'number' | 'select';
@@ -72,6 +74,7 @@ interface Props {
  * can turn it off, what it may do, and the versions kept for a rollback.
  */
 export function ExtensionDetailPage({ kind, id }: Props) {
+  const { dialogProps: confirmProps, confirm } = useConfirmDialog();
   const words = KIND_LABEL[kind];
   const listHref = adminPath(kind === 'plugin' ? 'plugins' : 'themes');
   const [entry, setEntry] = useState<ExtensionEntry | null>(null);
@@ -216,7 +219,13 @@ export function ExtensionDetailPage({ kind, id }: Props) {
 
   async function rollback(version: string) {
     if (!entry) return;
-    if (!confirm(`Put v${version} of "${entry.name}" back in place of v${entry.version}? The copy kept on this server is used.`)) return;
+    const ok = await confirm({
+      title: `Roll back to v${version}?`,
+      message: `"${entry.name}" v${version} replaces v${entry.version}. The copy kept on this server is used.`,
+      confirmText: 'Roll back',
+      cancelText: 'Cancel',
+    });
+    if (!ok) return;
     setBusy(`rollback:${version}`);
     setMessage(null);
     try {
@@ -239,7 +248,14 @@ export function ExtensionDetailPage({ kind, id }: Props) {
 
   async function remove() {
     if (!entry) return;
-    if (!confirm(`Remove "${entry.name}" for every user? Its kept versions are removed too; this cannot be undone.`)) return;
+    const ok = await confirm({
+      title: `Remove "${entry.name}"?`,
+      message: 'It is removed for every user, with the versions kept on this server. This cannot be undone.',
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      variant: 'destructive',
+    });
+    if (!ok) return;
     setBusy('remove');
     setMessage(null);
     const res = await apiFetch(words.endpoint, {
@@ -324,6 +340,7 @@ export function ExtensionDetailPage({ kind, id }: Props) {
       {entry.description && <p className="-mt-2 mb-6 text-sm text-foreground">{entry.description}</p>}
 
       <Flash message={message} onDismiss={() => setMessage(null)} />
+      <ConfirmDialog {...confirmProps} />
 
       <div className="space-y-10">
         <SettingsSection id="availability" title="Availability" description={`Whether users get this ${words.one} and whether they can turn it off.`}>
