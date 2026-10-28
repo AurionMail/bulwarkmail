@@ -101,9 +101,11 @@ import { isEditableEventTarget } from "@/lib/keyboard";
 import { isContextMenuOpen } from "@/components/ui/context-menu";
 import { useRegisterCommands } from "@/lib/command-registry";
 
+// `fromEditor`: asked on the way out of the event editor, which stays open
+// until a scope is picked, so Cancel goes back to it with the changes.
 type PendingScopeAction =
-  | { type: "edit"; event: CalendarEvent; updates: Partial<CalendarEvent>; editor?: EventEditorState; sendScheduling?: boolean }
-  | { type: "delete"; event: CalendarEvent; sendScheduling?: boolean }
+  | { type: "edit"; event: CalendarEvent; updates: Partial<CalendarEvent>; editor?: EventEditorState; sendScheduling?: boolean; fromEditor?: boolean }
+  | { type: "delete"; event: CalendarEvent; sendScheduling?: boolean; fromEditor?: boolean }
   | { type: "rsvp"; event: CalendarEvent; participantId: string; status: CalendarParticipant["participationStatus"] };
 
 function isRecurringEvent(event: CalendarEvent): boolean {
@@ -995,9 +997,8 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               updates: data,
               editor,
               sendScheduling: sendSchedulingMessages,
+              fromEditor: true,
             });
-            setShowEventModal(false);
-            setEditEvent(null);
             return;
           }
           // false: a plugin stopped it and said why; the form stays open.
@@ -1150,9 +1151,8 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
         type: "delete",
         event: eventToDelete,
         sendScheduling: sendSchedulingMessages || undefined,
+        fromEditor: showEventModal && editEvent?.id === eventToDelete.id,
       });
-      setShowEventModal(false);
-      setEditEvent(null);
       return;
     }
     try {
@@ -1160,7 +1160,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     } catch {
       toast.error(t("notifications.event_error"));
     }
-  }, [client, deleteEvent, events, editEvent, t]);
+  }, [client, deleteEvent, events, editEvent, showEventModal, t]);
 
   const submitRsvp = useCallback(async (
     eventId: string,
@@ -1184,10 +1184,16 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       await submitRsvp(event.id, participantId, status, scope === "this" ? "occurrence" : "series");
       return;
     }
-    const { type, event, sendScheduling } = pendingScopeAction;
+    const { type, event, sendScheduling, fromEditor } = pendingScopeAction;
     const updates = type === "edit" ? pendingScopeAction.updates : undefined;
     const editor = type === "edit" ? pendingScopeAction.editor : undefined;
     setPendingScopeAction(null);
+    // The editor the question came from closes once the change went through.
+    const closeEditor = () => {
+      if (!fromEditor) return;
+      setShowEventModal(false);
+      setEditEvent(null);
+    };
 
     // false when a plugin stopped the change (it says why): no "updated".
     let done = true;
@@ -1207,6 +1213,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
           return;
         }
         if (!done) return;
+        closeEditor();
         toast.success(t("notifications.event_updated"));
       } else {
         const deleted = await deleteOccurrence(scope, {
@@ -1220,6 +1227,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
           return;
         }
         if (!done) return;
+        closeEditor();
         toast.success(t("notifications.event_deleted"));
       }
       try {

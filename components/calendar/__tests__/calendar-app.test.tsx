@@ -176,3 +176,27 @@ describe('CalendarApp in the Tasks view', () => {
     expect(screen.getByRole('dialog', { name: 'tasks.create' })).toBeInTheDocument();
   });
 });
+
+const weekly = makeEvent({ recurrenceRules: [{ '@type': 'RecurrenceRule', frequency: 'weekly', interval: 1 }] as never });
+
+function openEditorOn(title = 'Standup') {
+  fireEvent.click(screen.getAllByRole('button', { name: new RegExp(title) })[0]);
+  const card = screen.getByRole('dialog', { name: title });
+  fireEvent.click(within(card).getByRole('button', { name: 'events.edit' }));
+}
+
+describe('CalendarApp recurring event editor', () => {
+  beforeEach(() => setUp([weekly]));
+
+  it('goes back to the editor with the changes when the scope question is cancelled', async () => {
+    renderApp();
+    openEditorOn();
+    fireEvent.change(screen.getByPlaceholderText('form.title'), { target: { value: 'Standup moved' } });
+    fireEvent.click(screen.getByRole('button', { name: 'form.save' }));
+    const scope = await screen.findByRole('dialog', { name: 'edit_title' });
+    fireEvent.click(within(scope).getByRole('button', { name: 'cancel' }));
+    expect(screen.queryByRole('dialog', { name: 'edit_title' })).toBeNull();
+    expect(screen.getByPlaceholderText('form.title')).toHaveValue('Standup moved');
+    expect(store.updateEvent).not.toHaveBeenCalled();
+  });
+});
