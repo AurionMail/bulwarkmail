@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "گزینه‌های بیشتر"
   },
+  "shell": {
+    "resize": "تغییر اندازه",
+    "update_available": "به‌روزرسانی موجود است",
+    "update_important": "به‌روزرسانی مهم موجود است",
+    "folder_unread": "{count} خوانده‌نشده",
+    "folder_counts": "{unread} خوانده‌نشده، {total} در مجموع"
+  },
   "plugin_pages": {
     "loading": "در حال بارگذاری صفحه",
     "not_available_title": "این صفحه در دسترس نیست",

@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "Plus d'options"
   },
+  "shell": {
+    "resize": "Redimensionner",
+    "update_available": "Mise à jour disponible",
+    "update_important": "Mise à jour importante disponible",
+    "folder_unread": "{count} non lus",
+    "folder_counts": "{unread} non lus, {total} au total"
+  },
   "plugin_pages": {
     "loading": "Chargement de la page",
     "not_available_title": "Cette page n'est pas disponible",

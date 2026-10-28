@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "Więcej opcji"
   },
+  "shell": {
+    "resize": "Zmień rozmiar",
+    "update_available": "Dostępna aktualizacja",
+    "update_important": "Dostępna ważna aktualizacja",
+    "folder_unread": "Nieprzeczytane: {count}",
+    "folder_counts": "Nieprzeczytane: {unread}, łącznie: {total}"
+  },
   "plugin_pages": {
     "loading": "Wczytywanie strony",
     "not_available_title": "Ta strona jest niedostępna",

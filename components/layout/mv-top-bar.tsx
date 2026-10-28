@@ -117,6 +117,7 @@ export function MvTopBar({
 }: MvTopBarProps) {
   const t = useTranslations("sidebar");
   const tSearch = useTranslations("advanced_search");
+  const tShell = useTranslations("shell");
   const pathname = usePathname();
   const router = useRouter();
   const allInboxesReachable = useAllInboxesReachable();
@@ -289,7 +290,7 @@ export function MvTopBar({
             href={`${getPathPrefix()}/admin`}
             className="relative grid place-items-center w-12 h-12 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             title={t("admin")}
-            aria-label={t("admin")}
+            aria-label={hasUpdate ? `${t("admin")}, ${tShell(updateImportant ? "update_important" : "update_available")}` : t("admin")}
           >
             <Shield className="w-5 h-5" />
             {hasUpdate && (
@@ -298,7 +299,7 @@ export function MvTopBar({
                   "absolute top-3 end-3 w-2 h-2 rounded-full ring-2 ring-background",
                   updateImportant ? "bg-red-500" : "bg-amber-500",
                 )}
-                aria-label={updateImportant ? "Important update available" : "Update available"}
+                aria-hidden="true"
               />
             )}
           </a>

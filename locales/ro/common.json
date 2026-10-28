@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "Mai multe opțiuni"
   },
+  "shell": {
+    "resize": "Redimensionează",
+    "update_available": "Actualizare disponibilă",
+    "update_important": "Actualizare importantă disponibilă",
+    "folder_unread": "{count} necitite",
+    "folder_counts": "{unread} necitite, {total} în total"
+  },
   "plugin_pages": {
     "loading": "Se încarcă pagina",
     "not_available_title": "Această pagină nu este disponibilă",

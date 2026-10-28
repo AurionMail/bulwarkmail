@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "Rohkem valikuid"
   },
+  "shell": {
+    "resize": "Muuda suurust",
+    "update_available": "Saadaval on värskendus",
+    "update_important": "Saadaval on oluline värskendus",
+    "folder_unread": "Lugemata: {count}",
+    "folder_counts": "Lugemata: {unread}, kokku: {total}"
+  },
   "plugin_pages": {
     "loading": "Lehe laadimine",
     "not_available_title": "See leht pole saadaval",

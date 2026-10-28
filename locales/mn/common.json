@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "Бусад сонголт"
   },
+  "shell": {
+    "resize": "Хэмжээ өөрчлөх",
+    "update_available": "Шинэчлэл гарсан",
+    "update_important": "Чухал шинэчлэл гарсан",
+    "folder_unread": "{count} уншаагүй",
+    "folder_counts": "{unread} уншаагүй, нийт {total}"
+  },
   "plugin_pages": {
     "loading": "Хуудсыг ачаалж байна",
     "not_available_title": "Энэ хуудас боломжгүй байна",

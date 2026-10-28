@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "Flere muligheder"
   },
+  "shell": {
+    "resize": "Tilpas størrelse",
+    "update_available": "Opdatering tilgængelig",
+    "update_important": "Vigtig opdatering tilgængelig",
+    "folder_unread": "{count} ulæste",
+    "folder_counts": "{unread} ulæste, {total} i alt"
+  },
   "plugin_pages": {
     "loading": "Indlæser side",
     "not_available_title": "Denne side er ikke tilgængelig",

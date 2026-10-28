@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "Diğer seçenekler"
   },
+  "shell": {
+    "resize": "Yeniden boyutlandır",
+    "update_available": "Güncelleme var",
+    "update_important": "Önemli güncelleme var",
+    "folder_unread": "{count} okunmamış",
+    "folder_counts": "{unread} okunmamış, toplam {total}"
+  },
   "plugin_pages": {
     "loading": "Sayfa yükleniyor",
     "not_available_title": "Bu sayfa kullanılamıyor",

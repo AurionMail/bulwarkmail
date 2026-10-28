@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "Другие действия"
   },
+  "shell": {
+    "resize": "Изменить размер",
+    "update_available": "Доступно обновление",
+    "update_important": "Доступно важное обновление",
+    "folder_unread": "Непрочитанных: {count}",
+    "folder_counts": "Непрочитанных: {unread}, всего: {total}"
+  },
   "plugin_pages": {
     "loading": "Загрузка страницы",
     "not_available_title": "Эта страница недоступна",

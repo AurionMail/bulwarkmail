@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "خيارات أخرى"
   },
+  "shell": {
+    "resize": "تغيير الحجم",
+    "update_available": "يتوفر تحديث",
+    "update_important": "يتوفر تحديث مهم",
+    "folder_unread": "{count} غير مقروءة",
+    "folder_counts": "{unread} غير مقروءة، {total} إجمالًا"
+  },
   "plugin_pages": {
     "loading": "جارٍ تحميل الصفحة",
     "not_available_title": "هذه الصفحة غير متاحة",

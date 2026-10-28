@@ -4581,6 +4581,13 @@
   "top_bar": {
     "more": "אפשרויות נוספות"
   },
+  "shell": {
+    "resize": "שינוי גודל",
+    "update_available": "יש עדכון",
+    "update_important": "יש עדכון חשוב",
+    "folder_unread": "{count} שלא נקראו",
+    "folder_counts": "{unread} שלא נקראו, {total} בסך הכול"
+  },
   "plugin_pages": {
     "loading": "טוען את הדף",
     "not_available_title": "הדף הזה אינו זמין",

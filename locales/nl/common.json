@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "Meer opties"
   },
+  "shell": {
+    "resize": "Formaat wijzigen",
+    "update_available": "Update beschikbaar",
+    "update_important": "Belangrijke update beschikbaar",
+    "folder_unread": "{count} ongelezen",
+    "folder_counts": "{unread} ongelezen, {total} totaal"
+  },
   "plugin_pages": {
     "loading": "Pagina laden",
     "not_available_title": "Deze pagina is niet beschikbaar",

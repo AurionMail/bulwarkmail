@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "추가 옵션"
   },
+  "shell": {
+    "resize": "크기 조정",
+    "update_available": "업데이트가 있습니다",
+    "update_important": "중요한 업데이트가 있습니다",
+    "folder_unread": "읽지 않음 {count}개",
+    "folder_counts": "읽지 않음 {unread}개, 전체 {total}개"
+  },
   "plugin_pages": {
     "loading": "페이지를 불러오는 중",
     "not_available_title": "이 페이지를 사용할 수 없습니다",

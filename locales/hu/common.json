@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "További lehetőségek"
   },
+  "shell": {
+    "resize": "Átméretezés",
+    "update_available": "Frissítés érhető el",
+    "update_important": "Fontos frissítés érhető el",
+    "folder_unread": "{count} olvasatlan",
+    "folder_counts": "{unread} olvasatlan, összesen {total}"
+  },
   "plugin_pages": {
     "loading": "Oldal betöltése",
     "not_available_title": "Ez az oldal nem érhető el",

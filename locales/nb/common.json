@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "Flere alternativer"
   },
+  "shell": {
+    "resize": "Endre størrelse",
+    "update_available": "Oppdatering tilgjengelig",
+    "update_important": "Viktig oppdatering tilgjengelig",
+    "folder_unread": "{count} uleste",
+    "folder_counts": "{unread} uleste, {total} totalt"
+  },
   "plugin_pages": {
     "loading": "Laster inn siden",
     "not_available_title": "Denne siden er ikke tilgjengelig",

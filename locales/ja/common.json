@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "その他のオプション"
   },
+  "shell": {
+    "resize": "サイズを変更",
+    "update_available": "アップデートがあります",
+    "update_important": "重要なアップデートがあります",
+    "folder_unread": "未読 {count} 件",
+    "folder_counts": "未読 {unread} 件 / 全 {total} 件"
+  },
   "plugin_pages": {
     "loading": "ページを読み込んでいます",
     "not_available_title": "このページは利用できません",

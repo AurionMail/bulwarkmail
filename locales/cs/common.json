@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "Další možnosti"
   },
+  "shell": {
+    "resize": "Změnit velikost",
+    "update_available": "Je k dispozici aktualizace",
+    "update_important": "Je k dispozici důležitá aktualizace",
+    "folder_unread": "Nepřečteno: {count}",
+    "folder_counts": "Nepřečteno: {unread}, celkem: {total}"
+  },
   "plugin_pages": {
     "loading": "Načítání stránky",
     "not_available_title": "Tato stránka není k dispozici",

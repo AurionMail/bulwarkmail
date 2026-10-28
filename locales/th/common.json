@@ -41,6 +41,13 @@
   "top_bar": {
     "more": "ตัวเลือกเพิ่มเติม"
   },
+  "shell": {
+    "resize": "ปรับขนาด",
+    "update_available": "มีอัปเดต",
+    "update_important": "มีอัปเดตสำคัญ",
+    "folder_unread": "ยังไม่ได้อ่าน {count}",
+    "folder_counts": "ยังไม่ได้อ่าน {unread} จากทั้งหมด {total}"
+  },
   "date": {
     "today": "วันนี้",
     "yesterday": "เมื่อวานนี้",

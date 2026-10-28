@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "更多选项"
   },
+  "shell": {
+    "resize": "调整大小",
+    "update_available": "有可用更新",
+    "update_important": "有重要更新",
+    "folder_unread": "{count} 封未读",
+    "folder_counts": "{unread} 封未读，共 {total} 封"
+  },
   "plugin_pages": {
     "loading": "正在加载页面",
     "not_available_title": "此页面不可用",

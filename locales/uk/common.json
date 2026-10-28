@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "Інші дії"
   },
+  "shell": {
+    "resize": "Змінити розмір",
+    "update_available": "Доступне оновлення",
+    "update_important": "Доступне важливе оновлення",
+    "folder_unread": "Непрочитаних: {count}",
+    "folder_counts": "Непрочитаних: {unread}, усього: {total}"
+  },
   "plugin_pages": {
     "loading": "Завантаження сторінки",
     "not_available_title": "Ця сторінка недоступна",

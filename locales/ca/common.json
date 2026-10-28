@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "Més opcions"
   },
+  "shell": {
+    "resize": "Canvia la mida",
+    "update_available": "Hi ha una actualització",
+    "update_important": "Hi ha una actualització important",
+    "folder_unread": "{count} sense llegir",
+    "folder_counts": "{unread} sense llegir, {total} en total"
+  },
   "plugin_pages": {
     "loading": "S'està carregant la pàgina",
     "not_available_title": "Aquesta pàgina no està disponible",

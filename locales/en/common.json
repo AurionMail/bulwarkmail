@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "More options"
   },
+  "shell": {
+    "resize": "Resize",
+    "update_available": "Update available",
+    "update_important": "Important update available",
+    "folder_unread": "{count} unread",
+    "folder_counts": "{unread} unread, {total} total"
+  },
   "plugin_pages": {
     "loading": "Loading page",
     "not_available_title": "This page is not available",

@@ -4580,6 +4580,13 @@
   "top_bar": {
     "more": "Citas iespējas"
   },
+  "shell": {
+    "resize": "Mainīt izmēru",
+    "update_available": "Pieejams atjauninājums",
+    "update_important": "Pieejams svarīgs atjauninājums",
+    "folder_unread": "Nelasīti: {count}",
+    "folder_counts": "Nelasīti: {unread}, kopā: {total}"
+  },
   "plugin_pages": {
     "loading": "Ielādē lapu",
     "not_available_title": "Šī lapa nav pieejama",
