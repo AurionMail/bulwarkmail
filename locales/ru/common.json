@@ -3718,6 +3718,15 @@
     "row_actions": "Действия для {name}"
   },
   "calendar": {
+    "print": {
+      "calendars": "Календари: {names}",
+      "time_zone": "Часовой пояс: {zone}",
+      "time_zone_label": "Часовой пояс",
+      "search": "Поиск: {query}",
+      "when": "Когда",
+      "meeting": "Онлайн-встреча",
+      "repeats": "Повтор"
+    },
     "title": "Календарь",
     "back_to_email": "Вернуться к почте",
     "back_to_month": "Вернуться к месяцу",

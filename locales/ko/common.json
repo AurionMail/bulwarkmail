@@ -3718,6 +3718,15 @@
     "row_actions": "{name} 작업"
   },
   "calendar": {
+    "print": {
+      "calendars": "캘린더: {names}",
+      "time_zone": "시간대: {zone}",
+      "time_zone_label": "시간대",
+      "search": "검색: {query}",
+      "when": "일시",
+      "meeting": "온라인 회의",
+      "repeats": "반복"
+    },
     "title": "캘린더",
     "back_to_email": "메일로 돌아가기",
     "back_to_month": "월간 보기로 돌아가기",

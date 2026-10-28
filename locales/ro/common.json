@@ -3718,6 +3718,15 @@
     }
   },
   "calendar": {
+    "print": {
+      "calendars": "Calendare: {names}",
+      "time_zone": "Fus orar: {zone}",
+      "time_zone_label": "Fus orar",
+      "search": "Căutare: {query}",
+      "when": "Când",
+      "meeting": "Întâlnire online",
+      "repeats": "Repetare"
+    },
     "title": "Calendar",
     "back_to_email": "Înapoi la e-mail",
     "back_to_month": "Înapoi la lună",

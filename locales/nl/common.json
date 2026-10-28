@@ -3718,6 +3718,15 @@
     "row_actions": "Acties voor {name}"
   },
   "calendar": {
+    "print": {
+      "calendars": "Agenda's: {names}",
+      "time_zone": "Tijdzone: {zone}",
+      "time_zone_label": "Tijdzone",
+      "search": "Zoeken: {query}",
+      "when": "Wanneer",
+      "meeting": "Onlinevergadering",
+      "repeats": "Herhaling"
+    },
     "title": "Agenda",
     "back_to_email": "Terug naar e-mail",
     "back_to_month": "Terug naar maand",

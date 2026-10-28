@@ -3718,6 +3718,15 @@
     }
   },
   "calendar": {
+    "print": {
+      "calendars": "التقويمات: {names}",
+      "time_zone": "المنطقة الزمنية: {zone}",
+      "time_zone_label": "المنطقة الزمنية",
+      "search": "بحث: {query}",
+      "when": "الموعد",
+      "meeting": "اجتماع عبر الإنترنت",
+      "repeats": "التكرار"
+    },
     "title": "التقويم",
     "back_to_email": "العودة إلى البريد",
     "back_to_month": "العودة إلى الشهر",

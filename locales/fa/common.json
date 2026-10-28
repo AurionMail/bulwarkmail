@@ -3718,6 +3718,15 @@
     }
   },
   "calendar": {
+    "print": {
+      "calendars": "تقویم‌ها: {names}",
+      "time_zone": "منطقهٔ زمانی: {zone}",
+      "time_zone_label": "منطقهٔ زمانی",
+      "search": "جستجو: {query}",
+      "when": "زمان",
+      "meeting": "جلسهٔ آنلاین",
+      "repeats": "تکرار"
+    },
     "title": "تقویم",
     "back_to_email": "بازگشت به ایمیل",
     "back_to_month": "بازگشت به ماه",

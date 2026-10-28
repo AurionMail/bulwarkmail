@@ -3636,6 +3636,15 @@
     }
   },
   "calendar": {
+    "print": {
+      "calendars": "יומנים: {names}",
+      "time_zone": "אזור זמן: {zone}",
+      "time_zone_label": "אזור זמן",
+      "search": "חיפוש: {query}",
+      "when": "מתי",
+      "meeting": "פגישה מקוונת",
+      "repeats": "חזרה"
+    },
     "title": "לוח שנה",
     "back_to_email": "חזור לדוא״ל",
     "back_to_month": "חזרה לחודש",

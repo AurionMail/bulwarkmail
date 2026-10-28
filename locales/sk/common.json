@@ -3718,6 +3718,15 @@
     }
   },
   "calendar": {
+    "print": {
+      "calendars": "Kalendáre: {names}",
+      "time_zone": "Časové pásmo: {zone}",
+      "time_zone_label": "Časové pásmo",
+      "search": "Hľadanie: {query}",
+      "when": "Kedy",
+      "meeting": "Online stretnutie",
+      "repeats": "Opakovanie"
+    },
     "title": "Kalendár",
     "back_to_email": "Späť na poštu",
     "back_to_month": "Späť na mesiac",

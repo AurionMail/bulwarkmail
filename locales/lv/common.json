@@ -3718,6 +3718,15 @@
     "row_actions": "Darbības: {name}"
   },
   "calendar": {
+    "print": {
+      "calendars": "Kalendāri: {names}",
+      "time_zone": "Laika josla: {zone}",
+      "time_zone_label": "Laika josla",
+      "search": "Meklēšana: {query}",
+      "when": "Kad",
+      "meeting": "Tiešsaistes sapulce",
+      "repeats": "Atkārtošana"
+    },
     "title": "Kalendārs",
     "back_to_email": "Atgriezties pie pasta",
     "back_to_month": "Atpakaļ uz mēneša skatu",

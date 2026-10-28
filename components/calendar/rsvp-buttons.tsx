@@ -20,7 +20,8 @@ export const STATUS_TEXT: Record<string, string> = {
   "needs-action": "text-muted-foreground",
 };
 
-const STATUS_LABEL: Record<string, string> = {
+/** Translation keys of the participation statuses. */
+export const STATUS_LABEL: Record<string, string> = {
   accepted: "participants.accepted",
   declined: "participants.declined",
   tentative: "participants.tentative",

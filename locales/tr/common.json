@@ -3718,6 +3718,15 @@
     "row_actions": "{name} için işlemler"
   },
   "calendar": {
+    "print": {
+      "calendars": "Takvimler: {names}",
+      "time_zone": "Saat dilimi: {zone}",
+      "time_zone_label": "Saat dilimi",
+      "search": "Arama: {query}",
+      "when": "Ne zaman",
+      "meeting": "Çevrimiçi toplantı",
+      "repeats": "Tekrar"
+    },
     "title": "Takvim",
     "back_to_email": "E-postaya geri dön",
     "back_to_month": "Aya geri dön",

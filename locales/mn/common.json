@@ -3718,6 +3718,15 @@
     }
   },
   "calendar": {
+    "print": {
+      "calendars": "Хуанли: {names}",
+      "time_zone": "Цагийн бүс: {zone}",
+      "time_zone_label": "Цагийн бүс",
+      "search": "Хайлт: {query}",
+      "when": "Хэзээ",
+      "meeting": "Онлайн уулзалт",
+      "repeats": "Давталт"
+    },
     "title": "Хуанли",
     "back_to_email": "Имэйл рүү буцах",
     "back_to_month": "Сар руу буцах",

@@ -3718,6 +3718,15 @@
     "row_actions": "Ações para {name}"
   },
   "calendar": {
+    "print": {
+      "calendars": "Calendários: {names}",
+      "time_zone": "Fuso horário: {zone}",
+      "time_zone_label": "Fuso horário",
+      "search": "Pesquisa: {query}",
+      "when": "Quando",
+      "meeting": "Reunião online",
+      "repeats": "Repetição"
+    },
     "title": "Calendário",
     "back_to_email": "Voltar ao e-mail",
     "back_to_month": "Voltar ao mês",

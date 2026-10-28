@@ -3718,6 +3718,15 @@
     }
   },
   "calendar": {
+    "print": {
+      "calendars": "Calendars: {names}",
+      "time_zone": "Time zone: {zone}",
+      "time_zone_label": "Time zone",
+      "search": "Search: {query}",
+      "when": "When",
+      "meeting": "Online meeting",
+      "repeats": "Repeats"
+    },
     "title": "Calendar",
     "back_to_email": "Back to email",
     "back_to_month": "Back to month",

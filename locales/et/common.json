@@ -3718,6 +3718,15 @@
     }
   },
   "calendar": {
+    "print": {
+      "calendars": "Kalendrid: {names}",
+      "time_zone": "Ajavöönd: {zone}",
+      "time_zone_label": "Ajavöönd",
+      "search": "Otsing: {query}",
+      "when": "Millal",
+      "meeting": "Veebikoosolek",
+      "repeats": "Kordumine"
+    },
     "title": "Kalender",
     "back_to_email": "Tagasi e-posti juurde",
     "back_to_month": "Tagasi kuu juurde",

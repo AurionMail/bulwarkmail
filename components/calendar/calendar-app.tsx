@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { Plus, ListTodo, CalendarDays, Upload, Globe, RefreshCw, Search } from "@/components/icons";
 import {
   addMonths, subMonths, addWeeks, subWeeks, addDays, subDays,
-  format, parseISO,
+  format, parseISO, startOfWeek,
 } from "date-fns";
 import { useCalendarStore } from "@/stores/calendar-store";
 import { isCalendarViewMode, type CalendarViewMode } from "@/stores/calendar-store";
@@ -110,6 +110,9 @@ import { isEditableEventTarget } from "@/lib/keyboard";
 import { isContextMenuOpen } from "@/components/ui/context-menu";
 import { useRegisterCommands } from "@/lib/command-registry";
 import { useConfig } from "@/hooks/use-config";
+import { CalendarPrint, type CalendarPrintContent } from "@/components/calendar/calendar-print";
+import { usePrintListener, usePrinting } from "@/components/print/print-root";
+import { requestPrint, usePrintStore } from "@/stores/print-store";
 
 // `fromEditor`: asked on the way out of the event editor, which stays open
 // until a scope is picked, so Cancel goes back to it with the changes.
@@ -174,6 +177,9 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
   const { identities } = useIdentityStore();
   const contacts = useContactStore((s) => s.contacts);
   const normalizedViewMode = isCalendarViewMode(viewMode) ? viewMode : "month";
+  usePrintListener();
+  const printing = usePrinting();
+  const printTarget = usePrintStore((s) => s.target);
 
   // Aliases live on the principal, not on identities; the calendar needs them
   // so an alias-organized event is recognised as the user's own (see isOrganizer).
@@ -495,6 +501,8 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
   // The views report the day they show as the user scrolls; the title and
   // the mini calendar follow it, the selection does not.
   const handleVisibleDateChange = useCallback((date: Date) => {
+    // Hidden for printing, a view scrolls on its own; the copy keeps the dates on screen.
+    if (usePrintStore.getState().printing) return;
     setVisibleDate(date);
     setMiniMonth(date);
   }, []);
@@ -1968,6 +1976,37 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     );
   };
 
+  // The print copy (Ctrl+P or Print): an event opened by click, else the
+  // view with the dates on screen.
+  const printContent: CalendarPrintContent = printTarget?.kind === "calendar-event"
+    ? { kind: "event", event: printTarget.event }
+    : !printTarget && detailPinned && detailEvent
+      ? { kind: "event", event: detailEvent }
+      : { kind: "view" };
+  const printCopy = printing ? (
+    <CalendarPrint
+      content={printContent}
+      viewMode={normalizedViewMode}
+      periodDate={visibleDate ?? selectedDate}
+      weekStart={visibleDate ?? startOfWeek(selectedDate, { weekStartsOn })}
+      rangeStart={scrollWindow?.start ?? selectedDate}
+      rangeEnd={scrollWindow?.end ?? selectedDate}
+      events={visibleEvents}
+      calendars={allCalendars}
+      shownCalendars={allCalendars.filter((c) => selectedCalendarIds.includes(c.id))}
+      gridTasks={calendarTasks}
+      tasks={taskStore.tasks}
+      taskFilter={taskStore.filter}
+      selectedCalendarIds={selectedCalendarIds}
+      timeFormat={timeFormat}
+      timeZone={getEffectiveTimeZone()}
+      currentUserEmails={currentUserEmails}
+      search={searchResults && normalizedViewMode !== "tasks"
+        ? { query: searchQuery, events: [...searchResults.upcoming, ...searchResults.past] }
+        : null}
+    />
+  ) : null;
+
   const calendarToolbar = (
     <CalendarToolbar
       selectedDate={selectedDate}
@@ -1982,6 +2021,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       onImport={demoMode ? undefined : () => setShowImportModal(true)}
       onSubscribe={demoMode ? undefined : () => setShowSubscriptionModal(true)}
       onRefresh={() => { void refreshCalendar(); }}
+      onPrint={() => { void requestPrint({ kind: "calendar-view" }); }}
       isMobile={isMobile}
       onNavigateBack={isMobile && mobileReturnToMonth && normalizedViewMode === "day" ? navigateBackToMonth : undefined}
       calendars={displayCalendars}
@@ -2289,6 +2329,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
           onCopyTitle={() => handleCopyTitle(eventContextMenu.data!)}
           onCopyMeetingLink={() => handleCopyMeetingLink(eventContextMenu.data!)}
           onDelete={() => handleDeleteContextMenu(eventContextMenu.data!)}
+          onPrint={() => { void requestPrint({ kind: "calendar-event", event: eventContextMenu.data! }); }}
           editable={canEditEvent(eventContextMenu.data)}
         />
       )}
@@ -2348,6 +2389,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
           onDelete={handleDeleteFromDetail}
           onDuplicate={handleDuplicateFromDetail}
           onMore={(e) => handleContextMenuEvent(e, detailEvent)}
+          onPrint={() => { void requestPrint({ kind: "calendar-event", event: detailEvent }); }}
           onClose={closeDetail}
           onSaveNote={handleSaveNoteFromDetail}
           onRsvp={handleRsvpFromDetail}
@@ -2486,6 +2528,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
         );
       })()}
       </div>
+      {printCopy}
     </div>
   );
 }

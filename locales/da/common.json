@@ -3718,6 +3718,15 @@
     "row_actions": "Handlinger for {name}"
   },
   "calendar": {
+    "print": {
+      "calendars": "Kalendere: {names}",
+      "time_zone": "Tidszone: {zone}",
+      "time_zone_label": "Tidszone",
+      "search": "Søgning: {query}",
+      "when": "Hvornår",
+      "meeting": "Onlinemøde",
+      "repeats": "Gentagelse"
+    },
     "title": "Kalender",
     "back_to_email": "Tilbage til e-mail",
     "back_to_month": "Tilbage til måned",

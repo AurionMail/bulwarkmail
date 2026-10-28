@@ -3718,6 +3718,15 @@
     }
   },
   "calendar": {
+    "print": {
+      "calendars": "Calendaris: {names}",
+      "time_zone": "Fus horari: {zone}",
+      "time_zone_label": "Fus horari",
+      "search": "Cerca: {query}",
+      "when": "Quan",
+      "meeting": "Reunió en línia",
+      "repeats": "Repetició"
+    },
     "title": "Calendari",
     "back_to_email": "Torna al correu",
     "back_to_month": "Torna al mes",

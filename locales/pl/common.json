@@ -3718,6 +3718,15 @@
     "row_actions": "Działania dla {name}"
   },
   "calendar": {
+    "print": {
+      "calendars": "Kalendarze: {names}",
+      "time_zone": "Strefa czasowa: {zone}",
+      "time_zone_label": "Strefa czasowa",
+      "search": "Wyszukiwanie: {query}",
+      "when": "Kiedy",
+      "meeting": "Spotkanie online",
+      "repeats": "Powtarzanie"
+    },
     "title": "Kalendarz",
     "back_to_email": "Powrót do poczty",
     "back_to_month": "Powrót do miesiąca",

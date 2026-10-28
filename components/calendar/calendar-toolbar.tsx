@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
-import { ChevronLeft, ChevronRight, Plus, Upload, CalendarDays, Globe, ChevronDown, ArrowLeft, Menu, MoreVertical, RefreshCw, Search } from "@/components/icons";
+import { ChevronLeft, ChevronRight, Plus, Upload, CalendarDays, Globe, ChevronDown, ArrowLeft, Menu, MoreVertical, RefreshCw, Search, Printer } from "@/components/icons";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { startOfWeek } from "date-fns";
@@ -31,6 +31,8 @@ interface CalendarToolbarProps {
   onSubscribe?: () => void;
   /** Reload calendars, events and subscriptions. */
   onRefresh?: () => void;
+  /** Print the view with the dates on screen. */
+  onPrint?: () => void;
   isMobile?: boolean;
   firstDayOfWeek?: number;
   onNavigateBack?: () => void;
@@ -81,6 +83,7 @@ export function CalendarToolbar({
   onImport,
   onSubscribe,
   onRefresh,
+  onPrint,
   isMobile,
   firstDayOfWeek = 1,
   onNavigateBack,
@@ -176,7 +179,7 @@ export function CalendarToolbar({
     closeContextMenu: closeMoreMenu,
     menuRef: moreMenuRef,
   } = useContextMenu<true>();
-  const hasMoreMenu = !!(onImport || onSubscribe || onRefresh);
+  const hasMoreMenu = !!(onImport || onSubscribe || onRefresh || onPrint);
   const pick = (fn: () => void) => () => { closeMoreMenu(); fn(); };
   const moreButton = hasMoreMenu ? (
     <>
@@ -197,6 +200,7 @@ export function CalendarToolbar({
         {onSubscribe && <ContextMenuItem icon={Globe} label={t("toolbar.subscribe")} onClick={pick(onSubscribe)} />}
         {onRefresh && (onImport || onSubscribe) && <ContextMenuSeparator />}
         {onRefresh && <ContextMenuItem icon={RefreshCw} label={tCommon("refresh")} onClick={pick(onRefresh)} />}
+        {onPrint && <ContextMenuItem icon={Printer} label={tCommon("print")} onClick={pick(onPrint)} />}
       </ContextMenu>
     </>
   ) : null;
@@ -206,6 +210,7 @@ export function CalendarToolbar({
       {onImport && <ContextMenuItem icon={Upload} label={t("toolbar.import")} onClick={() => { close(); onImport(); }} />}
       {onSubscribe && <ContextMenuItem icon={Globe} label={t("toolbar.subscribe")} onClick={() => { close(); onSubscribe(); }} />}
       {onRefresh && <ContextMenuItem icon={RefreshCw} label={tCommon("refresh")} onClick={() => { close(); onRefresh(); }} />}
+      {onPrint && <ContextMenuItem icon={Printer} label={tCommon("print")} onClick={() => { close(); onPrint(); }} />}
     </>
   ) : undefined;
 

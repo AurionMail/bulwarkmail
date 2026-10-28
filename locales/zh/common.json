@@ -3718,6 +3718,15 @@
     "row_actions": "{name} 的操作"
   },
   "calendar": {
+    "print": {
+      "calendars": "日历：{names}",
+      "time_zone": "时区：{zone}",
+      "time_zone_label": "时区",
+      "search": "搜索：{query}",
+      "when": "时间",
+      "meeting": "在线会议",
+      "repeats": "重复"
+    },
     "title": "日历",
     "back_to_email": "返回邮件",
     "back_to_month": "返回月份",

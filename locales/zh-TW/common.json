@@ -3718,6 +3718,15 @@
     }
   },
   "calendar": {
+    "print": {
+      "calendars": "行事曆：{names}",
+      "time_zone": "時區：{zone}",
+      "time_zone_label": "時區",
+      "search": "搜尋：{query}",
+      "when": "時間",
+      "meeting": "線上會議",
+      "repeats": "重複"
+    },
     "title": "行事曆",
     "back_to_email": "回到郵件",
     "back_to_month": "回到月檢視",

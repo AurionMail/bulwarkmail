@@ -8,7 +8,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { LinkifiedText } from "@/components/ui/linkified-text";
 import {
   X, Clock, MapPin, Video, Users, Repeat, Bell, AlignLeft,
-  Pencil, Trash2, Copy, CopyPlus, Send, Check, MoreVertical, Calendar as CalendarIcon,
+  Pencil, Trash2, Copy, CopyPlus, Send, Check, MoreVertical, Printer, Calendar as CalendarIcon,
 } from "@/components/icons";
 import { format, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -41,6 +41,8 @@ interface EventDetailPopoverProps {
   onDuplicate: () => void;
   /** Opens the event's full action menu (export, copy, ...) at the click. */
   onMore?: (e: React.MouseEvent) => void;
+  /** Prints the event on a sheet of its own. */
+  onPrint?: () => void;
   onClose: () => void;
   onSaveNote: (note: string) => void;
   onRsvp?: (status: CalendarParticipant["participationStatus"]) => void;
@@ -124,6 +126,7 @@ export function EventDetailPopover({
   onDelete,
   onDuplicate,
   onMore,
+  onPrint,
   onClose,
   onSaveNote,
   onRsvp,
@@ -399,6 +402,15 @@ export function EventDetailPopover({
             label={t("events.delete")}
           >
             <Trash2 className="w-4 h-4" />
+          </IconButton>
+        )}
+        {onPrint && (
+          <IconButton
+            onClick={onPrint}
+            className={HEADER_BUTTON}
+            label={tCommon("print")}
+          >
+            <Printer className="w-4 h-4" />
           </IconButton>
         )}
         <IconButton

@@ -3718,6 +3718,15 @@
     }
   },
   "calendar": {
+    "print": {
+      "calendars": "Naptárak: {names}",
+      "time_zone": "Időzóna: {zone}",
+      "time_zone_label": "Időzóna",
+      "search": "Keresés: {query}",
+      "when": "Mikor",
+      "meeting": "Online értekezlet",
+      "repeats": "Ismétlődés"
+    },
     "title": "Naptár",
     "back_to_email": "Vissza az e-mailekhez",
     "back_to_month": "Vissza a hónaphoz",

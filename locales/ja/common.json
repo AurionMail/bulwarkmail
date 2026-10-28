@@ -3718,6 +3718,15 @@
     "row_actions": "{name} の操作"
   },
   "calendar": {
+    "print": {
+      "calendars": "カレンダー: {names}",
+      "time_zone": "タイムゾーン: {zone}",
+      "time_zone_label": "タイムゾーン",
+      "search": "検索: {query}",
+      "when": "日時",
+      "meeting": "オンライン会議",
+      "repeats": "繰り返し"
+    },
     "title": "カレンダー",
     "back_to_email": "メールに戻る",
     "back_to_month": "月表示に戻る",

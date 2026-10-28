@@ -3718,6 +3718,15 @@
     "row_actions": "Дії для {name}"
   },
   "calendar": {
+    "print": {
+      "calendars": "Календарі: {names}",
+      "time_zone": "Часовий пояс: {zone}",
+      "time_zone_label": "Часовий пояс",
+      "search": "Пошук: {query}",
+      "when": "Коли",
+      "meeting": "Онлайн-зустріч",
+      "repeats": "Повторення"
+    },
     "title": "Календар",
     "back_to_email": "Повернутися до електронної пошти",
     "back_to_month": "Назад до місяця",

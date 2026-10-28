@@ -3718,6 +3718,15 @@
     }
   },
   "calendar": {
+    "print": {
+      "calendars": "Kalendere: {names}",
+      "time_zone": "Tidssone: {zone}",
+      "time_zone_label": "Tidssone",
+      "search": "Søk: {query}",
+      "when": "Når",
+      "meeting": "Nettmøte",
+      "repeats": "Gjentakelse"
+    },
     "title": "Kalender",
     "back_to_email": "Tilbake til e-post",
     "back_to_month": "Tilbake til måneden",

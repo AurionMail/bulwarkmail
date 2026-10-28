@@ -14,6 +14,7 @@ import {
   Video,
   Link as LinkIcon,
   Trash2,
+  Printer,
 } from "@/components/icons";
 import type { CalendarEvent } from "@/lib/jmap/types";
 import { buildCalendarPath } from "@/lib/deep-links";
@@ -37,6 +38,8 @@ interface EventContextMenuProps {
   onCopyTitle: () => void;
   onCopyMeetingLink?: () => void;
   onDelete: () => void;
+  /** Prints the event on a sheet of its own. */
+  onPrint?: () => void;
   /** False for an event the user can't change (a birthday, a subscription, a read-only share): no Edit or Delete. */
   editable?: boolean;
 }
@@ -53,10 +56,12 @@ export function EventContextMenu({
   onCopyTitle,
   onCopyMeetingLink,
   onDelete,
+  onPrint,
   editable = true,
 }: EventContextMenuProps) {
   const t = useTranslations("calendar");
   const tDeepLink = useTranslations("deep_link");
+  const tCommon = useTranslations("common");
   const copyLink = useCopyLink();
 
   const handle = (fn: () => void) => () => {
@@ -102,6 +107,7 @@ export function EventContextMenu({
           }));
         })}
       />
+      {onPrint && <ContextMenuItem icon={Printer} label={tCommon("print")} onClick={handle(onPrint)} />}
       {editable && (
         <>
           <ContextMenuSeparator />

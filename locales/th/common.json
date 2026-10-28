@@ -2963,6 +2963,15 @@
     }
   },
   "calendar": {
+    "print": {
+      "calendars": "ปฏิทิน: {names}",
+      "time_zone": "เขตเวลา: {zone}",
+      "time_zone_label": "เขตเวลา",
+      "search": "ค้นหา: {query}",
+      "when": "เมื่อ",
+      "meeting": "การประชุมออนไลน์",
+      "repeats": "การทำซ้ำ"
+    },
     "title": "ปฏิทิน",
     "back_to_email": "กลับไปยังอีเมล",
     "back_to_month": "กลับไปยังมุมมองรายเดือน",
