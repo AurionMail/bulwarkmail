@@ -58,7 +58,8 @@ export function NotificationPanel({ onClose, className, sheet = false }: { onClo
   return (
     <div className={cn("flex flex-col bg-background text-foreground", className)} data-notification-panel="">
       <div className="flex items-center gap-1 px-3 h-12 border-b border-border shrink-0">
-        <h2 className="flex-1 min-w-0 truncate text-sm font-semibold">{t("title")}</h2>
+        {/* Full screen on a phone it is a dialog of its own, titled like one. */}
+        <h2 className={cn("flex-1 min-w-0 truncate font-semibold", sheet ? "text-lg" : "text-sm")}>{t("title")}</h2>
         <button
           type="button"
           onClick={markAllRead}

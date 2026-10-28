@@ -100,7 +100,7 @@ export function PluginConnectDialog() {
         <form className="p-5" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
           <div className="mb-3 flex items-center gap-2">
             <KeyRound className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
-            <h2 id={titleId} className="text-base font-semibold">{t('title', { label: spec.label })}</h2>
+            <h2 id={titleId} className="text-lg font-semibold text-foreground">{t('title', { label: spec.label })}</h2>
           </div>
           <p className="mb-4 text-sm text-muted-foreground [overflow-wrap:anywhere]">{intro}</p>
           <div className="mb-4 flex flex-col gap-3">
