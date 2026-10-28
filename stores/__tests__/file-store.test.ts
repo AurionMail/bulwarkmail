@@ -4,6 +4,7 @@ import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { FileNode } from '@/lib/jmap/types';
 import { jmapError } from '@/lib/jmap/jmap-error';
 import { fileErrorKind } from '@/lib/file-errors';
+import { TRASH_LOCATION } from '@/lib/files-trash';
 
 // Minimal in-memory FileNode backend that models the JMAP hierarchy via
 // parentId links (the behaviour issue #379 asks for).
@@ -851,6 +852,46 @@ describe('file-store folder tree and moves', () => {
       selectedResources: new Set(),
       clipboard: null,
       lastAction: null,
+    });
+  });
+
+  describe('breadcrumb trail', () => {
+    const tree = () => makeMockClient([
+      dir('docs', 'Documents', null),
+      dir('photos', 'Photos', null),
+      dir('trips', 'Trips', 'photos'),
+      dir('trash', '.Trash', null),
+    ]);
+    const trail = () => useFileStore.getState().pathStack.map(s => s.name);
+
+    it('follows the real ancestors when a folder is picked in the tree, not the folder open before', async () => {
+      useFileStore.getState().initClient(tree());
+      await useFileStore.getState().navigate(null);
+      await useFileStore.getState().navigate('docs', 'Documents');
+      await useFileStore.getState().navigate('trips', 'Trips');
+      expect(useFileStore.getState().currentPath).toBe('/Photos/Trips');
+      expect(trail()).toEqual(['', 'Photos', 'Trips']);
+
+      // Alt+Up goes to the real parent.
+      await useFileStore.getState().navigateUp();
+      expect(useFileStore.getState().currentParentId).toBe('photos');
+      expect(useFileStore.getState().currentPath).toBe('/Photos');
+    });
+
+    it('leaves the Trash out of the trail of a folder opened from it', async () => {
+      useFileStore.getState().initClient(tree());
+      await useFileStore.getState().navigate(null);
+      await useFileStore.getState().navigate(TRASH_LOCATION, '.Trash');
+      await useFileStore.getState().navigate('photos', 'Photos');
+      expect(useFileStore.getState().currentPath).toBe('/Photos');
+      expect(trail()).toEqual(['', 'Photos']);
+    });
+
+    it('sets the full trail once the listing arrives, when the folder list was not loaded yet', async () => {
+      useFileStore.getState().initClient(tree());
+      await useFileStore.getState().navigate('trips', 'Trips');
+      expect(useFileStore.getState().currentPath).toBe('/Photos/Trips');
+      expect(useFileStore.getState().pathStack.map(s => s.id)).toEqual([null, 'photos', 'trips']);
     });
   });
 

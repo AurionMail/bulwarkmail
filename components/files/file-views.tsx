@@ -3,11 +3,11 @@
 import { useRef } from "react";
 import { useTranslations } from "next-intl";
 import { ArrowUp, ArrowDown, MoreVertical, Download, Share2, Star, Check } from "@/components/icons";
-import { cn, formatFileSize } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { IconButton } from "@/components/ui/icon-button";
 import type { FileResource } from "@/stores/file-store";
 import {
-  ResourceIcon, ShareBadge, Thumbnail, canShowThumbnail, formatFullDate, formatShortDate,
+  FileSize, ResourceIcon, ShareBadge, Thumbnail, canShowThumbnail, formatFullDate, formatShortDate,
   type IconOptions,
 } from "@/components/files/file-item-parts";
 import type { SortDir, SortKey } from "@/components/files/files-header";
@@ -271,7 +271,7 @@ function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isS
             <div className="text-xs text-muted-foreground truncate">
               {note && <>{note} · </>}
               {formatShortDate(resource.lastModified)}
-              {!resource.isDirectory && !resource.isSymlink && <> · {formatFileSize(resource.contentLength)}</>}
+              {!resource.isDirectory && !resource.isSymlink && <> · <FileSize bytes={resource.contentLength} /></>}
             </div>
           )}
         </div>
@@ -280,7 +280,7 @@ function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isS
         {!touch && formatShortDate(resource.lastModified)}
       </div>
       <div role="gridcell" className="hidden sm:block text-muted-foreground tabular-nums text-end">
-        {!touch && (resource.isDirectory || resource.isSymlink ? "—" : formatFileSize(resource.contentLength))}
+        {!touch && (resource.isDirectory || resource.isSymlink ? "—" : <FileSize bytes={resource.contentLength} />)}
       </div>
       <div role="gridcell" className="flex items-center justify-end gap-0.5 w-[4.75rem]">
         {!touch && !resource.isDirectory && !resource.isSymlink && (
@@ -482,7 +482,7 @@ function FileTile({ resource, isSelected, isFocused, isCut, selecting, touch, ic
           </button>
           <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0">
             <span className="truncate">
-              {resource.isSymlink ? "" : `${formatFileSize(resource.contentLength)} · `}{formatShortDate(resource.lastModified)}
+              {!resource.isSymlink && <><FileSize bytes={resource.contentLength} /> · </>}{formatShortDate(resource.lastModified)}
             </span>
             <ShareBadge resource={resource} t={t} className="w-3 h-3" />
           </div>

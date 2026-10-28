@@ -738,7 +738,7 @@ export function ContactsSidebar({
           <ContextMenuSeparator />
           <ContextMenuItem
             icon={Trash2}
-            label={t("form.delete")}
+            label={t("groups.delete")}
             onClick={() => {
               closeGroupContextMenu();
               onDeleteGroup?.(groupContextMenu.data!.id);
@@ -788,7 +788,7 @@ function SidebarRow({
       ref={rowRef}
       {...rowProps}
       {...dropProps}
-      {...(onOpenMenu ? longPress : {})}
+      {...(onOpenMenu ? longPress.handlers : {})}
       onContextMenu={onContextMenu}
       className={cn(
         // 32px rows, 44px on touch (R1).

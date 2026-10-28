@@ -10,6 +10,14 @@ const STATE_KEY = "__closeOnBack";
 // would pop it and close the layer at once.
 let pendingHistoryBack: Promise<void> | null = null;
 
+/**
+ * Resolves once the Back a closed layer took to remove its history entry has
+ * landed. A navigation started before then would be undone by it.
+ */
+export function historySettled(): Promise<void> {
+  return pendingHistoryBack ?? Promise.resolve();
+}
+
 const currentEntry = () => (window.history.state as Record<string, unknown> | null)?.[STATE_KEY];
 
 interface UseCloseOnBackOptions {

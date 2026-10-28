@@ -41,6 +41,13 @@ describe('toast layout', () => {
     expect(container).toHaveClass('[html[data-composer-open]_&]:bottom-20');
   });
 
+  it('sits above a registered bottom bar on the desktop too, such as a form footer', () => {
+    render(<Toasts />);
+    const container = screen.getByRole('status');
+    expect(container).toHaveClass('bottom-[max(1.25rem,calc(var(--bottom-controls-height,0px)+0.75rem))]');
+    expect(container).not.toHaveClass('bottom-5');
+  });
+
   it('names the close button and hides it on a phone', () => {
     render(<Toasts />);
     act(() => { toast.success('Saved'); });

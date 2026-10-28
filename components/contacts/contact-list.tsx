@@ -720,11 +720,17 @@ export function ContactList({
                 density={density}
                 selectedContactIds={selectedContactIds}
                 onClick={(e) => {
+                  // The open contact counts as selected, as a clicked file does
+                  // in Files: Ctrl/⌘+click and Shift+click build on it.
+                  const startFromOpen = !hasSelection && !!selectedContactId
+                    && selectedContactId !== contact.id && sortedIds.includes(selectedContactId);
                   if (e.ctrlKey || e.metaKey) {
                     e.preventDefault();
+                    if (startFromOpen) onToggleSelection(selectedContactId);
                     onToggleSelection(contact.id);
                   } else if (e.shiftKey) {
                     e.preventDefault();
+                    if (startFromOpen) onToggleSelection(selectedContactId);
                     onSelectRangeContacts(contact.id, sortedIds);
                   } else {
                     if (hasSelection) onClearSelection();
