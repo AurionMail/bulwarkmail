@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastContainer } from '../toast';
 import { toast, useToastStore } from '@/stores/toast-store';
 import { useBottomControls } from '@/hooks/use-bottom-controls';
+import { ContextMenu, ContextMenuItem } from '../context-menu';
 
 function Toasts() {
   const toasts = useToastStore((s) => s.toasts);
@@ -107,5 +108,62 @@ describe('useBottomControls', () => {
     expect(document.documentElement.style.getPropertyValue('--bottom-controls-height')).toBe('64px');
     unmount();
     expect(document.documentElement.style.getPropertyValue('--bottom-controls-height')).toBe('');
+  });
+});
+
+// On a phone a toast spans the screen and covered the last items of a
+// long-press menu. While a menu is open it steps aside and its countdown
+// waits; it comes back when the menu closes.
+describe('toasts and open menus', () => {
+  let phone = true;
+  beforeEach(() => {
+    vi.useFakeTimers();
+    useToastStore.setState({ toasts: [] });
+    phone = true;
+    vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
+      matches: query === '(max-width: 639px)' ? phone : false,
+      media: query, onchange: null,
+      addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {},
+      dispatchEvent: () => false,
+    }) as MediaQueryList);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  function Screen({ menu }: { menu: boolean }) {
+    return (
+      <>
+        <Toasts />
+        <ContextMenu isOpen={menu} position={{ x: 10, y: 10 }} onClose={() => {}} label="Row">
+          <ContextMenuItem label="Archive" onClick={() => {}} />
+        </ContextMenu>
+      </>
+    );
+  }
+
+  it('hides a phone toast while a menu is open and keeps it until the menu closes', () => {
+    const { rerender } = render(<Screen menu={false} />);
+    act(() => { toast.success('Moved to Trash'); });
+    const container = screen.getByRole('status');
+    expect(container).not.toHaveClass('invisible');
+
+    rerender(<Screen menu />);
+    expect(container).toHaveClass('invisible');
+    act(() => { vi.advanceTimersByTime(20000); });
+    expect(screen.getByText('Moved to Trash')).toBeInTheDocument();
+
+    rerender(<Screen menu={false} />);
+    expect(container).not.toHaveClass('invisible');
+    act(() => { vi.advanceTimersByTime(6000); });
+    expect(screen.queryByText('Moved to Trash')).not.toBeInTheDocument();
+  });
+
+  it('leaves desktop toasts where they are', () => {
+    phone = false;
+    render(<Screen menu />);
+    act(() => { toast.success('Saved'); });
+    expect(screen.getByRole('status')).not.toHaveClass('invisible');
   });
 });

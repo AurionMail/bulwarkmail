@@ -6,6 +6,8 @@ import { useTranslations } from "next-intl";
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle, Loader2 } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { TOUCH_HIT_AREA } from "@/components/ui/button";
+import { useContextMenuOpen } from "@/components/ui/context-menu";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 export type ToastType = "success" | "error" | "info" | "warning";
 
@@ -51,6 +53,8 @@ export interface Toast {
 interface ToastProps {
   toast: Toast;
   onClose: (id: string) => void;
+  /** Kept out of sight for now (a menu is open over it): the countdown waits. */
+  held?: boolean;
 }
 
 const icons = {
@@ -79,7 +83,7 @@ const progressBarStyles = {
 // A sideways swipe this far (px) on a touch screen dismisses the toast.
 const SWIPE_DISMISS_DISTANCE = 72;
 
-export function ToastItem({ toast, onClose }: ToastProps) {
+export function ToastItem({ toast, onClose, held = false }: ToastProps) {
   const tCommon = useTranslations("common");
   const Icon = icons[toast.type];
   const [exiting, setExiting] = useState(false);
@@ -114,10 +118,11 @@ export function ToastItem({ toast, onClose }: ToastProps) {
     dismiss();
   }, [toast, dismiss]);
 
+  const waiting = paused || held;
   useEffect(() => {
     if (!toast.duration || toast.duration <= 0 || isProgress) return;
 
-    if (paused) {
+    if (waiting) {
       if (timerRef.current) clearTimeout(timerRef.current);
       remainingRef.current = remainingRef.current - (Date.now() - startRef.current);
       return;
@@ -128,7 +133,7 @@ export function ToastItem({ toast, onClose }: ToastProps) {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [toast.duration, paused, dismiss, isProgress]);
+  }, [toast.duration, waiting, dismiss, isProgress]);
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.pointerType !== "touch" || exiting) return;
@@ -306,6 +311,12 @@ export function ToastItem({ toast, onClose }: ToastProps) {
 
 export function ToastContainer({ toasts, onClose }: { toasts: Toast[]; onClose: (id: string) => void }) {
   const [mounted, setMounted] = useState(false);
+  // On a phone the toasts span the screen and covered a long-press menu's
+  // last items. While a menu is open they step aside, and their countdown
+  // waits, so an Undo is still there when the menu closes.
+  const menuOpen = useContextMenuOpen();
+  const phone = useMediaQuery("(max-width: 639px)");
+  const held = menuOpen && phone;
 
   useEffect(() => {
     setMounted(true);
@@ -323,7 +334,8 @@ export function ToastContainer({ toasts, onClose }: { toasts: Toast[]; onClose: 
         // Phone: full width with 12px margins, above the bottom controls
         // (the tab bar, or whichever bar registered with useBottomControls).
         "max-sm:inset-x-3 max-sm:bottom-[calc(var(--bottom-controls-height,3.75rem)+0.75rem)]",
-        "max-sm:[html[data-composer-open]_&]:bottom-[max(5rem,calc(var(--bottom-controls-height,3.75rem)+0.75rem))]"
+        "max-sm:[html[data-composer-open]_&]:bottom-[max(5rem,calc(var(--bottom-controls-height,3.75rem)+0.75rem))]",
+        held && "invisible"
       )}
       role="status"
       aria-live="polite"
@@ -331,7 +343,7 @@ export function ToastContainer({ toasts, onClose }: { toasts: Toast[]; onClose: 
     >
       {toasts.map((toast) => (
         <div key={toast.id} style={{ pointerEvents: "auto" }}>
-          <ToastItem toast={toast} onClose={onClose} />
+          <ToastItem toast={toast} onClose={onClose} held={held} />
         </div>
       ))}
     </div>,

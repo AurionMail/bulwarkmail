@@ -11,6 +11,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
@@ -56,10 +57,13 @@ const HOVER_CLOSE_DELAY = 150;
 // Open menus, the one opened last at the end. Only that one answers keys.
 const openMenus: object[] = [];
 
+const openListeners = new Set<() => void>();
+
 function syncOpenFlag() {
   if (typeof document === "undefined") return;
   if (openMenus.length > 0) document.documentElement.dataset.contextMenuOpen = "";
   else delete document.documentElement.dataset.contextMenuOpen;
+  for (const listener of openListeners) listener();
 }
 
 /**
@@ -69,6 +73,18 @@ function syncOpenFlag() {
  */
 export function isContextMenuOpen(): boolean {
   return openMenus.length > 0;
+}
+
+function subscribeContextMenuOpen(listener: () => void): () => void {
+  openListeners.add(listener);
+  return () => {
+    openListeners.delete(listener);
+  };
+}
+
+/** isContextMenuOpen as state: re-renders when a menu opens or the last one closes. */
+export function useContextMenuOpen(): boolean {
+  return useSyncExternalStore(subscribeContextMenuOpen, isContextMenuOpen, () => false);
 }
 
 // ─── Items of a menu level ─────────────────────────────────────
