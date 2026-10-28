@@ -3291,6 +3291,7 @@
       "share": "Del adressebog",
       "new_contact_in_book": "Ny kontakt i denne adressebog",
       "delete": "Slet adressebog",
+      "delete_title": "Slet adressebog?",
       "confirm_delete": "Slet \"{name}\"? Alle kontakter i denne adressebog fjernes.",
       "deleted": "Adressebog slettet",
       "delete_failed": "Kunne ikke slette adressebog",

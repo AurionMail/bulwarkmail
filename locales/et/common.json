@@ -3293,6 +3293,7 @@
       "share": "Jaga aadressiraamatut",
       "new_contact_in_book": "Uus kontakt selles aadressiraamatus",
       "delete": "Kustuta aadressiraamat",
+      "delete_title": "Kas kustutada aadressiraamat?",
       "confirm_delete": "Kustutada \"{name}\"? Kõik selle aadressiraamatu kontaktid eemaldatakse.",
       "deleted": "Aadressiraamat kustutatud",
       "delete_failed": "Aadressiraamatu kustutamine ebaõnnestus",

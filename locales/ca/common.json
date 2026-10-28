@@ -3293,6 +3293,7 @@
       "share": "Comparteix la llibreta d'adreces",
       "new_contact_in_book": "Contacte nou en aquesta llibreta d'adreces",
       "delete": "Suprimeix la llibreta d'adreces",
+      "delete_title": "Voleu suprimir la llibreta d'adreces?",
       "confirm_delete": "Voleu suprimir «{name}»? S'eliminaran tots els contactes d'aquesta llibreta d'adreces.",
       "deleted": "Llibreta d'adreces suprimida",
       "delete_failed": "No s'ha pogut suprimir la llibreta d'adreces",

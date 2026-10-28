@@ -3291,6 +3291,7 @@
       "share": "Adres defterini paylaş",
       "new_contact_in_book": "Bu adres defterinde yeni kişi",
       "delete": "Adres defterini sil",
+      "delete_title": "Adres defteri silinsin mi?",
       "confirm_delete": "\"{name}\" silinsin mi? Bu adres defterindeki tüm kişiler kaldırılacak.",
       "deleted": "Adres defteri silindi",
       "delete_failed": "Adres defteri silinemedi",

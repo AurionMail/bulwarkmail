@@ -3291,6 +3291,7 @@
       "share": "アドレス帳を共有",
       "new_contact_in_book": "このアドレス帳に新規連絡先",
       "delete": "アドレス帳を削除",
+      "delete_title": "アドレス帳を削除しますか？",
       "confirm_delete": "「{name}」を削除しますか？このアドレス帳のすべての連絡先が削除されます。",
       "deleted": "アドレス帳を削除しました",
       "delete_failed": "アドレス帳の削除に失敗しました",

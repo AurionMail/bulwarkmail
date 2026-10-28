@@ -3291,6 +3291,7 @@
       "share": "Compartir libreta de direcciones",
       "new_contact_in_book": "Nuevo contacto en esta libreta",
       "delete": "Eliminar libreta de direcciones",
+      "delete_title": "¿Eliminar la libreta de direcciones?",
       "confirm_delete": "¿Eliminar «{name}»? Todos los contactos de esta libreta se eliminarán.",
       "deleted": "Libreta de direcciones eliminada",
       "delete_failed": "No se pudo eliminar la libreta de direcciones",

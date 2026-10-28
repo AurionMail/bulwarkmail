@@ -3293,6 +3293,7 @@
       "share": "分享通訊錄",
       "new_contact_in_book": "在此通訊錄中新增聯絡人",
       "delete": "刪除通訊錄",
+      "delete_title": "要刪除通訊錄嗎？",
       "confirm_delete": "要刪除「{name}」嗎？此通訊錄中的所有聯絡人都會移除。",
       "deleted": "通訊錄已刪除",
       "delete_failed": "刪除通訊錄失敗",

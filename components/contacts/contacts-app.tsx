@@ -1193,7 +1193,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                       }))}
                       onDeleteAddressBook={client ? fromDrawer(async (book: AddressBook) => {
                         const ok = await confirmDialog({
-                          title: t("address_books.delete"),
+                          title: t("address_books.delete_title"),
                           message: t("address_books.confirm_delete", { name: book.name }),
                           variant: "destructive",
                           confirmText: t("address_books.delete"),

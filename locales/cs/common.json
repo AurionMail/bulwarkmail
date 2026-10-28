@@ -3291,6 +3291,7 @@
       "share": "Sdílet adresář",
       "new_contact_in_book": "Nový kontakt v tomto adresáři",
       "delete": "Smazat adresář",
+      "delete_title": "Smazat adresář?",
       "confirm_delete": "Smazat „{name}\"? Všechny kontakty v tomto adresáři budou odstraněny.",
       "deleted": "Adresář smazán",
       "delete_failed": "Adresář se nepodařilo smazat",

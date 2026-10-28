@@ -3291,6 +3291,7 @@
       "share": "Adressbuch freigeben",
       "new_contact_in_book": "Neuer Kontakt in diesem Adressbuch",
       "delete": "Adressbuch löschen",
+      "delete_title": "Adressbuch löschen?",
       "confirm_delete": "„{name}\" löschen? Alle Kontakte in diesem Adressbuch werden entfernt.",
       "deleted": "Adressbuch gelöscht",
       "delete_failed": "Adressbuch konnte nicht gelöscht werden",

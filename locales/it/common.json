@@ -3291,6 +3291,7 @@
       "share": "Condividi rubrica",
       "new_contact_in_book": "Nuovo contatto in questa rubrica",
       "delete": "Elimina rubrica",
+      "delete_title": "Eliminare la rubrica?",
       "confirm_delete": "Eliminare \"{name}\"? Tutti i contatti in questa rubrica verranno rimossi.",
       "deleted": "Rubrica eliminata",
       "delete_failed": "Impossibile eliminare la rubrica",

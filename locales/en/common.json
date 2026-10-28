@@ -3293,6 +3293,7 @@
       "share": "Share address book",
       "new_contact_in_book": "New contact in this address book",
       "delete": "Delete address book",
+      "delete_title": "Delete address book?",
       "confirm_delete": "Delete \"{name}\"? All contacts in this address book will be removed.",
       "deleted": "Address book deleted",
       "delete_failed": "Couldn't delete the address book",

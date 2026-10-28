@@ -3291,6 +3291,7 @@
       "share": "Partager le carnet d'adresses",
       "new_contact_in_book": "Nouveau contact dans ce carnet d'adresses",
       "delete": "Supprimer le carnet d'adresses",
+      "delete_title": "Supprimer le carnet d'adresses ?",
       "confirm_delete": "Supprimer « {name} » ? Tous les contacts de ce carnet d'adresses seront supprimés.",
       "deleted": "Carnet d'adresses supprimé",
       "delete_failed": "Échec de la suppression du carnet d'adresses",

@@ -3291,6 +3291,7 @@
       "share": "Adresboek delen",
       "new_contact_in_book": "Nieuw contact in dit adresboek",
       "delete": "Adresboek verwijderen",
+      "delete_title": "Adresboek verwijderen?",
       "confirm_delete": "\"{name}\" verwijderen? Alle contacten in dit adresboek worden verwijderd.",
       "deleted": "Adresboek verwijderd",
       "delete_failed": "Adresboek kon niet worden verwijderd",

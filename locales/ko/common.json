@@ -3291,6 +3291,7 @@
       "share": "주소록 공유",
       "new_contact_in_book": "이 주소록에 새 연락처",
       "delete": "주소록 삭제",
+      "delete_title": "주소록을 삭제할까요?",
       "confirm_delete": "\"{name}\"을(를) 삭제하시겠습니까? 이 주소록의 모든 연락처가 삭제됩니다.",
       "deleted": "주소록이 삭제되었습니다",
       "delete_failed": "주소록 삭제에 실패했습니다",

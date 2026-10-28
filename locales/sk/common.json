@@ -3293,6 +3293,7 @@
       "share": "Zdieľať adresár",
       "new_contact_in_book": "Nový kontakt v tomto adresári",
       "delete": "Zmazať adresár",
+      "delete_title": "Zmazať adresár?",
       "confirm_delete": "Zmazať \"{name}\"? Všetky kontakty v tomto adresári budú odstránené.",
       "deleted": "Adresár zmazaný",
       "delete_failed": "Adresár sa nepodarilo zmazať",

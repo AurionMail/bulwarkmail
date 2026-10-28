@@ -3283,6 +3283,7 @@
       "share": "Kopīgot adrešu grāmatu",
       "new_contact_in_book": "Jauns kontakts šajā adrešu grāmatā",
       "delete": "Dzēst adrešu grāmatu",
+      "delete_title": "Dzēst adrešu grāmatu?",
       "confirm_delete": "Dzēst \"{name}\"? Visi kontakti šajā adrešu grāmatā tiks noņemti.",
       "deleted": "Adrešu grāmata dzēsta",
       "delete_failed": "Neizdevās dzēst adrešu grāmatu",

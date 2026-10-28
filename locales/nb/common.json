@@ -3293,6 +3293,7 @@
       "share": "Del adressebok",
       "new_contact_in_book": "Ny kontakt i denne adresseboken",
       "delete": "Slett adressebok",
+      "delete_title": "Vil du slette adresseboken?",
       "confirm_delete": "Vil du slette «{name}»? Alle kontaktene i denne adresseboken fjernes.",
       "deleted": "Adresseboken er slettet",
       "delete_failed": "Kunne ikke slette adresseboken",

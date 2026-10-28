@@ -3291,6 +3291,7 @@
       "share": "Udostępnij książkę adresową",
       "new_contact_in_book": "Nowy kontakt w tej książce adresowej",
       "delete": "Usuń książkę adresową",
+      "delete_title": "Usunąć książkę adresową?",
       "confirm_delete": "Usunąć „{name}\"? Wszystkie kontakty w tej książce adresowej zostaną usunięte.",
       "deleted": "Książka adresowa usunięta",
       "delete_failed": "Nie udało się usunąć książki adresowej",

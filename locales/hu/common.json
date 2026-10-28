@@ -3293,6 +3293,7 @@
       "share": "Címjegyzék megosztása",
       "new_contact_in_book": "Új névjegy ebben a címjegyzékben",
       "delete": "Címjegyzék törlése",
+      "delete_title": "Törli a címjegyzéket?",
       "confirm_delete": "Törlöd a \"{name}\" címjegyzéket? Az összes névjegy eltávolításra kerül.",
       "deleted": "Címjegyzék törölve",
       "delete_failed": "Nem sikerült törölni a címjegyzéket",

@@ -138,7 +138,7 @@ export function AddressBookManagementSettings() {
   const handleDelete = async (book: AddressBook) => {
     if (!client) return;
     const ok = await confirm({
-      title: t("delete"),
+      title: t("delete_title"),
       message: t("confirm_delete", { name: book.name }),
       confirmText: t("delete"),
       variant: "destructive",

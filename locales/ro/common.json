@@ -3293,6 +3293,7 @@
       "share": "Partajați agenda de adrese",
       "new_contact_in_book": "Contact nou în această agendă",
       "delete": "Șterge agenda de adrese",
+      "delete_title": "Ștergeți agenda de adrese?",
       "confirm_delete": "Doriți să ștergeți „{name}”? Toate contactele din această agendă vor fi eliminate.",
       "deleted": "Agenda de adrese a fost ștersă",
       "delete_failed": "Nu s-a putut șterge agenda de adrese",

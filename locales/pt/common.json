@@ -3291,6 +3291,7 @@
       "share": "Compartilhar lista de contatos",
       "new_contact_in_book": "Novo contato nesta lista",
       "delete": "Excluir lista de contatos",
+      "delete_title": "Excluir lista de contatos?",
       "confirm_delete": "Excluir \"{name}\"? Todos os contatos desta lista serão removidos.",
       "deleted": "Lista de contatos excluída",
       "delete_failed": "Falha ao excluir a lista de contatos",

@@ -3291,6 +3291,7 @@
       "share": "共享通讯录",
       "new_contact_in_book": "在此通讯录中新建联系人",
       "delete": "删除通讯录",
+      "delete_title": "删除通讯录？",
       "confirm_delete": "删除「{name}」？此通讯录中的所有联系人将被移除。",
       "deleted": "通讯录已删除",
       "delete_failed": "删除通讯录失败",
