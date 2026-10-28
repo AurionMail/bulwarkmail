@@ -16,7 +16,7 @@ import { AdminList, AdminListRow } from '@/components/admin/list';
 import { AdminSaveBar } from '@/components/admin/save-bar';
 import { Badge } from '@/components/admin/badge';
 import { EmptyState } from '@/components/admin/empty-state';
-import { Flash, useFlash } from '@/components/admin/flash-message';
+import { useAdminFeedback } from '@/components/admin/feedback';
 import { inputClass } from '@/components/admin/config-items';
 import { cn } from '@/lib/utils';
 import { ExtensionIcon } from '@/components/admin/extension-icon';
@@ -42,7 +42,7 @@ export function ThemesPage() {
   const iconFor = useExtensionIcons();
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useFlash();
+  const setMessage = useAdminFeedback();
   // On/off per theme waits for Save, like the policy switches below.
   const [enabledDraft, setEnabledDraft] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -262,7 +262,6 @@ export function ThemesPage() {
         )}
       />
 
-      <Flash message={message} onDismiss={() => setMessage(null)} />
 
       <div className="space-y-10">
         <SettingsSection

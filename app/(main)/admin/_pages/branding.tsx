@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { AdminSaveBar } from '@/components/admin/save-bar';
 import { Badge } from '@/components/admin/badge';
-import { Flash, useFlash } from '@/components/admin/flash-message';
+import { useAdminFeedback } from '@/components/admin/feedback';
 import { inputClass, RevertButton } from '@/components/admin/config-items';
 import { cn } from '@/lib/utils';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -79,7 +79,7 @@ export function BrandingPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
-  const [message, setMessage] = useFlash();
+  const setMessage = useAdminFeedback();
   const [selectedHost, setSelectedHost] = useState<string | null>(null);
   const [addingHost, setAddingHost] = useState(false);
   const [newHostInput, setNewHostInput] = useState('');
@@ -431,7 +431,6 @@ export function BrandingPage() {
     <div>
       <AdminPageHeader title={PAGE.label} description={PAGE.description} />
 
-      <Flash message={message} onDismiss={() => setMessage(null)} />
       <ConfirmDialog {...confirmProps} />
 
       <div className="space-y-10">

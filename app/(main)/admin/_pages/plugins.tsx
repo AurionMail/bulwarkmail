@@ -16,7 +16,7 @@ import { AdminList, AdminListRow } from '@/components/admin/list';
 import { AdminSaveBar } from '@/components/admin/save-bar';
 import { Badge } from '@/components/admin/badge';
 import { EmptyState } from '@/components/admin/empty-state';
-import { Flash, useFlash } from '@/components/admin/flash-message';
+import { useAdminFeedback } from '@/components/admin/feedback';
 import { ExtensionIcon } from '@/components/admin/extension-icon';
 import { PluginApprovalsPanel } from './plugin-approvals-panel';
 import { useExtensionIcons } from './use-extension-icons';
@@ -26,7 +26,7 @@ export function PluginsPage() {
   const [plugins, setPlugins] = useState<ExtensionEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useFlash();
+  const setMessage = useAdminFeedback();
   // On/off per plugin waits for Save, like the policy switches below.
   const [enabledDraft, setEnabledDraft] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -184,7 +184,6 @@ export function PluginsPage() {
         )}
       />
 
-      <Flash message={message} onDismiss={() => setMessage(null)} />
 
       <div className="space-y-10">
         <PluginApprovalsPanel />

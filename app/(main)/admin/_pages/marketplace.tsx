@@ -18,7 +18,7 @@ import { AdminButtonLink } from '@/components/admin/button-link';
 import { AdminList, AdminListRow } from '@/components/admin/list';
 import { Badge } from '@/components/admin/badge';
 import { EmptyState } from '@/components/admin/empty-state';
-import { Flash, useFlash } from '@/components/admin/flash-message';
+import { useAdminFeedback } from '@/components/admin/feedback';
 import { ConfigNote, inputClass } from '@/components/admin/config-items';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
@@ -139,7 +139,7 @@ export function MarketplacePage() {
   const [directoryUrl, setDirectoryUrl] = useState<string | null>(null);
   const [channel, setChannel] = useState<'stable' | 'beta'>('stable');
   const [installing, setInstalling] = useState<Set<string>>(new Set());
-  const [message, setMessage] = useFlash();
+  const setMessage = useAdminFeedback();
   const [error, setError] = useState<string | null>(null);
   const [updates, setUpdates] = useState<UpdatesResult | null>(null);
   const [updatesLoading, setUpdatesLoading] = useState(true);
@@ -270,7 +270,6 @@ export function MarketplacePage() {
         )}
       />
 
-      <Flash message={message} onDismiss={() => setMessage(null)} />
       <ConfirmDialog {...confirmProps} />
 
       <div className="space-y-10">

@@ -35,7 +35,7 @@ import { AdminPageHeader } from '@/components/admin/page-header';
 import { AdminLink } from '@/components/admin/admin-link';
 import { AdminButtonLink } from '@/components/admin/button-link';
 import { Badge } from '@/components/admin/badge';
-import { Flash, useFlash } from '@/components/admin/flash-message';
+import { useAdminFeedback } from '@/components/admin/feedback';
 import { installVersion } from './marketplace';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
@@ -138,7 +138,7 @@ export function MarketplaceDetailPage({ slug }: { slug: string }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [uninstalling, setUninstalling] = useState(false);
-  const [message, setMessage] = useFlash();
+  const setMessage = useAdminFeedback();
   const [showSource, setShowSource] = useState(false);
   const [showManifest, setShowManifest] = useState(false);
   // The version being previewed, from the install link (?version=) or a row
@@ -429,7 +429,6 @@ export function MarketplaceDetailPage({ slug }: { slug: string }) {
         </div>
       )}
 
-      <Flash message={message} onDismiss={() => setMessage(null)} />
       <ConfirmDialog {...confirmProps} />
 
       <div className="mb-6 space-y-3 empty:hidden">

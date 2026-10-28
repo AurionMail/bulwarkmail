@@ -6,7 +6,7 @@ import { SettingsSection, SettingItem, ToggleSwitch } from '@/components/setting
 import { Button } from '@/components/ui/button';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { AdminSaveBar } from '@/components/admin/save-bar';
-import { Flash, useFlash } from '@/components/admin/flash-message';
+import { useAdminFeedback } from '@/components/admin/feedback';
 import { ConfigNote, inputClass } from '@/components/admin/config-items';
 import { adminPageDef } from '@/lib/admin/admin-nav';
 import { apiFetch } from '@/lib/browser-navigation';
@@ -45,7 +45,7 @@ export function TelemetryPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [endpointDraft, setEndpointDraft] = useState('');
-  const [message, setMessage] = useFlash();
+  const setMessage = useAdminFeedback();
   // The heartbeat switch waits for Save like the endpoint (one page, one
   // save bar).
   const [consentDraft, setConsentDraft] = useState<'on' | 'off' | null>(null);
@@ -149,7 +149,6 @@ export function TelemetryPage() {
     <div>
       {header}
 
-      <Flash message={message} onDismiss={() => setMessage(null)} />
 
       <div className="space-y-10">
         <ConfigNote>

@@ -15,7 +15,7 @@ import { AdminPageHeader } from '@/components/admin/page-header';
 import { AdminLink } from '@/components/admin/admin-link';
 import { AdminSaveBar } from '@/components/admin/save-bar';
 import { Badge } from '@/components/admin/badge';
-import { Flash, useFlash } from '@/components/admin/flash-message';
+import { useAdminFeedback } from '@/components/admin/feedback';
 import { inputClass } from '@/components/admin/config-items';
 import { ExtensionIcon } from '@/components/admin/extension-icon';
 import { cn } from '@/lib/utils';
@@ -84,7 +84,7 @@ export function ExtensionDetailPage({ kind, id }: Props) {
   const [revealSecrets, setRevealSecrets] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
-  const [message, setMessage] = useFlash();
+  const setMessage = useAdminFeedback();
   const iconFor = useExtensionIcons();
 
   const load = useCallback(async () => {
@@ -354,7 +354,6 @@ export function ExtensionDetailPage({ kind, id }: Props) {
 
       {entry.description && <p className="-mt-2 mb-6 text-sm text-foreground">{entry.description}</p>}
 
-      <Flash message={message} onDismiss={() => setMessage(null)} />
       <ConfirmDialog {...confirmProps} />
 
       <div className="space-y-10">
