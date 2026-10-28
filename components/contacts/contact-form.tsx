@@ -398,6 +398,9 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
   const [keywordsStr, setKeywordsStr] = useState(
     contact?.keywords ? Object.keys(contact.keywords).filter(k => contact.keywords![k]).join(", ") : ""
   );
+  // Text typed in the Categories field but not added with Enter yet: Save
+  // adds it, so it isn't lost.
+  const [categoryDraft, setCategoryDraft] = useState("");
 
   const [note, setNote] = useState(
     contact?.notes ? Object.values(contact.notes)[0]?.note || "" : ""
@@ -455,7 +458,7 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
   const fields = JSON.stringify([
     prefix, givenName, additionalName, surname, suffix, nickname, emails, phones, organization,
     department, isOrg, jobTitle, role, addresses, onlineServices, anniversaries, personalInfoEntries,
-    keywordsStr, note, genderSex, genderIdentity, calendarUri, schedulingUri, freeBusyUri, selectedBookId,
+    keywordsStr, categoryDraft, note, genderSex, genderIdentity, calendarUri, schedulingUri, freeBusyUri, selectedBookId,
   ]);
   const [initialFields] = useState(fields);
   const dirty = fields !== initialFields || photoEdit.kind !== "unchanged";
@@ -614,11 +617,14 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
     });
 
     const keywordsMap: Record<string, boolean> = {};
-    if (keywordsStr.trim()) {
-      keywordsStr.split(",").map(k => k.trim()).filter(Boolean).forEach(k => {
-        keywordsMap[k] = true;
-      });
-    }
+    keywordsStr.split(",").map(k => k.trim()).filter(Boolean).forEach(k => {
+      keywordsMap[k] = true;
+    });
+    // A typed category that matches an existing one takes its spelling.
+    categoryDraft.split(",").map(k => k.trim()).filter(Boolean).forEach(k => {
+      const existing = (allKeywords || []).find(kw => kw.toLowerCase() === k.toLowerCase());
+      keywordsMap[existing ?? k] = true;
+    });
 
     // Only send `kind` when this form owns the answer: switching a card between
     // person and organization. Leave other kinds (group, location, ...) untouched.
@@ -1126,6 +1132,8 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
             <CategoryComboBox
               keywordsStr={keywordsStr}
               onChange={setKeywordsStr}
+              inputValue={categoryDraft}
+              onInputChange={setCategoryDraft}
               allKeywords={allKeywords || []}
               placeholder={t("categories_placeholder")}
               hint={t("categories_hint")}
@@ -1201,6 +1209,8 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
 function CategoryComboBox({
   keywordsStr,
   onChange,
+  inputValue,
+  onInputChange: setInputValue,
   allKeywords,
   placeholder,
   hint,
@@ -1208,6 +1218,9 @@ function CategoryComboBox({
 }: {
   keywordsStr: string;
   onChange: (value: string) => void;
+  /** The text typed but not added yet; the form adds it on Save. */
+  inputValue: string;
+  onInputChange: (value: string) => void;
   allKeywords: string[];
   placeholder: string;
   hint: string;
@@ -1215,7 +1228,6 @@ function CategoryComboBox({
 }) {
   const t = useTranslations("contacts.form");
   const [isOpen, setIsOpen] = useState(false);
-  const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Parse current keywords from comma-separated string
@@ -1243,7 +1255,7 @@ function CategoryComboBox({
     const next = [...currentKeywords, trimmed].join(", ");
     onChange(next);
     setInputValue("");
-  }, [currentKeywords, onChange]);
+  }, [currentKeywords, onChange, setInputValue]);
 
   const removeKeyword = useCallback((keyword: string) => {
     const next = currentKeywords.filter(k => k !== keyword).join(", ");

@@ -86,6 +86,26 @@ describe('ContactForm', () => {
     expect(savedData.media).toBeNull();
   });
 
+  it('adds a category typed without Enter when the contact is saved, in the spelling of an existing one', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<ContactForm contact={existingContact} allKeywords={['Friends']} onSave={onSave} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByText('categories'));
+    fireEvent.change(screen.getByPlaceholderText('categories_placeholder'), { target: { value: 'friends, Gym ' } });
+    fireEvent.submit(screen.getByText('save').closest('form')!);
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    expect(onSave.mock.calls[0][0].keywords).toEqual({ Friends: true, Gym: true });
+  });
+
+  it('counts a typed category as a change, so leaving asks first', () => {
+    const onDirtyChange = vi.fn();
+    render(<ContactForm contact={existingContact} onSave={vi.fn()} onCancel={vi.fn()} onDirtyChange={onDirtyChange} />);
+    fireEvent.click(screen.getByText('categories'));
+    fireEvent.change(screen.getByPlaceholderText('categories_placeholder'), { target: { value: 'Gym' } });
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+  });
+
   describe('photos (P0-3)', () => {
     // The same PHOTO as ContactCard/get returns it on each version.
     const photo0_16_23: ContactMedia = { kind: 'photo', uri: 'data:image/jpeg;base64,/9j/', mediaType: 'image/jpeg' };
