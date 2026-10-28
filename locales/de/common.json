@@ -4189,6 +4189,32 @@
   "unified_mailbox": {
     "search_unavailable": "Die Suche ist in der vereinheitlichten Ansicht nicht verfügbar"
   },
+  "recover_deleted": {
+    "tab": "Gelöschte Elemente wiederherstellen",
+    "title": "Gelöschte Elemente wiederherstellen",
+    "description": "E-Mails, die Sie endgültig gelöscht haben, zum Beispiel durch Leeren des Papierkorbs, und die der Server noch aufbewahrt. Wählen Sie Nachrichten aus und stellen Sie sie wieder her.",
+    "range_days": "Angezeigt werden E-Mails, die {days, plural, one {am letzten Tag} other {in den letzten # Tagen}} gelöscht wurden.",
+    "range_all": "Angezeigt werden alle gelöschten E-Mails, die der Server noch aufbewahrt.",
+    "loading": "Gelöschte E-Mails werden geladen…",
+    "load_failed": "Die gelöschten E-Mails konnten nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "empty": "Es gibt keine gelöschten E-Mails zum Wiederherstellen.",
+    "select_all": "Alle auswählen",
+    "selected": "{count} ausgewählt",
+    "refresh": "Aktualisieren",
+    "restore": "Wiederherstellen",
+    "restored": "{count, plural, one {# Nachricht wird} other {# Nachrichten werden}} in Ihren Posteingang zurückgelegt.",
+    "restore_partial": "{count, plural, one {# Nachricht konnte nicht wiederhergestellt werden. Sie bleibt ausgewählt, damit Sie es erneut versuchen können.} other {# Nachrichten konnten nicht wiederhergestellt werden. Sie bleiben ausgewählt, damit Sie es erneut versuchen können.}}",
+    "restore_hint": "Wiederhergestellte E-Mails kommen ungelesen in Ihren Posteingang und stehen dort nach ihrem ursprünglichen Datum, also möglicherweise weit unten. Der Server stellt sie im Hintergrund wieder her. Schlägt das dort fehl, ist die Nachricht verloren, und Bulwark kann das nicht erkennen.",
+    "unknown_sender": "Unbekannter Absender",
+    "no_subject": "(kein Betreff)",
+    "deleted_on": "Gelöscht am {date}",
+    "trash_hint": "Versehentlich endgültig gelöscht?",
+    "trash_link": "Gelöschte Elemente wiederherstellen",
+    "empty_hint": "Gelöschte E-Mails erscheinen hier nur, wenn Ihre Administration in Stalwart die Archivierung gelöschter Elemente eingeschaltet hat.",
+    "restore_gone": "{count, plural, one {# Nachricht war nicht mehr im Archiv: Sie wurde anderswo wiederhergestellt oder der Server bewahrt sie nicht mehr auf.} other {# Nachrichten waren nicht mehr im Archiv: Sie wurden anderswo wiederhergestellt oder der Server bewahrt sie nicht mehr auf.}}",
+    "show_older": "Ältere anzeigen"
+  },
   "calendar_event_notifications": {
     "someone": "Jemand",
     "invited": "{name} hat dich zu „{title}“ eingeladen",

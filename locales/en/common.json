@@ -4318,6 +4318,32 @@
   "unified_mailbox": {
     "search_unavailable": "Search is not available in the unified view"
   },
+  "recover_deleted": {
+    "tab": "Recover deleted items",
+    "title": "Recover deleted items",
+    "description": "Mail you deleted for good, for example by emptying Trash, that the server still keeps. Select messages and restore them.",
+    "range_days": "Showing mail deleted in the last {days, plural, one {day} other {# days}}.",
+    "range_all": "Showing all deleted mail the server still keeps.",
+    "loading": "Loading deleted mail…",
+    "load_failed": "Deleted mail couldn't be loaded.",
+    "retry": "Try again",
+    "empty": "There is no deleted mail to recover.",
+    "select_all": "Select all",
+    "selected": "{count} selected",
+    "refresh": "Refresh",
+    "restore": "Restore",
+    "restored": "{count, plural, one {# message is} other {# messages are}} on the way back to your Inbox.",
+    "restore_partial": "{count, plural, one {# message couldn't be restored. It stays selected, so you can try again.} other {# messages couldn't be restored. They stay selected, so you can try again.}}",
+    "restore_hint": "Restored mail goes back to your Inbox as unread, sorted by its original date, so it may be far down the list. The server restores it in the background. If that fails there, the message is lost and Bulwark can't tell.",
+    "unknown_sender": "Unknown sender",
+    "no_subject": "(no subject)",
+    "deleted_on": "Deleted {date}",
+    "trash_hint": "Deleted for good by mistake?",
+    "trash_link": "Recover deleted items",
+    "empty_hint": "Deleted mail only shows up here if your administrator turned on archiving of deleted items in Stalwart.",
+    "restore_gone": "{count, plural, one {# message was no longer in the archive: it was restored elsewhere or the server stopped keeping it.} other {# messages were no longer in the archive: they were restored elsewhere or the server stopped keeping them.}}",
+    "show_older": "Show older"
+  },
   "quote_header": {
     "reply_line": "On {date}, {from} wrote:",
     "forwarded_separator": "---------- Forwarded message ----------",

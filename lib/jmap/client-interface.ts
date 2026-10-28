@@ -1,5 +1,6 @@
 import type { ShareChange, ShareChangeResult, ShareTarget } from "./share-batch";
 import type { ShareKind } from "./share-rights";
+import type { ArchiveListResult, ArchiveQueryPage, RestoreResult } from "@/lib/recovery/archived-items";
 import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CreateCalendarOptions, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, FileNode, FileNodeRights, Principal, PrincipalAvailability, PrincipalListing, PushSubscription, EmailPushConfig, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
 import type { FileNameRules } from "@/lib/file-name-rules";
@@ -678,4 +679,16 @@ export interface IJMAPClient {
    * copy: the source message is left where it is.
    */
   copyEmailAcrossAccounts(emailId: string, fromAccountId: string, toAccountId: string, destMailboxId: string, options?: { keepOriginal?: boolean }): Promise<string>;
+
+  // Recover deleted items: Stalwart Enterprise's archive (lib/recovery/archived-items.ts). Optional (demo client).
+  /** Whether the account is on Stalwart at all; says nothing about the license. */
+  advertisesArchivedItems?(accountId?: string): boolean;
+  /** One page of x:ArchivedItem/query (newest first) in a request of its own; throws with the JMAP error type (`forbidden` without a license). */
+  queryArchivedItemIds?(accountId?: string, options?: { position?: number; limit?: number; calculateTotal?: boolean }): Promise<ArchiveQueryPage>;
+  /** The account's deleted messages inside the days window, in pages, with where "Show older" goes on. Throws like queryArchivedItemIds. */
+  listArchivedEmails?(accountId?: string, options?: { days?: number; startPosition?: number }): Promise<ArchiveListResult>;
+  /** Whether at least one deleted message is inside the days window (the Trash link). Throws like queryArchivedItemIds. */
+  hasArchivedEmail?(accountId?: string, options?: { days?: number }): Promise<boolean>;
+  /** Asks the server to put these messages back in the Inbox; every id gets a result, nothing throws. */
+  restoreArchivedItems?(ids: string[], accountId?: string): Promise<RestoreResult[]>;
 }

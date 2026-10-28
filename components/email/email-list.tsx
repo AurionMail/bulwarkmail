@@ -45,6 +45,7 @@ import { unreadSectionRowCount } from "@/lib/unread-first";
 import { MvListSectionHeader } from "./mv-list-section-header";
 import { type OpenableEmail, PluginSearchResults } from "./plugin-search-results";
 import { commonTagScope } from "@/hooks/use-account-tags";
+import { TrashRecoveryLink } from "./trash-recovery-link";
 
 interface EmailListProps {
   emails: Email[];
@@ -959,6 +960,9 @@ export function EmailList({
           }}
         />
       )}
+
+      {/* Recover deleted items, from the account's own Trash (mounted only there) */}
+      {currentMailbox?.role === 'trash' && <TrashRecoveryLink mailbox={currentMailbox} />}
 
       {/* Empty Folder Banner for Junk/Trash */}
       {isEmptyableFolder && emails.length > 0 && !hasSelection && (

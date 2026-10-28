@@ -25,6 +25,7 @@ import {
   LayoutList,
   Database,
   Users,
+  RotateCcw,
   X,
   type AppIcon,
 } from '@/components/icons';
@@ -50,6 +51,9 @@ import { ContactsSettings } from '@/components/settings/contacts-settings';
 import { AddonsSettings } from '@/components/settings/addons-settings';
 import { NotificationSettings } from '@/components/settings/notification-settings';
 import { DelegatesSettings } from '@/components/settings/delegates/delegates-settings';
+import { RecoverDeletedSettings } from '@/components/settings/recover-deleted-settings';
+import { useDeletedItemsRecovery } from '@/hooks/use-deleted-items-recovery';
+import { RECOVERY_SETTINGS_TAB } from '@/lib/recovery/archived-items';
 import { useRestriction } from '@/hooks/use-restriction';
 import { PluginIframeSlot } from '@/components/plugins/plugin-iframe-slot';
 import { offersForSlot as pluginOffersForSlot, subscribe as pluginRegistrySubscribe, get as getActivePlugin } from '@/lib/plugin-sandbox/registry';
@@ -131,6 +135,7 @@ const tabIcons: Record<Tab, AppIcon> = {
   organize: FolderOpen,
   security: Shield,
   sharing: Users,
+  recovery: RotateCcw,
   calendar: Calendar,
   contacts: BookUser,
   files: HardDrive,
@@ -272,6 +277,9 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   const { isFeatureEnabled } = usePolicyStore();
   const archiveActionEnabled = isFeatureEnabled('archiveActionEnabled');
   const delegationHidden = useRestriction('delegation').hidden;
+  // Recover deleted items: asked of the server once per account (Enterprise license).
+  const recoveryAvailable = useDeletedItemsRecovery().available;
+  const tRecover = useTranslations('recover_deleted');
   // A tab in the URL wins over the persisted one; without it, nothing changes.
   const [activeTab, setActiveTab] = useState<SettingsTabId>(
     () => targetFromDeepLink(linkSegments)?.tab ?? readPersistedTab(),
@@ -657,6 +665,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     { id: 'organize', label: isFeatureEnabled('customKeywordsEnabled') ? t('tabs.organize') : t('tabs.folders'), icon: tabIcons.organize, group: 'mail' },
     ...(supportsSieve ? [{ id: 'filters' as Tab, label: t('tabs.filters'), icon: tabIcons.filters, group: 'mail' as TabGroup }] : []),
     ...(supportsVacation ? [{ id: 'vacation' as Tab, label: t('tabs.vacation'), icon: tabIcons.vacation, group: 'mail' as TabGroup }] : []),
+    ...(recoveryAvailable ? [{ id: RECOVERY_SETTINGS_TAB as Tab, label: tRecover('tab'), icon: tabIcons.recovery, group: 'mail' as TabGroup }] : []),
 
     // Apps
     ...(supportsCalendar && isFeatureEnabled('calendarEnabled') ? [{ id: 'calendar' as Tab, label: t('tabs.calendar'), icon: tabIcons.calendar, group: 'apps' as TabGroup }] : []),
@@ -796,6 +805,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       {effectiveActiveTab === 'organize' && <OrganizeSettings />}
       {effectiveActiveTab === 'security' && <AccountSecuritySettings />}
       {effectiveActiveTab === 'sharing' && <DelegatesSettings />}
+      {effectiveActiveTab === RECOVERY_SETTINGS_TAB && <RecoverDeletedSettings />}
       {effectiveActiveTab === 'calendar' && (
         managedAccountId
           ? <CalendarManagementSettings />
