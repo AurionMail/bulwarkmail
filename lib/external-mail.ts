@@ -158,6 +158,13 @@ type AccountClient = NonNullable<ReturnType<ReturnType<typeof useAuthStore.getSt
 const subjects = new WeakMap<AccountClient, Promise<PolicySubject | null>>();
 const identityLists = new WeakMap<AccountClient, Promise<string[]>>();
 
+/** Whether Everyone or any domain or group scope turns this switch on. */
+function switchOnAnywhere(key: 'senderLabel' | 'recipientWarning'): boolean {
+  const raw = usePolicyStore.getState().rawPolicy;
+  if (raw.organisation?.externalMail?.[key]) return true;
+  return (raw.scopes ?? []).some((scope) => scope.policy.organisation?.externalMail?.[key] === true);
+}
+
 /** Whether `localAccountId` names another signed-in account than the active one. */
 export function isOtherAccount(localAccountId: string | null | undefined): localAccountId is string {
   const auth = useAuthStore.getState();
@@ -170,15 +177,26 @@ export function isOtherAccount(localAccountId: string | null | undefined): local
  * sent from. Its policy is resolved for its own subject, so a domain or
  * group scope of that account applies, and its own identities count. The
  * active account (or none given) reads the stores directly.
+ *
+ * With `need`, another account is only looked up when that switch can be on
+ * for it: off everywhere in the policy costs no request, and off for that
+ * account skips its identities.
  */
-export async function externalMailContextFor(localAccountId?: string | null): Promise<ExternalMailContext> {
+export async function externalMailContextFor(
+  localAccountId?: string | null,
+  need?: 'senderLabel' | 'recipientWarning',
+): Promise<ExternalMailContext> {
   if (!isOtherAccount(localAccountId)) return activeExternalMailContext();
+  if (need && !switchOnAnywhere(need)) return { policy: DEFAULT_ORGANISATION_POLICY.externalMail, identityEmails: [] };
   const client = useAuthStore.getState().getClientForAccount(localAccountId)!;
   let subject = subjects.get(client);
   if (!subject) {
     subject = policySubjectForClient(client).catch(() => null);
     subjects.set(client, subject);
   }
+  const policy = usePolicyStore.getState().resolveFor(await subject).organisation?.externalMail
+    ?? DEFAULT_ORGANISATION_POLICY.externalMail;
+  if (need && !policy[need]) return { policy, identityEmails: [] };
   let identities = identityLists.get(client);
   if (!identities) {
     const cached = cachedIdentitiesForAccount(localAccountId);
@@ -187,10 +205,7 @@ export async function externalMailContextFor(localAccountId?: string | null): Pr
       : client.getIdentities().then((list) => list.map((identity) => identity.email)).catch(() => []);
     identityLists.set(client, identities);
   }
-  const [resolvedSubject, identityEmails] = await Promise.all([subject, identities]);
-  const policy = usePolicyStore.getState().resolveFor(resolvedSubject).organisation?.externalMail
-    ?? DEFAULT_ORGANISATION_POLICY.externalMail;
-  return { policy, identityEmails };
+  return { policy, identityEmails: await identities };
 }
 
 /**

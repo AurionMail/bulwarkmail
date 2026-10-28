@@ -2910,6 +2910,26 @@
       "sender_name": "Ihr Name"
     }
   },
+  "org_templates": {
+    "section_personal": "Meine Vorlagen",
+    "section_organisation": "Organisation",
+    "sources_label": "Vorlagenlisten",
+    "organisation_note": "Von Ihrer Organisation. Sie können diese Vorlagen nicht ändern, aber in Ihre eigenen kopieren.",
+    "copy_to_personal": "In meine Vorlagen kopieren",
+    "duplicate": "Duplizieren",
+    "save_failed": "Die Vorlage konnte nicht gespeichert werden. Versuchen Sie es erneut.",
+    "save_failed_forbidden": "Sie können diese Vorlagen nicht ändern.",
+    "save_failed_too_large": "Diese Vorlage ist größer als die 8 KB, die der Server pro Vorlage speichert. Kürzen Sie sie und speichern Sie erneut.",
+    "save_failed_no_room": "Im Postfach ist kein Platz für weitere Vorlagen. Löschen Sie eine und versuchen Sie es erneut.",
+    "local_only_too_large": "Nur in diesem Browser: größer als die 8 KB, die der Server pro Vorlage speichert.",
+    "local_only_no_room": "Nur in diesem Browser: In Ihrem Konto ist kein Platz für weitere Vorlagen.",
+    "personal_in_account": "Ihre Vorlagen werden in Ihrem Konto gespeichert, Sie haben sie also auf jedem Gerät, auf dem Sie sich anmelden. Alle, für die Sie Ihren Posteingang freigeben, können sie lesen.",
+    "team_note": "Alle Mitglieder von {name} sehen diese Vorlagen und können sie ändern.",
+    "team_read_only": "Sie können diese Vorlagen verwenden, aber nicht ändern.",
+    "save_failed_conflict": "Von jemand anderem geändert. Laden Sie neu und versuchen Sie es erneut.",
+    "preview_to": "An: {list}",
+    "preview_cc": "Cc: {list}"
+  },
   "contacts": {
     "directory": {
       "title": "Verzeichnis",
@@ -4405,7 +4425,7 @@
       },
       "email_write": {
         "title": "Ihre E-Mails ändern und ordnen",
-        "body": "Labels, Markierungen und andere Schlüsselwörter an Ihren Nachrichten hinzufügen oder entfernen, Nachrichten zwischen Ihren Ordnern und ins Archiv verschieben und Entwürfe speichern."
+        "body": "Labels, Markierungen und andere Schlüsselwörter an Ihren Nachrichten hinzufügen oder entfernen, Nachrichten zwischen Ihren Ordnern und ins Archiv verschieben und Entwürfe speichern. Außerdem kann es einen kleinen Wert speichern, den jedes Mitglied eines Team-Postfachs lesen kann."
       },
       "email_send": {
         "title": "E-Mails vor dem Senden ändern",
@@ -4521,7 +4541,11 @@
       },
       "account_read": {
         "title": "Ihre Konten sehen",
-        "body": "Die von Ihnen hinzugefügten Konten mit ihren Adressen und Servern sehen."
+        "body": "Die von Ihnen hinzugefügten Konten mit ihren Adressen und Servern sehen und erkennen, welche Postfächer Team-Postfächer sind."
+      },
+      "directory_read": {
+        "title": "Personen nachschlagen",
+        "body": "Personen im Verzeichnis Ihrer Organisation nachschlagen."
       },
       "http_post": {
         "title": "Den Webmail-Server für Sie nutzen",
@@ -4684,6 +4708,10 @@
       "error_server": "Geben Sie die Adresse des Servers ein, zum Beispiel https://cloud.example.com",
       "error_save": "Speichern fehlgeschlagen: {error}"
     }
+  },
+  "plugin_list": {
+    "filters": "Filter",
+    "remove_filter": "Filter {label} entfernen"
   },
   "global_search": {
     "title": "Alles durchsuchen",

@@ -19,7 +19,7 @@ import { replaceWindowLocation, getPathPrefix, getLocaleFromPath, apiFetch } fro
 import { isEmbedded, notifyParent } from '@/lib/iframe-bridge';
 import { snapshotAccount, restoreAccount, clearAllStores, evictAccount, evictAll, forgetAccountRows } from '@/lib/account-state-manager';
 import { clearAllPluginStorage, clearPluginStorageForAccount } from '@/lib/plugin-sandbox/storage-scope';
-import { broadcastSignOut, onSignedOutElsewhere, purgeSignedOutData } from '@/lib/sign-out-cleanup';
+import { broadcastSignOut, onSignedOutElsewhere, purgeSignedOutData, runBeforeSignOut } from '@/lib/sign-out-cleanup';
 import { forgetPrincipals } from '@/lib/delegation/known-principals';
 import { useSearchHistoryStore } from './search-history-store';
 import { useCalendarNotificationStore } from './calendar-notification-store';
@@ -1329,7 +1329,7 @@ function notifySignedIn(state: { activeAccountId: string | null; username: strin
 
 function beforeLogoutHooks(accountId: string): Promise<void> {
   return Promise.race([
-    authHooks.onBeforeLogout.emit({ accountId }),
+    Promise.all([authHooks.onBeforeLogout.emit({ accountId }), runBeforeSignOut(accountId)]).then(() => {}),
     new Promise<void>((resolve) => setTimeout(resolve, LOGOUT_HOOK_BUDGET_MS)),
   ]);
 }

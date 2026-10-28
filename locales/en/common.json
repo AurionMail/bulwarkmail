@@ -2910,6 +2910,26 @@
       "sender_name": "Your name"
     }
   },
+  "org_templates": {
+    "section_personal": "My templates",
+    "section_organisation": "Organisation",
+    "sources_label": "Template lists",
+    "organisation_note": "From your organisation. You can't change these, but you can copy one into your own templates.",
+    "copy_to_personal": "Copy to my templates",
+    "duplicate": "Duplicate",
+    "save_failed": "The template could not be saved. Try again.",
+    "save_failed_forbidden": "You can't change these templates.",
+    "save_failed_too_large": "This template is larger than the 8 KB the server keeps per template. Shorten it and save again.",
+    "save_failed_no_room": "The mailbox has no room for more templates. Delete one and try again.",
+    "local_only_too_large": "Only in this browser: larger than the 8 KB the server keeps per template.",
+    "local_only_no_room": "Only in this browser: your account has no room for more templates.",
+    "personal_in_account": "Your templates are kept in your account, so you have them on every device you sign in on. Anyone you share your Inbox with can read them.",
+    "team_note": "Everyone in {name} sees these templates and can change them.",
+    "team_read_only": "You can use these templates but not change them.",
+    "save_failed_conflict": "Changed by someone else. Reload and try again.",
+    "preview_to": "To: {list}",
+    "preview_cc": "Cc: {list}"
+  },
   "contacts": {
     "directory": {
       "title": "Directory",
@@ -4405,7 +4425,7 @@
       },
       "email_write": {
         "title": "Change and organise your email",
-        "body": "Add or remove tags, flags and other keywords on your messages, move them between your folders and to the archive, and save drafts."
+        "body": "Add or remove tags, flags and other keywords on your messages, move them between your folders and to the archive, and save drafts. It can also store a small value that every member of a team mailbox can read."
       },
       "email_send": {
         "title": "Change mail before it is sent",
@@ -4521,7 +4541,11 @@
       },
       "account_read": {
         "title": "See your accounts",
-        "body": "See the accounts you added, with their addresses and servers."
+        "body": "See the accounts you added with their addresses and servers, and which mail accounts are team mailboxes."
+      },
+      "directory_read": {
+        "title": "Look up people",
+        "body": "Look up people in your organisation's directory."
       },
       "http_post": {
         "title": "Use the webmail server for you",
@@ -4684,6 +4708,10 @@
       "error_server": "Enter the server's address, for example https://cloud.example.com",
       "error_save": "Could not save: {error}"
     }
+  },
+  "plugin_list": {
+    "filters": "Filters",
+    "remove_filter": "Remove filter {label}"
   },
   "global_search": {
     "title": "Search everything",

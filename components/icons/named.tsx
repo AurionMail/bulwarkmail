@@ -12,6 +12,13 @@
 import { forwardRef, useEffect, useState } from 'react';
 import type { TablerIcon } from '@tabler/icons-react';
 import {
+  IconArrowBackUp,
+  IconCheck,
+  IconCircleCheck,
+  IconCircleDashed,
+  IconUser,
+  IconUserCheck,
+  IconUserX,
   IconAddressBook,
   IconAperture,
   IconApple,
@@ -177,6 +184,15 @@ export const TABLER_ICON_PREFIX = 'tabler:';
 export const POPULAR_ICON_NAMES: readonly string[] = ["world","rss","radio","microphone-2","message-circle","message","messages","phone","video","device-computer-camera","headphones","microphone","file-text","file-spreadsheet","notebook","book","clipboard-list","checklist","square-check","layout-kanban","brand-trello","pencil","edit","code","terminal","braces","bug","database","server","cpu","server-2","device-desktop","device-laptop","device-mobile","device-tablet","wifi","cloud","cloud-download","cloud-upload","users","user-plus","user-circle","address-book","man","heart","thumb-up","star","award","trophy","crown","photo","camera","movie","music","player-play","device-tv","brand-youtube","palette","brush","map","map-pin","navigation","compass","home","building","building-bank","building-store","building-warehouse","currency-dollar","currency-euro","credit-card","wallet","receipt","pig-money","trending-up","chart-bar","chart-column","chart-line","chart-pie","shield","shield-check","lock","lock-open","key","fingerprint","eye","flask-2","atom","dna","microscope","stethoscope","heartbeat","pill","vaccine","thermometer","sun","moon","sun-wind","snowflake","bolt","flame","christmas-tree","flower","leaf","mountain","ripple","tool","hammer","scissors","ruler","magnet","package","gift","box","archive","car","bike","bus","train","plane","ship","rocket","coffee","glass","beer","pizza","apple","cake","soup","device-gamepad-2","dice-5","puzzle","sparkles","wand","robot","brain","bulb","bookmark","flag","bell","clock","stopwatch","link","external-link","qrcode","scan","layout-grid","stack","aperture","circle-dot","target","crosshair"];
 
 const CURATED: Record<string, TablerIcon> = {
+  // Plugin badges, actions and list filters (team inbox), so a list of rows
+  // never waits for the whole set.
+  'arrow-back-up': IconArrowBackUp,
+  'check': IconCheck,
+  'circle-check': IconCircleCheck,
+  'circle-dashed': IconCircleDashed,
+  'user': IconUser,
+  'user-check': IconUserCheck,
+  'user-x': IconUserX,
   'address-book': IconAddressBook,
   'aperture': IconAperture,
   'apple': IconApple,
@@ -403,8 +419,11 @@ function lazyIcon(name: string): TablerIcon {
       };
     }, [Resolved]);
     if (!Resolved) {
-      const size = props.size ?? 24;
-      return <svg ref={ref} width={size} height={size} className={props.className} aria-hidden="true" />;
+      // A blank of the same size, with the caller's attributes (test ids,
+      // aria, data-*), until the set has loaded.
+      const { size = 24, stroke: _stroke, title: _title, ...rest } = props;
+      void _stroke; void _title;
+      return <svg ref={ref} aria-hidden="true" {...rest} width={size} height={size} />;
     }
     return <Resolved ref={ref} {...props} />;
   });

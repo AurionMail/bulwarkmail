@@ -427,6 +427,32 @@ function buildPluginApi(manifest: PluginManifest) {
     },
     user: {
       getAccounts: () => callApi('user.getAccounts', []),
+      /**
+       * The signed-in user: their own JMAP account id (Stalwart's principal
+       * id), address and name. Needs account:read.
+       */
+      getSelf: () => callApi('user.getSelf', []) as Promise<{ accountId: string; email: string; name: string }>,
+      /**
+       * Every mail account of the signed-in login: their own ('personal'),
+       * team mailboxes they are a member of ('group') and mailboxes others
+       * shared with them ('shared'); `isOpen` marks the open folder's.
+       * Needs account:read.
+       */
+      getMailAccounts: () => callApi('user.getMailAccounts', []) as Promise<Array<{
+        accountId: string; name: string; kind: 'personal' | 'group' | 'shared'; isReadOnly: boolean; isOpen: boolean;
+      }>>,
+      /**
+       * People from the server's directory, as the named mail account (else
+       * the user's own) sees it: by principal id (at most 20) or by a part
+       * of their name or address (3 characters or more). At most 20 results
+       * and 10 lookups a minute. `complete` is false when the administrator
+       * turned directory lookups off; only the people the user shares an
+       * account with are known then. Needs directory:read.
+       */
+      findPeople: (query: { text?: string; ids?: string[]; accountId?: string }) =>
+        callApi('user.findPeople', [query], NETWORK_API_TIMEOUT_MS) as Promise<{
+          people: Array<{ id: string; type: string; name: string; email: string }>; complete: boolean;
+        }>,
       getIdentities: () => callApi('user.getIdentities', []),
       /** The IANA time zone the app shows times in (the user's setting, else the browser's). */
       getTimeZone: () => callApi('user.getTimeZone', []) as Promise<string>,
@@ -614,8 +640,21 @@ function buildPluginApi(manifest: PluginManifest) {
        * palette, ...). Replaces what this plugin set there before; [] removes
        * them. Clicks arrive in the `onAction({ surface, actionId, context })` hook.
        */
-      setActions: (surface: string, actions: Array<{ id: string; label: string; icon?: string; order?: number; mailboxRoles?: string[]; mimeTypes?: string[]; danger?: boolean }>) =>
+      setActions: (surface: string, actions: Array<{
+        id: string; label: string; icon?: string; order?: number; mailboxRoles?: string[]; mimeTypes?: string[]; danger?: boolean;
+        accounts?: Array<'personal' | 'group' | 'shared'>; hasKeyword?: string; notKeyword?: string;
+      }>) =>
         callApi('ui.setActions', [surface, actions]) as Promise<void>,
+      /**
+       * Keyword filters for the message list, drawn as chips in the list
+       * header of the folders they apply to. A chip the user turns on adds
+       * its condition to the folder's query; replaces this plugin's earlier
+       * filters, [] removes them. Needs ui:message-list.
+       */
+      setListFilters: (filters: Array<{
+        id: string; label: string; icon?: string; hasKeyword?: string; notKeyword?: string;
+        accounts?: Array<'personal' | 'group' | 'shared'>; mailboxRoles?: string[]; order?: number;
+      }>) => callApi('ui.setListFilters', [filters]) as Promise<void>,
       /**
        * Ask every visible message row for its onEmailListItemRender badges
        * again, e.g. after a task was created elsewhere. At most once a second.
@@ -711,6 +750,26 @@ function buildPluginApi(manifest: PluginManifest) {
         callApi('email.setKeyword', [emailId, keyword, accountId]) as Promise<void>,
       removeKeyword: (emailId: string, keyword: string, accountId?: string) =>
         callApi('email.removeKeyword', [emailId, keyword, accountId]) as Promise<void>,
+      /**
+       * Set (true) and clear (false) up to 20 keywords of a message in one
+       * change, e.g. `{ '$assigned:b': true, '$assigned:c': false }`. A
+       * message in the open list shows the change at once. Resolves to false
+       * when another plugin's onBeforeEmailKeywordChange stopped it.
+       */
+      updateKeywords: (emailId: string, changes: Record<string, boolean>, accountId?: string) =>
+        callApi('email.updateKeywords', [emailId, changes, accountId]) as Promise<boolean>,
+    },
+    // A small JSON value (at most 4 KB) the plugin keeps in a mail account's
+    // Inbox, shared with everyone who can open that account (Stalwart 1.0
+    // metadata; it counts against the mailbox's metadata room). get needs
+    // email:read, set email:write; 30 reads and 20 changes a minute.
+    accountData: {
+      /** `supported` is false on servers without metadata; `value` is then null. */
+      get: (accountId?: string) =>
+        callApi('accountData.get', [accountId], NETWORK_API_TIMEOUT_MS) as Promise<{ supported: boolean; value: unknown }>,
+      /** Replace the value; null removes it. Throws where `get` says unsupported. */
+      set: (accountId: string | undefined, value: unknown) =>
+        callApi('accountData.set', [accountId, value], NETWORK_API_TIMEOUT_MS) as Promise<void>,
     },
     // The composer (permission: compose:open). Opens it filled in; the user
     // reviews the message and decides whether to send it.

@@ -31,6 +31,14 @@ export class MetadataTooLargeError extends Error {
   }
 }
 
+/** The server refused a metadata change; `type` is its SetError type (`forbidden`, `invalidProperties`, ...). */
+export class MetadataRefusedError extends Error {
+  constructor(readonly type: string, message: string) {
+    super(message);
+    this.name = 'MetadataRefusedError';
+  }
+}
+
 export class MetadataUnsupportedError extends Error {
   constructor(message = 'This server keeps no metadata for Bulwark') {
     super(message);
