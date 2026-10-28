@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId } from 'react';
+import { useEffect, useId, type KeyboardEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import { Building } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,24 @@ export function ExternalRecipientConfirmHost() {
   // A send can't be waiting on a dialog that is gone.
   useEffect(() => () => useExternalRecipientConfirmStore.getState().cancelAll(), []);
 
-  const dialogRef = useFocusTrap({ isActive: !!pending, onEscape: () => answer(false), restoreFocus: true });
+  // Escape is handled below with the other keys, not by the trap: one key, one answer.
+  const dialogRef = useFocusTrap({ isActive: !!pending, restoreFocus: true });
+
+  // Keys stay in the dialog: Escape must not also close the message behind
+  // it, j/k must not move the list, Enter must not open a message. Enter and
+  // Space press the focused button here, whatever a page listener did.
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      answer(false);
+      return;
+    }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target instanceof HTMLButtonElement) {
+      e.preventDefault();
+      e.target.click();
+    }
+  };
 
   if (!pending) return null;
   const { recipients } = pending;
@@ -37,6 +54,7 @@ export function ExternalRecipientConfirmHost() {
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) answer(false);
       }}
+      onKeyDown={onKeyDown}
     >
       <div
         ref={dialogRef}
