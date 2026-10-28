@@ -526,8 +526,10 @@ export const useAccountSecurityStore = create<AccountSecurityState>()((set, get)
     try {
       // Without the passthrough (operator switched it off, or the static Lite
       // build) the principal cannot be read at all; skip the round trip and
-      // leave the aliases unknown, as for a non-Stalwart server. (#904)
-      if (!(await isStalwartJmapPassthroughEnabled())) {
+      // leave the aliases unknown, as for a non-Stalwart server. (#904) The
+      // demo has no server session either: the passthrough only answers
+      // "Not authenticated" there.
+      if (useAuthStore.getState().isDemoMode || !(await isStalwartJmapPassthroughEnabled())) {
         set({ isLoadingPrincipal: false });
         return;
       }

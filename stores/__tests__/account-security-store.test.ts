@@ -10,11 +10,13 @@ vi.mock('@/lib/stalwart/jmap-passthrough', () => ({
 }));
 
 const updateBasicPassword = vi.fn(async (_password: string) => {});
+const auth = vi.hoisted(() => ({ isDemoMode: false }));
 
 vi.mock('@/stores/auth-store', () => ({
   useAuthStore: {
     getState: () => ({
       updateBasicPassword,
+      isDemoMode: auth.isDemoMode,
       client: {
         getAccountId: () => 'acc-primary',
         hasAccountCapability: (cap: string) => cap === 'urn:stalwart:jmap',
@@ -36,6 +38,7 @@ describe('account-security-store', () => {
   beforeEach(() => {
     mockedJmap.mockReset();
     resetStore();
+    auth.isDemoMode = false;
   });
 
   describe('probe', () => {
@@ -155,6 +158,24 @@ describe('account-security-store', () => {
   });
 
   describe('fetchPrincipal', () => {
+    // Demo Contacts and Calendar logged "Failed to fetch principal: Not
+    // authenticated": the demo has no server session for the passthrough.
+    it('does not ask the server in demo mode, and stays quiet', async () => {
+      auth.isDemoMode = true;
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      let errorLogs = 0;
+      try {
+        await useAccountSecurityStore.getState().fetchPrincipal();
+        errorLogs = consoleError.mock.calls.length;
+      } finally {
+        consoleError.mockRestore();
+      }
+      expect(mockedJmap).not.toHaveBeenCalled();
+      expect(useAccountSecurityStore.getState().error).toBeNull();
+      expect(useAccountSecurityStore.getState().isLoadingPrincipal).toBe(false);
+      expect(errorLogs).toBe(0);
+    });
+
     it('combines primary name with enabled aliases and exposes quota/roles', async () => {
       mockedJmap.mockResolvedValueOnce([
         ['x:AccountSettings/get', { list: [{ id: 'singleton', description: 'Display User' }] }, 's'],
