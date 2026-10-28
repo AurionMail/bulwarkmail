@@ -2336,10 +2336,7 @@
       "no_address_books": "Adres defteri bulunamadı",
       "categories_title": "Kategoriler",
       "categories_description": "Kişi kategorilerini yeniden adlandırın",
-      "no_categories": "Kategori bulunamadı",
-      "delete_category": "Kategoriyi sil",
-      "category_deleted": "Kategori silindi",
-      "category_delete_failed": "Kategori silinemedi"
+      "no_categories": "Kategori bulunamadı"
     },
     "calendar_management": {
       "delete_title": "Takvim silinsin mi?",
@@ -2718,7 +2715,7 @@
     },
     "read_only": {
       "title": "Yapılandırma salt okunur",
-      "body": "Yapılandırma birimi salt okunur bağlanmış ya da {variable} ayarlanmış. Birimi yazılabilir olarak bağlayın veya değişkeni kaldırın, ardından kapsayıcıyı yeniden başlatın."
+      "body": "Yapılandırma birimi salt okunur bağlanmış ya da <code>{variable}</code> ayarlanmış. Birimi yazılabilir olarak bağlayın veya değişkeni kaldırın, ardından kapsayıcıyı yeniden başlatın."
     },
     "done": {
       "title": "Her şey hazır",
@@ -2770,9 +2767,9 @@
       "not_jmap_hint": "Bu, bir ters vekil sunucu JMAP’i aynı alan adında ayrı yönlendirdiğinde olabilir. Aksi halde URL genellikle yanlıştır.",
       "not_jmap_confirm": "URL’nin doğru olduğundan eminim, yine de devam et.",
       "http_title": "Bu URL şifrelenmemiş HTTP kullanıyor.",
-      "http_body": "Parolalar ve e-posta içerikleri kullanıcılarla sunucunuz arasında şifrelenmeden iletilecek. Üretimde {https} kullanın: TLS’yi posta sunucusunda veya önündeki bir ters vekil sunucuda sonlandırın.",
+      "http_body": "Parolalar ve e-posta içerikleri kullanıcılarla sunucunuz arasında şifrelenmeden iletilecek. Üretimde <code>{https}</code> kullanın: TLS’yi posta sunucusunda veya önündeki bir ters vekil sunucuda sonlandırın.",
       "local_title": "Bu URL yalnızca yerelde çalışıyor.",
-      "local_body": "Postalar doğrudan kullanıcının tarayıcısından alınır; bu yüzden JMAP URL’si yalnızca bu makineden veya yerel ağdan değil, kullanıcıların oturum açtığı her yerden erişilebilir olmalıdır. Üretimde herkese açık bir ana bilgisayar adı (ör. {example}) kullanın.",
+      "local_body": "Postalar doğrudan kullanıcının tarayıcısından alınır; bu yüzden JMAP URL’si yalnızca bu makineden veya yerel ağdan değil, kullanıcıların oturum açtığı her yerden erişilebilir olmalıdır. Üretimde herkese açık bir ana bilgisayar adı (ör. <code>{example}</code>) kullanın.",
       "additional_title": "Ek JMAP sunucuları",
       "additional_hint": "İsteğe bağlı. Oturum açma listesinde birden çok sunucu sunun; birden fazla Stalwart örneği çalıştıran sağlayıcılar için kullanışlıdır.",
       "additional_show": "Göster ({count})",
@@ -2891,7 +2888,7 @@
       "defaults": "Varsayılanlar",
       "company": "Şirket adı",
       "password_title": "Bir yönetici parolası seçin",
-      "password_hint": "{path} adresinde oturum açmak için bunu kullanacaksınız. En az 8 karakter.",
+      "password_hint": "<code>{path}</code> adresinde oturum açmak için bunu kullanacaksınız. En az 8 karakter.",
       "new_password": "Yeni parola",
       "confirm": "Onayla",
       "too_short": "En az 8 karakter.",

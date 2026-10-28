@@ -2339,10 +2339,7 @@
       "no_address_books": "Ingen adressebøger fundet",
       "categories_title": "Kategorier",
       "categories_description": "Omdøb kontaktkategorier",
-      "no_categories": "Ingen kategorier fundet",
-      "delete_category": "Slet kategori",
-      "category_deleted": "Kategori slettet",
-      "category_delete_failed": "Kategorien kunne ikke slettes"
+      "no_categories": "Ingen kategorier fundet"
     },
     "calendar_management": {
       "delete_title": "Slet kalenderen?",
@@ -2718,7 +2715,7 @@
     },
     "read_only": {
       "title": "Konfigurationen er skrivebeskyttet",
-      "body": "Konfigurationsvolumen er monteret skrivebeskyttet, eller {variable} er sat. Montér den med skriveadgang eller fjern variablen, og genstart containeren."
+      "body": "Konfigurationsvolumen er monteret skrivebeskyttet, eller <code>{variable}</code> er sat. Montér den med skriveadgang eller fjern variablen, og genstart containeren."
     },
     "done": {
       "title": "Alt er klar",
@@ -2770,9 +2767,9 @@
       "not_jmap_hint": "Det kan ske, når en reverse proxy sender JMAP videre separat på samme domæne. Ellers er URL’en som regel forkert.",
       "not_jmap_confirm": "Jeg er sikker på, at URL’en er rigtig, fortsæt alligevel.",
       "http_title": "Denne URL bruger ukrypteret HTTP.",
-      "http_body": "Adgangskoder og mailindhold sendes ukrypteret mellem brugerne og din server. Brug {https} i produktion: afslut TLS på mailserveren eller i en reverse proxy foran den.",
+      "http_body": "Adgangskoder og mailindhold sendes ukrypteret mellem brugerne og din server. Brug <code>{https}</code> i produktion: afslut TLS på mailserveren eller i en reverse proxy foran den.",
       "local_title": "Denne URL virker kun lokalt.",
-      "local_body": "Mail hentes direkte fra brugerens browser, så JMAP-URL’en skal kunne nås alle steder, hvor brugerne logger ind, ikke kun fra denne maskine eller det lokale netværk. Brug et offentligt værtsnavn (f.eks. {example}) i produktion.",
+      "local_body": "Mail hentes direkte fra brugerens browser, så JMAP-URL’en skal kunne nås alle steder, hvor brugerne logger ind, ikke kun fra denne maskine eller det lokale netværk. Brug et offentligt værtsnavn (f.eks. <code>{example}</code>) i produktion.",
       "additional_title": "Flere JMAP-servere",
       "additional_hint": "Valgfrit. Vis flere servere i listen ved login, nyttigt for udbydere med flere Stalwart-instanser.",
       "additional_show": "Vis ({count})",
@@ -2891,7 +2888,7 @@
       "defaults": "Standardværdier",
       "company": "Firmanavn",
       "password_title": "Vælg en administratoradgangskode",
-      "password_hint": "Du bruger den til at logge ind på {path}. Mindst 8 tegn.",
+      "password_hint": "Du bruger den til at logge ind på <code>{path}</code>. Mindst 8 tegn.",
       "new_password": "Ny adgangskode",
       "confirm": "Bekræft",
       "too_short": "Mindst 8 tegn.",

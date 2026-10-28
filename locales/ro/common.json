@@ -2343,10 +2343,7 @@
       "no_address_books": "Nu s-au găsit agende de adrese",
       "categories_title": "Categorii",
       "categories_description": "Redenumiți categoriile de contacte",
-      "no_categories": "Nu s-au găsit categorii",
-      "delete_category": "Șterge categoria",
-      "category_deleted": "Categorie ștearsă",
-      "category_delete_failed": "Categoria nu a putut fi ștearsă"
+      "no_categories": "Nu s-au găsit categorii"
     },
     "calendar_management": {
       "delete_title": "Ștergeți calendarul?",
@@ -2718,7 +2715,7 @@
     },
     "read_only": {
       "title": "Configurația este doar în citire",
-      "body": "Volumul de configurare este montat doar în citire sau este setată variabila {variable}. Montați-l cu drept de scriere sau eliminați variabila, apoi reporniți containerul."
+      "body": "Volumul de configurare este montat doar în citire sau este setată variabila <code>{variable}</code>. Montați-l cu drept de scriere sau eliminați variabila, apoi reporniți containerul."
     },
     "done": {
       "title": "Totul este gata",
@@ -2770,9 +2767,9 @@
       "not_jmap_hint": "Se poate întâmpla când un proxy invers direcționează separat JMAP pe același domeniu. Altfel, de obicei URL-ul este greșit.",
       "not_jmap_confirm": "Sunt sigur că URL-ul este corect, continuă oricum.",
       "http_title": "Acest URL folosește HTTP necriptat.",
-      "http_body": "Parolele și conținutul e-mailurilor vor circula necriptat între utilizatori și serverul dvs. În producție folosiți {https}: terminați TLS pe serverul de e-mail sau într-un proxy invers aflat în fața lui.",
+      "http_body": "Parolele și conținutul e-mailurilor vor circula necriptat între utilizatori și serverul dvs. În producție folosiți <code>{https}</code>: terminați TLS pe serverul de e-mail sau într-un proxy invers aflat în fața lui.",
       "local_title": "Acest URL funcționează doar local.",
-      "local_body": "E-mailul este preluat direct din browserul utilizatorului, așa că URL-ul JMAP trebuie să fie accesibil de oriunde se conectează utilizatorii, nu doar de pe acest calculator sau din rețeaua locală. În producție folosiți un nume de gazdă public (de ex. {example}).",
+      "local_body": "E-mailul este preluat direct din browserul utilizatorului, așa că URL-ul JMAP trebuie să fie accesibil de oriunde se conectează utilizatorii, nu doar de pe acest calculator sau din rețeaua locală. În producție folosiți un nume de gazdă public (de ex. <code>{example}</code>).",
       "additional_title": "Servere JMAP suplimentare",
       "additional_hint": "Opțional. Oferiți mai multe servere în lista de autentificare, util pentru furnizorii cu mai multe instanțe Stalwart.",
       "additional_show": "Afișează ({count})",
@@ -2891,7 +2888,7 @@
       "defaults": "Valori implicite",
       "company": "Numele companiei",
       "password_title": "Alegeți o parolă de administrator",
-      "password_hint": "O veți folosi pentru a vă conecta la {path}. Minimum 8 caractere.",
+      "password_hint": "O veți folosi pentru a vă conecta la <code>{path}</code>. Minimum 8 caractere.",
       "new_password": "Parolă nouă",
       "confirm": "Confirmați",
       "too_short": "Cel puțin 8 caractere.",

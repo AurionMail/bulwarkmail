@@ -2333,9 +2333,6 @@
       "categories_title": "Categorías",
       "categories_description": "Renombrar categorías de contactos",
       "no_categories": "No se encontraron categorías",
-      "delete_category": "Eliminar categoría",
-      "category_deleted": "Categoría eliminada",
-      "category_delete_failed": "No se pudo eliminar la categoría",
       "group_by_letter_description": "Mostrar encabezados alfabéticos en la lista de contactos",
       "group_by_letter_label": "Agrupar por primera letra",
       "sort_by_last_name_label": "Ordenar por apellido",
@@ -2718,7 +2715,7 @@
     },
     "read_only": {
       "title": "La configuración es de solo lectura",
-      "body": "El volumen de configuración está montado como solo lectura o la variable {variable} está definida. Móntalo con escritura o quita esa variable y reinicia el contenedor."
+      "body": "El volumen de configuración está montado como solo lectura o la variable <code>{variable}</code> está definida. Móntalo con escritura o quita esa variable y reinicia el contenedor."
     },
     "done": {
       "title": "Todo listo",
@@ -2770,9 +2767,9 @@
       "not_jmap_hint": "Puede ocurrir cuando un proxy inverso enruta JMAP por separado en el mismo dominio. Si no, normalmente la URL es incorrecta.",
       "not_jmap_confirm": "Estoy seguro de que la URL es correcta, continuar de todos modos.",
       "http_title": "Esta URL usa HTTP sin cifrar.",
-      "http_body": "Las contraseñas y el contenido de los correos viajarán sin cifrar entre los usuarios y tu servidor. Usa {https} en producción: termina TLS en el servidor de correo o en un proxy inverso delante de él.",
+      "http_body": "Las contraseñas y el contenido de los correos viajarán sin cifrar entre los usuarios y tu servidor. Usa <code>{https}</code> en producción: termina TLS en el servidor de correo o en un proxy inverso delante de él.",
       "local_title": "Esta URL solo funciona en local.",
-      "local_body": "El correo se obtiene directamente desde el navegador del usuario, así que la URL de JMAP debe ser accesible desde cualquier lugar donde inicien sesión los usuarios, no solo desde este equipo o esta red local. Usa un nombre de host público (p. ej., {example}) en producción.",
+      "local_body": "El correo se obtiene directamente desde el navegador del usuario, así que la URL de JMAP debe ser accesible desde cualquier lugar donde inicien sesión los usuarios, no solo desde este equipo o esta red local. Usa un nombre de host público (p. ej., <code>{example}</code>) en producción.",
       "additional_title": "Servidores JMAP adicionales",
       "additional_hint": "Opcional. Ofrece varios servidores en la lista de inicio de sesión, útil para proveedores con varias instancias de Stalwart.",
       "additional_show": "Mostrar ({count})",
@@ -2891,7 +2888,7 @@
       "defaults": "Valores predeterminados",
       "company": "Nombre de la empresa",
       "password_title": "Elige una contraseña de administrador",
-      "password_hint": "La usarás para iniciar sesión en {path}. Mínimo 8 caracteres.",
+      "password_hint": "La usarás para iniciar sesión en <code>{path}</code>. Mínimo 8 caracteres.",
       "new_password": "Nueva contraseña",
       "confirm": "Confirmar",
       "too_short": "Al menos 8 caracteres.",

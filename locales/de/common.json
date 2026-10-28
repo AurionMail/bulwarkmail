@@ -2333,9 +2333,6 @@
       "categories_title": "Kategorien",
       "categories_description": "Kontaktkategorien umbenennen",
       "no_categories": "Keine Kategorien gefunden",
-      "delete_category": "Kategorie löschen",
-      "category_deleted": "Kategorie gelöscht",
-      "category_delete_failed": "Kategorie konnte nicht gelöscht werden",
       "group_by_letter_description": "Alphabetische Abschnittsüberschriften in der Kontaktliste anzeigen",
       "group_by_letter_label": "Nach Anfangsbuchstaben gruppieren",
       "sort_by_last_name_label": "Nach Nachname sortieren",
@@ -2718,7 +2715,7 @@
     },
     "read_only": {
       "title": "Die Konfiguration ist schreibgeschützt",
-      "body": "Das Konfigurations-Volume ist schreibgeschützt eingebunden oder {variable} ist gesetzt. Binden Sie es beschreibbar ein oder entfernen Sie die Variable und starten Sie den Container neu."
+      "body": "Das Konfigurations-Volume ist schreibgeschützt eingebunden oder <code>{variable}</code> ist gesetzt. Binden Sie es beschreibbar ein oder entfernen Sie die Variable und starten Sie den Container neu."
     },
     "done": {
       "title": "Alles bereit",
@@ -2770,9 +2767,9 @@
       "not_jmap_hint": "Das kann vorkommen, wenn ein Reverse Proxy JMAP auf derselben Domain gesondert weiterleitet. Sonst ist die URL meist falsch.",
       "not_jmap_confirm": "Ich bin sicher, dass die URL stimmt, trotzdem fortfahren.",
       "http_title": "Diese URL verwendet unverschlüsseltes HTTP.",
-      "http_body": "Passwörter und E-Mail-Inhalte werden unverschlüsselt zwischen den Benutzern und Ihrem Server übertragen. Verwenden Sie im Betrieb {https}: Terminieren Sie TLS auf dem Mailserver oder in einem vorgeschalteten Reverse Proxy.",
+      "http_body": "Passwörter und E-Mail-Inhalte werden unverschlüsselt zwischen den Benutzern und Ihrem Server übertragen. Verwenden Sie im Betrieb <code>{https}</code>: Terminieren Sie TLS auf dem Mailserver oder in einem vorgeschalteten Reverse Proxy.",
       "local_title": "Diese URL ist nur lokal erreichbar.",
-      "local_body": "E-Mails werden direkt vom Browser der Benutzer abgerufen, daher muss die JMAP-URL von überall erreichbar sein, wo sich Benutzer anmelden, nicht nur von diesem Rechner oder LAN. Verwenden Sie im Betrieb einen öffentlichen Hostnamen (z. B. {example}).",
+      "local_body": "E-Mails werden direkt vom Browser der Benutzer abgerufen, daher muss die JMAP-URL von überall erreichbar sein, wo sich Benutzer anmelden, nicht nur von diesem Rechner oder LAN. Verwenden Sie im Betrieb einen öffentlichen Hostnamen (z. B. <code>{example}</code>).",
       "additional_title": "Weitere JMAP-Server",
       "additional_hint": "Optional. Mehrere Server in der Auswahl bei der Anmeldung anbieten, nützlich für Hosts mit mehreren Stalwart-Instanzen.",
       "additional_show": "Anzeigen ({count})",
@@ -2891,7 +2888,7 @@
       "defaults": "Standardwerte",
       "company": "Name des Unternehmens",
       "password_title": "Admin-Passwort wählen",
-      "password_hint": "Damit melden Sie sich unter {path} an. Mindestens 8 Zeichen.",
+      "password_hint": "Damit melden Sie sich unter <code>{path}</code> an. Mindestens 8 Zeichen.",
       "new_password": "Neues Passwort",
       "confirm": "Bestätigen",
       "too_short": "Mindestens 8 Zeichen.",

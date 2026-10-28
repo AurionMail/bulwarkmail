@@ -2333,9 +2333,6 @@
       "categories_title": "Categorie",
       "categories_description": "Rinomina le categorie dei contatti",
       "no_categories": "Nessuna categoria trovata",
-      "delete_category": "Elimina categoria",
-      "category_deleted": "Categoria eliminata",
-      "category_delete_failed": "Impossibile eliminare la categoria",
       "group_by_letter_description": "Mostra intestazioni alfabetiche nell'elenco dei contatti",
       "group_by_letter_label": "Raggruppa per prima lettera",
       "sort_by_last_name_label": "Ordina per cognome",
@@ -2718,7 +2715,7 @@
     },
     "read_only": {
       "title": "La configurazione è di sola lettura",
-      "body": "Il volume di configurazione è montato in sola lettura oppure è impostata la variabile {variable}. Rimontalo in lettura e scrittura o rimuovi la variabile, poi riavvia il container."
+      "body": "Il volume di configurazione è montato in sola lettura oppure è impostata la variabile <code>{variable}</code>. Rimontalo in lettura e scrittura o rimuovi la variabile, poi riavvia il container."
     },
     "done": {
       "title": "Tutto pronto",
@@ -2770,9 +2767,9 @@
       "not_jmap_hint": "Può succedere quando un reverse proxy instrada JMAP separatamente sullo stesso dominio. Altrimenti di solito l’URL è sbagliato.",
       "not_jmap_confirm": "Sono sicuro che l’URL sia giusto, continua comunque.",
       "http_title": "Questo URL usa HTTP non cifrato.",
-      "http_body": "Password e contenuto delle email viaggeranno senza cifratura tra gli utenti e il tuo server. Usa {https} in produzione: termina TLS sul server di posta o su un reverse proxy davanti.",
+      "http_body": "Password e contenuto delle email viaggeranno senza cifratura tra gli utenti e il tuo server. Usa <code>{https}</code> in produzione: termina TLS sul server di posta o su un reverse proxy davanti.",
       "local_title": "Questo URL funziona solo in locale.",
-      "local_body": "La posta viene recuperata direttamente dal browser dell’utente, quindi l’URL JMAP deve essere raggiungibile ovunque gli utenti accedano, non solo da questo computer o dalla rete locale. In produzione usa un nome host pubblico (ad es. {example}).",
+      "local_body": "La posta viene recuperata direttamente dal browser dell’utente, quindi l’URL JMAP deve essere raggiungibile ovunque gli utenti accedano, non solo da questo computer o dalla rete locale. In produzione usa un nome host pubblico (ad es. <code>{example}</code>).",
       "additional_title": "Server JMAP aggiuntivi",
       "additional_hint": "Facoltativo. Offri più server nell’elenco di accesso, utile per chi gestisce più istanze Stalwart.",
       "additional_show": "Mostra ({count})",
@@ -2891,7 +2888,7 @@
       "defaults": "Valori predefiniti",
       "company": "Nome dell’azienda",
       "password_title": "Scegli una password di amministratore",
-      "password_hint": "La userai per accedere a {path}. Almeno 8 caratteri.",
+      "password_hint": "La userai per accedere a <code>{path}</code>. Almeno 8 caratteri.",
       "new_password": "Nuova password",
       "confirm": "Conferma",
       "too_short": "Almeno 8 caratteri.",

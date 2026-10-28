@@ -2336,10 +2336,7 @@
       "no_address_books": "Nenalezeny žádné adresáře",
       "categories_title": "Kategorie",
       "categories_description": "Přejmenovat kategorie kontaktů",
-      "no_categories": "Nenalezeny žádné kategorie",
-      "delete_category": "Odstranit kategorii",
-      "category_deleted": "Kategorie byla odstraněna",
-      "category_delete_failed": "Kategorii se nepodařilo odstranit"
+      "no_categories": "Nenalezeny žádné kategorie"
     },
     "calendar_management": {
       "delete_title": "Odstranit kalendář?",
@@ -2718,7 +2715,7 @@
     },
     "read_only": {
       "title": "Konfigurace je jen pro čtení",
-      "body": "Svazek s konfigurací je připojen jen pro čtení nebo je nastavena proměnná {variable}. Připojte ho pro zápis nebo proměnnou odstraňte a restartujte kontejner."
+      "body": "Svazek s konfigurací je připojen jen pro čtení nebo je nastavena proměnná <code>{variable}</code>. Připojte ho pro zápis nebo proměnnou odstraňte a restartujte kontejner."
     },
     "done": {
       "title": "Vše je připraveno",
@@ -2770,9 +2767,9 @@
       "not_jmap_hint": "To se stává, když reverzní proxy směruje JMAP na stejné doméně zvlášť. Jinak je URL obvykle chybná.",
       "not_jmap_confirm": "Jsem si jistý, že URL je správná, přesto pokračovat.",
       "http_title": "Tato URL používá nešifrované HTTP.",
-      "http_body": "Hesla a obsah e-mailů se budou mezi uživateli a vaším serverem přenášet nešifrovaně. V provozu použijte {https}: ukončete TLS na poštovním serveru nebo v reverzní proxy před ním.",
+      "http_body": "Hesla a obsah e-mailů se budou mezi uživateli a vaším serverem přenášet nešifrovaně. V provozu použijte <code>{https}</code>: ukončete TLS na poštovním serveru nebo v reverzní proxy před ním.",
       "local_title": "Tato URL funguje jen lokálně.",
-      "local_body": "Pošta se načítá přímo v prohlížeči uživatele, takže URL JMAP musí být dostupná odkudkoli, kde se uživatelé přihlašují, nejen z tohoto počítače nebo místní sítě. V provozu použijte veřejný název hostitele (např. {example}).",
+      "local_body": "Pošta se načítá přímo v prohlížeči uživatele, takže URL JMAP musí být dostupná odkudkoli, kde se uživatelé přihlašují, nejen z tohoto počítače nebo místní sítě. V provozu použijte veřejný název hostitele (např. <code>{example}</code>).",
       "additional_title": "Další servery JMAP",
       "additional_hint": "Volitelné. Nabídněte při přihlášení více serverů, užitečné pro hostingy s několika instancemi Stalwart.",
       "additional_show": "Zobrazit ({count})",
@@ -2891,7 +2888,7 @@
       "defaults": "Výchozí hodnoty",
       "company": "Název firmy",
       "password_title": "Zvolte heslo správce",
-      "password_hint": "Budete se jím přihlašovat na {path}. Nejméně 8 znaků.",
+      "password_hint": "Budete se jím přihlašovat na <code>{path}</code>. Nejméně 8 znaků.",
       "new_password": "Nové heslo",
       "confirm": "Potvrdit",
       "too_short": "Nejméně 8 znaků.",

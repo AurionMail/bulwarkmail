@@ -2343,10 +2343,7 @@
       "no_address_books": "No address books found",
       "categories_title": "Categories",
       "categories_description": "Rename contact categories",
-      "no_categories": "No categories found",
-      "delete_category": "Delete category",
-      "category_deleted": "Category deleted",
-      "category_delete_failed": "Couldn't delete the category"
+      "no_categories": "No categories found"
     },
     "calendar_management": {
       "delete_title": "Delete calendar?",
@@ -2718,7 +2715,7 @@
     },
     "read_only": {
       "title": "Configuration is read-only",
-      "body": "The config volume is mounted read-only or {variable} is set. Remount it read-write or unset that variable, then restart the container."
+      "body": "The config volume is mounted read-only or <code>{variable}</code> is set. Remount it read-write or unset that variable, then restart the container."
     },
     "done": {
       "title": "You're all set",
@@ -2770,9 +2767,9 @@
       "not_jmap_hint": "This can happen when a reverse proxy routes JMAP separately on the same domain. Otherwise, it usually means the URL is wrong.",
       "not_jmap_confirm": "I'm sure this is the right URL, continue anyway.",
       "http_title": "This URL uses plain HTTP.",
-      "http_body": "Passwords and email contents will travel unencrypted between users and your server. Use {https} in production: terminate TLS on the mail server or a reverse proxy in front of it.",
+      "http_body": "Passwords and email contents will travel unencrypted between users and your server. Use <code>{https}</code> in production: terminate TLS on the mail server or a reverse proxy in front of it.",
       "local_title": "This URL only resolves locally.",
-      "local_body": "Mail is fetched directly from the user's browser, so the JMAP URL must be reachable from anywhere users sign in, not just this machine or LAN. Use a public hostname (e.g. {example}) in production.",
+      "local_body": "Mail is fetched directly from the user's browser, so the JMAP URL must be reachable from anywhere users sign in, not just this machine or LAN. Use a public hostname (e.g. <code>{example}</code>) in production.",
       "additional_title": "Additional JMAP servers",
       "additional_hint": "Optional. Offer several servers in the login dropdown, useful for hosts running several Stalwart instances.",
       "additional_show": "Show ({count})",
@@ -2891,7 +2888,7 @@
       "defaults": "Using defaults",
       "company": "Company name",
       "password_title": "Choose an admin password",
-      "password_hint": "You'll use this to sign in at {path}. Minimum 8 characters.",
+      "password_hint": "You'll use this to sign in at <code>{path}</code>. Minimum 8 characters.",
       "new_password": "New password",
       "confirm": "Confirm",
       "too_short": "At least 8 characters.",
