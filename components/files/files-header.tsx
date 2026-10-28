@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import {
   Menu, ChevronRight, Search, X, ArrowUpDown, Check, LayoutGrid, LayoutList,
   PanelRight, Download, Trash2, Scissors, Copy, Pencil, Share2, Clipboard,
-  MoreHorizontal, FolderOpen, Folder, ArrowUp, ArrowDown, RefreshCw, RotateCcw,
+  MoreHorizontal, FolderOpen, Folder, ArrowUp, ArrowDown, RefreshCw, RotateCcw, FolderInput,
 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
@@ -37,6 +37,8 @@ interface SelectionActions {
   onDownload: () => void;
   onShare: () => void;
   onRename: () => void;
+  /** Move to… a folder picked from the tree; undefined where items can't move. */
+  onMoveTo?: () => void;
   onCut: () => void;
   onCopy: () => void;
   onDelete: () => void;
@@ -148,6 +150,9 @@ export function FilesHeader({
           )}
           {selection.canRename && (
             <ToolButton icon={Pencil} label={t("rename")} onClick={selection.onRename} compact />
+          )}
+          {selection.onMoveTo && (
+            <ToolButton icon={FolderInput} label={t("move_to")} onClick={selection.onMoveTo} compact />
           )}
           <ToolButton icon={Scissors} label={t("cut")} onClick={selection.onCut} compact />
           <ToolButton icon={Copy} label={t("copy")} onClick={selection.onCopy} compact />

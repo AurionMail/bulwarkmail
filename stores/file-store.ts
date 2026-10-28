@@ -152,6 +152,8 @@ interface FileState {
   moveToParent: (names: string[]) => Promise<boolean>;
   /** Move listed items into any folder by id (null = the root), e.g. a tree or breadcrumb drop. */
   moveToFolderId: (names: string[], targetId: string | null) => Promise<boolean>;
+  /** Move any node by id into a folder (null = the root), e.g. a folder of the tree. */
+  moveNode: (id: string, targetId: string | null) => Promise<boolean>;
   cutResources: (names: string[]) => void;
   copyResources: (names: string[]) => void;
   pasteResources: () => Promise<boolean>;
@@ -1421,6 +1423,28 @@ export const useFileStore = create<FileState>((set, get) => ({
       selectedResources: new Set(),
       lastAction: entries.length > 0 ? { type: 'move', entries, sourceParentId: null } : get().lastAction,
     });
+    await refresh();
+    return true;
+  },
+
+  moveNode: async (id: string, targetId: string | null) => {
+    const { client, allFolders, resources, refresh } = get();
+    if (!client) return false;
+    assertCanAddTo(targetId);
+    // A folder must not move into itself or anything below it.
+    const parentOf = new Map(allFolders.map(f => [f.id, f.parentId ?? null]));
+    for (let cur = targetId; cur != null; cur = parentOf.get(cur) ?? null) {
+      if (cur === id) return false;
+    }
+    const known = allFolders.find(f => f.id === id) ?? resources.find(r => r.id === id);
+    const from = known?.parentId ?? null;
+    if (known && from === targetId) return false;
+    const view = known ? resourceToView(known, parentPath(allFolders, from)) : unknownNodeView(id);
+    const toPath = parentPath(allFolders, targetId);
+    if (!(await fileHooks.onBeforeFileMove.intercept({ files: [view], toPath }))) return false;
+    await client.updateFileNode(id, { parentId: targetId });
+    void fileHooks.onFileMove.emit({ files: [view], toPath });
+    set({ lastAction: { type: 'move', entries: [{ id, from: { parentId: from }, to: { parentId: targetId } }], sourceParentId: null } });
     await refresh();
     return true;
   },

@@ -400,4 +400,24 @@ describe('FileBrowser', () => {
     fireEvent.click(within(tree()).getByRole('button', { name: /trash/ }));
     expect(onNavigate).toHaveBeenCalledWith('/.Trash', '*trash');
   });
+
+  it("moves an item to a folder picked in Move to…, without dragging", () => {
+    const onMoveTo = vi.fn(async () => {});
+    renderBrowser({ props: { onMoveTo } });
+    fireEvent.contextMenu(within(list()).getByText('notes.txt'));
+    fireEvent.click(screen.getByText('move_to'));
+    const dialog = screen.getByRole('dialog', { name: 'move_to_title' });
+    expect(within(dialog).getByRole('button', { name: 'move_here' })).toBeDisabled();
+    fireEvent.click(within(dialog).getByRole('treeitem', { name: /Documents/ }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'move_here' }));
+    expect(onMoveTo).toHaveBeenCalledWith(['notes.txt'], 'f-docs');
+  });
+
+  it("leaves a folder out of its own Move to… picker", () => {
+    renderBrowser();
+    fireEvent.contextMenu(within(list()).getByText('Documents'));
+    fireEvent.click(screen.getByText('move_to'));
+    const dialog = screen.getByRole('dialog', { name: 'move_to_title' });
+    expect(within(dialog).queryByRole('treeitem', { name: /Documents/ })).toBeNull();
+  });
 });

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   Plus, HardDrive, File, Folder, FolderOpen, ChevronRight, ChevronDown, Star, StarOff,
-  Clock, Share2, Upload, FolderUp, FolderPlus, FilePlus, Pencil, Trash2, Download, Eye, X, FolderSearch,
+  Clock, Share2, Upload, FolderUp, FolderPlus, FilePlus, Pencil, Trash2, Download, Eye, X, FolderSearch, FolderInput,
 } from "@/components/icons";
 import { isTrashLocation } from "@/lib/files-trash";
 import { Button } from "@/components/ui/button";
@@ -73,6 +73,8 @@ export interface FilesSidebarProps {
   /** Open a folder, then start creating or uploading there. */
   onCreateIn: (path: string, id: string | null, kind: CreateKind) => void;
   onRenameFolder: (folder: FileResource) => void;
+  /** Move to… for a folder of the own drive. */
+  onMoveFolder?: (folder: FileResource) => void;
   onDeleteFolder: (folder: FileResource) => void;
   /** Open the folder holding a recent file, with the file selected. */
   onRevealRecent: (id: string) => void;
@@ -105,6 +107,7 @@ export function FilesSidebar({
   onShare,
   onCreateIn,
   onRenameFolder,
+  onMoveFolder,
   onDeleteFolder,
   onRevealRecent,
   onDownloadRecent,
@@ -474,6 +477,9 @@ export function FilesSidebar({
               {(mayRename || mayDelete) && <ContextMenuSeparator />}
               {mayRename && (
                 <ContextMenuItem icon={Pencil} label={t("rename")} onClick={() => run(() => onRenameFolder(folder))} />
+              )}
+              {onMoveFolder && !folder.isShared && mayRename && (
+                <ContextMenuItem icon={FolderInput} label={t("move_to")} onClick={() => run(() => onMoveFolder(folder))} />
               )}
               {mayDelete && (
                 <ContextMenuItem icon={Trash2} label={t("delete")} destructive onClick={() => run(() => onDeleteFolder(folder))} />

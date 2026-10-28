@@ -90,6 +90,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     duplicateResource,
     downloadResources,
     moveToFolderId,
+    moveNode,
     cutResources,
     copyResources,
     pasteResources,
@@ -568,6 +569,18 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     }
   }, [moveToFolderId, t, handleUndo, failureReason]);
 
+  const handleMoveNode = useCallback(async (id: string, targetId: string | null) => {
+    try {
+      if (!await moveNode(id, targetId)) return;
+      toast.success(t("move_success", { count: 1 }), {
+        action: { label: t("undo"), onClick: handleUndo },
+      });
+    } catch (err) {
+      console.error("Failed to move:", err);
+      toast.error(t("move_error"), failureReason(err));
+    }
+  }, [moveNode, t, handleUndo, failureReason]);
+
   const handlePaste = useCallback(async () => {
     try {
       if (!await pasteResources()) return;
@@ -799,6 +812,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
                   onCopy={copyResources}
                   onPaste={handlePaste}
                   onMoveTo={handleMoveTo}
+                  onMoveNode={handleMoveNode}
                   onPreviewImage={handlePreviewImage}
                   onPreviewFile={handlePreviewFile}
                   isOfficeEditable={isOfficeEditable}

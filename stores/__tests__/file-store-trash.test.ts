@@ -164,4 +164,13 @@ describe('file-store trash', () => {
     expect(deletesToTrash('e:team')).toBe(false);
     expect(deletesToTrash(TRASH_LOCATION)).toBe(false);
   });
+
+  it('moves a folder of the tree by id, and not into itself', async () => {
+    const server = await open([dir('docs', 'Documents', null), dir('sub', 'Sub', 'docs'), dir('arch', 'Archive', null)]);
+    expect(await useFileStore.getState().moveNode('docs', 'sub')).toBe(false);
+    expect(await useFileStore.getState().moveNode('docs', 'arch')).toBe(true);
+    expect(server.nodes().find(n => n.id === 'docs')?.parentId).toBe('arch');
+    await useFileStore.getState().undoLastAction();
+    expect(server.nodes().find(n => n.id === 'docs')?.parentId).toBeNull();
+  });
 });
