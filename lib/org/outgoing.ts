@@ -28,6 +28,7 @@ import {
   textCarriesSignature,
 } from '@/lib/org/body-match';
 import { appendHtmlSignature, appendPlainTextSignature, getPlainTextSignature, signatureAsHtml } from '@/lib/signature-utils';
+import { stripCrossAccountIdentityPrefix } from '@/hooks/use-pro-multi-account-identities';
 import { useIdentityStore } from '@/stores/identity-store';
 import { useSettingsStore } from '@/stores/settings-store';
 
@@ -37,14 +38,29 @@ const SIGNATURE_ORDER = 10;
 /** The disclaimer goes last, after anything else a finaliser adds. */
 const DISCLAIMER_ORDER = 1000;
 
-/** The identity the message goes out from, for the placeholders. */
-function senderOf(context: OutgoingContext): Pick<Identity, 'name' | 'email'> | null {
+/**
+ * The identity the message goes out from, for the placeholders, and the
+ * signed-in account it belongs to, for the policy: as the sender says, or
+ * looked up among the active account's identities. An identity of another
+ * account ("<account>::<id>") is never looked up there.
+ */
+function senderOf(context: OutgoingContext): { identity: Pick<Identity, 'name' | 'email'> | null; accountId: string | null } {
+  if (context.sender) return { identity: context.sender, accountId: context.sender.accountId ?? null };
+  const { localAccountId } = context.identityId
+    ? stripCrossAccountIdentityPrefix(context.identityId)
+    : { localAccountId: null };
+  const fallback = context.fromEmail ? { name: '', email: context.fromEmail } : null;
+  if (localAccountId) return { identity: fallback, accountId: localAccountId };
   const identities = useIdentityStore.getState().identities;
   const byId = context.identityId ? identities.find((identity) => identity.id === context.identityId) : undefined;
-  if (byId) return byId;
   const email = context.fromEmail?.toLowerCase();
   const byEmail = email ? identities.find((identity) => identity.email.toLowerCase() === email) : undefined;
-  return byEmail ?? (context.fromEmail ? { name: '', email: context.fromEmail } : null);
+  return { identity: byId ?? byEmail ?? fallback, accountId: null };
+}
+
+function setupFor(context: OutgoingContext) {
+  const { identity, accountId } = senderOf(context);
+  return currentOrgSignatureSetup(identity, accountId);
 }
 
 const asSignature = (filled: FilledSignature) => ({ htmlSignature: filled.html, textSignature: filled.text });
@@ -55,7 +71,7 @@ const asSignature = (filled: FilledSignature) => ({ htmlSignature: filled.html, 
  * unless it is missing, and then adds it once to the part that lacks it.
  */
 export function orgSignatureFinalizer(bodies: OutgoingBodies, context: OutgoingContext): OutgoingBodies {
-  const setup = currentOrgSignatureSetup(senderOf(context));
+  const setup = setupFor(context);
   if (!setup.signature || !isSignatureEnforced(setup.restriction)) return bodies;
   const signature = setup.signature;
   const separator = { separator: useSettingsStore.getState().signatureSeparatorEnabled };
@@ -81,7 +97,7 @@ export function disclaimerHtml(disclaimer: FilledSignature): string {
  * came back into the draft) keeps the one it has; a quoted copy doesn't count.
  */
 export function orgDisclaimerFinalizer(bodies: OutgoingBodies, context: OutgoingContext): OutgoingBodies {
-  const disclaimer = currentOrgSignatureSetup(senderOf(context)).disclaimer;
+  const disclaimer = setupFor(context).disclaimer;
   if (!disclaimer) return bodies;
   const text = getPlainTextSignature(asSignature(disclaimer));
   if (!text) return bodies;

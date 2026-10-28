@@ -559,6 +559,8 @@ export function EmailComposer({
       ? initialCurrentIdentityForSig
       : primaryIdentity,
     initialCurrentIdentityForSig,
+    (initialCurrentIdentityForSig?.id && stripCrossAccountIdentityPrefix(initialCurrentIdentityForSig.id).localAccountId)
+      || composerAccountIdRef.current,
   );
   const hasInitialSignature = !!(initialSignatureIdentity?.htmlSignature || initialSignatureIdentity?.textSignature);
   const shouldEmbedSignatureAboveQuote =
@@ -1038,6 +1040,10 @@ export function EmailComposer({
   const composerClient = currentIdentityParts.localAccountId
     ? (useAuthStore.getState().getClientForAccount(currentIdentityParts.localAccountId) ?? client)
     : client;
+  // The signed-in account the message goes out from, whose domain and group
+  // scopes decide the organisation signature and disclaimer: the identity's
+  // own account, else the one the composer was opened in.
+  const composingAccountId = currentIdentityParts.localAccountId ?? composerAccountIdRef.current;
   // The upload callbacks below list only `client` as a dependency, so they read
   // the composing identity's client through a ref: uploads must land in the
   // account that owns the draft, and a direct substitution would capture a
@@ -1157,7 +1163,7 @@ export function EmailComposer({
   // Then the organisation signature: the default for an identity without
   // one, or in place of every signature when the admin locked it. Plugins
   // may rewrite the result (onSignatureRender), except a locked one.
-  const orgSignature = useOrgSignature(ownSignatureIdentity, currentIdentity);
+  const orgSignature = useOrgSignature(ownSignatureIdentity, currentIdentity, composingAccountId);
   const { identity: signatureIdentity, revision: pluginSignatureRevision } = usePluginSignature(orgSignature.identity, {
     locked: orgSignature.enforced,
   });
@@ -3316,6 +3322,9 @@ export function EmailComposer({
       mode,
       plainText: plainTextMode,
       forwardedSeparator: tQuote('forwarded_separator'),
+      sender: currentIdentity
+        ? { name: currentIdentity.name, email: currentIdentity.email, accountId: composingAccountId }
+        : undefined,
     };
     preSendCheckingRef.current = true;
     let checksPassed = false;
@@ -4434,7 +4443,7 @@ export function EmailComposer({
           />
         ) : null}
         {/* The admin's disclaimer: added on send (lib/org/outgoing.ts), never part of the body. */}
-        <OrgDisclaimerPreview sending={currentIdentity} plainText={plainTextMode} body={body} />
+        <OrgDisclaimerPreview sending={currentIdentity} accountId={composingAccountId} plainText={plainTextMode} body={body} />
         {wantsPluginDraft && (
           <PluginSlot name="composer-below-body" className="w-full" extraProps={pluginDraftProps} />
         )}

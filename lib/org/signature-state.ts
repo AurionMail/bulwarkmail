@@ -21,6 +21,7 @@ import {
   type SignatureRestriction,
 } from '@/lib/org-signature';
 import { getCachedConfig } from '@/hooks/use-config';
+import { subjectForAccount } from '@/lib/org/account-subjects';
 import { usePolicyStore } from '@/stores/policy-store';
 import { useSettingsStore } from '@/stores/settings-store';
 
@@ -32,20 +33,25 @@ export interface PolicyView {
 }
 
 /**
- * The policy that decides the signature of mail sent from `email`. An
- * identity of a group the user is a member of gets the group's scopes when
- * a group scope names that group; everything else (personal identities, an
- * alias in another domain of the same account) gets the account's.
+ * The policy that decides the signature of mail sent from `email` by the
+ * account `subject` (the active account's when left out). An identity of a
+ * group the account is a member of gets the group's scopes when a group
+ * scope names that group; everything else (personal identities, an alias in
+ * another domain of the same account) gets the account's.
  */
-export function policyForSender(view: PolicyView, email: string | undefined): SettingsPolicy {
+export function policyForSender(
+  view: PolicyView,
+  email: string | undefined,
+  subject: PolicySubject | null = view.subject,
+): SettingsPolicy {
+  const accountPolicy = subject === view.subject ? view.policy : view.resolveFor(subject);
   const address = email?.trim().toLowerCase();
-  const subject = view.subject;
-  if (!address || !subject) return view.policy;
+  if (!address || !subject) return accountPolicy;
   const isGroup = subject.groups.some((group) => group.toLowerCase() === address);
-  if (!isGroup) return view.policy;
+  if (!isGroup) return accountPolicy;
   const named = (view.rawPolicy.scopes ?? []).some((scope) =>
     (scope.match.groups ?? []).some((group) => group.toLowerCase() === address));
-  if (!named) return view.policy;
+  if (!named) return accountPolicy;
   return view.resolveFor({ email: subject.email, groups: [address] });
 }
 
@@ -77,9 +83,15 @@ export function companyName(): string {
   return getCachedConfig()?.loginCompanyName ?? '';
 }
 
-/** The setup for an identity, read from the stores now. */
-export function currentOrgSignatureSetup(sending: Pick<Identity, 'name' | 'email'> | null | undefined): OrgSignatureSetup {
-  const policy = policyForSender(usePolicyStore.getState(), sending?.email);
+/**
+ * The setup for an identity of the signed-in account `accountId` (the
+ * active one when left out), read from the stores now.
+ */
+export function currentOrgSignatureSetup(
+  sending: Pick<Identity, 'name' | 'email'> | null | undefined,
+  accountId?: string | null,
+): OrgSignatureSetup {
+  const policy = policyForSender(usePolicyStore.getState(), sending?.email, subjectForAccount(accountId));
   return orgSignatureSetup(policy, sending, useSettingsStore.getState().signatureDetails, companyName());
 }
 

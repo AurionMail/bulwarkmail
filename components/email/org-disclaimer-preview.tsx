@@ -15,14 +15,16 @@ import { useOrgDisclaimer } from "@/hooks/use-org-signature";
  * that already ends with it (a message back from Undo) gets no second copy
  * on send, so the block isn't shown then either.
  */
-export function OrgDisclaimerPreview({ sending, plainText, body = "" }: {
+export function OrgDisclaimerPreview({ sending, accountId, plainText, body = "" }: {
   sending: Pick<Identity, "name" | "email"> | null | undefined;
+  /** The signed-in account the message goes out from; the active one when left out. */
+  accountId?: string | null;
   plainText: boolean;
   /** The composer's body: HTML, or text in plain-text mode. */
   body?: string;
 }) {
   const t = useTranslations("org_signature");
-  const disclaimer = useOrgDisclaimer(sending);
+  const disclaimer = useOrgDisclaimer(sending, accountId);
   // Parsing the body on every keystroke isn't needed for a hint.
   const deferredBody = useDeferredValue(body);
   const carried = useMemo(

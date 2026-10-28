@@ -28,6 +28,12 @@ export interface OutgoingContext {
   bcc: string[];
   fromEmail?: string;
   identityId?: string;
+  /**
+   * The identity the message goes out from and the signed-in account it
+   * belongs to (its local account id; the active account when left out).
+   * identityId can name an identity of another account ("<account>::<id>").
+   */
+  sender?: { name: string; email: string; accountId?: string | null };
   /** compose, reply, replyAll or forward; quick reply is a reply. */
   mode: 'compose' | 'reply' | 'replyAll' | 'forward';
   /** Plain-text-only message (no HTML part). */

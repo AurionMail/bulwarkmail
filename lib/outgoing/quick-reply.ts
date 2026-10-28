@@ -46,6 +46,9 @@ export async function prepareQuickReply(input: {
     bcc: [],
     fromEmail: input.fromEmail,
     identityId: input.identityId,
+    sender: input.sendingIdentity
+      ? { name: input.sendingIdentity.name, email: input.sendingIdentity.email }
+      : undefined,
     mode: 'reply' as const,
     plainText: !html,
   };
