@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, useMemo, useId } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useMvComposeWindow } from "@/components/email/mv-compose-context";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useTranslations } from "next-intl";
@@ -43,7 +43,7 @@ import { plainOwnRange, readOwnContent, readSelection as readEditorSelection, re
 import { actionsFor, runAction } from "@/lib/plugin-sandbox/actions";
 import { matchesCombo } from "@/lib/plugin-sandbox/shortcuts";
 import { cn, formatFileSize, formatDateTime, generateUUID } from "@/lib/utils";
-import { schedulePresets } from "@/lib/schedule-presets";
+import { ScheduleSendDialog } from "./schedule-send-dialog";
 import { debug } from "@/lib/debug";
 import { toast } from "@/stores/toast-store";
 import { useContextMenu } from "@/hooks/use-context-menu";
@@ -383,18 +383,6 @@ type ComposerAttachment = {
 // asks servers to keep an upload for an hour, but Stalwart's uploadTtl can be
 // set much lower (a minute on the server in #1243).
 const INLINE_UPLOAD_REFRESH_MS = 30 * 1000;
-
-function formatLocalDateTimeInput(date: Date): string {
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function getDefaultScheduleValue(): string {
-  const tomorrowAtEight = new Date();
-  tomorrowAtEight.setDate(tomorrowAtEight.getDate() + 1);
-  tomorrowAtEight.setHours(8, 0, 0, 0);
-  return formatLocalDateTimeInput(tomorrowAtEight);
-}
 
 // Height the body area (formatting toolbar included) must keep below the
 // pinned From/To/Cc/Bcc/Subject fields. Below it the fields scroll away with
@@ -974,8 +962,6 @@ export function EmailComposer({
   const [placeholderWarningDelayedUntil, setPlaceholderWarningDelayedUntil] = useState<string | undefined>();
   const [placeholderDontAskAgain, setPlaceholderDontAskAgain] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
-  const [scheduleValue, setScheduleValue] = useState('');
-  const [scheduleError, setScheduleError] = useState('');
   const [showSendMenu, setShowSendMenu] = useState(false);
   const sendMenuRef = useRef<HTMLDivElement>(null);
   const mobileSendMenuRef = useRef<HTMLDivElement>(null);
@@ -1229,10 +1215,7 @@ export function EmailComposer({
     return () => document.removeEventListener('mousedown', handleClickOutsideSendMenu);
   }, []);
 
-  const scheduleTitleId = useId();
   const openScheduleDialog = useCallback(() => {
-    setScheduleError('');
-    setScheduleValue(getDefaultScheduleValue());
     setShowScheduleDialog(true);
     setShowSendMenu(false);
   }, []);
@@ -3008,20 +2991,6 @@ export function EmailComposer({
     return undefined;
   };
 
-  const validateScheduleValue = (value: string): string | null => {
-    if (!value) return t('schedule_send_required');
-    const time = new Date(value).getTime();
-    if (!Number.isFinite(time)) return t('schedule_send_invalid');
-    if (time <= Date.now()) return t('schedule_send_future');
-    if (composerClient) {
-      const maxDelayedSend = composerClient.getMaxDelayedSend();
-      if (maxDelayedSend > 0 && time > Date.now() + maxDelayedSend * 1000) {
-        return t('schedule_send_too_late');
-      }
-    }
-    return null;
-  };
-
   const resolveDelayedUntil = async (requestedDelayedUntil?: string): Promise<string | undefined> => {
     if (requestedDelayedUntil) return requestedDelayedUntil;
     if (sendDelaySeconds === 0) return undefined;
@@ -3563,8 +3532,6 @@ export function EmailComposer({
       setSubAddressTag("");
       setValidationErrors({});
       setShowScheduleDialog(false);
-      setScheduleValue('');
-      setScheduleError('');
       // Clear ref so unmount effect doesn't re-save
       stateRef.current = { to: '', cc: '', bcc: '', subject: '', body: '', showCc: false, showBcc: false, selectedIdentityId: null, subAddressTag: '', draftId: null, draftAccountId: undefined, draftLocalAccountId: undefined, fromOverrideEnabled: false, fromOverrideEmail: '', fromOverrideName: '', attachments: [], plainTextMode };
       // The host closes the composer from onSend or onScheduledSendCreated;
@@ -3606,20 +3573,6 @@ export function EmailComposer({
     }
   };
 
-  const scheduleAt = (value: string) => {
-    if (!composerClient?.hasDelayedSend()) {
-      setScheduleError(t('schedule_send_unsupported'));
-      return;
-    }
-    const error = validateScheduleValue(value);
-    if (error) {
-      setScheduleError(error);
-      return;
-    }
-    handleSend({ delayedUntil: new Date(value).toISOString() });
-  };
-
-  const handleScheduleSend = () => scheduleAt(scheduleValue);
 
   // A host can hand a follow-up to requestCloseRef - "close this session, then
   // do that". It runs only once the composer really closes, never when the
@@ -4773,50 +4726,14 @@ export function EmailComposer({
         </div>
       )}
 
-      {showScheduleDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={scheduleTitleId}
-            className="bg-background border border-border rounded-lg shadow-xl w-full max-w-md p-6 animate-in zoom-in-95 duration-200"
-          >
-            <h3 id={scheduleTitleId} className="text-lg font-semibold text-foreground mb-2">{t('schedule_send')}</h3>
-            <p className="text-sm text-muted-foreground mb-4">{t('schedule_send_description')}</p>
-            {/* One click for the usual times; the field below takes any other. */}
-            <div className="mb-4 flex flex-col">
-              {schedulePresets().map((preset) => (
-                <button
-                  key={preset.key}
-                  type="button"
-                  onClick={() => scheduleAt(formatLocalDateTimeInput(preset.date))}
-                  disabled={!canSend || isSending}
-                  className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-start text-sm hover:bg-muted disabled:opacity-50"
-                >
-                  <span>{t(`schedule_preset.${preset.key}`)}</span>
-                  <span className="text-muted-foreground">
-                    {formatDateTime(preset.date, timeFormat, { weekday: 'short', month: 'short', day: 'numeric' })}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <Input
-              type="datetime-local"
-              value={scheduleValue}
-              onChange={(e) => {
-                setScheduleValue(e.target.value);
-                setScheduleError('');
-              }}
-              className={cn(scheduleError && "border-destructive focus-visible:ring-destructive")}
-            />
-            {scheduleError && <p className="mt-2 text-sm text-destructive">{scheduleError}</p>}
-            <div className="mt-5 flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setShowScheduleDialog(false)}>{tCommon('cancel')}</Button>
-              <Button onClick={handleScheduleSend} disabled={!canSend || isSending}>{t('schedule_send')}</Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ScheduleSendDialog
+        isOpen={showScheduleDialog}
+        onClose={() => setShowScheduleDialog(false)}
+        onSchedule={(delayedUntil) => handleSend({ delayedUntil })}
+        supported={!!composerClient?.hasDelayedSend()}
+        maxDelayedSend={composerClient?.getMaxDelayedSend() ?? 0}
+        disabled={!canSend || isSending}
+      />
 
       {showAttachmentWarning && (
         <div
