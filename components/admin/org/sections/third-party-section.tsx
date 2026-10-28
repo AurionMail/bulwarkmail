@@ -119,7 +119,7 @@ export function ThirdPartySection({ draft }: { draft: OrgPolicyDraft }) {
         <>
           <SettingItem
             label="No third-party traffic"
-            description="Bulwark and your users' browsers stop contacting services outside your own servers: telemetry, the version check, the built-in push relay, the official extension directory, sender icons, MyMemory translation and map links. Plugins that declare network access don't run; the others do."
+            description="Bulwark and your users' browsers stop contacting services outside your own servers: telemetry, the version check, the built-in push relay, the official extension directory, the connector, sender icons, MyMemory translation, map links and OpenPGP key lookups at other domains. Plugins that declare network access don't run; the others do. The page's security policy then allows only the hosts listed below."
           >
             <div className="flex items-center gap-1.5" data-testid="third-party-switch">
               <SourceBadge source={state.source} label={state.source === 'env' ? 'NO_THIRD_PARTY_TRAFFIC' : 'config.json'} />
@@ -149,16 +149,17 @@ export function ThirdPartySection({ draft }: { draft: OrgPolicyDraft }) {
 
           <div data-testid="third-party-reachable">
             <h4 className="text-sm font-medium text-foreground">{on ? 'Still reachable' : 'Stays reachable with the switch on'}</h4>
-            <p className="mt-1 text-xs text-muted-foreground">Hosts you configured yourself.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Hosts you configured yourself, and what users enter themselves.</p>
             {state.reachable.length === 0 ? (
               <p className="mt-2 text-sm text-muted-foreground">None configured.</p>
             ) : (
               <ul className="mt-2 divide-y divide-border rounded-md border border-border">
                 {state.reachable.map((h) => (
-                  <li key={`${h.kind}|${h.host}`} className="flex flex-col gap-0.5 px-3 py-2 text-sm sm:flex-row sm:items-baseline sm:gap-3">
+                  <li key={`${h.kind}|${h.host}|${h.setIn}`} className="flex flex-col gap-0.5 px-3 py-2 text-sm sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-3">
                     <span className="font-medium text-foreground sm:w-44 sm:shrink-0">{h.kind}</span>
-                    <span className="min-w-0 break-all font-mono text-xs text-foreground">{h.host}</span>
+                    <span className={h.origin ? 'min-w-0 break-all font-mono text-xs text-foreground' : 'min-w-0 text-xs italic text-foreground'}>{h.host}</span>
                     <span className="text-xs text-muted-foreground sm:ms-auto sm:text-end">{h.setIn} · {SIDE_LABEL[h.side]}</span>
+                    {h.note && <span className="text-xs text-amber-700 dark:text-amber-400 sm:basis-full">{h.note}</span>}
                   </li>
                 ))}
               </ul>

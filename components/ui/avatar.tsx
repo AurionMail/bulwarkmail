@@ -9,7 +9,8 @@ import { useContactPhotoSrc } from "@/hooks/use-contact-photo";
 import { avatarHooks } from "@/lib/plugin-hooks";
 import { withBasePath } from "@/lib/browser-navigation";
 import { IS_LITE } from "@/lib/lite";
-import { sampleAvatarsAllowed, senderFaviconsAllowed } from "@/lib/outgoing-hosts";
+import { avatarUrlAllowed, sampleAvatarsAllowed, senderFaviconsAllowed } from "@/lib/outgoing-hosts";
+import { useNoThirdPartyTraffic } from "@/hooks/use-third-party-mode";
 import { useFaviconRefreshStore, failedFaviconDomains } from "@/stores/favicon-refresh-store";
 
 const IS_DEV = process.env.NODE_ENV !== "production";
@@ -166,6 +167,8 @@ export function Avatar({ name, email, contactPhoto, size = "md", className, disa
   const faviconRefreshedAt = useFaviconRefreshStore((s) => s.refreshedAt);
   const contacts = useContactStore((s) => s.contacts);
   const { devMode } = useConfig();
+  // Re-render when the config arrives: until then nothing outside is asked (#903).
+  useNoThirdPartyTraffic();
 
   // Ask plugins (e.g. Gravatar) to resolve an avatar URL for this email address.
   // Runs whenever email or name changes; resets plugin avatar state on each change.
@@ -188,7 +191,7 @@ export function Avatar({ name, email, contactPhoto, size = "md", className, disa
     return getContactPhotoIndex(contacts).get(email.toLowerCase()) ?? null;
   }, [disableImages, contactPhoto, email, contacts]);
   const { src: contactPhotoSrc, observe } = useContactPhotoSrc(photoRef);
-  const resolvedContactPhoto = contactPhotoSrc && contactPhotoSrc !== failedContactPhoto ? contactPhotoSrc : undefined;
+  const resolvedContactPhoto = contactPhotoSrc && contactPhotoSrc !== failedContactPhoto && avatarUrlAllowed(contactPhotoSrc) ? contactPhotoSrc : undefined;
 
   // A refresh of the sender icons gives a failed favicon another chance.
   useEffect(() => {
@@ -245,7 +248,8 @@ export function Avatar({ name, email, contactPhoto, size = "md", className, disa
 
   // Priority: contact photo > plugin avatar (e.g. Gravatar) > custom avatar > profile picture > company favicon > initials
   const customAvatar = devMode && email && sampleAvatarsAllowed() ? CUSTOM_AVATARS[email.toLowerCase()] : null;
-  const pluginAvatar = pluginAvatarFailed ? null : pluginAvatarUrl;
+  // Gravatar and the like are outside hosts: initials instead in the no-third-party mode.
+  const pluginAvatar = pluginAvatarFailed || !avatarUrlAllowed(pluginAvatarUrl) ? null : pluginAvatarUrl;
   const photoSrc = resolvedContactPhoto || pluginAvatar || customAvatar || profilePic || null;
   const faviconSrc = !imgError && !domainFailed && showFavicon ? withBasePath(`/api/favicon?domain=${encodeURIComponent(faviconDomain!)}${faviconRefreshedAt ? `&v=${faviconRefreshedAt}` : ""}`) : null;
   const imgSrc = disableImages ? null : (photoSrc || faviconSrc);

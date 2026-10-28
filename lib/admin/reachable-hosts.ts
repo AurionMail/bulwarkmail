@@ -1,30 +1,37 @@
 import type { SettingsPolicy } from './types';
 import { parseJmapServers } from './jmap-servers';
 import { isBuiltInHost } from '@/lib/outgoing-hosts';
+import { DEFAULT_RELAY_BASE_URL } from '@/lib/push-relays';
 
 /**
  * What stays reachable with "no third-party traffic" on: the hosts the
- * deployment configured itself. Shown on Organisation > Security so an admin
- * can check the list against what they expect (#903).
+ * deployment configured itself, plus the addresses users type in themselves.
+ * Shown on Organisation > Security so an admin can check the list against
+ * what they expect, and turned into the page's CSP in the mode (#903).
  */
 
 export interface ReachableHost {
   /** What the host is for, e.g. "JMAP server". */
   kind: string;
-  /** The host (and port when it isn't the default). */
+  /** The host (and port when it isn't the default), or "any address your users enter". */
   host: string;
+  /** scheme://host[:port], for the CSP; absent for addresses users enter. */
+  origin?: string;
   /** Where it was configured, e.g. "JMAP_SERVER_URL" or "User policy > Push relays". */
   setIn: string;
   /** Who connects: this server, the browser, or both. */
   side: 'server' | 'browser' | 'both';
+  /** Something the admin should know about this line. */
+  note?: string;
 }
 
-function hostOf(url: unknown): string | null {
+export const USER_ENTERED = 'any address your users enter';
+
+function parse(url: unknown): URL | null {
   if (typeof url !== 'string' || !url.trim()) return null;
   try {
     const parsed = new URL(url.trim());
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null;
-    return parsed.host.toLowerCase();
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed : null;
   } catch {
     return null;
   }
@@ -32,8 +39,10 @@ function hostOf(url: unknown): string | null {
 
 export interface ReachableInput {
   get: (key: string) => unknown;
-  policy: Pick<SettingsPolicy, 'pushRelays' | 'pushRelayUrl' | 'defaultSidebarApps'>;
+  policy: Pick<SettingsPolicy, 'pushRelays' | 'pushRelayUrl' | 'defaultSidebarApps'> & { features?: Partial<SettingsPolicy['features']> };
   env: Record<string, string | undefined>;
+  /** The relay the browser bundle was built with (NEXT_PUBLIC_PUSH_RELAY_URL inlined at build time). */
+  buildRelayUrl?: string;
 }
 
 const BRANDING_KEYS = [
@@ -41,18 +50,19 @@ const BRANDING_KEYS = [
   'appLogoLightUrl', 'appLogoDarkUrl', 'loginLogoLightUrl', 'loginLogoDarkUrl',
 ] as const;
 
-export function listReachableHosts({ get, policy, env }: ReachableInput): ReachableHost[] {
+export function listReachableHosts({ get, policy, env, buildRelayUrl = DEFAULT_RELAY_BASE_URL }: ReachableInput): ReachableHost[] {
   const out: ReachableHost[] = [];
   const seen = new Set<string>();
-  const add = (kind: string, url: unknown, setIn: string, side: ReachableHost['side']) => {
-    const host = hostOf(url);
+  const add = (kind: string, url: unknown, setIn: string, side: ReachableHost['side'], note?: string) => {
+    const parsed = parse(url);
     // A built-in host listed here would be off in the mode anyway; leaving
     // it out keeps the list to what really stays reachable.
-    if (!host || isBuiltInHost(String(url))) return;
+    if (!parsed || isBuiltInHost(parsed.href)) return;
+    const host = parsed.host.toLowerCase();
     const key = `${kind}|${host}`;
     if (seen.has(key)) return;
     seen.add(key);
-    out.push({ kind, host, setIn, side });
+    out.push({ kind, host, origin: parsed.origin, setIn, side, ...(note ? { note } : {}) });
   };
 
   add('JMAP server', get('jmapServerUrl'), 'JMAP_SERVER_URL', 'both');
@@ -68,11 +78,45 @@ export function listReachableHosts({ get, policy, env }: ReachableInput): Reacha
   }
   for (const relay of policy.pushRelays ?? []) add('Push relay', relay?.url, 'User policy > Push relays', 'browser');
   add('Push relay', policy.pushRelayUrl, 'User policy > Push relays', 'browser');
-  add('Push relay', env.NEXT_PUBLIC_PUSH_RELAY_URL, 'NEXT_PUBLIC_PUSH_RELAY_URL (build)', 'browser');
+  // The relay browsers offer as the default is the one inlined when the
+  // bundle was built. A different value in the running environment does
+  // nothing for them, so it is listed with a warning.
+  add('Push relay', buildRelayUrl, 'NEXT_PUBLIC_PUSH_RELAY_URL (build)', 'browser');
+  const runtimeRelay = parse(env.NEXT_PUBLIC_PUSH_RELAY_URL);
+  if (runtimeRelay && runtimeRelay.origin !== parse(buildRelayUrl)?.origin) {
+    add('Push relay', runtimeRelay.href, 'NEXT_PUBLIC_PUSH_RELAY_URL (environment)', 'browser',
+      'Set in the environment only: browsers use the relay this build was made with. Rebuild, or add it under User policy > Push relays.');
+  }
   add('Extension directory', get('extensionDirectoryUrl'), 'EXTENSION_DIRECTORY_URL', 'server');
   for (const app of policy.defaultSidebarApps ?? []) add('Sidebar app', app?.url, `User policy > Sidebar apps (${app?.name ?? ''})`, 'browser');
   add('Document editor (WOPI)', get('wopiClientUrl'), 'WOPI_CLIENT_URL', 'both');
   add('Translation (LibreTranslate)', env.LIBRETRANSLATE_URL, 'LIBRETRANSLATE_URL', 'server');
   for (const key of BRANDING_KEYS) add('Branding image', get(key), key, 'browser');
+
+  // User-directed: what users type in themselves stays allowed.
+  if (get('allowCustomJmapEndpoint') === true) {
+    out.push({ kind: 'JMAP server', host: USER_ENTERED, setIn: 'ALLOW_CUSTOM_JMAP_ENDPOINT', side: 'both',
+      note: 'Users can sign in to any server, so the browser may connect to any https host.' });
+  }
+  if (policy.features?.sidebarAppsEnabled !== false) {
+    out.push({ kind: 'Sidebar apps users add', host: USER_ENTERED, setIn: 'Users, in Settings > Apps', side: 'browser' });
+  }
+  if (policy.features?.calendarEnabled !== false) {
+    out.push({ kind: 'Calendar subscriptions', host: USER_ENTERED, setIn: 'Users, in Calendar', side: 'server' });
+  }
   return out;
+}
+
+/**
+ * The Content-Security-Policy sources of the page in the no-third-party mode:
+ * 'self' and the origins above. With custom JMAP endpoints allowed, the
+ * browser must reach whatever server a user signs in to, so connect-src
+ * keeps https: (the other directives stay narrow).
+ */
+export function noThirdPartyCspSources(hosts: ReachableHost[], allowCustomJmapEndpoint: boolean): { connect: string[]; other: string[] } {
+  const origins = [...new Set(hosts.flatMap((h) => (h.origin ? [h.origin] : [])))];
+  return {
+    connect: allowCustomJmapEndpoint ? [...origins, 'https:'] : origins,
+    other: origins,
+  };
 }

@@ -108,6 +108,22 @@ describe('listReachableHosts', () => {
       'Document editor (WOPI): office.corp.example',
       'Translation (LibreTranslate): translate.corp.example',
       'Branding image: cdn.corp.example',
+      'Sidebar apps users add: any address your users enter',
+      'Calendar subscriptions: any address your users enter',
+    ]);
+  });
+
+  it('names the relay browsers were built with, flags a different one in the environment, and lists what users enter', () => {
+    const hosts = listReachableHosts({
+      get: (key) => ({ allowCustomJmapEndpoint: true } as Record<string, unknown>)[key],
+      policy: { pushRelays: [], pushRelayUrl: '', defaultSidebarApps: [], features: { calendarEnabled: false, sidebarAppsEnabled: false } },
+      env: { NEXT_PUBLIC_PUSH_RELAY_URL: 'https://push.runtime.example' },
+      buildRelayUrl: 'https://push.build.example',
+    });
+    expect(hosts.map((h) => [h.host, h.setIn, !!h.note])).toEqual([
+      ['push.build.example', 'NEXT_PUBLIC_PUSH_RELAY_URL (build)', false],
+      ['push.runtime.example', 'NEXT_PUBLIC_PUSH_RELAY_URL (environment)', true],
+      ['any address your users enter', 'ALLOW_CUSTOM_JMAP_ENDPOINT', true],
     ]);
   });
 });

@@ -284,11 +284,77 @@ describe('admin view', () => {
     await configManager.load();
     const body = await (await GET(new NextRequest('https://webmail.example/api/admin/outgoing-hosts'))).json();
     expect(body).toMatchObject({ noThirdPartyTraffic: true, source: 'admin', envLocked: false, readOnly: false });
-    expect(body.reachable.map((h: { host: string }) => h.host)).toEqual(['mail.corp.example', 'push.corp.example']);
+    expect(body.reachable.map((h: { host: string }) => h.host)).toEqual(['mail.corp.example', 'push.corp.example', 'any address your users enter', 'any address your users enter']);
     expect(body.networkPlugins).toEqual([{ id: 'fetcher', name: 'Fetcher' }]);
     expect(body.builtIn.length).toBeGreaterThan(5);
 
     process.env.NO_THIRD_PARTY_TRAFFIC = 'true';
     expect(await (await GET(new NextRequest('https://webmail.example/api/admin/outgoing-hosts'))).json()).toMatchObject({ source: 'env', envLocked: true });
+  });
+});
+
+describe('review follow-ups', () => {
+  it('counts a string "true", "1", "yes" or "on" in config.json as on', async () => {
+    for (const value of ['true', '1', 'yes', 'on', 'TRUE']) {
+      writeFileSync(path.join(dir, 'config.json'), JSON.stringify({ noThirdPartyTraffic: value }));
+      await configManager.load();
+      expect(await isNoThirdPartyTrafficOn(), value).toBe(true);
+      expect(noThirdPartyTrafficState(), value).toEqual({ on: true, source: 'admin' });
+    }
+    writeFileSync(path.join(dir, 'config.json'), JSON.stringify({ noThirdPartyTraffic: 'no' }));
+    await configManager.load();
+    expect(await isNoThirdPartyTrafficOn()).toBe(false);
+  });
+
+  it('keeps the version check scheduled in the mode, so it resumes once the switch is off', async () => {
+    const { startScheduler, stopScheduler, checkOnce, loadState, saveState } = await import('@/lib/version-check');
+    fetchMock.mockImplementation(async () => Response.json({ latest: '1.18.0', severity: 'none' }));
+    try {
+      await setMode(true);
+      await saveState({ ...(await loadState()), nextScheduledAt: null });
+      await startScheduler();
+      expect((await loadState()).nextScheduledAt).not.toBeNull();
+      await stopScheduler();
+      expect((await checkOnce()).ok).toBe(false);
+      expect(fetchMock).not.toHaveBeenCalled();
+      await setMode(false);
+      await checkOnce();
+      expect(calledHosts()).toEqual(['version.telemetry.bulwarkmail.org']);
+    } finally {
+      await stopScheduler();
+      fetchMock.mockImplementation(async () => new Response(new Uint8Array(64).fill(1), { headers: { 'content-type': 'image/png' } }));
+    }
+  });
+
+  it('makes getDirectoryUrl refuse the official directory in the mode', async () => {
+    const { getDirectoryUrl, DirectoryError } = await import('@/lib/admin/marketplace-directory');
+    await setMode(true);
+    await expect(getDirectoryUrl()).rejects.toBeInstanceOf(DirectoryError);
+    await expect(getDirectoryUrl()).rejects.toMatchObject({ status: 403 });
+    await setMode(false);
+    expect(await getDirectoryUrl()).toBe('https://extensions.bulwarkmail.org');
+  });
+
+  it('leaves the sample contact photos out of the mock server in the mode', async () => {
+    process.env.DEV_MOCK_JMAP = 'true';
+    process.env.NEXT_PUBLIC_DEV_MOCK_JMAP = 'true';
+    try {
+      const { POST } = await import('@/app/api/dev-jmap/[...path]/route');
+      const photos = async () => {
+        const res = await POST(
+          new NextRequest('http://localhost:3000/api/dev-jmap/api', { method: 'POST', body: JSON.stringify({ using: [], methodCalls: [['ContactCard/get', {}, '0']] }) }),
+          { params: Promise.resolve({ path: ['api'] }) },
+        );
+        const list = (await res.json()).methodResponses[0][1].list as Array<{ media?: Record<string, { uri?: string }> }>;
+        return list.flatMap((c) => Object.values(c.media ?? {}).map((m) => m.uri ?? '')).filter((uri) => uri.includes('randomuser.me'));
+      };
+      await setMode(false);
+      expect((await photos()).length).toBeGreaterThan(0);
+      await setMode(true);
+      expect(await photos()).toEqual([]);
+    } finally {
+      delete process.env.DEV_MOCK_JMAP;
+      delete process.env.NEXT_PUBLIC_DEV_MOCK_JMAP;
+    }
   });
 });
