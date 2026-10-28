@@ -5068,6 +5068,7 @@
     "placeholder": "Trüki käsk",
     "no_results": "Sobivaid käske pole",
     "go_to": "Mine: {name}",
+    "go_to_settings_page": "Mine seadetesse: {name}",
     "compose": "Koosta",
     "search": "Otsi kirju",
     "theme_dark": "Lülitu tumedale teemale",

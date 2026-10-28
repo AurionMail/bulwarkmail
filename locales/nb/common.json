@@ -5068,6 +5068,7 @@
     "placeholder": "Skriv en kommando",
     "no_results": "Ingen samsvarende kommandoer",
     "go_to": "Gå til {name}",
+    "go_to_settings_page": "Gå til innstillinger for {name}",
     "compose": "Skriv",
     "search": "Søk i e-post",
     "theme_dark": "Bytt til mørkt tema",

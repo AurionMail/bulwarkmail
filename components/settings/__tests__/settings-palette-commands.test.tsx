@@ -80,6 +80,16 @@ describe('Settings commands in the palette', () => {
     expect(settingsCommands().find((c) => c.id === 'go-vacation')?.label).toBe('command_palette.go_to(settings.tabs.vacation)');
   });
 
+  it('names the pages called like an app as settings, apart from the app itself', async () => {
+    render(<><SettingsApp linkSegments={[]} /><Probe /></>);
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+
+    const label = (id: string) => settingsCommands().find((c) => c.id === id)?.label;
+    expect(label('go-calendar')).toBe('command_palette.go_to_settings_page(settings.tabs.calendar)');
+    expect(label('go-contacts')).toBe('command_palette.go_to_settings_page(settings.tabs.contacts)');
+    expect(label('go-vacation')).toBe('command_palette.go_to(settings.tabs.vacation)');
+  });
+
   it('finds pages by the words the settings search knows', async () => {
     render(<><SettingsApp linkSegments={[]} /><Probe /></>);
     await act(async () => { await vi.advanceTimersByTimeAsync(100); });

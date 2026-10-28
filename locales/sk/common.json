@@ -5068,6 +5068,7 @@
     "placeholder": "Zadajte príkaz",
     "no_results": "Žiadne zodpovedajúce príkazy",
     "go_to": "Prejsť na {name}",
+    "go_to_settings_page": "Prejsť na nastavenia: {name}",
     "compose": "Napísať",
     "search": "Hľadať v pošte",
     "theme_dark": "Prepnúť na tmavý motív",

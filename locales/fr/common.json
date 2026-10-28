@@ -5068,6 +5068,7 @@
     "placeholder": "Tapez une commande",
     "no_results": "Aucune commande correspondante",
     "go_to": "Aller à {name}",
+    "go_to_settings_page": "Aller aux paramètres : {name}",
     "compose": "Composer",
     "search": "Rechercher dans la messagerie",
     "theme_dark": "Passer au thème sombre",

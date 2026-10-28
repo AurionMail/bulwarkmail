@@ -5068,6 +5068,7 @@
     "placeholder": "Escriviu una ordre",
     "no_results": "Cap ordre coincident",
     "go_to": "Ves a {name}",
+    "go_to_settings_page": "Ves a la configuració de {name}",
     "compose": "Redacta",
     "search": "Cerca al correu",
     "theme_dark": "Canvia al tema fosc",

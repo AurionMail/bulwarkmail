@@ -5068,6 +5068,7 @@
     "placeholder": "Команд бичнэ үү",
     "no_results": "Тохирох команд алга",
     "go_to": "{name} руу очих",
+    "go_to_settings_page": "{name} тохиргоо руу очих",
     "compose": "Бичилэх",
     "search": "Мэйлээс хайх",
     "theme_dark": "Бараан загвар руу шилжих",

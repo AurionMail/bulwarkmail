@@ -5068,6 +5068,7 @@
     "placeholder": "Ierakstiet komandu",
     "no_results": "Nav atbilstošu komandu",
     "go_to": "Pāriet uz: {name}",
+    "go_to_settings_page": "Pāriet uz iestatījumiem: {name}",
     "compose": "Rakstīt",
     "search": "Meklēt pastā",
     "theme_dark": "Pārslēgt uz tumšo motīvu",

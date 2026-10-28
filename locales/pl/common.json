@@ -5068,6 +5068,7 @@
     "placeholder": "Wpisz polecenie",
     "no_results": "Brak pasujących poleceń",
     "go_to": "Przejdź do: {name}",
+    "go_to_settings_page": "Przejdź do ustawień: {name}",
     "compose": "Napisz",
     "search": "Szukaj w poczcie",
     "theme_dark": "Przełącz na ciemny motyw",

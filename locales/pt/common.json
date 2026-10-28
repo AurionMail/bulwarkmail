@@ -5068,6 +5068,7 @@
     "placeholder": "Digite um comando",
     "no_results": "Nenhum comando correspondente",
     "go_to": "Ir para {name}",
+    "go_to_settings_page": "Ir para configurações de {name}",
     "compose": "Escrever",
     "search": "Pesquisar no e-mail",
     "theme_dark": "Mudar para o tema escuro",

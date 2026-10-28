@@ -5068,6 +5068,7 @@
     "placeholder": "Bir komut yazın",
     "no_results": "Eşleşen komut yok",
     "go_to": "{name} bölümüne git",
+    "go_to_settings_page": "{name} ayarlarına git",
     "compose": "Yeni E-posta",
     "search": "Postada ara",
     "theme_dark": "Koyu temaya geç",

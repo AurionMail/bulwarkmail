@@ -5068,6 +5068,7 @@
     "placeholder": "명령을 입력하세요",
     "no_results": "일치하는 명령이 없습니다",
     "go_to": "{name}(으)로 이동",
+    "go_to_settings_page": "{name} 설정으로 이동",
     "compose": "메일 쓰기",
     "search": "메일 검색",
     "theme_dark": "어두운 테마로 전환",

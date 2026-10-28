@@ -5069,6 +5069,7 @@
     "placeholder": "הקלידו פקודה",
     "no_results": "אין פקודות תואמות",
     "go_to": "מעבר אל {name}",
+    "go_to_settings_page": "מעבר להגדרות {name}",
     "compose": "כתיבה",
     "search": "חיפוש בדואר",
     "theme_dark": "מעבר לערכת נושא כהה",

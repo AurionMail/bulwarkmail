@@ -5068,6 +5068,7 @@
     "placeholder": "Typ een opdracht",
     "no_results": "Geen overeenkomende opdrachten",
     "go_to": "Naar {name}",
+    "go_to_settings_page": "Naar instellingen voor {name}",
     "compose": "Nieuw bericht",
     "search": "E-mail doorzoeken",
     "theme_dark": "Donker thema gebruiken",

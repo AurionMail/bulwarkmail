@@ -5068,6 +5068,7 @@
     "placeholder": "コマンドを入力",
     "no_results": "一致するコマンドはありません",
     "go_to": "{name}に移動",
+    "go_to_settings_page": "{name}の設定に移動",
     "compose": "作成",
     "search": "メールを検索",
     "theme_dark": "ダークテーマに切り替え",

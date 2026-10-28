@@ -5068,6 +5068,7 @@
     "placeholder": "Type a command",
     "no_results": "No matching commands",
     "go_to": "Go to {name}",
+    "go_to_settings_page": "Go to {name} settings",
     "compose": "Compose",
     "search": "Search mail",
     "theme_dark": "Switch to dark theme",

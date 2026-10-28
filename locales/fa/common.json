@@ -5068,6 +5068,7 @@
     "placeholder": "یک فرمان بنویسید",
     "no_results": "فرمان منطبقی پیدا نشد",
     "go_to": "رفتن به {name}",
+    "go_to_settings_page": "رفتن به تنظیمات {name}",
     "compose": "ایمیل جدید",
     "search": "جستجو در ایمیل",
     "theme_dark": "رفتن به پوسته تیره",

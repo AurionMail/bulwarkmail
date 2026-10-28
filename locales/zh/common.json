@@ -5068,6 +5068,7 @@
     "placeholder": "输入命令",
     "no_results": "没有匹配的命令",
     "go_to": "前往{name}",
+    "go_to_settings_page": "前往{name}设置",
     "compose": "撰写邮件",
     "search": "搜索邮件",
     "theme_dark": "切换到深色主题",

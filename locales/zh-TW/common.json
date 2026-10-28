@@ -5068,6 +5068,7 @@
     "placeholder": "輸入命令",
     "no_results": "沒有相符的命令",
     "go_to": "前往{name}",
+    "go_to_settings_page": "前往{name}設定",
     "compose": "撰寫郵件",
     "search": "搜尋郵件",
     "theme_dark": "切換為深色主題",

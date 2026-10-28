@@ -5068,6 +5068,7 @@
     "placeholder": "Befehl eingeben",
     "no_results": "Keine passenden Befehle",
     "go_to": "Zu {name} wechseln",
+    "go_to_settings_page": "Zu den Einstellungen für {name} wechseln",
     "compose": "Verfassen",
     "search": "E-Mails durchsuchen",
     "theme_dark": "Dunkles Design verwenden",

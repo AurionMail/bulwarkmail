@@ -5068,6 +5068,7 @@
     "placeholder": "Tastați o comandă",
     "no_results": "Nicio comandă potrivită",
     "go_to": "Mergi la {name}",
+    "go_to_settings_page": "Mergi la setări: {name}",
     "compose": "Compune",
     "search": "Caută în e-mail",
     "theme_dark": "Comută la tema întunecată",
