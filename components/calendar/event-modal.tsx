@@ -1260,24 +1260,22 @@ export function EventModal({
         )}
 
         {/* Action Bar */}
-        <div className="px-6 py-3 border-t border-border flex-shrink-0 flex items-center justify-between">
+        <div className="px-6 py-3 border-t border-border flex-shrink-0 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1">
             {onDelete && canEditBody && (
-              <Button variant="ghost" size="sm" onClick={() => onDelete(event.id, hasParticipants || undefined)} className="text-destructive">
-                <Trash2 className="w-4 h-4 me-1" />
-                {t("events.delete")}
-              </Button>
+              <IconButton label={t("events.delete")} onClick={() => onDelete(event.id, hasParticipants || undefined)} className="text-destructive hover:text-destructive">
+                <Trash2 />
+              </IconButton>
             )}
             {onDuplicate && (
-              <Button variant="ghost" size="sm" onClick={handleDuplicate} aria-label={t("events.duplicate")}>
-                <CopyPlus className="w-4 h-4 me-1" />
-                {t("events.duplicate")}
-              </Button>
+              <IconButton label={t("events.duplicate")} onClick={handleDuplicate}>
+                <CopyPlus />
+              </IconButton>
             )}
           </div>
           {canEditBody && (
-            <Button ref={primaryRef} onClick={() => setMode("edit")}>
-              <Pencil className="w-4 h-4 me-1" />
+            <Button ref={primaryRef} size="xs" onClick={() => setMode("edit")} className="whitespace-nowrap">
+              <Pencil className="me-1" />
               {t("events.edit")}
             </Button>
           )}
@@ -1600,45 +1598,30 @@ export function EventModal({
         </div>
       </div>
 
-      <div className="flex items-center justify-between px-6 py-4 border-t border-border flex-shrink-0 flex-wrap gap-y-2">
-        <div className="flex items-center gap-1 w-full">
-          {isEdit && onDelete && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDelete(event!.id, hasParticipants || undefined)}
-              className="text-destructive w-full"
-            >
-              <Trash2 className="w-4 h-4 me-1" />
-              {t("events.delete")}
-            </Button>
-          )}
-          {isEdit && onDuplicate && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleDuplicate}
-              aria-label={t("events.duplicate")}
-              className="w-full"
-            >
-              <CopyPlus className="w-4 h-4 me-1" />
-              {t("events.duplicate")}
-            </Button>
-          )}
-        </div>
+      <div className="flex items-center gap-2 px-6 py-4 border-t border-border flex-shrink-0">
+        {isEdit && onDelete && (
+          <IconButton size="icon" label={t("events.delete")} onClick={() => onDelete(event!.id, hasParticipants || undefined)} className="text-destructive hover:text-destructive">
+            <Trash2 className="w-4 h-4" />
+          </IconButton>
+        )}
+        {isEdit && onDuplicate && (
+          <IconButton size="icon" label={t("events.duplicate")} onClick={handleDuplicate}>
+            <CopyPlus className="w-4 h-4" />
+          </IconButton>
+        )}
 
-        <div className="flex gap-2 w-full">
+        <div className="flex gap-2 ms-auto">
           <Button
             variant="outline"
             onClick={isEdit ? backToView : requestClose}
-            className="w-full"
+            className="whitespace-nowrap"
           >
             {t("form.cancel")}
           </Button>
           <Button
             onClick={handleSave}
             disabled={!title.trim() || isSaving}
-            className="w-full"
+            className="whitespace-nowrap"
           >
             {/* While a save is in flight the button was disabled with no visible change, so a
                 slow request (mobile, VPN) looked like a dead button for the whole timeout. */}
