@@ -42,8 +42,9 @@ export function ThemesPage() {
   const iconFor = useExtensionIcons();
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [bulkBusy, setBulkBusy] = useState(false);
   const [message, setMessage] = useFlash();
+  // On/off per theme waits for Save, like the policy switches below.
+  const [enabledDraft, setEnabledDraft] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [policy, setPolicy] = useState<SettingsPolicy>(() => withThemeDefaults({ ...DEFAULT_POLICY }));
   const [savedPolicy, setSavedPolicy] = useState<SettingsPolicy>(() => withThemeDefaults({ ...DEFAULT_POLICY }));
@@ -74,7 +75,10 @@ export function ThemesPage() {
   const policyDirty =
     JSON.stringify(policy.themePolicy) !== JSON.stringify(savedPolicy.themePolicy) ||
     JSON.stringify(policy.features) !== JSON.stringify(savedPolicy.features);
-  useAdminUnsavedChanges('themes', policyDirty);
+  const isOn = (t: ExtensionEntry) => enabledDraft[t.id] ?? t.enabled;
+  const switched = themes.filter((t) => isOn(t) !== t.enabled);
+  const dirty = policyDirty || switched.length > 0;
+  useAdminUnsavedChanges('themes', dirty);
 
   function setFeature(key: 'themesEnabled' | 'userThemesEnabled', value: boolean) {
     setPolicy(prev => ({ ...prev, features: { ...prev.features, [key]: value } }));
@@ -141,9 +145,8 @@ export function ThemesPage() {
     setMessage(null);
   }
 
-  async function savePolicy() {
-    setSavingPolicy(true);
-    setMessage(null);
+  /** Stores the policy; returns the error text, or null. */
+  async function savePolicy(): Promise<string | null> {
     try {
       const res = await apiFetch('/api/admin/policy', {
         method: 'PUT',
@@ -152,16 +155,32 @@ export function ThemesPage() {
       });
       if (res.ok) {
         setSavedPolicy(policy);
-        setMessage({ type: 'success', text: 'Theme policy saved. Users see the change on their next login.' });
-      } else {
-        const data = await res.json().catch(() => ({}));
-        setMessage({ type: 'error', text: data.error || 'Could not save the theme policy' });
+        return null;
       }
+      const data = await res.json().catch(() => ({}));
+      return data.error || 'Could not save the theme policy';
     } catch {
-      setMessage({ type: 'error', text: 'Could not save the theme policy' });
-    } finally {
-      setSavingPolicy(false);
+      return 'Could not save the theme policy';
     }
+  }
+
+  async function save() {
+    setSavingPolicy(true);
+    setMessage(null);
+    const errors: string[] = [];
+    for (const t of switched) {
+      const error = await setEnabled(t.id, isOn(t));
+      if (error) errors.push(`${t.name}: ${error}`);
+    }
+    setEnabledDraft({});
+    if (policyDirty) {
+      const error = await savePolicy();
+      if (error) errors.push(error);
+    }
+    setSavingPolicy(false);
+    setMessage(errors.length > 0
+      ? { type: 'error', text: `Couldn't save everything. ${errors.join('; ')}` }
+      : { type: 'success', text: 'Themes saved. Users see the change on their next login.' });
   }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -189,7 +208,8 @@ export function ThemesPage() {
     }
   }
 
-  async function setEnabled(id: string, enabled: boolean): Promise<boolean> {
+  /** Turns one theme on or off on the server; returns the error text, or null. */
+  async function setEnabled(id: string, enabled: boolean): Promise<string | null> {
     const res = await apiFetch('/api/admin/themes', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -197,30 +217,18 @@ export function ThemesPage() {
     });
     if (res.ok) {
       setThemes(prev => prev.map(t => (t.id === id ? { ...t, enabled } : t)));
-      return true;
+      return null;
     }
     const data = await res.json().catch(() => ({}));
-    setMessage({ type: 'error', text: data.error || 'Could not change the theme' });
-    return false;
+    return data.error || 'Could not change the theme';
   }
 
-  async function setAll(enabled: boolean) {
-    const targets = themes.filter(t => t.enabled !== enabled);
-    if (targets.length === 0) return;
-    setBulkBusy(true);
+  function setAll(enabled: boolean) {
+    setEnabledDraft(Object.fromEntries(themes.map((t) => [t.id, enabled])));
     setMessage(null);
-    let failed = 0;
-    for (const t of targets) {
-      if (!(await setEnabled(t.id, enabled))) failed++;
-    }
-    await fetchThemes();
-    setBulkBusy(false);
-    setMessage(failed === 0
-      ? { type: 'success', text: `${targets.length} theme${targets.length === 1 ? '' : 's'} ${enabled ? 'enabled' : 'disabled'}` }
-      : { type: 'error', text: `${failed} theme${failed === 1 ? '' : 's'} could not be ${enabled ? 'enabled' : 'disabled'}` });
   }
 
-  const enabledCount = themes.filter(t => t.enabled).length;
+  const enabledCount = themes.filter(isOn).length;
   const themesEnabled = policy.features.themesEnabled ?? true;
   const userThemesEnabled = policy.features.userThemesEnabled ?? true;
   const lockColorMode = policy.themePolicy?.lockColorMode === true;
@@ -277,10 +285,10 @@ export function ThemesPage() {
             <>
               {themes.length > 1 && (
                 <div className="flex items-center justify-end gap-1">
-                  <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" disabled={bulkBusy || enabledCount === themes.length} onClick={() => setAll(true)}>
+                  <Button variant="ghost" size="xs" className="gap-1.5 text-xs" disabled={savingPolicy || enabledCount === themes.length} onClick={() => setAll(true)}>
                     <Power className="h-3.5 w-3.5" /> Enable all
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" disabled={bulkBusy || enabledCount === 0} onClick={() => setAll(false)}>
+                  <Button variant="ghost" size="xs" className="gap-1.5 text-xs" disabled={savingPolicy || enabledCount === 0} onClick={() => setAll(false)}>
                     <PowerOff className="h-3.5 w-3.5" /> Disable all
                   </Button>
                 </div>
@@ -310,8 +318,9 @@ export function ThemesPage() {
                     )}
                     control={(
                       <ToggleSwitch
-                        checked={theme.enabled}
-                        onChange={(checked) => { setMessage(null); void setEnabled(theme.id, checked); }}
+                        checked={isOn(theme)}
+                        disabled={savingPolicy}
+                        onChange={(checked) => { setMessage(null); setEnabledDraft((prev) => ({ ...prev, [theme.id]: checked })); }}
                         ariaLabel={`${theme.name} enabled`}
                       />
                     )}
@@ -392,11 +401,11 @@ export function ThemesPage() {
       </div>
 
       <AdminSaveBar
-        dirty={policyDirty}
+        dirty={dirty}
         saving={savingPolicy}
-        onSave={savePolicy}
-        onDiscard={() => setPolicy(savedPolicy)}
-        saveLabel="Save policy"
+        onSave={() => void save()}
+        onDiscard={() => { setPolicy(savedPolicy); setEnabledDraft({}); }}
+        saveLabel="Save"
         note="Users see the change on their next login"
       />
     </div>

@@ -46,9 +46,14 @@ export function TelemetryPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [endpointDraft, setEndpointDraft] = useState('');
   const [message, setMessage] = useFlash();
+  // The heartbeat switch waits for Save like the endpoint (one page, one
+  // save bar).
+  const [consentDraft, setConsentDraft] = useState<'on' | 'off' | null>(null);
 
   const endpointDirty = status !== null && endpointDraft !== status.endpoint;
-  useAdminUnsavedChanges('telemetry', endpointDirty);
+  const consentDirty = status !== null && consentDraft !== null && consentDraft !== status.consent;
+  const dirty = endpointDirty || consentDirty;
+  useAdminUnsavedChanges('telemetry', dirty);
 
   async function refresh(): Promise<void> {
     setLoading(true);
@@ -66,38 +71,35 @@ export function TelemetryPage() {
   }
   useEffect(() => { void refresh(); }, []);
 
-  async function setConsent(consent: 'on' | 'off'): Promise<void> {
-    setBusy('consent');
-    setMessage(null);
-    try {
-      const r = await apiFetch('/api/admin/telemetry', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ action: 'set-consent', consent }),
-      });
-      if (!r.ok) {
-        const j = (await r.json().catch(() => ({}))) as { error?: string };
-        setMessage({ type: 'error', text: j.error ?? 'failed' });
-      }
-      await refresh();
-    } finally { setBusy(null); }
+  /** Sends one change; returns the error text, or null. */
+  async function post(body: Record<string, unknown>): Promise<string | null> {
+    const r = await apiFetch('/api/admin/telemetry', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (r.ok) return null;
+    const j = (await r.json().catch(() => ({}))) as { error?: string };
+    return j.error ?? 'failed';
   }
 
-  async function saveEndpoint(): Promise<void> {
-    setBusy('endpoint');
+  async function save(): Promise<void> {
+    setBusy('save');
     setMessage(null);
     try {
-      const r = await apiFetch('/api/admin/telemetry', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ action: 'set-endpoint', endpoint: endpointDraft }),
-      });
-      if (!r.ok) {
-        const j = (await r.json().catch(() => ({}))) as { error?: string };
-        setMessage({ type: 'error', text: j.error ?? 'failed' });
-      } else {
-        setMessage({ type: 'success', text: 'Endpoint saved.' });
+      const errors: string[] = [];
+      if (consentDirty && consentDraft) {
+        const error = await post({ action: 'set-consent', consent: consentDraft });
+        if (error) errors.push(`Heartbeats: ${error}`);
       }
+      if (endpointDirty) {
+        const error = await post({ action: 'set-endpoint', endpoint: endpointDraft });
+        if (error) errors.push(`Endpoint: ${error}`);
+      }
+      setConsentDraft(null);
+      setMessage(errors.length > 0
+        ? { type: 'error', text: `Couldn't save: ${errors.join('; ')}` }
+        : { type: 'success', text: 'Telemetry settings saved.' });
       await refresh();
     } finally { setBusy(null); }
   }
@@ -134,6 +136,7 @@ export function TelemetryPage() {
 
   const envOverridden = status.consentSource === 'env';
   const isOn = status.consent === 'on';
+  const shownOn = (consentDraft ?? status.consent) === 'on';
 
   const consentDescription = [
     status.consent === 'pending' && 'Initialising - no heartbeats sent yet.',
@@ -167,9 +170,9 @@ export function TelemetryPage() {
         <SettingsSection id="status" title="Status">
           <SettingItem label="Send anonymous heartbeats" description={consentDescription}>
             <ToggleSwitch
-              checked={isOn}
-              disabled={busy === 'consent' || envOverridden}
-              onChange={(checked) => void setConsent(checked ? 'on' : 'off')}
+              checked={shownOn}
+              disabled={busy === 'save' || envOverridden}
+              onChange={(checked) => { setConsentDraft(checked ? 'on' : 'off'); setMessage(null); }}
             />
           </SettingItem>
           <SettingItem label="Last sent">
@@ -240,11 +243,11 @@ export function TelemetryPage() {
       </div>
 
       <AdminSaveBar
-        dirty={endpointDirty}
-        saving={busy === 'endpoint'}
-        onSave={() => void saveEndpoint()}
-        onDiscard={() => setEndpointDraft(status.endpoint)}
-        saveLabel="Save endpoint"
+        dirty={dirty}
+        saving={busy === 'save'}
+        onSave={() => void save()}
+        onDiscard={() => { setEndpointDraft(status.endpoint); setConsentDraft(null); }}
+        saveLabel="Save"
       />
     </div>
   );

@@ -127,7 +127,12 @@ export function ExtensionDetailPage({ kind, id }: Props) {
   }, [schema, savedValues]);
 
   const dirty = Object.keys(savedValues).some((key) => (formValues[key] ?? '') !== savedValues[key]);
-  useAdminUnsavedChanges(`${kind}-config`, dirty);
+  // On/off and "force on" wait for Save like the settings below.
+  const [availabilityDraft, setAvailabilityDraft] = useState<{ enabled?: boolean; forceEnabled?: boolean }>({});
+  const shownForced = availabilityDraft.forceEnabled ?? !!entry?.forceEnabled;
+  const shownEnabled = shownForced || (availabilityDraft.enabled ?? !!entry?.enabled);
+  const availabilityDirty = !!entry && (shownEnabled !== entry.enabled || shownForced !== !!entry.forceEnabled);
+  useAdminUnsavedChanges(`${kind}-config`, dirty || availabilityDirty);
 
   async function saveConfig() {
     if (!schema) return;
@@ -205,16 +210,21 @@ export function ExtensionDetailPage({ kind, id }: Props) {
     }
   }
 
-  async function setEnabled(enabled: boolean) {
-    if (await patch({ enabled }, 'enabled')) setEntry((prev) => (prev ? { ...prev, enabled } : prev));
+  async function saveAvailability(): Promise<boolean> {
+    if (!entry) return true;
+    const body: Record<string, unknown> = {};
+    if (shownForced !== !!entry.forceEnabled) body.forceEnabled = shownForced;
+    if (shownEnabled !== entry.enabled) body.enabled = shownEnabled;
+    const ok = await patch(body, 'availability');
+    if (ok) setEntry((prev) => (prev ? { ...prev, enabled: shownEnabled, forceEnabled: shownForced } : prev));
+    setAvailabilityDraft({});
+    return ok;
   }
 
-  async function setForced(forceEnabled: boolean) {
-    const body: Record<string, unknown> = { forceEnabled };
-    if (forceEnabled) body.enabled = true;
-    if (await patch(body, 'forced')) {
-      setEntry((prev) => (prev ? { ...prev, forceEnabled, ...(forceEnabled ? { enabled: true } : {}) } : prev));
-    }
+  async function save() {
+    if (availabilityDirty && !(await saveAvailability())) return;
+    if (dirty) await saveConfig();
+    else setMessage({ type: 'success', text: 'Saved' });
   }
 
   async function rollback(version: string) {
@@ -326,8 +336,13 @@ export function ExtensionDetailPage({ kind, id }: Props) {
         actions={(
           <>
             <label className="flex h-9 items-center gap-2.5 rounded-md border border-input bg-background px-3 text-sm">
-              <span className={cn('font-medium', entry.enabled ? 'text-foreground' : 'text-muted-foreground')}>{entry.enabled ? 'On' : 'Off'}</span>
-              <ToggleSwitch checked={entry.enabled} disabled={busy === 'enabled'} onChange={(v) => void setEnabled(v)} ariaLabel={`${entry.name} enabled`} />
+              <span className={cn('font-medium', shownEnabled ? 'text-foreground' : 'text-muted-foreground')}>{shownEnabled ? 'On' : 'Off'}</span>
+              <ToggleSwitch
+                checked={shownEnabled}
+                disabled={busy === 'availability' || shownForced}
+                onChange={(v) => { setMessage(null); setAvailabilityDraft((prev) => ({ ...prev, enabled: v })); }}
+                ariaLabel={`${entry.name} enabled`}
+              />
             </label>
             <Button variant="outline" size="sm" className="gap-2 text-destructive hover:text-destructive" disabled={busy === 'remove'} onClick={() => void remove()}>
               {busy === 'remove' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
@@ -350,7 +365,11 @@ export function ExtensionDetailPage({ kind, id }: Props) {
               ? 'Users cannot turn it off in their settings. Turning this on also enables the plugin.'
               : 'Users cannot deactivate it. Turning this on also enables the theme.'}
           >
-            <ToggleSwitch checked={!!entry.forceEnabled} disabled={busy === 'forced'} onChange={(v) => void setForced(v)} />
+            <ToggleSwitch
+              checked={shownForced}
+              disabled={busy === 'availability'}
+              onChange={(v) => { setMessage(null); setAvailabilityDraft((prev) => ({ ...prev, forceEnabled: v })); }}
+            />
           </SettingItem>
           <SettingItem label="Source" description={entry.source?.kind === 'marketplace' ? 'Installed from the extension directory; updates show up in the marketplace.' : 'Installed from an uploaded ZIP.'}>
             {entry.source?.kind === 'marketplace' ? (
@@ -424,11 +443,11 @@ export function ExtensionDetailPage({ kind, id }: Props) {
       </div>
 
       <AdminSaveBar
-        dirty={dirty}
-        saving={saving}
-        onSave={saveConfig}
-        onDiscard={() => setFormValues(savedValues)}
-        saveLabel="Save settings"
+        dirty={dirty || availabilityDirty}
+        saving={saving || busy === 'availability'}
+        onSave={() => void save()}
+        onDiscard={() => { setFormValues(savedValues); setAvailabilityDraft({}); }}
+        saveLabel="Save"
       />
     </div>
   );

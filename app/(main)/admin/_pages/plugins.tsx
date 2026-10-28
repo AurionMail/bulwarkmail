@@ -26,8 +26,9 @@ export function PluginsPage() {
   const [plugins, setPlugins] = useState<ExtensionEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [bulkBusy, setBulkBusy] = useState(false);
   const [message, setMessage] = useFlash();
+  // On/off per plugin waits for Save, like the policy switches below.
+  const [enabledDraft, setEnabledDraft] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [policy, setPolicy] = useState<SettingsPolicy>({ ...DEFAULT_POLICY });
   const [savedPolicy, setSavedPolicy] = useState<SettingsPolicy>({ ...DEFAULT_POLICY });
@@ -61,16 +62,18 @@ export function PluginsPage() {
   const pluginsUploadEnabled = features.pluginsUploadEnabled ?? true;
   const requirePluginApproval = features.requirePluginApproval ?? true;
   const policyDirty = JSON.stringify(policy.features) !== JSON.stringify(savedPolicy.features);
-  useAdminUnsavedChanges('plugins', policyDirty);
+  const isOn = (p: ExtensionEntry) => enabledDraft[p.id] ?? p.enabled;
+  const switched = plugins.filter((p) => isOn(p) !== p.enabled);
+  const dirty = policyDirty || switched.length > 0;
+  useAdminUnsavedChanges('plugins', dirty);
 
   function setFeature(key: 'pluginsEnabled' | 'pluginsUploadEnabled' | 'requirePluginApproval', value: boolean) {
     setPolicy((prev) => ({ ...prev, features: { ...prev.features, [key]: value } }));
     setMessage(null);
   }
 
-  async function savePolicy() {
-    setSavingPolicy(true);
-    setMessage(null);
+  /** Stores the policy; returns the error text, or null. */
+  async function savePolicy(): Promise<string | null> {
     try {
       const res = await apiFetch('/api/admin/policy', {
         method: 'PUT',
@@ -79,16 +82,32 @@ export function PluginsPage() {
       });
       if (res.ok) {
         setSavedPolicy(policy);
-        setMessage({ type: 'success', text: 'Plugin policy saved. Users see the change on their next login.' });
-      } else {
-        const data = await res.json().catch(() => ({}));
-        setMessage({ type: 'error', text: data.error || 'Could not save the plugin policy' });
+        return null;
       }
+      const data = await res.json().catch(() => ({}));
+      return data.error || 'Could not save the plugin policy';
     } catch {
-      setMessage({ type: 'error', text: 'Could not save the plugin policy' });
-    } finally {
-      setSavingPolicy(false);
+      return 'Could not save the plugin policy';
     }
+  }
+
+  async function save() {
+    setSavingPolicy(true);
+    setMessage(null);
+    const errors: string[] = [];
+    for (const p of switched) {
+      const error = await setEnabled(p.id, isOn(p));
+      if (error) errors.push(`${p.name}: ${error}`);
+    }
+    setEnabledDraft({});
+    if (policyDirty) {
+      const error = await savePolicy();
+      if (error) errors.push(error);
+    }
+    setSavingPolicy(false);
+    setMessage(errors.length > 0
+      ? { type: 'error', text: `Couldn't save everything. ${errors.join('; ')}` }
+      : { type: 'success', text: 'Plugins saved. Users see the change on their next login.' });
   }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -116,7 +135,8 @@ export function PluginsPage() {
     }
   }
 
-  async function setEnabled(id: string, enabled: boolean): Promise<boolean> {
+  /** Turns one plugin on or off on the server; returns the error text, or null. */
+  async function setEnabled(id: string, enabled: boolean): Promise<string | null> {
     const res = await apiFetch('/api/admin/plugins', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -124,30 +144,18 @@ export function PluginsPage() {
     });
     if (res.ok) {
       setPlugins((prev) => prev.map((p) => (p.id === id ? { ...p, enabled } : p)));
-      return true;
+      return null;
     }
     const data = await res.json().catch(() => ({}));
-    setMessage({ type: 'error', text: data.error || 'Could not change the plugin' });
-    return false;
+    return data.error || 'Could not change the plugin';
   }
 
-  async function setAll(enabled: boolean) {
-    const targets = plugins.filter((p) => p.enabled !== enabled);
-    if (targets.length === 0) return;
-    setBulkBusy(true);
+  function setAll(enabled: boolean) {
+    setEnabledDraft(Object.fromEntries(plugins.map((p) => [p.id, enabled])));
     setMessage(null);
-    let failed = 0;
-    for (const p of targets) {
-      if (!(await setEnabled(p.id, enabled))) failed++;
-    }
-    await fetchPlugins();
-    setBulkBusy(false);
-    setMessage(failed === 0
-      ? { type: 'success', text: `${targets.length} plugin${targets.length === 1 ? '' : 's'} ${enabled ? 'enabled' : 'disabled'}` }
-      : { type: 'error', text: `${failed} plugin${failed === 1 ? '' : 's'} could not be ${enabled ? 'enabled' : 'disabled'}` });
   }
 
-  const enabledCount = plugins.filter((p) => p.enabled).length;
+  const enabledCount = plugins.filter(isOn).length;
 
   return (
     <div>
@@ -201,10 +209,10 @@ export function PluginsPage() {
             <>
               {plugins.length > 1 && (
                 <div className="flex items-center justify-end gap-1">
-                  <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" disabled={bulkBusy || enabledCount === plugins.length} onClick={() => setAll(true)}>
+                  <Button variant="ghost" size="xs" className="gap-1.5 text-xs" disabled={savingPolicy || enabledCount === plugins.length} onClick={() => setAll(true)}>
                     <Power className="h-3.5 w-3.5" /> Enable all
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" disabled={bulkBusy || enabledCount === 0} onClick={() => setAll(false)}>
+                  <Button variant="ghost" size="xs" className="gap-1.5 text-xs" disabled={savingPolicy || enabledCount === 0} onClick={() => setAll(false)}>
                     <PowerOff className="h-3.5 w-3.5" /> Disable all
                   </Button>
                 </div>
@@ -244,8 +252,9 @@ export function PluginsPage() {
                       )}
                       control={(
                         <ToggleSwitch
-                          checked={plugin.enabled}
-                          onChange={(checked) => { setMessage(null); void setEnabled(plugin.id, checked); }}
+                          checked={isOn(plugin)}
+                          disabled={savingPolicy}
+                          onChange={(checked) => { setMessage(null); setEnabledDraft((prev) => ({ ...prev, [plugin.id]: checked })); }}
                           ariaLabel={`${plugin.name} enabled`}
                         />
                       )}
@@ -274,11 +283,11 @@ export function PluginsPage() {
       </div>
 
       <AdminSaveBar
-        dirty={policyDirty}
+        dirty={dirty}
         saving={savingPolicy}
-        onSave={savePolicy}
-        onDiscard={() => setPolicy(savedPolicy)}
-        saveLabel="Save policy"
+        onSave={() => void save()}
+        onDiscard={() => { setPolicy(savedPolicy); setEnabledDraft({}); }}
+        saveLabel="Save"
         note="Users see the change on their next login"
       />
     </div>
