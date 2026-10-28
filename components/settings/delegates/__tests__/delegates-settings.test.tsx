@@ -125,8 +125,10 @@ describe('DelegateDialog', () => {
   });
 
   it('shows the note for a typed address the server cannot look up', async () => {
-    const client = makeClient({ directory: { principals: [ALICE], status: 'restricted', directoryQueriesOff: true } });
+    // A listing refused for another reason: the note comes from the lookup.
+    const client = makeClient({ directory: { principals: [ALICE], status: 'restricted' } });
     const dialog = await openDialog(client);
+    expect(within(dialog).queryByTestId('delegate-directory-off')).toBeNull();
     fireEvent.change(within(dialog).getByRole('textbox'), { target: { value: 'org-carol@example.org' } });
     fireEvent.click(within(dialog).getByText('use_address'));
     await waitFor(() => expect(client.findPrincipalByEmail).toHaveBeenCalledWith('org-carol@example.org'));
