@@ -68,6 +68,7 @@ export function CalendarTaskChip({ task, calendar, onToggleComplete, onSelect, t
           isCompleted && "line-through text-muted-foreground",
         )}
         title={title}
+        dir="auto"
       >
         {title}
       </button>

@@ -423,7 +423,8 @@ export function EventDetailPopover({
             "text-lg font-semibold leading-snug break-words text-foreground",
             event.status === "cancelled" && "line-through text-muted-foreground"
           )}>
-            {event.title || t("events.no_title")}
+            {/* Its own direction, next to the colour square. */}
+            <bdi>{event.title || t("events.no_title")}</bdi>
           </h3>
           {event.status === "tentative" && (
             <span className="mt-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-warning/15 text-amber-600 dark:text-amber-400">
@@ -486,7 +487,7 @@ export function EventDetailPopover({
                   <span className="text-muted-foreground ms-1.5">{t("events.all_day")}</span>
                 ) : (
                   <div className="text-muted-foreground">
-                    {formatTime(startDate)} – {formatTime(endDate)}
+                    <bdi dir="ltr">{formatTime(startDate)} – {formatTime(endDate)}</bdi>
                     <span className="ms-1.5 text-xs">({formatDurationDisplay(durationMinutes)})</span>
                   </div>
                 )}
@@ -504,6 +505,7 @@ export function EventDetailPopover({
               target="_blank"
               rel="noreferrer"
               className="text-sm text-primary hover:underline min-w-0 break-words"
+              dir="auto"
               title={locationName}
             >
               {/^https?:\/\//i.test(locationName)
@@ -557,7 +559,7 @@ export function EventDetailPopover({
               <div className="mt-1 space-y-0.5">
                 {participants.slice(0, 5).map((p) => (
                   <div key={p.id} className="flex items-center justify-between gap-2 text-xs">
-                    <span className="truncate text-foreground" title={p.email}>
+                    <span dir="auto" className="truncate text-foreground" title={p.email}>
                       {p.name || p.email}
                       {p.isOrganizer && (
                         <span className="text-muted-foreground ms-1">
@@ -598,7 +600,7 @@ export function EventDetailPopover({
         {calendar && (
           <div className="flex items-start gap-2.5">
             <CalendarIcon className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-            <span className="text-sm text-foreground truncate" title={calendar.name}>{calendar.name}</span>
+            <span dir="auto" className="text-sm text-foreground truncate" title={calendar.name}>{calendar.name}</span>
           </div>
         )}
 
@@ -606,7 +608,7 @@ export function EventDetailPopover({
         {event.description && (
           <div className="flex items-start gap-2.5">
             <AlignLeft className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-muted-foreground whitespace-pre-line line-clamp-3 break-words">
+            <p dir="auto" className="text-sm text-muted-foreground whitespace-pre-line line-clamp-3 break-words">
               <LinkifiedText text={event.description} />
             </p>
           </div>

@@ -197,7 +197,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
         )}
         style={{ ...eventFillStyle(color, { inactive: isInactive, selected: isSelected }), ...style }}
       >
-        <span className={cn("truncate", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
+        <span dir="auto" className={cn("truncate", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
       </button>
     );
   }
@@ -227,7 +227,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
           {showTimeInMonthView && !event.showWithoutTime && (
             <span className="flex-shrink-0 font-normal opacity-85">{format(startDate, timeFmt)}</span>
           )}
-          <span className={cn("truncate font-medium", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
+          <span dir="auto" className={cn("truncate font-medium", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
         </div>
       </button>
     );
@@ -268,7 +268,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
           block is wide enough to keep the title readable. */}
       <div className="@container">
         <div className="flex items-baseline gap-1 min-w-0">
-          <span className={cn("font-medium truncate", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
+          <span dir="auto" className={cn("font-medium truncate", isInactive && "line-through")}>{event.title || t("events.no_title")}</span>
           {!event.showWithoutTime && durationMinutes < 45 && (
             <span className="hidden @min-[120px]:inline flex-shrink-0 opacity-85 text-[10.5px]">{safeFormat(startDate, timeFmt)}</span>
           )}
@@ -276,7 +276,8 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
       </div>
       {!event.showWithoutTime && durationMinutes >= 45 && (
         <div className="opacity-85 text-[10.5px]">
-          {timeString}
+          {/* Start before end in a right-to-left layout too. */}
+          <bdi dir="ltr">{timeString}</bdi>
         </div>
       )}
       {getParticipantCount(event) > 0 && (

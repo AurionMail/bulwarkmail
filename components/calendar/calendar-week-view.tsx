@@ -804,7 +804,7 @@ export function CalendarWeekView({
                       }}
                     >
                       <div className="text-[10px] font-medium text-primary px-1.5 py-0.5">
-                        {formatSnapTime(dragCreate.startMinutes, timeFormat)} – {formatSnapTime(dragCreate.endMinutes, timeFormat)}
+                        <bdi dir="ltr">{formatSnapTime(dragCreate.startMinutes, timeFormat)} – {formatSnapTime(dragCreate.endMinutes, timeFormat)}</bdi>
                       </div>
                     </div>
                   )}
@@ -851,7 +851,7 @@ export function CalendarWeekView({
                             {pendingPreview.title}
                           </div>
                           <div className="text-[10.5px] opacity-85 truncate">
-                            {formatSnapTime(startMin, timeFormat)} – {formatSnapTime(startMin + durationMin, timeFormat)}
+                            <bdi dir="ltr">{formatSnapTime(startMin, timeFormat)} – {formatSnapTime(startMin + durationMin, timeFormat)}</bdi>
                           </div>
                         </div>
                       );
