@@ -326,6 +326,30 @@
     "cancel_and_compose_again": "Abbrechen und neu verfassen",
     "reschedule_prompt": "Neues Datum/Uhrzeit eingeben, z. B. 2026-05-04T15:30"
   },
+  "shared_tags": {
+    "title": "Geteilte Labels",
+    "description": "Labels Ihrer Gruppenpostfächer. Alle in der Gruppe sehen dieselben Namen und Farben an ihren Nachrichten.",
+    "picker_heading": "Mit allen in diesem Postfach geteilt",
+    "sidebar_heading": "Tags",
+    "edit": "Geteilte Labels bearbeiten",
+    "add": "Geteiltes Label hinzufügen",
+    "name": "Name",
+    "colour": "Farbe",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "delete_confirm": "Für alle löschen? Das Label bleibt an seinen Nachrichten.",
+    "name_it": "Namen vergeben",
+    "found_on_messages": "An Nachrichten, noch ohne Namen",
+    "empty": "Noch keine geteilten Labels.",
+    "exists": "Dieses Postfach hat dieses Label schon.",
+    "too_long": "Dieser Name ist zu lang.",
+    "loading": "Wird geladen…",
+    "unsupported": "Dieser Mailserver kann keine geteilten Labels speichern, daher zeigt dieses Postfach Ihre eigenen Labels.",
+    "no_rights": "Sie können diese Labels verwenden, aber in diesem Postfach nicht ändern.",
+    "too_many": "Es gibt zu viele geteilte Labels. Löschen Sie einige, bevor Sie weitere hinzufügen.",
+    "save_failed": "Die geteilten Labels konnten nicht gespeichert werden."
+  },
   "email_viewer": {
     "read_receipt": {
       "prompt": "Der Absender bittet um eine Lesebestätigung:",

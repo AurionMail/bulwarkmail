@@ -52,6 +52,7 @@ import {
 } from "@/lib/keyword-nesting";
 import { useShortenedText } from "@/hooks/use-shortened-text";
 import { useKeywordFormat } from "@/hooks/use-keyword-format";
+import { TagScopeContext, useAccountTags } from "@/hooks/use-account-tags";
 import { isEditableEventTarget } from "@/lib/keyboard";
 import { Mailbox } from "@/lib/jmap/types";
 import { useContextMenu } from "@/hooks/use-context-menu";
@@ -819,6 +820,72 @@ function TagItem({
         />
       ))}
     </>
+  );
+}
+
+const NO_TAG_COUNTS: Record<string, { total: number; unread: number }> = {};
+
+/**
+ * The tags of a group account, under its folders in the Shared section: the
+ * shared definitions plus the tags found on its messages (useAccountTags).
+ * Nothing for a mailbox a person shared or a server without metadata,
+ * where the user's own tags above stand for every account as before.
+ */
+function SharedAccountTags({
+  loginId,
+  accountId,
+  selectedKeyword,
+  expandedTags,
+  onTagSelect,
+  onToggleExpand,
+  colorful,
+}: {
+  loginId: string;
+  accountId: string;
+  selectedKeyword: string | null;
+  expandedTags: Set<string>;
+  onTagSelect?: (keywordId: string | null) => void;
+  onToggleExpand: (keywordId: string) => void;
+  colorful: boolean;
+}) {
+  const t = useTranslations('shared_tags');
+  const router = useRouter();
+  const scope = useMemo(() => ({ loginId, accountId }), [loginId, accountId]);
+  const { definitions, shared } = useAccountTags(scope);
+  const nestedTags = useSettingsStore((s) => s.nestedTags);
+  const [expanded, setExpanded] = useState(true);
+  const tree = useMemo(
+    () => (nestedTags ? buildKeywordTree(definitions) : definitions.map((kw) => ({ ...kw, children: [], depth: 0 }))),
+    [definitions, nestedTags],
+  );
+  if (!shared || definitions.length === 0) return null;
+  return (
+    <TagScopeContext.Provider value={scope}>
+      <div data-testid="shared-account-tags">
+        <SidebarSectionHeader
+          label={t('sidebar_heading')}
+          expanded={expanded}
+          onToggle={() => setExpanded((open) => !open)}
+          onSettings={() => router.push(buildSettingsPath('organize', 'shared-tags'))}
+          settingsTitle={t('edit')}
+          isCollapsed={false}
+          sub
+        />
+        {expanded && tree.map((node) => (
+          <TagItem
+            key={node.id}
+            node={node}
+            selectedKeyword={selectedKeyword}
+            expandedTags={expandedTags}
+            isCollapsed={false}
+            onTagSelect={onTagSelect}
+            onToggleExpand={onToggleExpand}
+            tagCounts={NO_TAG_COUNTS}
+            colorful={colorful}
+          />
+        ))}
+      </div>
+    </TagScopeContext.Provider>
   );
 }
 
@@ -1882,6 +1949,17 @@ function SidebarImpl({
                           ))}
                           {menuAccountId && !account.children.some((child) => child.role === 'drafts')
                             && renderScheduledRow(`${account.id}-scheduled`, { accountId: menuAccountId })}
+                          {menuAccountId && activeAccountId && (
+                            <SharedAccountTags
+                              loginId={activeAccountId}
+                              accountId={menuAccountId}
+                              selectedKeyword={selectedKeyword}
+                              expandedTags={expandedTags}
+                              onTagSelect={onTagSelect}
+                              onToggleExpand={handleToggleTagExpand}
+                              colorful={colorfulSidebarIcons}
+                            />
+                          )}
                         </>
                       )}
                     </div>

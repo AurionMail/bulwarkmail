@@ -34,7 +34,7 @@ import { useShortenedText } from "@/hooks/use-shortened-text";
 import { TagBadge } from "@/components/email/tag-badge";
 
 /** Lighter, base and darker shade of each hue, one row per shade. */
-function KeywordColorPicker({
+export function KeywordColorPicker({
   value,
   onChange,
 }: {

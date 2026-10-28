@@ -9,6 +9,7 @@ import {
 } from "@/stores/settings-store";
 import { formatKeyword, formatKeywordLabels, keywordRenderings } from "@/lib/keyword-format";
 import { suggestKeywordColor } from "@/lib/keyword-discovery";
+import { useAccountTags, type TagScope } from "@/hooks/use-account-tags";
 
 /**
  * Names and colours tags for the screen, bound to the user's tag settings.
@@ -18,9 +19,13 @@ import { suggestKeywordColor } from "@/lib/keyword-discovery";
  * someone who never asked for nesting. Subscribing to them also keeps tags in
  * step the moment either changes: reading the store inside the formatter would
  * leave every list stale until something else happened to re-render it.
+ *
+ * The definitions are those of the account in `scope` (useAccountTags): a
+ * group account's shared tags, otherwise the user's own. Without `scope`
+ * the TagScopeContext around the caller decides.
  */
-export function useKeywordFormat() {
-  const keywords = useSettingsStore((state) => state.emailKeywords);
+export function useKeywordFormat(scope?: TagScope | null) {
+  const keywords = useAccountTags(scope).definitions;
   const nested = useSettingsStore((state) => state.nestedTags);
 
   return useMemo(

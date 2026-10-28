@@ -2671,7 +2671,10 @@ export class JMAPClient implements IJMAPClient {
     limit?: number;
     onProgress?: (scanned: number, total: number) => void;
     signal?: AbortSignal;
+    /** Another account of this login, e.g. a group account (default: the own one). */
+    accountId?: string;
   }): Promise<{ keywords: Record<string, number>; scanned: number; total: number; complete: boolean }> {
+    const accountId = options?.accountId || this.accountId;
     const cap = Math.max(0, options?.limit ?? DEFAULT_KEYWORD_SCAN_LIMIT);
     const pageSize = Math.max(1, Math.min(500, this.getMaxObjectsInGet()));
     const keywords: Record<string, number> = {};
@@ -2685,14 +2688,14 @@ export class JMAPClient implements IJMAPClient {
       try {
         const response = await this.request([
           ["Email/query", {
-            accountId: this.accountId,
+            accountId,
             sort: [{ property: "receivedAt", isAscending: false }],
             limit: Math.min(pageSize, cap - scanned),
             position: scanned,
             calculateTotal: scanned === 0,
           }, "0"],
           ["Email/get", {
-            accountId: this.accountId,
+            accountId,
             "#ids": { resultOf: "0", name: "Email/query", path: "/ids" },
             properties: ["keywords"],
           }, "1"],

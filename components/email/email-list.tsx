@@ -43,6 +43,7 @@ import { useUnreadFirstSection } from "@/hooks/use-unread-first-section";
 import { unreadSectionRowCount } from "@/lib/unread-first";
 import { MvListSectionHeader } from "./mv-list-section-header";
 import { type OpenableEmail, PluginSearchResults } from "./plugin-search-results";
+import { commonTagScope } from "@/hooks/use-account-tags";
 
 interface EmailListProps {
   emails: Email[];
@@ -585,7 +586,8 @@ export function EmailList({
     const all: string[] = [];
     const some: string[] = [];
     for (const [tagId, count] of counts) (count === selected.length ? all : some).push(tagId);
-    return { all, some };
+    // A selection within one group account offers that account's shared tags.
+    return { all, some, scope: commonTagScope(selected) };
   }, [emails, selectedEmailKeys]);
 
   // A tag every selected message has comes off; any other goes onto all of
@@ -858,6 +860,7 @@ export function EmailList({
               title={tContextMenu('tag')}
               selectedIds={selectionTags.all}
               partialIds={selectionTags.some}
+              scope={selectionTags.scope}
               onToggle={handleBatchToggleTag}
               active={hasSelection && !isScheduledView}
               disabled={isProcessing}

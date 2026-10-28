@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/icons";
 import { TagPicker } from "./tag-picker";
+import type { TagScope } from "@/hooks/use-account-tags";
 
 const TAG_PICKER_WIDTH = 224;
 
@@ -22,6 +23,7 @@ export function BatchTagButton({
   onToggle,
   active,
   disabled,
+  scope = null,
 }: {
   title: string;
   /** Tags every selected message carries. */
@@ -32,6 +34,8 @@ export function BatchTagButton({
   /** Whether there is a selection to tag; the picker shuts without one. */
   active: boolean;
   disabled?: boolean;
+  /** The account of the whole selection (commonTagScope); null: the user's own tags. */
+  scope?: TagScope | null;
 }) {
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const pickerRef = useRef<HTMLDivElement | null>(null);
@@ -97,7 +101,7 @@ export function BatchTagButton({
             className="fixed z-50 w-56 max-w-[18rem] rounded-lg border border-border bg-popover py-1 shadow-lg"
             style={{ top: pos.top, left: pos.left }}
           >
-            <TagPicker selectedIds={selectedIds} partialIds={partialIds} onToggle={onToggle} />
+            <TagPicker selectedIds={selectedIds} partialIds={partialIds} onToggle={onToggle} scope={scope} />
           </div>,
           document.body,
         )}

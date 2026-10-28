@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useEmailStore, removalFolder, canRemoveFromFolder, emailLinkSource } from "@/stores/email-store";
+import { useEmailTagScope } from "@/hooks/use-account-tags";
 import { Email, Mailbox } from "@/lib/jmap/types";
 import {
   ContextMenu,
@@ -206,6 +207,8 @@ export function EmailContextMenu({
   const isPinned = email.keywords?.['$pinned'] === true;
   const isDraft = email.keywords?.['$draft'] === true;
   const currentTagIds = getEmailTagIds(email.keywords);
+  // The row's account names the tags, for a selection too: it is part of it.
+  const tagScope = useEmailTagScope(email);
   const showBatchActions = isMultiSelect && selectedCount > 1;
   const isInJunkFolder = currentMailboxRole === 'junk';
   // Marking your own outgoing mail as spam makes no sense - hide the action
@@ -497,11 +500,13 @@ export function EmailContextMenu({
                   selectedIds={batchTagIds ?? []}
                   partialIds={batchPartialTagIds}
                   onToggle={(tagId) => onBatchToggleTag?.(tagId)}
+                  scope={tagScope}
                 />
               ) : (
                 <TagPicker
                   selectedIds={currentTagIds}
                   onToggle={(tagId) => onSetTag?.(tagId)}
+                  scope={tagScope}
                 />
               )}
             </div>

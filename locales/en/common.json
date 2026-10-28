@@ -326,6 +326,30 @@
     "cancel_and_compose_again": "Cancel and compose again",
     "reschedule_prompt": "Enter a new date/time, e.g. 2026-05-04T15:30"
   },
+  "shared_tags": {
+    "title": "Shared tags",
+    "description": "Tags of your group mailboxes. Everyone in the group sees the same names and colours on its mail.",
+    "picker_heading": "Shared with everyone in this mailbox",
+    "sidebar_heading": "Tags",
+    "edit": "Edit shared tags",
+    "add": "Add shared tag",
+    "name": "Name",
+    "colour": "Colour",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "delete_confirm": "Delete for everyone? The tag stays on its messages.",
+    "name_it": "Give it a name",
+    "found_on_messages": "On messages, no name yet",
+    "empty": "No shared tags yet.",
+    "exists": "This mailbox already has this tag.",
+    "too_long": "This name is too long.",
+    "loading": "Loading…",
+    "unsupported": "This mail server can't keep shared tags, so this mailbox shows your own tags.",
+    "no_rights": "You can use these tags, but you can't change them in this mailbox.",
+    "too_many": "There are too many shared tags. Delete some before adding more.",
+    "save_failed": "Couldn't save the shared tags."
+  },
   "email_viewer": {
     "read_receipt": {
       "prompt": "The sender asked to be notified when you open this message.",

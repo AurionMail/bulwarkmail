@@ -268,6 +268,8 @@ export interface MailboxRights {
   mayDelete: boolean;
   maySubmit: boolean;
   mayShare?: boolean;
+  /** Stalwart 1.0: may change the mailbox's shared metadata (urn:ietf:params:jmap:metadata). */
+  maySetMetadata?: boolean;
 }
 
 export interface Thread {
