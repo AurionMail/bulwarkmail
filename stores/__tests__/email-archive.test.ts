@@ -68,9 +68,13 @@ describe('email-store archive thread behavior', () => {
     });
   });
 
-  it('archives the full thread and removes cached thread state', async () => {
+  it("archives the thread's messages in the folder and removes cached thread state", async () => {
     const client = {
       getThread: vi.fn().mockResolvedValue({ id: 'thread-1', emailIds: ['email-1', 'email-2'] }),
+      getEmailFields: vi.fn().mockResolvedValue([
+        { id: 'email-1', mailboxIds: { 'server-inbox': true } },
+        { id: 'email-2', mailboxIds: { 'server-inbox': true } },
+      ]),
       batchMoveEmails: vi.fn().mockResolvedValue(undefined),
     } as unknown as IJMAPClient;
 
@@ -85,5 +89,23 @@ describe('email-store archive thread behavior', () => {
     expect(Array.from(state.selectedEmailKeys)).toEqual([]);
     expect(state.expandedThreadIds.has('thread-1')).toBe(false);
     expect(state.threadEmailsCache.has('thread-1')).toBe(false);
+  });
+
+  // Your own reply in Sent belongs to the conversation, but archiving the
+  // Inbox copy leaves it in Sent, as Delete, Move and Spam do.
+  it("leaves the conversation's message in Sent where it is", async () => {
+    const client = {
+      getThread: vi.fn().mockResolvedValue({ id: 'thread-1', emailIds: ['email-1', 'email-2', 'sent-1'] }),
+      getEmailFields: vi.fn().mockResolvedValue([
+        { id: 'email-1', mailboxIds: { 'server-inbox': true } },
+        { id: 'email-2', mailboxIds: { 'server-inbox': true } },
+        { id: 'sent-1', mailboxIds: { 'server-sent': true } },
+      ]),
+      batchMoveEmails: vi.fn().mockResolvedValue(undefined),
+    } as unknown as IJMAPClient;
+
+    await useEmailStore.getState().moveThreadToMailbox(client, 'email-1', 'archive-local');
+
+    expect(client.batchMoveEmails).toHaveBeenCalledWith(['email-1', 'email-2'], 'server-archive', 'shared-account');
   });
 });

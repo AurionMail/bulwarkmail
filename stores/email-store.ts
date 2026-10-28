@@ -362,7 +362,13 @@ interface EmailStore {
    * them: an id alone can name rows of several accounts there.
    */
   moveEmailsToMailbox: (client: IJMAPClient, emailIds: string[], mailboxId: string, destLocalAccountId?: string | null, rows?: Email[]) => Promise<boolean>;
-  /** `emailKey` (emailKeyFor of the row) picks the right row when the id repeats across accounts. */
+  /**
+   * Move the conversation's messages that are in the picked message's folder
+   * (the open folder, else the one folder the message is in); the others,
+   * such as your own message in Sent, stay where they are. `emailKey`
+   * (emailKeyFor of the row) picks the right row when the id repeats across
+   * accounts.
+   */
   moveThreadToMailbox: (client: IJMAPClient, emailId: string, mailboxId: string, emailKey?: string) => Promise<boolean>;
   /**
    * Take messages out of the open folder only, leaving them in their other
@@ -4856,13 +4862,27 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const jmapDestId = destMailbox?.originalId || destinationMailboxId;
 
       const thread = await effectiveClient.getThread(email.threadId, accountId);
-      const threadEmailIds = thread?.emailIds?.length ? thread.emailIds : [emailId];
+      const memberIds = thread?.emailIds?.length ? thread.emailIds : [emailId];
+      // Only the members in the folder the message is picked from move: the
+      // conversation's other messages (your reply in Sent, a draft) stay.
+      // Without a known source folder only the picked message moves.
+      const sourceId = moveSourceMailboxId([email], mailboxes);
+      const source = sourceId ? mailboxes.find(mb => mb.id === sourceId) : undefined;
+      const sourceJmapId = source ? (source.originalId || source.id) : null;
+      let threadEmailIds = [emailId];
+      if (sourceJmapId && memberIds.length > 1) {
+        const members = await effectiveClient.getEmailFields(memberIds, ['id', 'mailboxIds'], accountId);
+        const inSource = members
+          .filter(m => (m.mailboxIds as Record<string, boolean> | undefined)?.[sourceJmapId])
+          .map(m => m.id as string);
+        threadEmailIds = [...new Set([emailId, ...inSource])];
+      }
 
       if (threadEmailIds.length <= 1) {
         return await get().moveToMailbox(client, emailId, destinationMailboxId, emailKey);
       }
 
-      const move = { emailIds: threadEmailIds, fromMailboxId: moveSourceMailboxId([email], mailboxes), toMailboxId: destinationMailboxId };
+      const move = { emailIds: threadEmailIds, fromMailboxId: sourceId, toMailboxId: destinationMailboxId };
       if (!(await allowEmailMove(move, mailboxes))) return false;
 
       await effectiveClient.batchMoveEmails(threadEmailIds, jmapDestId, accountId);
