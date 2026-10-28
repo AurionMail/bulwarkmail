@@ -398,3 +398,56 @@ describe('a re-opened draft that lives in a group account', () => {
     expect(onDiscardDraft).toHaveBeenCalledWith('draft-v2', { accountId: undefined, localAccountId: undefined });
   });
 });
+
+/**
+ * Send pressed while an autosave is still on the server and a later edit has
+ * armed the next one. The armed save must not fire beside the send: it would
+ * replace the version the send then destroys ("post-send cleanup failed") and
+ * leave its own version behind in Drafts. Seen with saves taking seconds.
+ */
+describe('send while a draft save is in flight', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    useAuthStore.setState({ client: null });
+    vi.clearAllMocks();
+  });
+
+  it('sends the version of the last save, made after the one in flight', async () => {
+    let finishFirstSave: (id: string) => void = () => {};
+    const createDraft = vi.fn()
+      .mockImplementationOnce(() => new Promise<string>((resolve) => { finishFirstSave = resolve; }))
+      .mockResolvedValueOnce('draft-v3');
+    useAuthStore.setState({
+      client: { createDraft, getEmail: vi.fn(), hasDelayedSend: () => false, getMaxDelayedSend: () => 0 } as never,
+    });
+    const onSend = vi.fn().mockResolvedValue(undefined);
+    render(<EmailComposer initialData={{ ...REOPENED_DRAFT, attachments: [] }} onSend={onSend} />);
+
+    // First autosave starts and hangs on the server.
+    fireEvent.change(screen.getByDisplayValue('Quarterly numbers'), { target: { value: 'Quarterly numbers v2' } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(2500); });
+    expect(createDraft).toHaveBeenCalledTimes(1);
+
+    // A last edit arms the next autosave, then Send right away.
+    fireEvent.change(screen.getByDisplayValue('Quarterly numbers v2'), { target: { value: 'Quarterly numbers v3' } });
+    fireEvent.click(screen.getAllByTestId('composer-send')[0]);
+    // Long enough for the armed autosave to have fired.
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    expect(onSend).not.toHaveBeenCalled();
+
+    await act(async () => {
+      finishFirstSave('draft-v2');
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    // One save after the first, replacing it, and the send carries its id.
+    expect(createDraft).toHaveBeenCalledTimes(2);
+    expect(createDraft.mock.calls[1][7]).toBe('draft-v2');
+    expect(onSend).toHaveBeenCalledTimes(1);
+    expect(onSend).toHaveBeenCalledWith(expect.objectContaining({ draftId: 'draft-v3', subject: 'Quarterly numbers v3' }));
+  });
+});

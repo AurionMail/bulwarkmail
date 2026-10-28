@@ -3280,31 +3280,29 @@ export function EmailComposer({
     isSendingRef.current = true;
     setIsSending(true);
 
-    // Resolve the freshest draftId we can. Two cases:
-    //   1. An autosave is currently in flight - wait for it; don't issue a
-    //      parallel destroy/create that would race with it on the same id.
-    //   2. A debounced save is scheduled (timer set) - cancel it and flush
-    //      now so the latest body content lands on the server.
-    // Use draftIdRef (not the React state) because state updates from
-    // the in-flight save may not have rendered yet when we read here.
+    // Resolve the freshest draftId we can. A scheduled autosave is cancelled
+    // before anything is awaited and flushed behind the save in flight
+    // (saveDraft queues), so one wait covers both. Left armed, the timer
+    // could fire while the send waits and save beside it: the send then
+    // destroys a version that save already replaced, and the version it
+    // created stays in Drafts. On a slow server - seconds per save - this
+    // hit most sends typed up to the last moment.
+    // Read draftIdRef (not the React state) afterwards: the saves update it
+    // synchronously, before React re-renders.
     let finalDraftId = draftIdRef.current;
-    if (inflightSaveRef.current) {
-      try {
-        const savedId = await inflightSaveRef.current;
-        if (savedId) finalDraftId = savedId;
-      } catch (err) {
-        debug.error('In-flight draft save failed before send:', err);
-      }
-    }
+    let pendingSave = inflightSaveRef.current;
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = null;
+      pendingSave = saveDraft();
+    }
+    if (pendingSave) {
       try {
-        const savedId = await saveDraft();
-        if (savedId) finalDraftId = savedId;
+        await pendingSave;
       } catch (err) {
         debug.error('Failed to save draft before send:', err);
       }
+      finalDraftId = draftIdRef.current;
     }
 
     const identityFromEmail = currentIdentity?.email
