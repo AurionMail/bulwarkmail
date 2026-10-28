@@ -2,7 +2,8 @@ import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 import { JMAP_URL } from './helpers/config';
 import { neutralizeDevOverlay, accountSwitcher, emailItem, openComposer, closeComposer } from './helpers/app';
 import { JmapClient } from './helpers/jmap';
-import { ORG, ORG_PASSWORD, adminContext, contextOptions, requireOrgEnv, shot } from './helpers/org';
+import { readFileSync, existsSync } from 'node:fs';
+import { ORG, ORG_PASSWORD, adminContext, contextOptions, getPolicy, putPolicy, requireOrgEnv, shot } from './helpers/org';
 
 /**
  * "No third-party traffic" (organisation feature 5, #903) through the real
@@ -179,4 +180,53 @@ test('the admin section and the user settings work at phone width', async ({ bro
   await shot(user, 'thirdparty-push-settings-phone');
   expect(outside(urls)).toEqual([]);
   await context.close();
+});
+
+/**
+ * A plugin that only returns image URLs (Gravatar declares no network
+ * access, so it runs): its avatars must fall back to initials, and the page's
+ * CSP stops anything that slips through. The zip is built from
+ * repos/plugins/gravatar into the rig's scratch folder with the fallback
+ * style set to "identicon"; IT_GRAVATAR_ZIP points at it.
+ */
+test('the Gravatar plugin runs but nothing reaches gravatar.com', async ({ browser }) => {
+  const zip = process.env.IT_GRAVATAR_ZIP ?? '';
+  test.skip(!zip || !existsSync(zip), 'IT_GRAVATAR_ZIP not set');
+  const admin = await adminContext(browser);
+  const before = await getPolicy(admin);
+  const features = (before.features ?? {}) as Record<string, unknown>;
+  try {
+    const upload = await admin.request.post('/api/admin/plugins', {
+      multipart: { file: { name: 'gravatar.zip', mimeType: 'application/zip', buffer: readFileSync(zip) } },
+    });
+    expect(upload.ok(), await upload.text()).toBe(true);
+    await putPolicy(admin, { ...before, features: { ...features, pluginsEnabled: true }, forceEnabledPlugins: ['gravatar'] });
+
+    const context = await browser.newContext(contextOptions());
+    const urls = recordRequests(context);
+    const page = await context.newPage();
+    await signIn(page, ORG.alice);
+    await expect(emailItem(page, SUBJECT).first()).toBeVisible({ timeout: 30000 });
+    // The plugin is running in this browser. The zip's fallback style is
+    // "identicon", so it returns a gravatar.com URL for every sender without
+    // first asking gravatar.com whether a picture exists (a fetch the
+    // sandbox's own policy stops); that URL is what the avatar must refuse.
+    await page.goto('/settings/addons');
+    await expect(page.getByText('Gravatar Avatars').first()).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText('On', { exact: true }).first()).toBeVisible({ timeout: 60000 });
+    // Back inside the app, so the running plugin stays loaded.
+    await page.getByRole('button', { name: 'Back to Mail' }).or(page.getByRole('link', { name: 'Back to Mail' })).first().click();
+    await emailItem(page, SUBJECT).first().click();
+    await expect(page.locator('[data-plugin-source="email-body"]').first()).toContainText('Checking that nothing leaves', { timeout: 20000 });
+    await page.waitForTimeout(3000);
+    await expect(page.locator('img[src*="gravatar.com"]')).toHaveCount(0);
+    await shot(page, 'thirdparty-gravatar-initials');
+    expect(urls.filter((url) => /gravatar\.com/i.test(url))).toEqual([]);
+    expect(outside(urls)).toEqual([]);
+    await context.close();
+  } finally {
+    await putPolicy(admin, before);
+    await admin.request.delete('/api/admin/plugins', { data: { id: 'gravatar' } });
+    await admin.close();
+  }
 });
