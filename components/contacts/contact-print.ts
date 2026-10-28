@@ -1,4 +1,5 @@
-import type { ContactCard, PartialDate } from "@/lib/jmap/types";
+import type { ContactCard } from "@/lib/jmap/types";
+import { formatContactDate } from "@/lib/contact-dates";
 import { getContactDisplayName, getContactPhotoRef } from "@/stores/contact-store";
 import { loadContactMediaBlob } from "@/lib/contact-media";
 import { blobToDataUri } from "@/lib/data-uri";
@@ -37,7 +38,53 @@ async function printablePhotoUri(contact: ContactCard): Promise<string | undefin
   return blob ? blobToDataUri(blob, photo.mediaType).catch(() => undefined) : undefined;
 }
 
-export async function printContact(contact: ContactCard, displayName?: string): Promise<void> {
+/** The print sheet's words, in the UI language. */
+export interface PrintLabels {
+  locale: string;
+  contact: string;
+  emails: string;
+  email: string;
+  phones: string;
+  phone: string;
+  organizations: string;
+  organization: string;
+  titles: string;
+  title: string;
+  role: string;
+  addresses: string;
+  address: string;
+  online: string;
+  onlineService: string;
+  anniversaries: string;
+  anniversary: (kind: string) => string;
+  notes: string;
+}
+
+/** The print labels from the contacts translations (`t` of the "contacts" namespace). */
+export function printLabels(t: (key: string) => string, locale: string): PrintLabels {
+  return {
+    locale,
+    contact: t("detail.section_contact"),
+    emails: t("detail.emails"),
+    email: t("detail.email_default_label"),
+    phones: t("detail.phones"),
+    phone: t("detail.phone_default_label"),
+    organizations: t("detail.organizations"),
+    organization: t("detail.organization_label"),
+    titles: t("detail.titles"),
+    title: t("detail.title_label"),
+    role: t("detail.role_label"),
+    addresses: t("detail.addresses"),
+    address: t("detail.address_default_label"),
+    online: t("detail.online_services"),
+    onlineService: t("detail.online_service_default_label"),
+    anniversaries: t("detail.anniversaries"),
+    anniversary: (kind) => t(`detail.anniversary_${["birth", "death", "wedding"].includes(kind) ? kind : "other"}`),
+    notes: t("detail.notes"),
+  };
+}
+
+export async function printContact(contact: ContactCard, labels: PrintLabels, displayName?: string): Promise<void> {
   // Open the window before anything is awaited: browsers allow the popup only
   // while the click that asked for it is being handled.
   const printWindow = window.open("", "_blank");
@@ -63,62 +110,45 @@ export async function printContact(contact: ContactCard, displayName?: string): 
   const row = (label: string, value: string) =>
     `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd>`;
 
-  section("Email", emails.map(e => row(e.label || "Email", e.address || "")));
-  section("Phone", phones.map(p => row(p.label || "Phone", p.number || "")));
+  section(labels.emails, emails.map(e => row(e.label || labels.email, e.address || "")));
+  section(labels.phones, phones.map(p => row(p.label || labels.phone, p.number || "")));
   section(
-    "Organization",
+    labels.organizations,
     orgs.map(o => {
       const units = o.units ? Object.values(o.units).map(u => u.name).filter(Boolean).join(", ") : "";
       const value = [o.name, units].filter(Boolean).join(" \u2014 ");
-      return row("Organization", value);
+      return row(labels.organization, value);
     }),
   );
-  section("Title", titles.map(t => row(t.kind === "role" ? "Role" : "Title", t.name || "")));
+  section(labels.titles, titles.map(t => row(t.kind === "role" ? labels.role : labels.title, t.name || "")));
   section(
-    "Address",
+    labels.addresses,
     addresses.map(a => {
       const parts = [a.street, a.locality, a.region, a.postcode, a.country]
         .map(p => (typeof p === "string" ? p : ""))
         .filter(Boolean);
-      return row(a.label || "Address", parts.join(", "));
+      return row(a.label || labels.address, parts.join(", "));
     }),
   );
   section(
-    "Online",
-    onlineServices.map(s => row(s.label || s.service || "Online", s.uri || s.user || "")),
+    labels.online,
+    onlineServices.map(s => row(s.label || s.service || labels.onlineService, s.uri || s.user || "")),
   );
   section(
-    "Anniversary",
-    anniversaries.map(a => {
-      const date = a.date;
-      let formatted = "";
-      if (typeof date === "object" && date !== null) {
-        if ("utc" in date && typeof date.utc === "string") formatted = date.utc;
-        else {
-          const parts: string[] = [];
-          const pd = date as PartialDate;
-          if (pd.year) parts.push(String(pd.year));
-          if (pd.month) parts.push(String(pd.month).padStart(2, "0"));
-          if (pd.day) parts.push(String(pd.day).padStart(2, "0"));
-          formatted = parts.join("-");
-        }
-      } else if (date) {
-        formatted = String(date);
-      }
-      return row(a.kind || "Date", formatted);
-    }),
+    labels.anniversaries,
+    anniversaries.map(a => row(labels.anniversary(a.kind || "other"), a.date ? formatContactDate(a.date, labels.locale) : "")),
   );
-  section("Notes", notes.map(n => row("", n.note || "")));
+  section(labels.notes, notes.map(n => row("", n.note || "")));
 
   const photoTag = photoUri
     ? `<img class="photo" src="${escapeHtml(photoUri)}" alt="" />`
     : `<div class="photo placeholder">${escapeHtml((name || "?").charAt(0).toUpperCase())}</div>`;
 
   const html = `<!doctype html>
-<html>
+<html lang="${escapeHtml(labels.locale)}">
 <head>
 <meta charset="utf-8" />
-<title>${escapeHtml(name || "Contact")}</title>
+<title>${escapeHtml(name || labels.contact)}</title>
 <style>
   * { box-sizing: border-box; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #111; margin: 32px; }
@@ -137,7 +167,7 @@ export async function printContact(contact: ContactCard, displayName?: string): 
 <body>
 <header>
   ${photoTag}
-  <div><h1>${escapeHtml(name || "Contact")}</h1></div>
+  <div><h1>${escapeHtml(name || labels.contact)}</h1></div>
 </header>
 ${rows.join("")}
 </body>

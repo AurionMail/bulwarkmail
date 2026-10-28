@@ -1434,3 +1434,13 @@ describe('contact-store', () => {
     });
   });
 });
+
+describe('contact display name', () => {
+  it('shows the name an imported card gives itself (FN), not only first and last name', async () => {
+    const { getContactDisplayName } = await import('../contact-store');
+    expect(getContactDisplayName({
+      id: 'x', addressBookIds: {},
+      name: { full: 'UX-cf Jürgen Müller', components: [{ kind: 'given', value: 'Jürgen' }, { kind: 'surname', value: 'Müller' }] },
+    } as never)).toBe('UX-cf Jürgen Müller');
+  });
+});

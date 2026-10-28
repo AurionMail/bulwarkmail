@@ -9,6 +9,11 @@ import { imageBlobUrl } from '@/lib/file-preview';
 import { fileHooks } from '@/lib/plugin-hooks';
 import { fileToView } from '@/lib/plugin-projection';
 import type { FileResourceView } from '@/lib/plugin-types';
+import {
+  TRASH_FOLDER_NAME, TRASH_LOCATION, TRASH_PATH, findTrashFolder, isTrashLocation, trashBatchName,
+  trashSubtreeIds, trashedItems,
+} from '@/lib/files-trash';
+import { buildZip, planZip, saveBlob, type ZipProgress } from '@/lib/files-zip';
 
 export interface FileResource {
   id: string;
@@ -31,6 +36,8 @@ export interface FileResource {
   isShared?: boolean;
   ownerAccountId?: string;
   ownerName?: string;
+  /** Set for an item in the trash: when it was deleted and where from (null: the root). */
+  trash?: { deletedAt: string | null; fromParentId: string | null; batchId: string | null };
 }
 
 interface UploadProgress {
@@ -73,6 +80,8 @@ interface UndoAction {
   type: 'rename' | 'move';
   entries: { id: string; from: Partial<Pick<FileNode, 'name' | 'parentId'>>; to: Partial<Pick<FileNode, 'name' | 'parentId'>> }[];
   sourceParentId: string | null;
+  /** A delete into the trash: the trash folder its items went into, removed on undo. */
+  trashBatchId?: string;
 }
 
 interface FileState {
@@ -105,6 +114,8 @@ interface FileState {
   allFolders: FileResource[];
   /** False until the first listing for the attached account has finished. */
   hasListed: boolean;
+  /** How many items the trash holds, from the last listing. */
+  trashCount: number;
 
   // Actions
   initClient: (client: IJMAPClient, accountId?: string | null) => void;
@@ -134,6 +145,11 @@ interface FileState {
   renameResource: (oldName: string, newName: string) => Promise<boolean>;
   downloadResource: (name: string) => Promise<void>;
   downloadResources: (names: string[]) => Promise<void>;
+  /**
+   * Download items by id as one zip built in the browser: files as they are,
+   * folders with everything in them. Rejects with an AbortError when canceled.
+   */
+  downloadZip: (ids: string[], zipName: string, options?: { signal?: AbortSignal; onProgress?: (p: ZipProgress) => void }) => Promise<void>;
   getImageUrl: (name: string) => Promise<string>;
   getFileContent: (name: string) => Promise<{ blob: Blob; contentType: string }>;
   createTextFile: (name: string) => Promise<void>;
@@ -142,6 +158,8 @@ interface FileState {
   moveToParent: (names: string[]) => Promise<boolean>;
   /** Move listed items into any folder by id (null = the root), e.g. a tree or breadcrumb drop. */
   moveToFolderId: (names: string[], targetId: string | null) => Promise<boolean>;
+  /** Move any node by id into a folder (null = the root), e.g. a folder of the tree. */
+  moveNode: (id: string, targetId: string | null) => Promise<boolean>;
   cutResources: (names: string[]) => void;
   copyResources: (names: string[]) => void;
   pasteResources: () => Promise<boolean>;
@@ -160,6 +178,19 @@ interface FileState {
   renameNode: (id: string, newName: string) => Promise<boolean>;
   /** Delete any node by id; leaves the folder on screen if it was inside it. */
   deleteNode: (id: string) => Promise<boolean>;
+  /**
+   * Move items of the folder on screen into the trash; how many went (0 when
+   * a plugin stopped it). Undo puts them back.
+   */
+  trashResources: (names: string[]) => Promise<number>;
+  /** Move any node by id into the trash, like deleteNode. */
+  trashNode: (id: string) => Promise<boolean>;
+  /** Put items listed in the trash back where they came from (the root when that is gone). */
+  restoreResources: (names: string[]) => Promise<number>;
+  /** Delete items listed in the trash for good. */
+  purgeResources: (names: string[]) => Promise<number>;
+  /** Delete everything in the trash for good. */
+  emptyTrash: () => Promise<void>;
   /** Download a file by id, wherever it lives. */
   downloadNode: (id: string) => Promise<void>;
   removeRecentFile: (id: string) => void;
@@ -284,11 +315,45 @@ export function linkedPreviewResource(
     : resources.find(r => r.name === link.name);
 }
 
-// A shared-files page lists files; nothing can be put into it.
+// A shared-files page lists files; nothing can be put into it, nor into the
+// trash other than by deleting.
 function assertCanAddTo(parentId: string | null): void {
   if (sharedFilesOwner(parentId) !== null) {
     throw jmapError('Nothing can be added to a list of shared files', { type: 'forbidden' });
   }
+  if (isTrashLocation(parentId)) {
+    throw jmapError('Nothing can be added to the trash', { type: 'forbidden' });
+  }
+}
+
+/**
+ * Whether what is deleted in a folder goes to the trash: in the user's own
+ * drive. A drive someone shared has no trash of the user's, and what is
+ * deleted there is gone.
+ */
+export function deletesToTrash(parentId: string | null): boolean {
+  return !isCrossAccountId(parentId) && !isTrashLocation(parentId);
+}
+
+/** The trash folder, created on the first delete. */
+async function ensureTrashFolder(client: IJMAPClient, nodes: FileNode[]): Promise<FileNode> {
+  return findTrashFolder(nodes) ?? client.createFileDirectory(TRASH_FOLDER_NAME, null);
+}
+
+/** Remove the trash folders of deletes whose items have all left the trash. */
+async function removeEmptyTrashBatches(client: IJMAPClient, gone: FileResource[]): Promise<void> {
+  const batchIds = [...new Set(gone.map(r => r.trash?.batchId).filter((id): id is string => !!id))];
+  if (batchIds.length === 0) return;
+  const nodes = await client.listAllFileNodes();
+  const empty = batchIds.filter(id => !nodes.some(n => n.parentId === id));
+  if (empty.length > 0) await client.destroyFileNodes(empty);
+}
+
+/** Throw the first refusal when nothing of an update went through. */
+function assertUpdated(result: { updated: string[]; notUpdated: Record<string, string> }): void {
+  if (result.updated.length > 0) return;
+  const [reason] = Object.values(result.notUpdated);
+  throw jmapError(reason || 'The server refused the change', { type: 'forbidden' });
 }
 
 // The top of what other accounts share with the user: shared nodes whose
@@ -535,6 +600,7 @@ export const useFileStore = create<FileState>((set, get) => ({
   sharedRoots: [],
   allFolders: [],
   hasListed: false,
+  trashCount: 0,
   favorites: (() => {
     try { return JSON.parse(localStorage.getItem('files-favorites') || '[]'); } catch { return []; }
   })(),
@@ -790,6 +856,8 @@ export const useFileStore = create<FileState>((set, get) => ({
     } else if (sharedFilesOwner(parentId) !== null) {
       // A shared-files page sits right below Home, whatever was open before.
       newStack = [{ id: null, name: '' }, { id: parentId, name: name || parentId }];
+    } else if (isTrashLocation(parentId)) {
+      newStack = [{ id: null, name: '' }, { id: TRASH_LOCATION, name: TRASH_FOLDER_NAME }];
     } else {
       // Check if navigating to a parent in the stack
       const existingIdx = pathStack.findIndex(s => s.id === parentId);
@@ -816,25 +884,39 @@ export const useFileStore = create<FileState>((set, get) => ({
         ? await client.listAllFileNodesAcrossAccounts()
         : await client.listAllFileNodes();
       const owner = sharedFilesOwner(parentId);
-      const resources = owner !== null
-        ? withUniqueNames(sortResources(
-          sharedRootsOf(allNodes).filter(n => n.accountId === owner && !isFolder(n)).map(nodeToResource),
-        ))
-        // The owner's folders on the way down to a shared node aren't shown
-        // (see sharedRootsOf); the user can do nothing in them.
-        : sortResources(childrenOf(allNodes, parentId).filter(n => !n.discoverableOnly).map(nodeToResource));
+      // The trash and what is in it stay out of every listing but its own.
+      const trash = findTrashFolder(allNodes);
+      const inTrash = trashSubtreeIds(allNodes, trash?.id);
+      const trashed = trashedItems(allNodes, trash);
+      const resources = isTrashLocation(parentId)
+        ? withUniqueNames(sortResources(trashed.map(item => ({
+          ...nodeToResource(item.node),
+          trash: {
+            deletedAt: item.deletedAt !== null ? new Date(item.deletedAt).toISOString() : null,
+            fromParentId: item.fromParentId,
+            batchId: item.batchId,
+          },
+        }))))
+        : owner !== null
+          ? withUniqueNames(sortResources(
+            sharedRootsOf(allNodes).filter(n => n.accountId === owner && !isFolder(n)).map(nodeToResource),
+          ))
+          // The owner's folders on the way down to a shared node aren't shown
+          // (see sharedRootsOf); the user can do nothing in them.
+          : sortResources(childrenOf(allNodes, parentId).filter(n => !n.discoverableOnly && !inTrash.has(n.id)).map(nodeToResource));
       // The owner's folders above a shared one stay out of the tree as well.
-      const allFolders = allNodes.filter(n => isFolder(n) && !n.discoverableOnly).map(nodeToResource);
+      const allFolders = allNodes.filter(n => isFolder(n) && !n.discoverableOnly && !inTrash.has(n.id)).map(nodeToResource);
 
       // Prune recent files whose backing node no longer exists on the server
+      // or is in the trash.
       const { recentFiles } = get();
-      const existingIds = new Set(allNodes.map(n => n.id));
+      const existingIds = new Set(allNodes.filter(n => !inTrash.has(n.id)).map(n => n.id));
       const prunedRecent = recentFiles.filter(r => existingIds.has(r.id));
       if (prunedRecent.length !== recentFiles.length) {
         try { localStorage.setItem('files-recent-files', JSON.stringify(prunedRecent)); } catch { /* ignore */ }
-        set({ resources, allFolders, recentFiles: prunedRecent, isLoading: false, hasListed: true });
+        set({ resources, allFolders, trashCount: trashed.length, recentFiles: prunedRecent, isLoading: false, hasListed: true });
       } else {
-        set({ resources, allFolders, isLoading: false, hasListed: true });
+        set({ resources, allFolders, trashCount: trashed.length, isLoading: false, hasListed: true });
       }
       if (opensFolder) void fileHooks.onFileNavigate.emit({ path: newPath });
     } catch (error) {
@@ -851,6 +933,10 @@ export const useFileStore = create<FileState>((set, get) => ({
     const { pathStack, navigate } = get();
     if (path === '/') {
       await navigate(null);
+      return;
+    }
+    if (path === TRASH_PATH) {
+      await navigate(TRASH_LOCATION, TRASH_FOLDER_NAME);
       return;
     }
     // Try to match the path against the current pathStack
@@ -1210,6 +1296,18 @@ export const useFileStore = create<FileState>((set, get) => ({
     }
   },
 
+  downloadZip: async (ids, zipName, options = {}) => {
+    const { client } = get();
+    if (!client) return;
+    const nodes = ids.some(isCrossAccountId)
+      ? await client.listAllFileNodesAcrossAccounts()
+      : await client.listAllFileNodes();
+    const plan = planZip(nodes, ids);
+    // A node of a drive shared with the user is fetched from its owner's account.
+    const blob = await buildZip(plan, (node) => client.fetchBlob(node.blobId!, node.name, node.type, node.accountId), options);
+    saveBlob(blob, zipName);
+  },
+
   getImageUrl: async (name: string) => {
     const { client, resources } = get();
     if (!client) throw new Error('No client');
@@ -1227,12 +1325,8 @@ export const useFileStore = create<FileState>((set, get) => ({
     const resource = resources.find(r => r.name === name);
     if (!resource?.blobId) throw new Error('No blob');
 
-    const url = client.getBlobDownloadUrl(resource.blobId, resource.name, resource.contentType);
-    const response = await fetch(url, {
-      headers: { 'Authorization': client.getAuthHeader() },
-    });
-    if (!response.ok) throw new Error(`Failed to fetch file: ${response.status}`);
-    const blob = await response.blob();
+    // Through the client, like getImageUrl: the demo has no download URL to fetch.
+    const blob = await client.fetchBlob(resource.blobId, resource.name, resource.contentType);
     return { blob, contentType: resource.contentType || 'application/octet-stream' };
   },
 
@@ -1347,6 +1441,28 @@ export const useFileStore = create<FileState>((set, get) => ({
       selectedResources: new Set(),
       lastAction: entries.length > 0 ? { type: 'move', entries, sourceParentId: null } : get().lastAction,
     });
+    await refresh();
+    return true;
+  },
+
+  moveNode: async (id: string, targetId: string | null) => {
+    const { client, allFolders, resources, refresh } = get();
+    if (!client) return false;
+    assertCanAddTo(targetId);
+    // A folder must not move into itself or anything below it.
+    const parentOf = new Map(allFolders.map(f => [f.id, f.parentId ?? null]));
+    for (let cur = targetId; cur != null; cur = parentOf.get(cur) ?? null) {
+      if (cur === id) return false;
+    }
+    const known = allFolders.find(f => f.id === id) ?? resources.find(r => r.id === id);
+    const from = known?.parentId ?? null;
+    if (known && from === targetId) return false;
+    const view = known ? resourceToView(known, parentPath(allFolders, from)) : unknownNodeView(id);
+    const toPath = parentPath(allFolders, targetId);
+    if (!(await fileHooks.onBeforeFileMove.intercept({ files: [view], toPath }))) return false;
+    await client.updateFileNode(id, { parentId: targetId });
+    void fileHooks.onFileMove.emit({ files: [view], toPath });
+    set({ lastAction: { type: 'move', entries: [{ id, from: { parentId: from }, to: { parentId: targetId } }], sourceParentId: null } });
     await refresh();
     return true;
   },
@@ -1615,6 +1731,180 @@ export const useFileStore = create<FileState>((set, get) => ({
     return true;
   },
 
+  trashResources: async (names: string[]) => {
+    const { client, resources, currentParentId, currentPath, recentFiles, favorites, refresh } = get();
+    if (!client) return 0;
+    const items = names
+      .map(name => resources.find(r => r.name === name))
+      .filter((r): r is FileResource => !!r);
+    if (items.length === 0) return 0;
+    const files = items.map(r => resourceToView(r, currentPath));
+    if (!(await fileHooks.onBeforeFileDelete.intercept({ files }))) return 0;
+
+    const trash = await ensureTrashFolder(client, await client.listAllFileNodes());
+    const batch = await client.createFileDirectory(trashBatchName(currentParentId), trash.id);
+    let result: { updated: string[]; notUpdated: Record<string, string> };
+    try {
+      result = await client.updateFileNodes(Object.fromEntries(items.map(r => [r.id, { parentId: batch.id }])));
+      assertUpdated(result);
+    } catch (err) {
+      await client.destroyFileNodes([batch.id]).catch(() => undefined);
+      throw err;
+    }
+    const moved = new Set(result.updated);
+    const trashed = items.filter(r => moved.has(r.id));
+    void fileHooks.onAfterFileDelete.emit({ files: files.filter(f => moved.has(f.id)) });
+
+    // Like a delete: recent files and stars of what went drop off.
+    const gonePaths = trashed.filter(r => r.isDirectory).map(r => joinPath(currentPath, r.name));
+    const nextFavorites = favorites.filter(f => !gonePaths.some(path => isUnder(f, path)));
+    const nextRecent = recentFiles.filter(r => !moved.has(r.id));
+    set({
+      favorites: nextFavorites,
+      recentFiles: nextRecent,
+      selectedResources: new Set(),
+      lastAction: {
+        type: 'move',
+        entries: trashed.map(r => ({ id: r.id, from: { parentId: r.parentId ?? null }, to: { parentId: batch.id } })),
+        sourceParentId: currentParentId,
+        trashBatchId: batch.id,
+      },
+    });
+    try {
+      localStorage.setItem('files-favorites', JSON.stringify(nextFavorites));
+      localStorage.setItem('files-recent-files', JSON.stringify(nextRecent));
+    } catch { /* ignore */ }
+    await refresh();
+    return trashed.length;
+  },
+
+  trashNode: async (id: string) => {
+    const { client, allFolders, resources, favorites, recentFiles, pathStack, navigate, refresh } = get();
+    if (!client) return false;
+    const nodes = await client.listAllFileNodes();
+    const node = nodes.find(n => n.id === id);
+    if (!node) return false;
+    const path = folderPath(allFolders, id);
+    const known = allFolders.find(f => f.id === id) ?? resources.find(r => r.id === id);
+    const files = [known ? resourceToView(known, parentPath(allFolders, known.parentId)) : unknownNodeView(id)];
+    if (!(await fileHooks.onBeforeFileDelete.intercept({ files }))) return false;
+
+    const trash = await ensureTrashFolder(client, nodes);
+    const batch = await client.createFileDirectory(trashBatchName(node.parentId ?? null), trash.id);
+    try {
+      assertUpdated(await client.updateFileNodes({ [id]: { parentId: batch.id } }));
+    } catch (err) {
+      await client.destroyFileNodes([batch.id]).catch(() => undefined);
+      throw err;
+    }
+    void fileHooks.onAfterFileDelete.emit({ files });
+
+    const nextFavorites = path ? favorites.filter(f => !isUnder(f, path)) : favorites;
+    const nextRecent = recentFiles.filter(r => r.id !== id);
+    set({
+      favorites: nextFavorites,
+      recentFiles: nextRecent,
+      lastAction: {
+        type: 'move',
+        entries: [{ id, from: { parentId: node.parentId ?? null }, to: { parentId: batch.id } }],
+        sourceParentId: node.parentId ?? null,
+        trashBatchId: batch.id,
+      },
+    });
+    try {
+      localStorage.setItem('files-favorites', JSON.stringify(nextFavorites));
+      localStorage.setItem('files-recent-files', JSON.stringify(nextRecent));
+    } catch { /* ignore */ }
+
+    // Standing in the deleted folder or below it: step out to its parent.
+    const idx = pathStack.findIndex(s => s.id === id);
+    if (idx > 0) {
+      const parent = pathStack[idx - 1];
+      set({ pathStack: pathStack.slice(0, idx) });
+      await navigate(parent.id, parent.name);
+      return true;
+    }
+    await refresh();
+    return true;
+  },
+
+  restoreResources: async (names: string[]) => {
+    const { client, resources, refresh } = get();
+    if (!client) return 0;
+    const items = names
+      .map(name => resources.find(r => r.name === name && r.trash))
+      .filter((r): r is FileResource => !!r);
+    if (items.length === 0) return 0;
+
+    const nodes = await client.listAllFileNodes();
+    const inTrash = trashSubtreeIds(nodes, findTrashFolder(nodes)?.id);
+    const folderIds = new Set(nodes.filter(n => isFolder(n) && !inTrash.has(n.id)).map(n => n.id));
+    // Names taken in each folder, so a restored item never clashes.
+    const taken = new Map<string | null, Set<string>>();
+    const namesIn = (parentId: string | null) => {
+      let set = taken.get(parentId);
+      if (!set) {
+        set = new Set(childrenOf(nodes, parentId).filter(n => !inTrash.has(n.id)).map(n => n.name));
+        taken.set(parentId, set);
+      }
+      return set;
+    };
+    const updates: Record<string, Partial<Pick<FileNode, 'name' | 'parentId'>>> = {};
+    const targets = new Map<string, string | null>();
+    for (const item of items) {
+      const from = item.trash?.fromParentId ?? null;
+      // A folder that is gone (or itself in the trash) gives the item back to the root.
+      const target = from !== null && folderIds.has(from) ? from : null;
+      const used = namesIn(target);
+      const name = getUniqueName(item.serverName, used);
+      used.add(name);
+      updates[item.id] = name === item.serverName ? { parentId: target } : { parentId: target, name };
+      targets.set(item.id, target);
+    }
+    const result = await client.updateFileNodes(updates);
+    assertUpdated(result);
+    const restored = new Set(result.updated);
+    const allFolders = nodes.filter(n => isFolder(n) && !inTrash.has(n.id)).map(nodeToResource);
+    const byTarget = new Map<string, FileResourceView[]>();
+    for (const item of items.filter(r => restored.has(r.id))) {
+      const toPath = parentPath(allFolders, targets.get(item.id) ?? null);
+      const list = byTarget.get(toPath) ?? [];
+      list.push(resourceToView(item, toPath));
+      byTarget.set(toPath, list);
+    }
+    for (const [toPath, files] of byTarget) void fileHooks.onFileMove.emit({ files, toPath });
+    await removeEmptyTrashBatches(client, items.filter(r => restored.has(r.id)));
+    set({ selectedResources: new Set() });
+    await refresh();
+    return restored.size;
+  },
+
+  purgeResources: async (names: string[]) => {
+    const { client, resources, refresh } = get();
+    if (!client) return 0;
+    const items = names
+      .map(name => resources.find(r => r.name === name && r.trash))
+      .filter((r): r is FileResource => !!r);
+    if (items.length === 0) return 0;
+    // The server removes what is inside a folder with it.
+    const result = await client.destroyFileNodes(items.map(r => r.id));
+    const destroyed = new Set(result.destroyed);
+    await removeEmptyTrashBatches(client, items.filter(r => destroyed.has(r.id)));
+    set({ selectedResources: new Set() });
+    await refresh();
+    return items.filter(r => destroyed.has(r.id)).length;
+  },
+
+  emptyTrash: async () => {
+    const { client, refresh } = get();
+    if (!client) return;
+    const trash = findTrashFolder(await client.listAllFileNodes());
+    // The folder goes with everything in it; the next delete makes a new one.
+    if (trash) await client.destroyFileNodes([trash.id]);
+    set({ selectedResources: new Set() });
+    await refresh();
+  },
+
   downloadNode: async (id: string) => {
     const { client } = get();
     if (!client) return;
@@ -1641,6 +1931,8 @@ export const useFileStore = create<FileState>((set, get) => ({
     for (const entry of lastAction.entries) {
       await client.updateFileNode(entry.id, entry.from);
     }
+    // A delete's folder in the trash is empty again.
+    if (lastAction.trashBatchId) await client.destroyFileNodes([lastAction.trashBatchId]);
     set({ lastAction: null });
     void fileHooks.onFileUndo.emit({
       action: {
