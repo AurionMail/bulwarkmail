@@ -3996,6 +3996,7 @@
       "create": "Erstellen",
       "cancel": "Abbrechen",
       "default": "Standard",
+      "row_actions": "Aktionen für {name}",
       "confirm_delete": "\"{name}\" löschen? Alle Termine in diesem Kalender werden entfernt.",
       "calendar_created": "Kalender erstellt",
       "calendar_updated": "Kalender aktualisiert",

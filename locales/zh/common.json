@@ -3996,6 +3996,7 @@
       "create": "创建",
       "cancel": "取消",
       "default": "默认",
+      "row_actions": "{name} 的操作",
       "confirm_delete": "删除\"{name}\"？此日历中的所有活动都将被删除。",
       "confirm_clear": "清除\"{name}\"中的所有活动吗？此操作无法撤销。",
       "set_default": "设为默认",

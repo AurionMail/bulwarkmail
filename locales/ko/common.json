@@ -3996,6 +3996,7 @@
       "create": "만들기",
       "cancel": "취소",
       "default": "기본",
+      "row_actions": "{name} 작업",
       "confirm_delete": "\"{name}\" 캘린더를 삭제할까요? 캘린더 안의 모든 일정이 함께 지워져요.",
       "confirm_clear": "\"{name}\" 캘린더의 모든 일정을 지울까요? 이 작업은 되돌릴 수 없어요.",
       "set_default": "기본으로 설정",

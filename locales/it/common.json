@@ -3996,6 +3996,7 @@
       "create": "Crea",
       "cancel": "Annulla",
       "default": "Predefinito",
+      "row_actions": "Azioni per {name}",
       "confirm_delete": "Eliminare \"{name}\"? Tutti gli eventi in questo calendario verranno rimossi.",
       "calendar_created": "Calendario creato",
       "calendar_updated": "Calendario aggiornato",

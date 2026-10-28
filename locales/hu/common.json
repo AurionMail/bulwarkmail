@@ -4025,6 +4025,7 @@
       "create": "Létrehozás",
       "cancel": "Mégse",
       "default": "Alapértelmezett",
+      "row_actions": "{name} – műveletek",
       "confirm_delete": "Törlöd a \"{name}\" naptárat? Az összes esemény eltávolításra kerül.",
       "confirm_clear": "Törlöd az összes eseményt a \"{name}\" naptárból? Ez nem vonható vissza.",
       "set_default": "Beállítás alapértelmezettként",

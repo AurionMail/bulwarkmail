@@ -4025,6 +4025,7 @@
       "create": "Opprett",
       "cancel": "Avbryt",
       "default": "Standard",
+      "row_actions": "Handlinger for {name}",
       "confirm_delete": "Vil du slette «{name}»? Alle hendelsene i kalenderen fjernes.",
       "confirm_clear": "Vil du fjerne alle hendelser fra «{name}»? Dette kan ikke angres.",
       "set_default": "Sett som standard",

@@ -4025,6 +4025,7 @@
       "create": "Crea",
       "cancel": "Cancel·la",
       "default": "Predeterminat",
+      "row_actions": "Accions per a {name}",
       "confirm_delete": "Voleu suprimir «{name}»? S'eliminaran tots els esdeveniments d'aquest calendari.",
       "confirm_clear": "Voleu esborrar tots els esdeveniments de «{name}»? Això no es pot desfer.",
       "set_default": "Estableix com a predeterminat",

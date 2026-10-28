@@ -4022,6 +4022,7 @@
       "create": "Opret",
       "cancel": "Annuller",
       "default": "Standard",
+      "row_actions": "Handlinger for {name}",
       "confirm_delete": "Slet \"{name}\"? Alle begivenheder i denne kalender fjernes.",
       "confirm_clear": "Ryd alle begivenheder fra \"{name}\"? Dette kan ikke fortrydes.",
       "set_default": "Angiv som standard",

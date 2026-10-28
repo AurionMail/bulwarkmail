@@ -3996,6 +3996,7 @@
       "create": "作成",
       "cancel": "キャンセル",
       "default": "デフォルト",
+      "row_actions": "{name} の操作",
       "confirm_delete": "\"{name}\"を削除しますか？このカレンダーのすべてのイベントが削除されます。",
       "calendar_created": "カレンダーを作成しました",
       "calendar_updated": "カレンダーを更新しました",

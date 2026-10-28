@@ -3995,6 +3995,7 @@
       "create": "Izveidot",
       "cancel": "Atcelt",
       "default": "Noklusējuma",
+      "row_actions": "Darbības: {name}",
       "confirm_delete": "Dzēst «{name}»? Visi pasākumi šajā kalendārā tiks dzēsti.",
       "confirm_clear": "Iztīrīt visus pasākumus no «{name}»? Šo darbību nevar atcelt.",
       "set_default": "Iestatīt kā noklusējumu",

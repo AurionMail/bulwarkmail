@@ -4022,6 +4022,7 @@
       "create": "Oluştur",
       "cancel": "İptal",
       "default": "Varsayılan",
+      "row_actions": "{name} için işlemler",
       "confirm_delete": "\"{name}\" silinsin mi? Bu takvimdeki tüm etkinlikler kaldırılacak.",
       "confirm_clear": "\"{name}\" takvimdeki tüm etkinlikler temizlensin mi? Bu geri alınamaz.",
       "set_default": "Varsayılan olarak ayarla",

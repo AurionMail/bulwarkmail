@@ -4025,6 +4025,7 @@
       "create": "Creați",
       "cancel": "Anulează",
       "default": "Implicit",
+      "row_actions": "Acțiuni pentru {name}",
       "confirm_delete": "Doriți să ștergeți „{name}”? Toate evenimentele din acest calendar vor fi eliminate.",
       "confirm_clear": "Ștergeți toate evenimentele din „{name}”? Această acțiune nu poate fi anulată.",
       "set_default": "Setați ca implicită",

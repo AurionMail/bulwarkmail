@@ -4025,6 +4025,7 @@
       "create": "Vytvoriť",
       "cancel": "Zrušiť",
       "default": "Predvolený",
+      "row_actions": "Akcie pre {name}",
       "confirm_delete": "Odstrániť \"{name}\"? Všetky udalosti v tomto kalendári budú odstránené.",
       "confirm_clear": "Vymazať všetky udalosti z \"{name}\"? Túto akciu nie je možné vrátiť.",
       "set_default": "Nastaviť ako predvolený",

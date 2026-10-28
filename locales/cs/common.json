@@ -3996,6 +3996,7 @@
       "create": "Vytvořit",
       "cancel": "Zrušit",
       "default": "Výchozí",
+      "row_actions": "Akce pro {name}",
       "confirm_delete": "Odstranit \"{name}\"? Všechny události v tomto kalendáři budou odstraněny.",
       "confirm_clear": "Vymazat všechny události z \"{name}\"? Tuto akci nelze vrátit zpět.",
       "set_default": "Nastavit jako výchozí",

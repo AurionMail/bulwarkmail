@@ -4025,6 +4025,7 @@
       "create": "Create",
       "cancel": "Cancel",
       "default": "Default",
+      "row_actions": "Actions for {name}",
       "confirm_delete": "Delete \"{name}\"? All events in this calendar will be removed.",
       "confirm_clear": "Clear all events from \"{name}\"? This cannot be undone.",
       "set_default": "Set as default",

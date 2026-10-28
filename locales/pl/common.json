@@ -3996,6 +3996,7 @@
       "create": "Utwórz",
       "cancel": "Anuluj",
       "default": "Domyślny",
+      "row_actions": "Działania dla {name}",
       "confirm_delete": "Usunąć \"{name}\"? Wszystkie wydarzenia w tym kalendarzu zostaną usunięte.",
       "confirm_clear": "Wyczyścić wszystkie wydarzenia z \"{name}\"? Tej operacji nie można cofnąć.",
       "set_default": "Ustaw jako domyślny",

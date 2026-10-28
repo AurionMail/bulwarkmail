@@ -3996,6 +3996,7 @@
       "create": "Aanmaken",
       "cancel": "Annuleren",
       "default": "Standaard",
+      "row_actions": "Acties voor {name}",
       "confirm_delete": "\"{name}\" verwijderen? Alle afspraken in deze agenda worden verwijderd.",
       "calendar_created": "Agenda aangemaakt",
       "calendar_updated": "Agenda bijgewerkt",

@@ -4025,6 +4025,7 @@
       "create": "建立",
       "cancel": "取消",
       "default": "預設",
+      "row_actions": "{name} 的動作",
       "confirm_delete": "要刪除「{name}」嗎？此行事曆中的所有活動都會移除。",
       "confirm_clear": "要清除「{name}」中的所有活動嗎？此動作無法復原。",
       "set_default": "設為預設",

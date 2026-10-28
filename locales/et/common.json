@@ -4025,6 +4025,7 @@
       "create": "Loo",
       "cancel": "Tühista",
       "default": "Vaikimisi",
+      "row_actions": "Toimingud: {name}",
       "confirm_delete": "Kustutada \"{name}\"? Kõik selle kalendri sündmused eemaldatakse.",
       "confirm_clear": "Tühjendada kõik sündmused kalendrist \"{name}\"? Seda ei saa tagasi võtta.",
       "set_default": "Määra vaikimisi kalendriks",

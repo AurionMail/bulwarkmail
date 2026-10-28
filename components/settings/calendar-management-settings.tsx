@@ -9,7 +9,10 @@ import { useAuthStore } from '@/stores/auth-store';
 import { getActiveAccountSlotHeaders } from '@/lib/auth/active-account-slot';
 import { toast } from '@/stores/toast-store';
 import { SettingsSection } from './settings-section';
-import { Plus, Pencil, Trash2, Calendar as CalendarIcon, Copy, Link, Upload, Globe, RefreshCw, Eraser, Users, Bell, ArrowUp, ArrowDown, GripVertical } from '@/components/icons';
+import { Plus, Pencil, Trash2, Calendar as CalendarIcon, Copy, Link, Upload, Globe, RefreshCw, Eraser, Users, Bell, ArrowUp, ArrowDown, GripVertical, MoreVertical } from '@/components/icons';
+import { IconButton } from '@/components/ui/icon-button';
+import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from '@/components/ui/context-menu';
+import { useContextMenu } from '@/hooks/use-context-menu';
 import { AlertListEditor } from '@/components/calendar/alert-list-editor';
 import { alertsToRows, rowsToAlerts, type AlertRow } from '@/lib/calendar-alerts';
 import { ShareCollectionDialog } from './share-collection-dialog';
@@ -287,6 +290,7 @@ export function CalendarManagementSettings() {
   const setSharedCalendarColor = useSettingsStore((s) => s.setSharedCalendarColor);
   const colorPickerRef = useRef<HTMLDivElement>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const { contextMenu, openContextMenu, openContextMenuFrom, closeContextMenu, menuRef } = useContextMenu<Calendar>();
 
   const listedCalendars = calendars
     .filter(cal => !isSubscriptionCalendar(cal.id))
@@ -560,8 +564,64 @@ export function CalendarManagementSettings() {
     }
   };
 
+  // One action list per calendar (R6): the row's icons on wider screens, the
+  // ⋮ and right-click menu everywhere.
+  const calendarActions = (cal: Calendar) => {
+    const actions: Array<{ id: string; label: string; icon: typeof Pencil; run: () => void; destructive?: boolean }> = [
+      { id: 'edit', label: t('edit'), icon: Pencil, run: () => setEditingId(cal.id) },
+    ];
+    // The owner's defaults; a sharee can't write the calendar.
+    if (!cal.isShared) {
+      actions.push({ id: 'alerts', label: t('default_alerts'), icon: Bell, run: () => setAlertsEditingId(cal.id) });
+    }
+    if (cal.myRights?.mayShare && !cal.isShared && !isSubscriptionCalendar(cal.id)) {
+      actions.push({ id: 'share', label: t('share'), icon: Users, run: () => setSharingId(cal.id) });
+    }
+    actions.push({ id: 'clear', label: t('clear_events'), icon: Eraser, run: () => setClearingId(cal.id) });
+    if (!cal.isDefault) {
+      actions.push({ id: 'delete', label: t('delete'), icon: Trash2, run: () => setDeletingId(cal.id), destructive: true });
+    }
+    return actions;
+  };
+
+  const renderRowMenu = () => {
+    const cal = contextMenu.data;
+    if (!cal) return null;
+    const run = (fn: () => void) => () => { closeContextMenu(); fn(); };
+    const siblings = cal.isShared ? [] : orderableCalendars.filter(c => calendarAccountKey(c) === calendarAccountKey(cal));
+    const orderIndex = siblings.indexOf(cal);
+    const previousId = siblings[orderIndex - 1]?.id;
+    const nextId = siblings[orderIndex + 1]?.id;
+    const buildUrl = buildCalDavUrl(cal.id);
+    const actions = calendarActions(cal);
+    const plain = actions.filter((a) => !a.destructive);
+    const destructive = actions.filter((a) => a.destructive);
+    return (
+      <ContextMenu ref={menuRef} isOpen={contextMenu.isOpen} position={contextMenu.position} onClose={closeContextMenu}>
+        {plain.map((a) => (
+          <ContextMenuItem key={a.id} icon={a.icon} label={a.label} onClick={run(a.run)} />
+        ))}
+        {buildUrl && (
+          <ContextMenuItem icon={Copy} label={t('copy_url')} onClick={run(() => handleCopyUrl(buildUrl))} />
+        )}
+        {siblings.length > 1 && (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuItem icon={ArrowUp} label={t('move_up')} disabled={!previousId} onClick={run(() => void handleMove(cal.id, previousId))} />
+            <ContextMenuItem icon={ArrowDown} label={t('move_down')} disabled={!nextId} onClick={run(() => void handleMove(cal.id, nextId))} />
+          </>
+        )}
+        {destructive.length > 0 && <ContextMenuSeparator />}
+        {destructive.map((a) => (
+          <ContextMenuItem key={a.id} icon={a.icon} label={a.label} destructive onClick={run(a.run)} />
+        ))}
+      </ContextMenu>
+    );
+  };
+
   return (
     <SettingsSection id="calendars" title={t('title')} description={t('description')}>
+      {renderRowMenu()}
       <div className="space-y-2">
         {listedCalendars.map((cal) => {
           const color = (cal.isShared && sharedCalendarColors[sharedCalendarColorKey(cal)]) || cal.color || '#3b82f6';
@@ -611,8 +671,9 @@ export function CalendarManagementSettings() {
               onDragOver={isOrderable && draggingId ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; } : undefined}
               onDrop={isOrderable && draggingId ? (e) => { e.preventDefault(); void handleMove(draggingId, cal.id); setDraggingId(null); } : undefined}
               onDragEnd={() => setDraggingId(null)}
+              onContextMenu={(e) => openContextMenu(e, cal)}
               className={cn(
-                "flex items-center gap-3 py-2.5 px-3 rounded-md border border-border bg-background group",
+                "flex items-center gap-2 sm:gap-3 py-2.5 px-3 rounded-md border border-border bg-background group",
                 draggingId === cal.id && "opacity-50",
               )}
             >
@@ -628,6 +689,7 @@ export function CalendarManagementSettings() {
                   className="w-5 h-5 rounded-full shrink-0 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   style={{ backgroundColor: color }}
                   title={t('change_color')}
+                  aria-label={t('change_color')}
                 />
 
                 {/* Inline color picker popover */}
@@ -648,7 +710,7 @@ export function CalendarManagementSettings() {
               <CalendarIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
 
               <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium truncate block">{cal.name}</span>
+                <span className="text-sm font-medium truncate block" title={cal.name} dir="auto">{cal.name}</span>
                 {(() => {
                   const caldavUrl = buildCalDavUrl(cal.id);
                   if (!caldavUrl) return null;
@@ -658,24 +720,23 @@ export function CalendarManagementSettings() {
                       <span className="text-xs text-muted-foreground truncate" title={caldavUrl}>
                         {caldavUrl}
                       </span>
-                      <button
-                        type="button"
+                      <IconButton
+                        label={t('copy_url')}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleCopyUrl(caldavUrl);
                         }}
-                        className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
-                        title={t('copy_url')}
+                        className="-my-1.5 hidden sm:inline-flex flex-shrink-0 text-muted-foreground"
                       >
-                        <Copy className="w-3 h-3" />
-                      </button>
+                        <Copy className="w-3.5 h-3.5" />
+                      </IconButton>
                     </div>
                   );
                 })()}
               </div>
 
               {cal.isDefault && (
-                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                <span className="flex-shrink-0 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                   {t('default')}
                 </span>
               )}
@@ -689,7 +750,7 @@ export function CalendarManagementSettings() {
                   : t('shared_with_count', { count: shareCount });
                 return (
                   <span
-                    className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full"
+                    className="flex flex-shrink-0 items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full"
                     title={label}
                     data-testid="calendar-shared-indicator"
                   >
@@ -700,81 +761,44 @@ export function CalendarManagementSettings() {
                 );
               })()}
 
+              {/* Phone: seven icons next to the name left it a letter or two
+                  and pushed the Default badge over the copy button, so the
+                  row actions sit behind a ⋮ there, as for folders. */}
+              <IconButton
+                label={t('row_actions', { name: cal.name })}
+                className="sm:hidden flex-shrink-0 text-muted-foreground"
+                onClick={(e) => openContextMenuFrom(e.currentTarget, cal, 'end')}
+              >
+                <MoreVertical />
+              </IconButton>
+
               {/* Shown for touch too: there is no hover, and no HTML drag and drop. */}
               {isOrderable && (
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity">
-                  <button
-                    type="button"
-                    onClick={() => handleMove(cal.id, previousId)}
-                    disabled={!previousId}
-                    className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 disabled:pointer-events-none"
-                    title={t('move_up')}
-                    aria-label={t('move_up')}
-                  >
-                    <ArrowUp className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleMove(cal.id, nextId)}
-                    disabled={!nextId}
-                    className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 disabled:pointer-events-none"
-                    title={t('move_down')}
-                    aria-label={t('move_down')}
-                  >
-                    <ArrowDown className="w-3.5 h-3.5" />
-                  </button>
+                <div className="hidden sm:flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity">
+                  <IconButton label={t('move_up')} onClick={() => handleMove(cal.id, previousId)} disabled={!previousId} className="text-muted-foreground">
+                    <ArrowUp />
+                  </IconButton>
+                  <IconButton label={t('move_down')} onClick={() => handleMove(cal.id, nextId)} disabled={!nextId} className="text-muted-foreground">
+                    <ArrowDown />
+                  </IconButton>
                 </div>
               )}
 
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity">
-                <button
-                  type="button"
-                  onClick={() => setEditingId(cal.id)}
-                  className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                  title={t('edit')}
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-                {/* The owner's defaults; a sharee can't write the calendar. */}
-                {!cal.isShared && (
-                  <button
-                    type="button"
-                    onClick={() => setAlertsEditingId(cal.id)}
-                    className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                    title={t('default_alerts')}
-                    aria-label={t('default_alerts')}
+              <div className="hidden sm:flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity">
+                {calendarActions(cal).map((action) => (
+                  <IconButton
+                    key={action.id}
+                    label={action.label}
+                    onClick={action.run}
+                    className={cn(
+                      "text-muted-foreground",
+                      action.destructive && "hover:text-destructive hover:bg-destructive/10",
+                      action.id === 'clear' && "hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-400",
+                    )}
                   >
-                    <Bell className="w-3.5 h-3.5" />
-                  </button>
-                )}
-                {cal.myRights?.mayShare && !cal.isShared && !isSubscriptionCalendar(cal.id) && (
-                  <button
-                    type="button"
-                    onClick={() => setSharingId(cal.id)}
-                    className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                    title={t('share')}
-                  >
-                    <Users className="w-3.5 h-3.5" />
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setClearingId(cal.id)}
-                  className="p-1.5 rounded-md hover:bg-amber-500/10 text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
-                  title={t('clear_events')}
-                >
-                  <Eraser className="w-3.5 h-3.5" />
-                </button>
-                {!cal.isDefault && (
-                  <button
-                    type="button"
-                    onClick={() => setDeletingId(cal.id)}
-                    className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                    title={t('delete')}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                    <action.icon />
+                  </IconButton>
+                ))}
               </div>
             </div>
           );
@@ -855,32 +879,25 @@ export function CalendarManagementSettings() {
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity">
-                  <button
-                    type="button"
-                    onClick={() => setEditingSubscription(sub)}
-                    className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                    title={tSub('edit')}
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
+                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity">
+                  <IconButton label={tSub('edit')} onClick={() => setEditingSubscription(sub)} className="text-muted-foreground">
+                    <Pencil />
+                  </IconButton>
+                  <IconButton
+                    label={tSub('refresh')}
                     onClick={() => handleRefreshSubscription(sub.id)}
                     disabled={refreshingSubId === sub.id}
-                    className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-                    title={tSub('refresh')}
+                    className="text-muted-foreground"
                   >
-                    <RefreshCw className={cn("w-3.5 h-3.5", refreshingSubId === sub.id && "animate-spin")} />
-                  </button>
-                  <button
-                    type="button"
+                    <RefreshCw className={cn("w-4 h-4", refreshingSubId === sub.id && "animate-spin")} />
+                  </IconButton>
+                  <IconButton
+                    label={tSub('unsubscribe')}
                     onClick={() => setDeletingSubId(sub.id)}
-                    className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                    title={tSub('unsubscribe')}
+                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                    <Trash2 />
+                  </IconButton>
                 </div>
               </div>
             );

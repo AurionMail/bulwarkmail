@@ -4022,6 +4022,7 @@
       "create": "Criar",
       "cancel": "Cancelar",
       "default": "Padrão",
+      "row_actions": "Ações para {name}",
       "confirm_delete": "Excluir \"{name}\"? Todos os eventos neste calendário serão removidos.",
       "calendar_created": "Calendário criado",
       "calendar_updated": "Calendário atualizado",
