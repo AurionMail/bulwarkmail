@@ -6,6 +6,8 @@ import { useTranslations } from "next-intl";
 import { useTour } from "./tour-provider";
 import { cn } from "@/lib/utils";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { isEditableEventTarget } from "@/lib/keyboard";
+import { isDocumentRTL } from "@/i18n/direction";
 
 interface Rect {
   top: number;
@@ -211,7 +213,7 @@ export function TourOverlay() {
         pendingTimerRef.current = null;
       }
     };
-  }, [step, currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [step, currentStep]);
 
   // Recalculate on resize/scroll (debounced)
   useEffect(() => {
@@ -232,14 +234,20 @@ export function TourOverlay() {
     };
   }, [visible, updatePosition]);
 
-  // Keyboard navigation
+  // Keyboard navigation. Enter on a focused button (Skip, Back) and keys
+  // typed into a field (the search step) are theirs, not the tour's.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight" || e.key === "Enter") {
+      const onControl = e.target instanceof HTMLElement && !!e.target.closest("button, a[href]");
+      const typing = isEditableEventTarget(e);
+      // The arrow pointing the way you read goes on: → in LTR, ← in RTL.
+      const forward = isDocumentRTL() ? "ArrowLeft" : "ArrowRight";
+      const back = isDocumentRTL() ? "ArrowRight" : "ArrowLeft";
+      if ((e.key === forward && !typing) || (e.key === "Enter" && !onControl && !typing)) {
         e.preventDefault();
         e.stopPropagation();
         goNext();
-      } else if (e.key === "ArrowLeft") {
+      } else if (e.key === back && !typing) {
         e.preventDefault();
         e.stopPropagation();
         goPrev();

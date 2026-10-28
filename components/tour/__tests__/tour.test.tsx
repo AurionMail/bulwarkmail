@@ -88,3 +88,43 @@ describe('tour targets', () => {
     expect(ids({ supportsContacts: false })).not.toContain('nav-contacts');
   });
 });
+
+describe('tour keyboard', () => {
+  function showStep() {
+    anchors('<a data-tour="one" data-size></a>');
+    render(<TourOverlay />);
+    act(() => { vi.advanceTimersByTime(400); });
+  }
+
+  it('lets Enter press the focused Skip button instead of going to the next step', () => {
+    showStep();
+    const skip = screen.getByRole('button', { name: 'tour.skip' });
+    skip.focus();
+    act(() => { fireEvent.keyDown(skip, { key: 'Enter' }); });
+    expect(tour.nextStep).not.toHaveBeenCalled();
+  });
+
+  it('still goes on with Enter when no button has the focus', () => {
+    showStep();
+    act(() => { fireEvent.keyDown(document.body, { key: 'Enter' }); });
+    expect(tour.nextStep).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves Enter and the arrows to a field being typed in', () => {
+    showStep();
+    const field = document.createElement('input');
+    hosts[0].appendChild(field);
+    act(() => { fireEvent.keyDown(field, { key: 'Enter' }); });
+    act(() => { fireEvent.keyDown(field, { key: 'ArrowRight' }); });
+    expect(tour.nextStep).not.toHaveBeenCalled();
+  });
+
+  it('mirrors the arrows in right-to-left languages', () => {
+    document.documentElement.setAttribute('dir', 'rtl');
+    showStep();
+    act(() => { fireEvent.keyDown(document.body, { key: 'ArrowLeft' }); });
+    expect(tour.nextStep).toHaveBeenCalledTimes(1);
+    act(() => { fireEvent.keyDown(document.body, { key: 'ArrowRight' }); });
+    expect(tour.prevStep).toHaveBeenCalledTimes(1);
+  });
+});
