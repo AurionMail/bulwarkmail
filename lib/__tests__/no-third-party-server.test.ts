@@ -271,3 +271,24 @@ describe('plugins', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+describe('admin view', () => {
+  it('reports the switch, its source, what stays reachable and the refused plugins', async () => {
+    registryPlugins.push(
+      { id: 'offline', name: 'Offline', version: '1.0.0', enabled: true, permissions: ['email:read'] },
+      { id: 'fetcher', name: 'Fetcher', version: '1.0.0', enabled: true, permissions: ['http:fetch'], httpOrigins: ['https://api.vendor.example'] },
+    );
+    const { GET } = await import('@/app/api/admin/outgoing-hosts/route');
+    writeFileSync(path.join(dir, 'config.json'), JSON.stringify({ noThirdPartyTraffic: true, jmapServerUrl: 'https://mail.corp.example' }));
+    writeFileSync(path.join(dir, 'policy.json'), JSON.stringify({ pushRelays: [{ label: 'Own', url: 'https://push.corp.example' }] }));
+    await configManager.load();
+    const body = await (await GET(new NextRequest('https://webmail.example/api/admin/outgoing-hosts'))).json();
+    expect(body).toMatchObject({ noThirdPartyTraffic: true, source: 'admin', envLocked: false, readOnly: false });
+    expect(body.reachable.map((h: { host: string }) => h.host)).toEqual(['mail.corp.example', 'push.corp.example']);
+    expect(body.networkPlugins).toEqual([{ id: 'fetcher', name: 'Fetcher' }]);
+    expect(body.builtIn.length).toBeGreaterThan(5);
+
+    process.env.NO_THIRD_PARTY_TRAFFIC = 'true';
+    expect(await (await GET(new NextRequest('https://webmail.example/api/admin/outgoing-hosts'))).json()).toMatchObject({ source: 'env', envLocked: true });
+  });
+});

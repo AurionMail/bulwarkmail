@@ -1,0 +1,48 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminAuth } from '@/lib/admin/session';
+import { configManager } from '@/lib/admin/config-manager';
+import { isConfigReadOnly } from '@/lib/admin/paths';
+import { getPluginRegistry } from '@/lib/admin/plugin-registry';
+import { noThirdPartyTrafficState } from '@/lib/admin/third-party-mode';
+import { listReachableHosts } from '@/lib/admin/reachable-hosts';
+import { OUTGOING_HOSTS, pluginDeclaresNetwork } from '@/lib/outgoing-hosts';
+import { logger } from '@/lib/logger';
+
+/**
+ * GET /api/admin/outgoing-hosts - the "no third-party traffic" switch with
+ * where its value comes from, the built-in outside hosts it turns off, the
+ * admin-configured hosts that stay reachable, and the installed plugins it
+ * refuses (#903). Organisation > Security renders this; the switch itself is
+ * saved through PATCH /api/admin/config like every other config key.
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const auth = await requireAdminAuth(request);
+    if ('error' in auth) return auth.error;
+
+    await configManager.ensureLoaded();
+    const state = noThirdPartyTrafficState();
+    const policy = configManager.getPolicy();
+    const registry = await getPluginRegistry().catch(() => ({ plugins: [] }));
+
+    return NextResponse.json(
+      {
+        noThirdPartyTraffic: state.on,
+        source: state.source,
+        // The panel can't turn it off when the environment pins it on, and
+        // can't change it at all on a read-only config.
+        readOnly: isConfigReadOnly(),
+        envLocked: state.source === 'env',
+        builtIn: OUTGOING_HOSTS,
+        reachable: listReachableHosts({ get: (key) => configManager.get(key), policy, env: process.env }),
+        networkPlugins: registry.plugins
+          .filter((plugin) => plugin.enabled && pluginDeclaresNetwork(plugin))
+          .map((plugin) => ({ id: plugin.id, name: plugin.name })),
+      },
+      { headers: { 'Cache-Control': 'no-store' } },
+    );
+  } catch (error) {
+    logger.error('Outgoing hosts read error', { error: error instanceof Error ? error.message : 'Unknown error' });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
