@@ -99,3 +99,23 @@ describe('phone conversation messages', () => {
     }
   });
 });
+
+// English plain text in an Arabic UI read "1+" and ".change": the body took
+// the page's direction instead of its own, unlike the single reader.
+describe('phone conversation plain-text body', () => {
+  it('takes its own text direction', async () => {
+    const plain = {
+      ...email, textBody: [{ partId: '1', type: 'text/plain' }],
+      bodyValues: { '1': { value: '+1 on the draft.', isTruncated: false } },
+    };
+    render(
+      <ThreadConversationView
+        thread={{ threadId: 't1', emails: [plain], latestEmail: plain } as never}
+        emails={[plain] as never}
+        onBack={() => {}}
+      />,
+    );
+    const body = await screen.findByText(/\+1 on the draft\./);
+    expect(body.closest('[data-plugin-source="email-body"]')?.getAttribute('dir')).toBe('auto');
+  });
+});

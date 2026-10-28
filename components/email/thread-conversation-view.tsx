@@ -885,6 +885,9 @@ export function ConversationEmailBody({
         ) : (
           <div
             ref={setPlainBodyEl}
+            // Its own direction, as in the reader: English text in an Arabic
+            // UI read "1+" and ".change".
+            dir="auto"
             className={cn(
               "prose prose-sm max-w-none",
               !emailAlwaysLightMode && "dark:prose-invert",
