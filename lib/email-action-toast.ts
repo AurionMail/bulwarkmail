@@ -1,5 +1,5 @@
 import { toast } from "@/stores/toast-store";
-import { useEmailStore, type EmailRestoreBatch } from "@/stores/email-store";
+import { useEmailStore, type EmailRestoreBatch, type CrossAccountMoveReceipt } from "@/stores/email-store";
 import type { ToastAction } from "@/components/ui/toast";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
 
@@ -22,11 +22,16 @@ export function undoLabels(t: (key: string) => string): UndoLabels {
  * The toast's Undo for a reversible move (delete to Trash, archive, move,
  * report spam, remove from folder): puts the messages back where `batches`
  * says they were. None when there is nothing to put back.
+ *
+ * `receipts` (filled while the move runs) name the messages it took to
+ * another account: Undo moves those back, the same way, into the folders
+ * their restore points name (undoMove).
  */
 export function undoMoveAction(
   client: IJMAPClient | null | undefined,
   batches: EmailRestoreBatch[] | null | undefined,
   labels: UndoLabels,
+  receipts?: CrossAccountMoveReceipt[],
 ): ToastAction | undefined {
   if (!client || !batches || !batches.some(b => b.points.length > 0)) return undefined;
   return {
@@ -34,7 +39,7 @@ export function undoMoveAction(
     onClick: () => {
       void (async () => {
         try {
-          await useEmailStore.getState().restoreEmails(client, batches);
+          await useEmailStore.getState().undoMove(client, batches, receipts ?? []);
           toast.success(labels.done);
         } catch (error) {
           console.error("Failed to undo:", error);

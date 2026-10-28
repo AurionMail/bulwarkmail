@@ -667,10 +667,10 @@ function MailboxTreeItem({
   const { dropHandlers, isValidDropTarget, isInvalidDropTarget } = useMailboxDrop({
     mailbox: node,
     accountId: dragAccountId ?? undefined,
-    onSuccess: (count, mailboxName, restore) => {
+    onSuccess: (count, mailboxName, restore, receipts) => {
       toastWithUndo(
         count === 1 ? tNotifications('email_moved') : tNotifications('emails_moved', { count }),
-        undoMoveAction(useAuthStore.getState().client, restore, undoLabels(tNotifications)),
+        undoMoveAction(useAuthStore.getState().client, restore, undoLabels(tNotifications), receipts),
         tNotifications('moved_to_mailbox', { mailbox: mailboxName }),
       );
     },

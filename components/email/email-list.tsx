@@ -21,7 +21,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useArchiveActionEnabled } from "@/lib/archive-gate";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { useEmailStore, resolveEmailBlobContext, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder, restoreBatchesForSelection, isAggregateListView, type ListRow } from "@/stores/email-store";
+import { useEmailStore, resolveEmailBlobContext, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder, restoreBatchesForSelection, type ListRow , type CrossAccountMoveReceipt } from "@/stores/email-store";
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { useShallow } from "zustand/react/shallow";
 import { useAuthStore } from "@/stores/auth-store";
@@ -653,18 +653,15 @@ export function EmailList({
     if (!client || isProcessing) return;
     setIsProcessing(true);
     const count = selectedEmailKeys.size;
-    // A move to another account's folder copies the messages there, which
-    // Undo can't take back.
-    const destination = mailboxes.find(m => m.id === mailboxId);
-    const source = mailboxes.find(m => m.id === selectedMailbox);
-    const crossAccount = isAggregateListView()
-      || (!!destination?.accountId && !!source?.accountId && destination.accountId !== source.accountId);
-    const restore = crossAccount ? null : restoreBatchesForSelection(client);
+    // Undo puts the messages back; those a mixed-account list moved to
+    // another account move back the same way (the receipts).
+    const restore = restoreBatchesForSelection(client);
+    const receipts: CrossAccountMoveReceipt[] = [];
     try {
-      await runBatchEmailAction(() => batchMoveToMailbox(client, mailboxId), {
+      await runBatchEmailAction(() => batchMoveToMailbox(client, mailboxId, undefined, receipts), {
         success: tNotifications('emails_moved', { count }),
         error: tNotifications('move_failed'),
-        undo: undoMoveAction(client, restore, undo),
+        undo: undoMoveAction(client, restore, undo, receipts),
       });
     } finally {
       setTimeout(() => setIsProcessing(false), 500);

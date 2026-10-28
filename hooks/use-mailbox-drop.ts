@@ -3,7 +3,7 @@
 import { useCallback, useState, DragEvent } from "react";
 import { useTranslations } from "next-intl";
 import { Mailbox, Email } from "@/lib/jmap/types";
-import { useEmailStore, isAggregateListView, restoreBatchesFor, type EmailRestoreBatch } from "@/stores/email-store";
+import { useEmailStore, isAggregateListView, restoreBatchesFor, type EmailRestoreBatch, type CrossAccountMoveReceipt } from "@/stores/email-store";
 import { useShallow } from "zustand/react/shallow";
 import { emailKeyFor } from "@/lib/thread-utils";
 import { useAuthStore } from "@/stores/auth-store";
@@ -39,7 +39,8 @@ interface UseMailboxDropOptions {
   // Translation callbacks for toast messages. `restore` says where the
   // messages were, for the toast's Undo; null when the move went to another
   // account, which Undo can't take back.
-  onSuccess?: (count: number, mailboxName: string, restore: EmailRestoreBatch[] | null) => void;
+  /** `restore` and `receipts` are what Undo needs (undoMoveAction). */
+  onSuccess?: (count: number, mailboxName: string, restore: EmailRestoreBatch[] | null, receipts: CrossAccountMoveReceipt[]) => void;
   onError?: (error: string) => void;
 }
 
@@ -137,17 +138,16 @@ export function useMailboxDrop({ mailbox, accountId, onDropComplete, onSuccess, 
       let isCrossAccount = false;
       let moved: boolean;
       let restore: EmailRestoreBatch[] | null = null;
+      // The messages taken to another account, so Undo can move them back.
+      const receipts: CrossAccountMoveReceipt[] = [];
       if (isAggregateListView()) {
-        // Undo only when every row moved inside its own account.
-        const inPlace = draggedEmails.length > 0 && draggedEmails.every(em =>
-          em.sourceAccountId === mailbox.accountId && (!em.sourceClientAccountId || em.sourceClientAccountId === destAccountId));
-        if (inPlace) restore = restoreBatchesFor(draggedEmails, client);
+        restore = restoreBatchesFor(draggedEmails, client);
         // A list that mixes accounts (unified, tag and "All folders" views)
         // stamps every row with its login and account. The store moves each
         // of those groups apart - in place only in the folder's own account,
         // across accounts for the others. It gets the dragged rows: their
         // ids alone can name other accounts' rows too.
-        moved = await moveEmailsToMailbox(client, emailIds, mailbox.id, destAccountId, draggedEmails);
+        moved = await moveEmailsToMailbox(client, emailIds, mailbox.id, destAccountId, draggedEmails, receipts);
       } else {
         // Group dragged emails by source account. In single-account flows this
         // collapses to one bucket; in the Pro multi-account sidebar a single
@@ -196,7 +196,8 @@ export function useMailboxDrop({ mailbox, accountId, onDropComplete, onSuccess, 
           // through the viewing user's client, but the email/blob live in the
           // owner's JMAP account, so the copy/delete must target it.
           const sourceJmapOverride = sourceMb?.isShared ? sourceMb.accountId : undefined;
-          moved = await crossAccountMoveEmails(bySource, destAccountId, jmapDestId, destJmapOverride, sourceJmapOverride);
+          restore = restoreBatchesFor(draggedEmails.filter(em => emailIds.includes(em.id)), client);
+          moved = await crossAccountMoveEmails(bySource, destAccountId, jmapDestId, destJmapOverride, sourceJmapOverride, { receipts });
         } else {
           // Single-account or same-account-shared move: bulk JMAP request.
           restore = restoreBatchesFor(draggedEmails.filter(em => emailIds.includes(em.id)), client);
@@ -228,7 +229,7 @@ export function useMailboxDrop({ mailbox, accountId, onDropComplete, onSuccess, 
       const mailboxPath = getMailboxPath(mailbox, mailboxes);
 
       if (onSuccess) {
-        onSuccess(emailIds.length, mailboxPath, restore);
+        onSuccess(emailIds.length, mailboxPath, restore, receipts);
       } else {
         if (emailIds.length === 1) {
           toast.success(t("email_moved"), t("moved_to_mailbox", { mailbox: mailboxPath }));

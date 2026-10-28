@@ -22,7 +22,7 @@ import {
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShallow } from "zustand/react/shallow";
-import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder, restoreBatchesForSelection } from "@/stores/email-store";
+import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder, restoreBatchesForSelection , type CrossAccountMoveReceipt } from "@/stores/email-store";
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { runBatchEmailAction, toastWithUndo, undoLabels, undoMoveAction } from "@/lib/email-action-toast";
 import { toast } from "@/stores/toast-store";
@@ -332,10 +332,12 @@ export function MvListToolbar({
     closeMove();
     const count = selectionCount;
     const restore = client ? restoreBatchesForSelection(client) : null;
-    void run(async () => (client ? batchMoveToMailbox(client, mailboxId) : false), {
+    // What a mixed-account list moves to another account moves back that way.
+    const receipts: CrossAccountMoveReceipt[] = [];
+    void run(async () => (client ? batchMoveToMailbox(client, mailboxId, undefined, receipts) : false), {
       success: tNotifications("emails_moved", { count }),
       error: tNotifications("move_failed"),
-      undo: undoMoveAction(client, restore, undo),
+      undo: undoMoveAction(client, restore, undo, receipts),
     });
   };
 

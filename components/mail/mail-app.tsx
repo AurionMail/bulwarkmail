@@ -37,7 +37,7 @@ import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
 import { messagePriorityFromHeaders, type MessagePriority } from "@/lib/message-priority";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
-import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, resolveEmailActionContext, emailWriteSource, emailLinkSource, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, isAggregateListView, removalFolder, canRemoveFromFolder, restoreBatchesFor, restoreBatchesForSelection, TrashMailboxNotFoundError, type EmailRestoreBatch } from "@/stores/email-store";
+import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, resolveEmailActionContext, emailWriteSource, emailLinkSource, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, isAggregateListView, removalFolder, canRemoveFromFolder, restoreBatchesFor, restoreBatchesForSelection, TrashMailboxNotFoundError, type EmailRestoreBatch , type CrossAccountMoveReceipt } from "@/stores/email-store";
 import { findDraftIdentityIdForLogin, listRowSource, resolveDraftSource, type DraftSource } from "@/lib/draft-source";
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
@@ -3007,18 +3007,16 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const destinationList = [mailboxes, ...Object.values(accountMailboxes)]
       .find(list => list.some(m => m.id === mailboxId));
     const destination = destinationList?.find(m => m.id === mailboxId);
-    // Undo for a move within the message's own account; a move to another
-    // account copies the message there, which Undo can't take back.
+    // Undo: back to its folders; a move to another account moves back the
+    // same way (the receipts).
     const email = useEmailStore.getState().emails.find(e => (emailKey ? emailKeyFor(e) === emailKey : e.id === emailId));
-    const sourceFolder = [mailboxes, ...Object.values(accountMailboxes)].flat().find(m => m.id === selectedMailbox);
-    const sourceAccount = email?.sourceAccountId ?? sourceFolder?.accountId;
-    const crossAccount = !!destination?.accountId && !!sourceAccount && destination.accountId !== sourceAccount;
-    const restore = email && !crossAccount ? restoreBatchesFor([email], client) : null;
+    const restore = email ? restoreBatchesFor([email], client) : null;
+    const receipts: CrossAccountMoveReceipt[] = [];
     try {
-      if (!(await moveToMailboxCrossAware(client, emailId, mailboxId, emailKey))) return;
+      if (!(await moveToMailboxCrossAware(client, emailId, mailboxId, emailKey, receipts))) return;
       toastWithUndo(
         t('notifications.email_moved'),
-        undoMoveAction(client, restore, undo),
+        undoMoveAction(client, restore, undo, receipts),
         destination && destinationList
           ? t('notifications.moved_to_mailbox', { mailbox: getMailboxPath(destination, destinationList) })
           : undefined,

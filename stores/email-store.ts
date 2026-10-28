@@ -112,6 +112,32 @@ export interface EmailRestoreBatch {
 }
 
 /**
+ * A message a move took to another account (crossAccountMoveEmails): its old
+ * id and account, and the copy's. Undo moves the copy back the same way and
+ * puts it in the folders the restore point names.
+ */
+export interface CrossAccountMoveReceipt {
+  /** The login (AccountEntry.id) and JMAP account the message left. */
+  sourceLogin: string;
+  sourceJmapAccountId: string;
+  sourceEmailId: string;
+  /** The login and JMAP account it is in now, and its id there. */
+  destLogin: string;
+  destJmapAccountId: string;
+  destEmailId: string;
+}
+
+/** The restore point a receipt's message had before it left its account. */
+function receiptPoint(receipt: CrossAccountMoveReceipt, batches: EmailRestoreBatch[]): EmailRestorePoint | undefined {
+  for (const batch of batches) {
+    if ((batch.accountId ?? batch.client.getAccountId()) !== receipt.sourceJmapAccountId) continue;
+    const point = batch.points.find((candidate) => candidate.id === receipt.sourceEmailId);
+    if (point) return point;
+  }
+  return undefined;
+}
+
+/**
  * Where `emails` are now, so the toast's Undo can put them back after a
  * delete to Trash, an archive, a move or "remove from folder". Taken before
  * the action, routed the way the action is (resolveEmailActionContext).
@@ -415,14 +441,15 @@ interface EmailStore {
    * equivalent of what drag-and-drop already does. Falls back to the plain
    * single-account `moveToMailbox` when source and destination share an account.
    */
-  moveToMailboxCrossAware: (client: IJMAPClient, emailId: string, mailboxId: string, emailKey?: string) => Promise<boolean>;
+  /** `receipts` collects what went to another account, for Undo. */
+  moveToMailboxCrossAware: (client: IJMAPClient, emailId: string, mailboxId: string, emailKey?: string, receipts?: CrossAccountMoveReceipt[]) => Promise<boolean>;
   /**
    * `destLocalAccountId`: the login whose folder list `mailboxId` is from (a
    * drop target in the multi-account sidebar); by default the active one's.
    * `rows`: the rows that were dragged. Only a list that mixes accounts needs
    * them: an id alone can name rows of several accounts there.
    */
-  moveEmailsToMailbox: (client: IJMAPClient, emailIds: string[], mailboxId: string, destLocalAccountId?: string | null, rows?: Email[]) => Promise<boolean>;
+  moveEmailsToMailbox: (client: IJMAPClient, emailIds: string[], mailboxId: string, destLocalAccountId?: string | null, rows?: Email[], receipts?: CrossAccountMoveReceipt[]) => Promise<boolean>;
   /**
    * Move the conversation's messages that are in the picked message's folder
    * (the open folder, else the one folder the message is in); the others,
@@ -433,6 +460,12 @@ interface EmailStore {
   moveThreadToMailbox: (client: IJMAPClient, emailId: string, mailboxId: string, emailKey?: string, onMoved?: (restore: EmailRestoreBatch[]) => void) => Promise<boolean>;
   /** Undo for a move: put the messages back (restoreBatchesFor) and reload the list and counts. */
   restoreEmails: (client: IJMAPClient, batches: EmailRestoreBatch[]) => Promise<void>;
+  /**
+   * Undo for a move that took some messages to another account: those move
+   * back (the receipts) into the folders their restore points name, the
+   * others are restored in place. Then the list and counts reload.
+   */
+  undoMove: (client: IJMAPClient, batches: EmailRestoreBatch[], receipts: CrossAccountMoveReceipt[]) => Promise<void>;
   /**
    * Take messages out of the open folder only, leaving them in their other
    * folders (#615). Acts on those of `emails` that removalFolder and
@@ -465,7 +498,7 @@ interface EmailStore {
     destMailboxId: string,
     destJmapAccountId?: string,
     sourceJmapAccountId?: string,
-    options?: { keepOriginal?: boolean },
+    options?: { keepOriginal?: boolean; receipts?: CrossAccountMoveReceipt[] },
   ) => Promise<boolean>;
   /**
    * Copy emails into a folder of another connected account, keeping the
@@ -520,7 +553,8 @@ interface EmailStore {
    * Acts on the selection, or on `target`'s messages when given; with a
    * target, `mailboxId` is the destination's JMAP id in that account.
    */
-  batchMoveToMailbox: (client: IJMAPClient, mailboxId: string, target?: BatchActionTarget) => Promise<boolean>;
+  /** `receipts` collects what went to another account, for Undo. */
+  batchMoveToMailbox: (client: IJMAPClient, mailboxId: string, target?: BatchActionTarget, receipts?: CrossAccountMoveReceipt[]) => Promise<boolean>;
   batchArchive: (client: IJMAPClient) => Promise<boolean>;
 
   // Spam operations
@@ -2280,6 +2314,7 @@ async function moveSourceBatches<T extends SourceStamped>(
   batches: SourceBatch<T>[],
   destination: MoveDestination,
   passedClient: IJMAPClient,
+  receipts?: CrossAccountMoveReceipt[],
 ): Promise<{ moved: T[]; failures: BatchFailure[] }> {
   const callerLogin = useEmailStore.getState().viewingAccountId ?? useAuthStore.getState().activeAccountId;
   const moved: T[] = [];
@@ -2323,6 +2358,8 @@ async function moveSourceBatches<T extends SourceStamped>(
         destination.mailboxId,
         destination.isShared ? destination.accountId : undefined,
         batch.accountId,
+        // Only when asked: a move nobody undoes passes no options.
+        ...(receipts ? [{ receipts }] : []),
       );
     } catch (error) {
       const listed = new Set(useEmailStore.getState().emails.map((email) => email.id));
@@ -2337,8 +2374,8 @@ async function moveSourceBatches<T extends SourceStamped>(
  * rows that moved leave the list and the selection, with their folders'
  * counters; the others stay. Returns what failed.
  */
-async function moveRowsToMailbox(rows: Email[], destination: MoveDestination, passedClient: IJMAPClient): Promise<BatchFailure[]> {
-  const { moved, failures } = await moveSourceBatches(groupBySource(rows), destination, passedClient);
+async function moveRowsToMailbox(rows: Email[], destination: MoveDestination, passedClient: IJMAPClient, receipts?: CrossAccountMoveReceipt[]): Promise<BatchFailure[]> {
+  const { moved, failures } = await moveSourceBatches(groupBySource(rows), destination, passedClient, receipts);
   if (moved.length === 0) return failures;
   const movedKeys = new Set(moved.map(sourceRowKey));
   const unread = moved.filter((email) => !email.keywords?.$seen).length;
@@ -4439,7 +4476,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     return true;
   },
 
-  moveToMailboxCrossAware: async (client, emailId, destinationMailboxId, emailKey): Promise<boolean> => {
+  moveToMailboxCrossAware: async (client, emailId, destinationMailboxId, emailKey, receipts): Promise<boolean> => {
     const isTarget = singleEmailMatcher(emailId, emailKey);
     const state = get();
     const email = state.emails.find(isTarget);
@@ -4452,7 +4489,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const hookMailboxes = resolveActionMailboxes();
       const move = { emailIds: [email.id], fromMailboxId: moveSourceMailboxId([email], hookMailboxes), toMailboxId: destinationMailboxId };
       if (!(await allowEmailMove(move, hookMailboxes))) return false;
-      const failures = await moveRowsToMailbox([email], resolveMoveDestination(client, destinationMailboxId), client);
+      const failures = await moveRowsToMailbox([email], resolveMoveDestination(client, destinationMailboxId), client, receipts);
       if (failures.length > 0) throw failures[0].error;
       emitEmailMove(move, hookMailboxes);
       return true;
@@ -4496,6 +4533,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       destMailbox!.originalId ?? destMailbox!.id,
       destMailbox!.isShared ? destMailbox!.accountId : undefined,
       sourceMailbox?.isShared ? sourceMailbox.accountId : undefined,
+      ...(receipts ? [{ receipts }] : []),
     );
   },
 
@@ -4561,7 +4599,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     return true;
   },
 
-  moveEmailsToMailbox: async (client, emailIds, destinationMailboxId, destLocalAccountId, rows): Promise<boolean> => {
+  moveEmailsToMailbox: async (client, emailIds, destinationMailboxId, destLocalAccountId, rows, receipts): Promise<boolean> => {
     if (emailIds.length === 0) return true;
     const idSet = new Set(emailIds);
 
@@ -4578,6 +4616,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         moving,
         resolveMoveDestination(client, destinationMailboxId, destLocalAccountId),
         client,
+        receipts,
       );
       const failed = new Set(failures.flatMap(f => f.ids));
       const movedIds = move.emailIds.filter(id => !failed.has(id));
@@ -4722,6 +4761,8 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   crossAccountMoveEmails: async (emailIdsBySource, destAccountId, destMailboxId, destJmapAccountId, sourceJmapAccountId, options): Promise<boolean> => {
     if (emailIdsBySource.size === 0) return true;
     const keepOriginal = options?.keepOriginal === true;
+    // A copy keeps the original, so there is nothing to take back.
+    const receipts = keepOriginal ? undefined : options?.receipts;
     // A copy leaves the messages where they are, so only a move asks plugins.
     const hookMailboxes = [...resolveActionMailboxes(), ...(get().accountMailboxes[destAccountId] ?? [])];
     const requestedIds = [...new Set([...emailIdsBySource.values()].flat())];
@@ -4761,14 +4802,23 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
             // blob in a *delegated* account (blobNotFound), so the blob
             // copy+import path below is only valid across separate login
             // clients/servers.
+            const receipt = (destEmailId: string) => receipts?.push({
+              sourceLogin: sourceAccountId,
+              sourceJmapAccountId: sourceJmapAccountId ?? sourceClient.getAccountId(),
+              sourceEmailId: emailId,
+              destLogin: destAccountId,
+              destJmapAccountId: destJmapAccountId ?? destClient.getAccountId(),
+              destEmailId,
+            });
             if (sourceClient === destClient) {
-              await sourceClient.copyEmailAcrossAccounts(
+              const copyId = await sourceClient.copyEmailAcrossAccounts(
                 emailId,
                 sourceJmapAccountId ?? sourceClient.getAccountId(),
                 destJmapAccountId ?? destClient.getAccountId(),
                 destMailboxId,
                 keepOriginal ? { keepOriginal } : undefined,
               );
+              receipt(copyId);
               return emailId;
             }
             // Separate clients (cross-server multi-account): the email, its
@@ -4783,8 +4833,9 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
             // lib/jmap/server-keywords.ts).
             const keywords: Record<string, boolean> = { ...(full.keywords ?? {}) };
             // The original date, or the copy sorts as today's mail.
-            await destClient.importRawEmail(blob, { [destMailboxId]: true }, keywords, destJmapAccountId, full.receivedAt);
+            const copyId = await destClient.importRawEmail(blob, { [destMailboxId]: true }, keywords, destJmapAccountId, full.receivedAt);
             if (!keepOriginal) await sourceClient.deleteEmail(emailId, sourceJmapAccountId);
+            receipt(copyId);
             return emailId;
           }),
         );
@@ -5005,6 +5056,62 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     // Back in the list the user is looking at, and the folder counts with it.
     await get().refreshCurrentMailbox(client);
     void get().fetchMailboxes(client);
+  },
+
+  undoMove: async (client, batches, receipts): Promise<void> => {
+    if (receipts.length === 0) {
+      await get().restoreEmails(client, batches);
+      return;
+    }
+    // The messages that stayed in their account change folders back.
+    const across = (batch: EmailRestoreBatch, id: string) => receipts.some((r) =>
+      r.sourceEmailId === id && r.sourceJmapAccountId === (batch.accountId ?? batch.client.getAccountId()));
+    const inPlace = batches
+      .map((batch) => ({ ...batch, points: batch.points.filter((point) => !across(batch, point.id)) }))
+      .filter((batch) => batch.points.length > 0);
+    for (const batch of inPlace) await batch.client.restoreEmails(batch.points, batch.accountId);
+
+    // The others move back the way they came, into their first folder, then
+    // get all their folders and read state back. A message whose folders
+    // are unknown can't be put back where it was.
+    const groups = new Map<string, { receipt: CrossAccountMoveReceipt; folder: string; items: Array<{ receipt: CrossAccountMoveReceipt; point: EmailRestorePoint }> }>();
+    let unknown = 0;
+    for (const receipt of receipts) {
+      const point = receiptPoint(receipt, batches);
+      const folder = point && Object.keys(point.mailboxIds)[0];
+      if (!point || !folder) {
+        unknown += 1;
+        continue;
+      }
+      const key = [receipt.destLogin, receipt.destJmapAccountId, receipt.sourceLogin, receipt.sourceJmapAccountId, folder].join('\u0000');
+      if (!groups.has(key)) groups.set(key, { receipt, folder, items: [] });
+      groups.get(key)!.items.push({ receipt, point });
+    }
+    const auth = useAuthStore.getState();
+    for (const { receipt, folder, items } of groups.values()) {
+      const back: CrossAccountMoveReceipt[] = [];
+      const sourceClient = auth.getClientForAccount(receipt.sourceLogin);
+      const destClient = auth.getClientForAccount(receipt.destLogin);
+      if (!sourceClient || !destClient) throw new Error('Account is not connected');
+      await get().crossAccountMoveEmails(
+        new Map([[receipt.destLogin, items.map((item) => item.receipt.destEmailId)]]),
+        receipt.sourceLogin,
+        folder,
+        receipt.sourceJmapAccountId === sourceClient.getAccountId() ? undefined : receipt.sourceJmapAccountId,
+        receipt.destJmapAccountId === destClient.getAccountId() ? undefined : receipt.destJmapAccountId,
+        { receipts: back },
+      );
+      const points = back.flatMap((moved) => {
+        const item = items.find((candidate) => candidate.receipt.destEmailId === moved.sourceEmailId);
+        return item ? [{ ...item.point, id: moved.destEmailId }] : [];
+      });
+      if (points.length > 0) {
+        await sourceClient.restoreEmails(points, receipt.sourceJmapAccountId === sourceClient.getAccountId() ? undefined : receipt.sourceJmapAccountId);
+      }
+    }
+    await get().refreshCurrentMailbox(client);
+    void get().fetchMailboxes(client);
+    if (unknown > 0) throw new Error(`${unknown} message(s) could not be put back`);
   },
 
   searchEmails: async (client, typedQuery) => {
@@ -5760,7 +5867,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     return true;
   },
 
-  batchMoveToMailbox: async (client, toMailboxId, target): Promise<boolean> => {
+  batchMoveToMailbox: async (client, toMailboxId, target, receipts): Promise<boolean> => {
     const { selectedEmailKeys, emails } = get();
     // Keyed selection as in batchMarkAsRead; a targeted call names its own.
     const selection = target ? null : resolveSelectionRows();
@@ -5787,7 +5894,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         // What could not be moved stays listed and selected, and so does a
         // selected row found neither listed nor in an expanded thread
         // (resolveSelectionRows).
-        const failures = await moveRowsToMailbox(selectedEmails, resolveMoveDestination(client, toMailboxId), client);
+        const failures = await moveRowsToMailbox(selectedEmails, resolveMoveDestination(client, toMailboxId), client, receipts);
         for (const failure of failures) failure.ids.forEach(id => notMoved.add(id));
         failures.push(...notFoundFailures(selection?.unknown ?? []));
         set({ isLoading: false, error: failures.length > 0 ? batchFailureMessage(failures, 'move') : null });
