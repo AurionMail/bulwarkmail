@@ -19,26 +19,30 @@ export function IconPicker({ value, onChange, className }: IconPickerProps) {
   const [showAll, setShowAll] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
 
+  const query = search.trim().toLowerCase().replace(/\s+/g, '-');
+
   // The full Tabler list is a separate chunk, fetched the first time "show all"
-  // is opened. Names are Tabler's kebab-case names; the stored value carries a
-  // `tabler:` prefix (older settings hold Lucide names, see toTablerName).
+  // is opened or a search is typed: a search always covers every icon, since
+  // the popular set misses common words like "mail". Names are Tabler's
+  // kebab-case names; the stored value carries a `tabler:` prefix (older
+  // settings hold Lucide names, see toTablerName).
   const [allIconNames, setAllIconNames] = useState<string[] | null>(null);
+  const needAll = showAll || query !== '';
   useEffect(() => {
-    if (!showAll || allIconNames) return;
+    if (!needAll || allIconNames) return;
     let live = true;
     loadAllIconNames().then((names) => { if (live) setAllIconNames(names); });
     return () => { live = false; };
-  }, [showAll, allIconNames]);
+  }, [needAll, allIconNames]);
 
   const selected = toTablerName(value);
 
   const filteredIcons = useMemo(() => {
-    const source = showAll ? allIconNames ?? POPULAR_ICON_NAMES : POPULAR_ICON_NAMES;
-    const q = search.trim().toLowerCase().replace(/\s+/g, '-');
+    const source = needAll ? allIconNames ?? POPULAR_ICON_NAMES : POPULAR_ICON_NAMES;
     // Without a search the full list is capped; typing narrows it.
-    if (!q) return source.slice(0, 600);
-    return source.filter(name => name.includes(q));
-  }, [search, showAll, allIconNames]);
+    if (!query) return source.slice(0, 600);
+    return source.filter(name => name.includes(query));
+  }, [query, needAll, allIconNames]);
 
   const renderIcon = useCallback((name: string) => {
     const IconComponent = iconForName(toStoredIconName(name));
