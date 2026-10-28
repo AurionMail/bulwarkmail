@@ -394,6 +394,17 @@ export function CalendarWeekView({
     onMoveEvent,
   });
 
+  // The days in view. Tab stays in them: events of the weeks loaded on
+  // either side are out of the tab order, or Tab walked into them and
+  // scrolled the grid off its week.
+  const inViewKeys = useMemo(
+    () => new Set(days.slice(visibleStartIndex, visibleStartIndex + visibleColumns).map(dayKey)),
+    [days, visibleStartIndex, visibleColumns],
+  );
+  const isInView = useCallback((key: string) => inViewKeys.has(key), [inViewKeys]);
+  const spanInView = (startIndex: number, span: number) =>
+    startIndex < visibleStartIndex + visibleColumns && startIndex + span > visibleStartIndex;
+
   const { slotProps, tabStopDayKey } = useTimeGridFocus({
     rootRef,
     headerRef,
@@ -402,6 +413,7 @@ export function CalendarWeekView({
     hours,
     selectedDate,
     onCreate: onCreateAtTime,
+    isInView,
   });
 
   const formatHour = (h: number): string => {
@@ -553,6 +565,7 @@ export function CalendarWeekView({
                       onMouseLeave={onHoverLeave}
                       onContextMenu={onContextMenuEvent}
                       currentUserEmails={currentUserEmails}
+                      tabbable={spanInView(segment.startIndex, segment.span)}
                     />
                   </div>
                 );
@@ -606,6 +619,7 @@ export function CalendarWeekView({
                       calendar={calendars.find(c => task.calendarIds[c.id])}
                       onToggleComplete={onToggleTaskComplete}
                       onSelect={onSelectTask}
+                      tabbable={inViewKeys.has(key)}
                     />
                   </div>
                 ));
@@ -681,6 +695,7 @@ export function CalendarWeekView({
                       count={dayLayout.before}
                       direction="before"
                       onReveal={() => revealMinutes(dayLayout.firstBeforeMinutes ?? 0)}
+                      tabbable={inViewKeys.has(key)}
                     />
                   )}
                   {dayLayout && dayLayout.after > 0 && (
@@ -688,6 +703,7 @@ export function CalendarWeekView({
                       count={dayLayout.after}
                       direction="after"
                       onReveal={() => revealMinutes(dayLayout.firstAfterMinutes ?? hours.endMinutes)}
+                      tabbable={inViewKeys.has(key)}
                     />
                   )}
 
@@ -728,6 +744,7 @@ export function CalendarWeekView({
                           draggable={editable}
                           continuesBefore={clip.clippedStart}
                           continuesAfter={clip.clippedEnd}
+                          tabbable={inViewKeys.has(key)}
                         />
                         {/* An edge beyond the visible hours has nothing to grab. */}
                         {editable && !clip.clippedStart && (

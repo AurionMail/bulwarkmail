@@ -295,6 +295,10 @@ export function CalendarDayView({
     onMoveEvent,
   });
 
+  // Tab stays in the day in view: the loaded days on either side are out of
+  // the tab order, or Tab walked into them and scrolled the strip.
+  const isInView = useCallback((key: string) => key === visibleKey, [visibleKey]);
+
   const { slotProps } = useTimeGridFocus({
     rootRef,
     headerRef,
@@ -303,6 +307,7 @@ export function CalendarDayView({
     hours,
     selectedDate,
     onCreate: onCreateAtTime,
+    isInView,
   });
 
   const formatHour = (h: number): string => {
@@ -408,6 +413,7 @@ export function CalendarDayView({
                                   onMouseLeave={onHoverLeave}
                                   onContextMenu={onContextMenuEvent}
                                   currentUserEmails={currentUserEmails}
+                                  tabbable={key === visibleKey}
                                 />
                               );
                             })}
@@ -427,6 +433,7 @@ export function CalendarDayView({
                                   onToggleComplete={onToggleTaskComplete}
                                   onSelect={onSelectTask}
                                   touch={isMobile}
+                                  tabbable={key === visibleKey}
                                 />
                               </div>
                             ))}
@@ -504,6 +511,7 @@ export function CalendarDayView({
                         count={dayLayout.before}
                         direction="before"
                         onReveal={() => revealMinutes(dayLayout.firstBeforeMinutes ?? 0)}
+                        tabbable={key === visibleKey}
                       />
                     )}
                     {dayLayout && dayLayout.after > 0 && (
@@ -511,6 +519,7 @@ export function CalendarDayView({
                         count={dayLayout.after}
                         direction="after"
                         onReveal={() => revealMinutes(dayLayout.firstAfterMinutes ?? hours.endMinutes)}
+                        tabbable={key === visibleKey}
                       />
                     )}
 
@@ -548,6 +557,7 @@ export function CalendarDayView({
                             onMouseLeave={onHoverLeave}
                             onContextMenu={onContextMenuEvent}
                             currentUserEmails={currentUserEmails}
+                            tabbable={key === visibleKey}
                             draggable={editable}
                             continuesBefore={clip.clippedStart}
                             continuesAfter={clip.clippedEnd}

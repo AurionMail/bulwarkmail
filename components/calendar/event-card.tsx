@@ -33,6 +33,8 @@ interface EventCardProps {
   style?: CSSProperties;
   /** The user's calendar addresses, to tell whether they declined the event. */
   currentUserEmails?: string[];
+  /** False for a day scrolled out of view: Tab skips it (arrows still reach it). */
+  tabbable?: boolean;
 }
 
 function sanitizeColor(color: string | null | undefined, fallback = "#3b82f6"): string {
@@ -98,7 +100,7 @@ function createEventDragPreview(title: string, timeRange: string, color: string)
   return el;
 }
 
-export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onMouseLeave, onContextMenu, isSelected, draggable: isDraggable, continuesBefore = false, continuesAfter = false, className, style, currentUserEmails }: EventCardProps) {
+export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onMouseLeave, onContextMenu, isSelected, draggable: isDraggable, continuesBefore = false, continuesAfter = false, className, style, currentUserEmails, tabbable = true }: EventCardProps) {
   const t = useTranslations("calendar");
   const [isBeingDragged, setIsBeingDragged] = useState(false);
   const color = getEventColor(event, calendar);
@@ -184,6 +186,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
         onContextMenu={handleContextMenu}
         {...touchProps}
         aria-label={ariaLabel}
+        tabIndex={tabbable ? undefined : -1}
         {...dragProps}
         className={cn(
           "flex items-center w-full text-start text-xs font-medium px-1.5 py-0.5 rounded-xs truncate",
@@ -208,6 +211,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
         onContextMenu={handleContextMenu}
         {...touchProps}
         aria-label={ariaLabel}
+        tabIndex={tabbable ? undefined : -1}
         {...dragProps}
         className={cn(
           "w-full h-full text-start rounded-xs px-1.5 py-0.5 text-xs overflow-hidden",
@@ -237,6 +241,7 @@ export function EventCard({ event, calendar, variant, onClick, onMouseEnter, onM
       onContextMenu={handleContextMenu}
       {...touchProps}
       aria-label={ariaLabel}
+      tabIndex={tabbable ? undefined : -1}
       {...dragProps}
       data-calendar-event
       data-continues-before={continuesBefore || undefined}

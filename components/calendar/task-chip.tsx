@@ -12,6 +12,8 @@ interface CalendarTaskChipProps {
   onSelect?: (task: CalendarTask) => void;
   /** A full row for a finger: 44px tall, a bigger circle with a 44px hit area (phone day view). */
   touch?: boolean;
+  /** False for a day scrolled out of view: Tab skips it. */
+  tabbable?: boolean;
   className?: string;
 }
 
@@ -19,7 +21,7 @@ interface CalendarTaskChipProps {
  * A task on its due day in the month and week grids (#1107). The circle
  * toggles completion; the title opens the task in the editor.
  */
-export function CalendarTaskChip({ task, calendar, onToggleComplete, onSelect, touch = false, className }: CalendarTaskChipProps) {
+export function CalendarTaskChip({ task, calendar, onToggleComplete, onSelect, touch = false, tabbable = true, className }: CalendarTaskChipProps) {
   const t = useTranslations("calendar");
   const isCompleted = task.progress === "completed";
   const color = calendar?.color || "#3b82f6";
@@ -37,6 +39,7 @@ export function CalendarTaskChip({ task, calendar, onToggleComplete, onSelect, t
     >
       <button
         type="button"
+        tabIndex={tabbable ? undefined : -1}
         onClick={(e) => { e.stopPropagation(); onToggleComplete?.(task); }}
         className={cn(
           "group flex items-center flex-shrink-0",
@@ -57,6 +60,7 @@ export function CalendarTaskChip({ task, calendar, onToggleComplete, onSelect, t
       </button>
       <button
         type="button"
+        tabIndex={tabbable ? undefined : -1}
         onClick={(e) => { e.stopPropagation(); onSelect?.(task); }}
         className={cn(
           "flex-1 min-w-0 truncate text-start pe-1 hover:opacity-80",
