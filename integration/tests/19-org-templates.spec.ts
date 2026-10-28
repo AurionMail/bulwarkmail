@@ -42,6 +42,8 @@ const TEAM_TEMPLATE = `Team reply ${STAMP}`;
 const TEAM_BODY = `The team answers ${STAMP}`;
 const PERSONAL = `Alice own ${STAMP}`;
 const LOCAL = `Local only ${STAMP}`;
+const SEEDED_A = `Browser A ${STAMP}`;
+const SEEDED_B = `Browser B ${STAMP}`;
 
 const CORE = 'urn:ietf:params:jmap:core';
 const MAIL = 'urn:ietf:params:jmap:mail';
@@ -118,6 +120,34 @@ async function createTemplate(dialog: ReturnType<Page['getByRole']>, name: strin
   await dialog.getByPlaceholder('Email body content...').fill(body);
   await dialog.getByRole('button', { name: 'Create' }).click();
   await expect(dialog.getByTestId('template-row').filter({ hasText: name })).toBeVisible({ timeout: 20000 });
+}
+
+/**
+ * A browser that already holds templates of its own from before (in
+ * template-storage), signed in as `email`.
+ */
+async function userWithLocalTemplates(browser: import('@playwright/test').Browser, email: string, templates: Array<{ id: string; name: string }>): Promise<Page> {
+  const context = await browser.newContext(contextOptions());
+  const now = new Date().toISOString();
+  const stored = JSON.stringify({
+    state: {
+      templates: templates.map((t) => ({ ...t, subject: '', body: `${t.name} body`, isHTML: false, category: '', isFavorite: false, createdAt: now, updatedAt: now })),
+      recentTemplateIds: [],
+      deletedTemplateIds: {},
+    },
+    version: 1,
+  });
+  await context.addInitScript((value) => {
+    if (!localStorage.getItem('template-storage')) localStorage.setItem('template-storage', value);
+  }, stored);
+  const page = await context.newPage();
+  await neutralizeDevOverlay(page);
+  await page.goto('/');
+  await page.fill('#username', email);
+  await page.fill('#password', ORG_PASSWORD);
+  await page.click('button[type="submit"]');
+  await accountSwitcher(page).waitFor({ state: 'visible', timeout: 60000 });
+  return page;
 }
 
 async function expectOnline(page: Page): Promise<void> {
@@ -214,6 +244,39 @@ test('the library is read-only for users and follows their domain', async ({ bro
   await dave.context().close();
 });
 
+test('personal templates hidden by the admin: only organisation templates, no saving', async ({ browser }) => {
+  const admin = await adminContext(browser);
+  const page = await admin.newPage();
+  await page.goto('/admin/org-templates');
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('button', { name: 'Everyone' }).click();
+  await page.getByLabel('Hide').check();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByText('Saved.')).toBeVisible();
+  expect(((await getPolicy(admin)).restrictions as Record<string, unknown>).personalTemplates).toEqual({ hidden: true });
+
+  const alice = await userPage(browser, ORG.alice);
+  await startCompose(alice);
+  const menu = alice.getByTestId('composer-templates-menu');
+  await menu.click();
+  await expect(alice.getByText('Save as template')).toHaveCount(0);
+  await alice.getByText('Insert template').first().click();
+  const picker = alice.getByRole('dialog', { name: 'Choose a Template' });
+  await expect(picker.getByTestId('template-source-organisation')).toContainText(LIBRARY);
+  await expect(picker.getByTestId('template-source-personal')).toHaveCount(0);
+  await shot(alice, 'templates-picker-personal-hidden');
+  await alice.keyboard.press('Escape');
+  const manager = await openManager(alice);
+  await expect(manager.getByTestId('template-source-tab-personal')).toHaveCount(0);
+  await alice.context().close();
+
+  const policy = await getPolicy(admin);
+  const restrictions = { ...(policy.restrictions as Record<string, unknown>) };
+  delete restrictions.personalTemplates;
+  await putPolicy(admin, { ...policy, restrictions });
+  await admin.close();
+});
+
 test.describe('with metadata (v1.0.0)', () => {
   test.skip(!METADATA, 'team templates and templates in the account need Stalwart v1.0.0');
 
@@ -265,6 +328,31 @@ test.describe('with metadata (v1.0.0)', () => {
     const picker = await openPicker(second);
     await expect(picker.getByTestId('template-source-personal')).toContainText(PERSONAL, { timeout: 20000 });
     await second.context().close();
+  });
+
+  test('templates a browser held from before go into the account, and a second browser keeps both lists', async ({ browser }) => {
+    const idA = `aaaa${STAMP}-0001`;
+    const idB = `bbbb${STAMP}-0002`;
+    const first = await userWithLocalTemplates(browser, ORG.alice, [{ id: idA, name: SEEDED_A }]);
+    await expect(async () => {
+      const names = Object.values(await templateEntries(ORG.alice)).map((v) => v.name);
+      expect(names).toContain(SEEDED_A);
+    }).toPass({ timeout: 45000 });
+    await first.context().close();
+
+    const second = await userWithLocalTemplates(browser, ORG.alice, [{ id: idB, name: SEEDED_B }]);
+    await expect(async () => {
+      const names = Object.values(await templateEntries(ORG.alice)).map((v) => v.name);
+      expect(names).toEqual(expect.arrayContaining([SEEDED_A, SEEDED_B]));
+    }).toPass({ timeout: 45000 });
+    await startCompose(second);
+    const picker = await openPicker(second);
+    await expect(picker.getByTestId('template-source-personal')).toContainText(SEEDED_A, { timeout: 20000 });
+    await expect(picker.getByTestId('template-source-personal')).toContainText(SEEDED_B);
+    await shot(second, 'templates-picker-migrated');
+    await second.context().close();
+    // The marker with the tombstones is there once the lists are in.
+    expect(Object.keys(await templateEntries(ORG.alice))).toContain('org.bulwarkmail.templates');
   });
 
   test('a locked team template is read-only for the group', async ({ browser }) => {
