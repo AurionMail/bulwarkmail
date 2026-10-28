@@ -2474,8 +2474,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // and compose again".
   const handleCancelScheduledSend = async (email: Email) => {
     if (email.isSmimeScheduled || email.scheduledUndoStatus !== 'pending') return;
+    const wasOpen = useEmailStore.getState().selectedEmail?.id === email.id;
     const restored = await cancelScheduledForEdit(email);
     if (restored === undefined) return;
+    // The store closed it in the reader; on a phone or tablet the list comes back.
+    if (wasOpen && (isMobile || isTablet)) handleMobileBack();
     toast.success(
       tViewer('send_cancelled'),
       t('notifications.moved_to_mailbox', { mailbox: t('sidebar.mailboxes.drafts') }),
