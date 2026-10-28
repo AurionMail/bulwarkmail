@@ -672,6 +672,7 @@
     "already_sent": "이 메시지는 이미 보냈습니다.",
     "no_longer_scheduled": "이 메시지는 더 이상 예약되어 있지 않습니다.",
     "reschedule_recipients_refused": "변경된 내용이 없습니다: 서버가 {recipients}을(를) 거부했습니다.",
+    "rescheduled_for": "{date}(으)로 예약을 변경했습니다",
     "contact_sidebar": {
       "title": "연락처",
       "close": "사이드바 닫기",

@@ -672,6 +672,7 @@
     "already_sent": "Dit bericht is al verzonden.",
     "no_longer_scheduled": "Dit bericht staat niet meer gepland.",
     "reschedule_recipients_refused": "Er is niets gewijzigd: de server heeft {recipients} geweigerd.",
+    "rescheduled_for": "Opnieuw gepland voor {date}",
     "contact_sidebar": {
       "title": "Contact",
       "close": "Zijbalk sluiten",

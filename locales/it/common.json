@@ -672,6 +672,7 @@
     "already_sent": "Questo messaggio è già stato inviato.",
     "no_longer_scheduled": "Questo messaggio non è più programmato.",
     "reschedule_recipients_refused": "Non è stato cambiato nulla: il server ha rifiutato {recipients}.",
+    "rescheduled_for": "Riprogrammato per {date}",
     "contact_sidebar": {
       "title": "Contatto",
       "close": "Chiudi barra laterale",

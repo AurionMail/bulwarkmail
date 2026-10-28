@@ -672,6 +672,7 @@
     "already_sent": "Ta wiadomość została już wysłana.",
     "no_longer_scheduled": "Ta wiadomość nie jest już zaplanowana.",
     "reschedule_recipients_refused": "Nic nie zostało zmienione: serwer odrzucił {recipients}.",
+    "rescheduled_for": "Przełożono na {date}",
     "contact_sidebar": {
       "title": "Kontakt",
       "close": "Zamknij panel boczny",

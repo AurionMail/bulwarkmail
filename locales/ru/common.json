@@ -672,6 +672,7 @@
     "already_sent": "Это письмо уже отправлено.",
     "no_longer_scheduled": "Это письмо больше не запланировано.",
     "reschedule_recipients_refused": "Ничего не изменилось: сервер отклонил {recipients}.",
+    "rescheduled_for": "Перенесено на {date}",
     "contact_sidebar": {
       "title": "Контакт",
       "close": "Закрыть боковую панель",

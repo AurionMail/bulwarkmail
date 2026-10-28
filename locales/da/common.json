@@ -672,6 +672,7 @@
     "already_sent": "Denne besked er allerede sendt.",
     "no_longer_scheduled": "Denne besked er ikke længere planlagt.",
     "reschedule_recipients_refused": "Intet blev ændret: serveren afviste {recipients}.",
+    "rescheduled_for": "Omplanlagt til {date}",
     "contact_sidebar": {
       "title": "Kontakt",
       "close": "Luk sidepanel",

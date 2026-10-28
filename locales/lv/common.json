@@ -672,6 +672,7 @@
     "already_sent": "Šis ziņojums jau ir nosūtīts.",
     "no_longer_scheduled": "Šis ziņojums vairs nav ieplānots.",
     "reschedule_recipients_refused": "Nekas netika mainīts: serveris noraidīja {recipients}.",
+    "rescheduled_for": "Pārplānots uz {date}",
     "contact_sidebar": {
       "title": "Kontaktpersona",
       "close": "Aizvērt sānjoslu",

@@ -672,6 +672,7 @@
     "already_sent": "Táto správa už bola odoslaná.",
     "no_longer_scheduled": "Táto správa už nie je naplánovaná.",
     "reschedule_recipients_refused": "Nič sa nezmenilo: server odmietol {recipients}.",
+    "rescheduled_for": "Preplánované na {date}",
     "contact_sidebar": {
       "title": "Kontakt",
       "close": "Zavrieť postranný panel",

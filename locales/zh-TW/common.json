@@ -672,6 +672,7 @@
     "already_sent": "此郵件已寄出。",
     "no_longer_scheduled": "此郵件已不在排定傳送中。",
     "reschedule_recipients_refused": "未作任何變更：伺服器拒絕了 {recipients}。",
+    "rescheduled_for": "已改為在 {date} 傳送",
     "contact_sidebar": {
       "title": "聯絡人",
       "close": "關閉側邊欄",

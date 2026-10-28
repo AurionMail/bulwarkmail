@@ -672,6 +672,7 @@
     "already_sent": "Цей лист уже надіслано.",
     "no_longer_scheduled": "Цей лист більше не заплановано.",
     "reschedule_recipients_refused": "Нічого не змінено: сервер відхилив {recipients}.",
+    "rescheduled_for": "Перенесено на {date}",
     "contact_sidebar": {
       "title": "Контакт",
       "close": "Закрити бічну панель",

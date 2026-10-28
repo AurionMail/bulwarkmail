@@ -42,7 +42,8 @@ import { findDraftIdentityIdForLogin, listRowSource, resolveDraftSource, type Dr
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
 import { toast } from "@/stores/toast-store";
-import { cancelFailureToast, partlyRefusedWarning, rescheduleFailureToast } from "@/lib/send-failure-message";
+import { cancelFailureToast, partlyRefusedWarning, rescheduleFailureToast, rescheduledToast } from "@/lib/send-failure-message";
+import { formatScheduledSendAt } from "@/lib/scheduled-send-label";
 import { formatRejectedRecipients, RescheduleRestoredError } from "@/lib/jmap/client";
 import { subscribePushStateChanges } from "@/lib/push-events";
 import { createMailPushListener } from "@/lib/mail-push-listener";
@@ -90,7 +91,7 @@ import { isFilterEmpty, activeFilterCount, DEFAULT_SEARCH_FILTERS } from "@/lib/
 import { SearchBox, type ContactSearchField } from "@/components/search/search-box";
 import { FilterPanelHost } from "@/components/search/filter-panel-host";
 import type { ContactSuggestion } from "@/lib/search-suggestions";
-import type { Attachment } from "@/lib/jmap/types";
+import type { Attachment, SendEmailResult } from "@/lib/jmap/types";
 import { peekListAttachments, requestListAttachments, type ListAttachmentSource, type LoadListAttachments } from "@/lib/list-attachments";
 import { useSearchHistoryStore } from "@/stores/search-history-store";
 import { WelcomeBanner } from "@/components/ui/welcome-banner";
@@ -2431,8 +2432,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (!client || !email.emailSubmissionId || !email.scheduledIdentityId) return;
     try {
       const result = await rescheduleScheduledEmail(client, email.emailSubmissionId, email.id, email.scheduledIdentityId, delayedUntil, email.scheduledAccountId);
-      const refused = partlyRefusedWarning(result, tComposer);
-      if (refused) toast.warning(refused);
+      announceRescheduled(result, delayedUntil);
     } catch (error) {
       console.error('Failed to reschedule the scheduled send:', error);
       const { title, message } = rescheduleFailureToast(error, tViewer, tComposer, scheduledTime(email.scheduledSendAt));
@@ -2442,6 +2442,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
   const scheduledTime = (sendAt: string | undefined) =>
     sendAt ? formatDateTime(sendAt, useSettingsStore.getState().timeFormat) : undefined;
+
+  // R9: a reschedule says when the message goes out now.
+  const announceRescheduled = (result: SendEmailResult, delayedUntil: string) => {
+    const { kind, title, message } = rescheduledToast(result, tViewer, tComposer, formatScheduledSendAt(result.sendAt || delayedUntil, useSettingsStore.getState().timeFormat));
+    toast[kind](title, message ? { message } : undefined);
+  };
 
   const toastCancelFailure = (error: unknown, cancelFailedTitle: string) => {
     const { title, message } = cancelFailureToast(error, tViewer, cancelFailedTitle);
@@ -5652,8 +5658,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     onRescheduleScheduled={async (delayedUntil) => {
                       if (client && selectedEmail?.emailSubmissionId && selectedEmail.scheduledIdentityId) {
                         const result = await rescheduleScheduledEmail(client, selectedEmail.emailSubmissionId, selectedEmail.id, selectedEmail.scheduledIdentityId, delayedUntil, selectedEmail.scheduledAccountId);
-                        const refused = partlyRefusedWarning(result, tComposer);
-                        if (refused) toast.warning(refused);
+                        announceRescheduled(result, delayedUntil);
                       }
                     }}
                     onCompose={() => {

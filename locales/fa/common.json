@@ -672,6 +672,7 @@
     "already_sent": "این پیام قبلاً ارسال شده است.",
     "no_longer_scheduled": "این پیام دیگر زمان‌بندی نشده است.",
     "reschedule_recipients_refused": "چیزی تغییر نکرد: سرور {recipients} را رد کرد.",
+    "rescheduled_for": "زمان‌بندی دوباره برای {date}",
     "contact_sidebar": {
       "title": "مخاطب",
       "close": "بستن نوار کناری",

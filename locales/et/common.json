@@ -672,6 +672,7 @@
     "already_sent": "See kiri on juba saadetud.",
     "no_longer_scheduled": "See kiri ei ole enam ajastatud.",
     "reschedule_recipients_refused": "Midagi ei muudetud: server lükkas tagasi {recipients}.",
+    "rescheduled_for": "Ajastatud ümber: {date}",
     "contact_sidebar": {
       "title": "Kontakt",
       "close": "Sulge külgriba",

@@ -1432,6 +1432,7 @@
     "already_sent": "ข้อความนี้ถูกส่งออกไปแล้ว",
     "no_longer_scheduled": "ข้อความนี้ไม่มีกำหนดเวลาส่งแล้ว",
     "reschedule_recipients_refused": "ไม่มีการเปลี่ยนแปลง: เซิร์ฟเวอร์ปฏิเสธผู้รับ {recipients}",
+    "rescheduled_for": "กำหนดเวลาใหม่เป็น {date}",
     "contact_sidebar": {
       "title": "ข้อมูลผู้ติดต่อ",
       "close": "ปิด",

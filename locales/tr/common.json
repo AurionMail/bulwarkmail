@@ -672,6 +672,7 @@
     "already_sent": "Bu ileti zaten gönderildi.",
     "no_longer_scheduled": "Bu ileti artık zamanlanmış değil.",
     "reschedule_recipients_refused": "Hiçbir şey değiştirilmedi: sunucu şu alıcıları reddetti: {recipients}.",
+    "rescheduled_for": "{date} için yeniden zamanlandı",
     "contact_sidebar": {
       "title": "Kişi",
       "close": "Kenar çubuğunu kapat",

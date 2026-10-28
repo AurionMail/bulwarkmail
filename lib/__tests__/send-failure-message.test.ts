@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { NoLongerScheduledError, RecipientsRejectedError, RequestTimeoutError, ScheduleTooLateError, SubmissionQuotaError, formatRejectedRecipients } from '../jmap/client';
-import { SendCancelledCleanupError, cancelFailureToast, partlyRefusedWarning, rescheduleFailureToast, sendFailureMessage } from '../send-failure-message';
+import { SendCancelledCleanupError, cancelFailureToast, partlyRefusedWarning, rescheduleFailureToast, rescheduledToast, sendFailureMessage } from '../send-failure-message';
 
 // Keys of a namespace, returned with their values so the test sees which
 // message was chosen and what went into it.
@@ -104,6 +104,21 @@ describe('partlyRefusedWarning', () => {
   it('says nothing when the server took every recipient', () => {
     expect(partlyRefusedWarning({}, t)).toBeNull();
     expect(partlyRefusedWarning({ rejectedRecipients: [] }, t)).toBeNull();
+  });
+});
+
+// A reschedule that went through said nothing at all.
+describe('rescheduledToast', () => {
+  it('says when the message goes out now', () => {
+    expect(rescheduledToast({}, tViewer, t, 'Thu, Oct 29, 08:00'))
+      .toEqual({ kind: 'success', title: 'email_viewer.rescheduled_for {"date":"Thu, Oct 29, 08:00"}' });
+  });
+
+  it('warns about the recipients the server refused', () => {
+    const toast = rescheduledToast({ rejectedRecipients: [{ email: 'nobody@example.net', smtpReply: '550 5.1.1 No such user' }] }, tViewer, t, 'Mon, Nov 2, 08:00');
+    expect(toast.kind).toBe('warning');
+    expect(toast.title).toBe('email_viewer.rescheduled_for {"date":"Mon, Nov 2, 08:00"}');
+    expect(toast.message).toContain('email_composer.recipients_partly_refused');
   });
 });
 

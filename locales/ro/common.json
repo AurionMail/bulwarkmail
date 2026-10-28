@@ -672,6 +672,7 @@
     "already_sent": "Acest mesaj a fost deja trimis.",
     "no_longer_scheduled": "Acest mesaj nu mai este programat.",
     "reschedule_recipients_refused": "Nu s-a schimbat nimic: serverul a respins {recipients}.",
+    "rescheduled_for": "Reprogramat pentru {date}",
     "contact_sidebar": {
       "title": "Contact",
       "close": "Închide bara laterală",

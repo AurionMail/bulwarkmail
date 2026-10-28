@@ -672,6 +672,7 @@
     "already_sent": "Aquest missatge ja s'ha enviat.",
     "no_longer_scheduled": "Aquest missatge ja no està programat.",
     "reschedule_recipients_refused": "No s'ha canviat res: el servidor ha rebutjat {recipients}.",
+    "rescheduled_for": "S'ha reprogramat per a {date}",
     "contact_sidebar": {
       "title": "Contacte",
       "close": "Tanca la barra lateral",

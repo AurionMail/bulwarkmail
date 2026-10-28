@@ -672,6 +672,7 @@
     "already_sent": "このメッセージはすでに送信されています。",
     "no_longer_scheduled": "このメッセージはもう送信予定ではありません。",
     "reschedule_recipients_refused": "何も変更されていません: サーバーが {recipients} を拒否しました。",
+    "rescheduled_for": "{date} に再スケジュールしました",
     "contact_sidebar": {
       "title": "連絡先",
       "close": "サイドバーを閉じる",
