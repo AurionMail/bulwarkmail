@@ -1907,6 +1907,10 @@ export class JMAPClient implements IJMAPClient {
         this.pingSkipRemaining--;
         return;
       }
+      // A push stream that delivered something within its ping interval has
+      // just shown the server reachable; an echo would only repeat that. When
+      // the stream goes quiet or drops, the echo is back on the next tick.
+      if (this.pingFailureCount === 0 && this.isPushStreamLive()) return;
       try {
         await this.ping();
         this.pingFailureCount = 0;
@@ -1931,6 +1935,13 @@ export class JMAPClient implements IJMAPClient {
         }
       }
     }, 30_000);
+  }
+
+  /** Whether the SSE stream delivered an event or a ping within the last SSE_LIVE_WINDOW. */
+  private isPushStreamLive(): boolean {
+    return this.sseAbortController !== null
+      && this.lastSSEActivity > 0
+      && Date.now() - this.lastSSEActivity <= JMAPClient.SSE_LIVE_WINDOW;
   }
 
   private stopKeepAlive(): void {
@@ -9985,6 +9996,8 @@ export class JMAPClient implements IJMAPClient {
   private static readonly SECONDARY_POLL_INTERVAL = 20_000;
   private static readonly SSE_RECONNECT_DELAY = 3_000;
   private static readonly SSE_PING_TIMEOUT = 90_000; // 3x the 30s ping interval
+  // The 30s ping interval the stream is opened with, plus slack for a late one.
+  private static readonly SSE_LIVE_WINDOW = 45_000;
 
   setupPushNotifications(): boolean {
     const eventSourceUrl = this.getEventSourceUrl();
