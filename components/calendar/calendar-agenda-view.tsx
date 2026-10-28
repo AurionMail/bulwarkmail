@@ -4,7 +4,9 @@ import { useMemo, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useDisplayDateFormatter } from "@/hooks/use-display-date-formatter";
 import { format, isTomorrow, startOfDay } from "date-fns";
-import { MapPin, Users } from "@/components/icons";
+import { CalendarDays, MapPin, Users } from "@/components/icons";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import { getEventColor } from "./event-card";
 import { getEventDayBounds, getEventEndDate, getEventStartDate, getPrimaryCalendarId } from "@/lib/calendar-utils";
@@ -24,6 +26,8 @@ interface CalendarAgendaViewProps extends ScrollWindowViewProps {
   timeFormat?: "12h" | "24h";
   /** The user's calendar addresses, to mark events they declined (#1110). */
   currentUserEmails?: string[];
+  /** Offered on an empty agenda: make the first event. */
+  onCreateEvent?: () => void;
 }
 
 interface DayGroup {
@@ -48,6 +52,7 @@ export function CalendarAgendaView({
   onContextMenuEvent,
   timeFormat = "24h",
   currentUserEmails,
+  onCreateEvent,
 }: CalendarAgendaViewProps) {
   const t = useTranslations("calendar");
   // Grid days / event dates are display dates (local fields = wall-clock in
@@ -63,6 +68,7 @@ export function CalendarAgendaView({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const bottomSentinelRef = useRef<HTMLDivElement>(null);
 
+  const hasEvents = events.length > 0;
   const grouped = useMemo(() => {
     const sorted = [...events].sort((a, b) =>
       getEventStartDate(a).getTime() - getEventStartDate(b).getTime()
@@ -177,13 +183,18 @@ export function CalendarAgendaView({
         )}
       </div>
 
-      {grouped.length === 0 && !isLoading && (
-        <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-          {t("events.no_events")}
-        </div>
+      {/* Nothing in the loaded window: one empty state with the way out,
+          not a lone "Today" row. */}
+      {!hasEvents && !isLoading && (
+        <EmptyState
+          compact
+          icon={CalendarDays}
+          title={t("events.no_events")}
+          actions={onCreateEvent ? <Button size="sm" onClick={onCreateEvent}>{t("events.new_event")}</Button> : undefined}
+        />
       )}
 
-      {grouped.map((group, index) => {
+      {hasEvents && grouped.map((group, index) => {
         const today = isDisplayToday(group.date);
         const relativeLabel = today
           ? t("events.today_header")

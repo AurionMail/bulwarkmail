@@ -620,3 +620,12 @@ describe('CalendarApp after saving', () => {
     }
   });
 });
+
+describe('CalendarApp empty agenda', () => {
+  it('offers to create the first event', () => {
+    setUp([], 'agenda');
+    renderApp();
+    fireEvent.click(screen.getByRole('button', { name: 'events.new_event' }));
+    expect(screen.getByRole('heading', { name: 'events.create' })).toBeInTheDocument();
+  });
+});

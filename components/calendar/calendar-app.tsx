@@ -1824,6 +1824,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               onContextMenuEvent={handleContextMenuEvent}
               timeFormat={timeFormat}
               currentUserEmails={currentUserEmails}
+              onCreateEvent={() => openCreateModal()}
             />
           );
         case "tasks":
