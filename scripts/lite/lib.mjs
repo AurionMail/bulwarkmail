@@ -363,7 +363,12 @@ export function buildRedirects({ basePath = "", locales, surfaces = LITE_SURFACE
 }
 
 /** The Content-Security-Policy every static host should send (`_headers`, the container image). */
-export function buildCsp({ connectSrc = "*" } = {}) {
+export function buildCsp({ connectSrc = "*", noThirdParty = false } = {}) {
+  if (noThirdParty) {
+    const strict = noThirdPartyDirectives(connectSrc);
+    const byName = new Map(strict.map((d) => [d.split(" ")[0], d]));
+    return buildCsp({ connectSrc }).split("; ").map((d) => byName.get(d.split(" ")[0]) ?? d).join("; ");
+  }
   return [
     "default-src 'self'",
     // The static export ships inline hydration scripts, so no nonce is possible
@@ -407,8 +412,30 @@ export function inlineScriptHashes(html) {
  * and scripts from this origin, nothing else. Enforced together with the
  * host's header policy, it takes away the header's 'unsafe-inline'.
  */
-export function buildScriptHashCsp(hashes) {
-  return [`script-src 'self'${hashes.map((h) => ` ${h}`).join("")}`, "object-src 'none'", "base-uri 'self'"].join("; ");
+export function buildScriptHashCsp(hashes, { noThirdParty = false, connectSrc = "*" } = {}) {
+  return [
+    `script-src 'self'${hashes.map((h) => ` ${h}`).join("")}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    ...(noThirdParty ? noThirdPartyDirectives(connectSrc) : []),
+  ].join("; ");
+}
+
+/**
+ * A build made with LITE_NO_THIRD_PARTY_TRAFFIC=true (#903) fences the page
+ * like the server build's header does: its own origin and the JMAP server
+ * only, so a link the in-app switches miss still can't load anything from
+ * an outside host. `connectSrc` is the JMAP origin, or `*` when users may
+ * type any server (then only connect-src stays open).
+ */
+export function noThirdPartyDirectives(connectSrc = "*") {
+  const own = connectSrc === "*" ? "" : ` ${connectSrc}`;
+  return [
+    `connect-src 'self' ${connectSrc}`,
+    `img-src 'self' data: blob:${own}`,
+    "font-src 'self' data:",
+    "media-src 'self' blob:",
+  ];
 }
 
 /**
@@ -416,8 +443,8 @@ export function buildScriptHashCsp(hashes) {
  * script: right after <meta charset> (which has to stay within the first
  * 1024 bytes), else as early in the document as possible.
  */
-export function withScriptHashCsp(html) {
-  const meta = `<meta http-equiv="Content-Security-Policy" content="${buildScriptHashCsp(inlineScriptHashes(html))}"/>`;
+export function withScriptHashCsp(html, options = {}) {
+  const meta = `<meta http-equiv="Content-Security-Policy" content="${buildScriptHashCsp(inlineScriptHashes(html), options)}"/>`;
   // Without a <head> the parser still places a leading <meta> in the implied one.
   const anchor = /<meta\s+charset\s*=[^>]*>/i.exec(html) ?? /<head\b[^>]*>/i.exec(html)
     ?? /<html\b[^>]*>/i.exec(html) ?? /<!doctype[^>]*>/i.exec(html);
@@ -441,8 +468,8 @@ export function buildStalwartEntryCsp() {
 }
 
 /** Security headers for hosts that read a `_headers` file. */
-export function buildHeaders({ basePath = "", connectSrc = "*" }) {
-  const csp = buildCsp({ connectSrc });
+export function buildHeaders({ basePath = "", connectSrc = "*", noThirdParty = false }) {
+  const csp = buildCsp({ connectSrc, noThirdParty });
   return `${basePath || ""}/*
   X-Content-Type-Options: nosniff
   X-Frame-Options: SAMEORIGIN
@@ -467,9 +494,9 @@ export function exampleDocRoot(basePath = "") {
   return { root: "/var/www/bulwark-lite", files: `/var/www/bulwark-lite${basePath}` };
 }
 
-export function buildNginxExample({ basePath = "", surfaces = LITE_SURFACES, connectSrc = "*" }) {
+export function buildNginxExample({ basePath = "", surfaces = LITE_SURFACES, connectSrc = "*", noThirdParty = false }) {
   const location = basePath ? `${basePath}/` : "/";
-  const csp = buildCsp({ connectSrc });
+  const csp = buildCsp({ connectSrc, noThirdParty });
   const { root, files } = exampleDocRoot(basePath);
   const surfaceAlternation = surfaces.join("|");
   return `# Bulwark Lite - nginx example. Unzip the archive into ${files}
@@ -598,9 +625,9 @@ ${securityHeaders("        ")}
 `;
 }
 
-export function buildCaddyExample({ basePath = "", surfaces = LITE_SURFACES, connectSrc = "*" }) {
+export function buildCaddyExample({ basePath = "", surfaces = LITE_SURFACES, connectSrc = "*", noThirdParty = false }) {
   const { root, files } = exampleDocRoot(basePath);
-  const csp = buildCsp({ connectSrc });
+  const csp = buildCsp({ connectSrc, noThirdParty });
   const surfaceAlternation = surfaces.join("|");
   return `# Bulwark Lite - Caddy example. Unzip the archive into ${files}
 # so that ${basePath}/index.html is served at ${basePath || ""}/.
