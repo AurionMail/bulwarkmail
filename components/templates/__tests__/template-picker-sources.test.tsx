@@ -123,4 +123,12 @@ describe('template picker sources', () => {
     expect(screen.getByText('Mine')).toBeInTheDocument();
     expect(screen.queryByText("Dave's own")).toBeNull();
   });
+
+  it('shows who a template addresses before it is inserted', () => {
+    useTemplateStore.setState({ templates: [own('mine', 'Mine', { defaultRecipients: { to: ['a@x.test', 'b@x.test'], cc: ['c@x.test'], bcc: ['hidden@x.test'] } })] });
+    render(<TemplatePicker isOpen onClose={() => {}} onSelect={() => {}} />);
+    const line = screen.getByTestId('template-recipients');
+    expect(line).toHaveTextContent('preview_to');
+    expect(line).toHaveTextContent('preview_cc');
+  });
 });

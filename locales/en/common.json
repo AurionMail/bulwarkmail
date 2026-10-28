@@ -2925,7 +2925,10 @@
     "local_only_no_room": "Only in this browser: your account has no room for more templates.",
     "personal_in_account": "Your templates are kept in your account, so you have them on every device you sign in on. Anyone you share your Inbox with can read them.",
     "team_note": "Everyone in {name} sees these templates and can change them.",
-    "team_read_only": "You can use these templates but not change them."
+    "team_read_only": "You can use these templates but not change them.",
+    "save_failed_conflict": "Changed by someone else. Reload and try again.",
+    "preview_to": "To: {list}",
+    "preview_cc": "Cc: {list}"
   },
   "contacts": {
     "directory": {

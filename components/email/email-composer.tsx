@@ -1561,7 +1561,9 @@ export function EmailComposer({
     [composingAccountId],
   );
   // The admin may leave users only organisation and team templates.
-  const personalTemplatesHidden = useTemplateSources(composingAccountId).personalHidden;
+  const composingTemplates = useTemplateSources(composingAccountId);
+  const personalTemplatesHidden = composingTemplates.personalHidden;
+  const composingPersonalTemplates = composingTemplates.sources.find((source) => source.kind === 'personal')?.templates;
   // Sign/encrypt is provided by crypto plugins (S/MIME, PGP) via the
   // composer-toolbar slot + the onComposeSend hook — the host stays
   // crypto-agnostic.
@@ -4873,6 +4875,7 @@ export function EmailComposer({
           >
             <h3 className="text-lg font-semibold text-foreground mb-4">{t('save_as_template')}</h3>
             <TemplateForm
+              categorySource={composingPersonalTemplates}
               initialData={{
                 subject,
                 body,

@@ -31,15 +31,18 @@ interface TemplateFormProps {
   shared?: boolean;
   /** A save is under way: the save button waits. */
   busy?: boolean;
+  /** The templates whose categories the category field suggests; the browser's list when left out. */
+  categorySource?: EmailTemplate[];
 }
 
-export function TemplateForm({ template, initialData, onSave, onCancel, shared = false, busy = false }: TemplateFormProps) {
+export function TemplateForm({ template, initialData, onSave, onCancel, shared = false, busy = false, categorySource }: TemplateFormProps) {
   const t = useTranslations('templates');
   const tSettings = useTranslations('settings.templates');
   const tComposer = useTranslations('email_composer');
 
   const { identities } = useAuthStore();
-  const templates = useTemplateStore((s) => s.templates);
+  const browserList = useTemplateStore((s) => s.templates);
+  const templates = categorySource ?? browserList;
 
   const [name, setName] = useState(template?.name || '');
   const [category, setCategory] = useState(template?.category || '');

@@ -2925,7 +2925,10 @@
     "local_only_no_room": "Nur in diesem Browser: In Ihrem Konto ist kein Platz für weitere Vorlagen.",
     "personal_in_account": "Ihre Vorlagen werden in Ihrem Konto gespeichert, Sie haben sie also auf jedem Gerät, auf dem Sie sich anmelden. Alle, für die Sie Ihren Posteingang freigeben, können sie lesen.",
     "team_note": "Alle Mitglieder von {name} sehen diese Vorlagen und können sie ändern.",
-    "team_read_only": "Sie können diese Vorlagen verwenden, aber nicht ändern."
+    "team_read_only": "Sie können diese Vorlagen verwenden, aber nicht ändern.",
+    "save_failed_conflict": "Von jemand anderem geändert. Laden Sie neu und versuchen Sie es erneut.",
+    "preview_to": "An: {list}",
+    "preview_cc": "Cc: {list}"
   },
   "contacts": {
     "directory": {

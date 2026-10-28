@@ -113,6 +113,15 @@ export function TemplatePicker({ isOpen, onClose, onSelect, accountId }: Templat
           {template.subject}
         </p>
       )}
+      {/* Who the template addresses, before it is put into the message. */}
+      {(template.defaultRecipients?.to?.length || template.defaultRecipients?.cc?.length) ? (
+        <p className="text-xs text-muted-foreground truncate mt-1" data-testid="template-recipients">
+          {[
+            template.defaultRecipients?.to?.length ? tOrg('preview_to', { list: template.defaultRecipients.to.join(', ') }) : null,
+            template.defaultRecipients?.cc?.length ? tOrg('preview_cc', { list: template.defaultRecipients.cc.join(', ') }) : null,
+          ].filter(Boolean).join(' · ')}
+        </p>
+      ) : null}
     </button>
   );
 
