@@ -3715,6 +3715,7 @@
       "title": "참석자",
       "add": "참석자 추가",
       "organizer": "주최자",
+      "organizer_role": "주최자",
       "attendee": "참석자",
       "accepted": "수락함",
       "declined": "거절함",
@@ -3989,6 +3990,7 @@
     "management": {
       "title": "캘린더 관리",
       "description": "캘린더를 만들고 이름을 바꾸거나 색상을 꾸며보세요. 사이드바에서 캘린더를 우클릭하면 색상을 빠르게 바꿀 수 있어요.",
+      "description_touch": "캘린더를 만들고 이름을 바꾸거나 색상을 꾸며보세요.",
       "name": "이름",
       "name_placeholder": "캘린더 이름",
       "color": "색상",
@@ -5067,6 +5069,7 @@
     "placeholder": "명령을 입력하세요",
     "no_results": "일치하는 명령이 없습니다",
     "go_to": "{name}(으)로 이동",
+    "go_to_settings_page": "{name} 설정으로 이동",
     "compose": "메일 쓰기",
     "search": "메일 검색",
     "theme_dark": "어두운 테마로 전환",

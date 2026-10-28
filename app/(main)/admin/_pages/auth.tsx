@@ -10,6 +10,7 @@ import { SettingsSection, SettingItem, SectionNav } from '@/components/settings/
 import { Button } from '@/components/ui/button';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { AdminSaveBar } from '@/components/admin/save-bar';
+import { withEdit } from '@/lib/admin/edits';
 import { useAdminFeedback } from '@/components/admin/feedback';
 import { ConfigTextItem, ConfigToggleItem, ConfigSelectItem, inputClass } from '@/components/admin/config-items';
 import { cn } from '@/lib/utils';
@@ -49,7 +50,7 @@ export function AuthPage() {
   }
 
   function handleChange(key: string, value: unknown) {
-    setEdits(prev => ({ ...prev, [key]: value }));
+    setEdits(prev => withEdit(prev, key, value, config[key]?.value));
     setMessage(null);
   }
 

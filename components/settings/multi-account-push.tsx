@@ -125,7 +125,7 @@ export function MultiAccountPushSettings({ relayBaseUrl }: { relayBaseUrl?: stri
             <span>
               <span className="block">{account.displayName || account.label || account.username}</span>
               <span className="block text-xs text-muted-foreground">
-                {account.email || account.username} · {enabled[account.id] ? t('state_on') : t('state_off')}
+                <bdi dir="ltr">{account.email || account.username}</bdi> · {enabled[account.id] ? t('state_on') : t('state_off')}
               </span>
             </span>
           </label>
@@ -143,7 +143,7 @@ export function MultiAccountPushSettings({ relayBaseUrl }: { relayBaseUrl?: stri
       {failures.length > 0 && <ul role="alert" className="space-y-1 text-sm text-destructive">
         {failures.map(f => <li key={f.id}>
           <span className="font-medium">{f.name}</span>
-          {f.email && f.email !== f.name && <span> ({f.email})</span>}
+          {f.email && f.email !== f.name && <span> (<bdi dir="ltr">{f.email}</bdi>)</span>}
           <span>: {f.reason}</span>
         </li>)}
       </ul>}

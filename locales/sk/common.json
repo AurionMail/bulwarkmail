@@ -3715,6 +3715,7 @@
       "title": "Účastníci",
       "add": "Pridať účastníka",
       "organizer": "Organizátor",
+      "organizer_role": "organizátor",
       "attendee": "Účastník",
       "accepted": "Prijaté",
       "declined": "Odmietnuté",
@@ -4018,6 +4019,7 @@
     "management": {
       "title": "Správa kalendára",
       "description": "Vytvárajte, premenúvajte a prispôsobujte si svoje kalendáre.",
+      "description_touch": "Vytvárajte, premenúvajte a prispôsobujte si svoje kalendáre.",
       "name": "Názov",
       "name_placeholder": "Názov kalendára",
       "color": "Farba",
@@ -5067,6 +5069,7 @@
     "placeholder": "Zadajte príkaz",
     "no_results": "Žiadne zodpovedajúce príkazy",
     "go_to": "Prejsť na {name}",
+    "go_to_settings_page": "Prejsť na nastavenia: {name}",
     "compose": "Napísať",
     "search": "Hľadať v pošte",
     "theme_dark": "Prepnúť na tmavý motív",

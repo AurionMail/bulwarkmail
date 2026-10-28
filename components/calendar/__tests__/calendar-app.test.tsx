@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Calendar, CalendarEvent } from '@/lib/jmap/types';
 import { useCalendarStore } from '@/stores/calendar-store';
@@ -31,6 +31,7 @@ vi.mock('@/hooks/use-config', () => ({ useConfig: () => config }));
 
 import { CalendarApp } from '../calendar-app';
 import { useRegisteredCommandGroups } from '@/lib/command-registry';
+import { interceptLeave } from '@/lib/leave-guard';
 
 // The first render loads the whole page and is slow under load.
 vi.setConfig({ testTimeout: 30000 });
@@ -272,6 +273,38 @@ describe('CalendarApp unsaved editor changes', () => {
     const ask = await screen.findByRole('alertdialog', { name: 'discard.title' });
     fireEvent.click(within(ask).getByRole('button', { name: 'discard.confirm' }));
     await waitFor(() => expect(screen.queryByPlaceholderText('tasks.title_placeholder')).toBeNull());
+  });
+
+  it('has the rail ask before it leaves an editor with changes', async () => {
+    renderApp();
+    // An untouched editor lets the rail go at once.
+    fireEvent.keyDown(document.body, { key: 'n', code: 'KeyN' });
+    const navigated = vi.fn();
+    // A rail link wired as the real one is: interceptLeave first.
+    const link = document.createElement('a');
+    link.addEventListener('click', (e) => { if (!interceptLeave(e)) navigated(); });
+    document.body.appendChild(link);
+    try {
+      act(() => { link.click(); });
+      expect(navigated).toHaveBeenCalledOnce();
+      expect(screen.queryByRole('alertdialog')).toBeNull();
+
+      fireEvent.change(screen.getByPlaceholderText('form.title'), { target: { value: 'Lunch' } });
+      act(() => { link.click(); });
+      const ask = await screen.findByRole('alertdialog', { name: 'discard.title' });
+      expect(navigated).toHaveBeenCalledOnce();
+      fireEvent.click(within(ask).getByRole('button', { name: 'discard.keep' }));
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      expect(screen.getByPlaceholderText('form.title')).toHaveValue('Lunch');
+      expect(navigated).toHaveBeenCalledOnce();
+
+      act(() => { link.click(); });
+      const again = await screen.findByRole('alertdialog', { name: 'discard.title' });
+      fireEvent.click(within(again).getByRole('button', { name: 'discard.confirm' }));
+      await waitFor(() => expect(navigated).toHaveBeenCalledTimes(2));
+    } finally {
+      link.remove();
+    }
   });
 });
 

@@ -3715,6 +3715,7 @@
       "title": "Účastníci",
       "add": "Přidat účastníka",
       "organizer": "Organizátor",
+      "organizer_role": "organizátor",
       "attendee": "Účastník",
       "accepted": "Přijato",
       "declined": "Odmítnuto",
@@ -3989,6 +3990,7 @@
     "management": {
       "title": "Správa kalendáře",
       "description": "Vytvářejte, přejmenovávejte a přizpůsobujte si své kalendáře. Klikněte pravým tlačítkem na kalendář v postranním panelu pro rychlou změnu jeho barvy.",
+      "description_touch": "Vytvářejte, přejmenovávejte a přizpůsobujte si své kalendáře.",
       "name": "Název",
       "name_placeholder": "Název kalendáře",
       "color": "Barva",
@@ -5067,6 +5069,7 @@
     "placeholder": "Zadejte příkaz",
     "no_results": "Žádné odpovídající příkazy",
     "go_to": "Přejít na {name}",
+    "go_to_settings_page": "Přejít na nastavení: {name}",
     "compose": "Napsat",
     "search": "Hledat v poště",
     "theme_dark": "Přepnout na tmavý motiv",

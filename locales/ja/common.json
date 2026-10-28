@@ -3715,6 +3715,7 @@
       "title": "参加者",
       "add": "参加者を追加",
       "organizer": "主催者",
+      "organizer_role": "主催者",
       "attendee": "参加者",
       "accepted": "承諾",
       "declined": "辞退",
@@ -3989,6 +3990,7 @@
     "management": {
       "title": "カレンダー管理",
       "description": "カレンダーの作成、名前変更、カスタマイズができます。サイドバーのカレンダーを右クリックして色を素早く変更できます。",
+      "description_touch": "カレンダーの作成、名前変更、カスタマイズができます。",
       "name": "名前",
       "name_placeholder": "カレンダー名",
       "color": "色",
@@ -5067,6 +5069,7 @@
     "placeholder": "コマンドを入力",
     "no_results": "一致するコマンドはありません",
     "go_to": "{name}に移動",
+    "go_to_settings_page": "{name}の設定に移動",
     "compose": "作成",
     "search": "メールを検索",
     "theme_dark": "ダークテーマに切り替え",

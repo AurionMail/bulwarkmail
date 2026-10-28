@@ -15,6 +15,7 @@ import { SettingsSection, SettingItem, SectionNav } from '@/components/settings/
 import { Button } from '@/components/ui/button';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { AdminSaveBar } from '@/components/admin/save-bar';
+import { withEdit } from '@/lib/admin/edits';
 import { Badge } from '@/components/admin/badge';
 import { useAdminFeedback } from '@/components/admin/feedback';
 import { inputClass, RevertButton } from '@/components/admin/config-items';
@@ -115,7 +116,10 @@ export function BrandingPage() {
   }
 
   function handleChange(key: string, value: string) {
-    setEdits(prev => ({ ...prev, [key]: value }));
+    const saved = selectedHost
+      ? selectedEntry()?.[key as BrandingOverrideKey]
+      : config[key]?.value;
+    setEdits(prev => withEdit(prev, key, value, saved));
     setMessage(null);
   }
 

@@ -3714,6 +3714,7 @@
       "title": "Dalībnieki",
       "add": "Pievienot dalībnieku",
       "organizer": "Organizators",
+      "organizer_role": "organizators",
       "attendee": "Dalībnieks",
       "accepted": "Pieņemts",
       "declined": "Noraidīts",
@@ -3988,6 +3989,7 @@
     "management": {
       "title": "Kalendāru pārvaldība",
       "description": "Izveidojiet, pārdēvējiet un konfigurējiet kalendārus. Ar labo klikšķi varat mainīt kalendāra krāsu.",
+      "description_touch": "Izveidojiet, pārdēvējiet un konfigurējiet kalendārus.",
       "name": "Nosaukums",
       "name_placeholder": "Kalendāra nosaukums",
       "color": "Krāsa",
@@ -5067,6 +5069,7 @@
     "placeholder": "Ierakstiet komandu",
     "no_results": "Nav atbilstošu komandu",
     "go_to": "Pāriet uz: {name}",
+    "go_to_settings_page": "Pāriet uz iestatījumiem: {name}",
     "compose": "Rakstīt",
     "search": "Meklēt pastā",
     "theme_dark": "Pārslēgt uz tumšo motīvu",

@@ -47,8 +47,14 @@ export async function confirmLeave(): Promise<boolean> {
  * when an editor has unsaved changes, stops the click, asks, and clicks the
  * same element again once the user lets the changes go. Returns true when
  * it stopped the click; the handler should then do nothing else.
+ *
+ * `replay` leaves in place of the second click, for an element that is gone
+ * by then (an item of a menu that closes).
  */
-export function interceptLeave(e: { preventDefault(): void; currentTarget: EventTarget | null }): boolean {
+export function interceptLeave(
+  e: { preventDefault(): void; currentTarget: EventTarget | null },
+  replay?: () => void,
+): boolean {
   if (replaying || !hasUnsavedChanges()) return false;
   e.preventDefault();
   const target = e.currentTarget instanceof HTMLElement ? e.currentTarget : null;
@@ -56,15 +62,23 @@ export function interceptLeave(e: { preventDefault(): void; currentTarget: Event
   asking = true;
   void confirmLeave().then(async (leave) => {
     asking = false;
-    if (!leave || !target) return;
+    if (!leave || (!replay && !target)) return;
     // The dialog that asked steps Back off its own history entry as it
     // closes; a navigation started before that lands is undone by it.
     await new Promise((resolve) => setTimeout(resolve, 0));
     await historySettled();
     replaying = true;
-    try { target.click(); } finally { replaying = false; }
+    try {
+      if (replay) replay();
+      else target?.click();
+    } finally { replaying = false; }
   });
   return true;
+}
+
+/** For a way out that isn't a click (a menu command): leaves now, or once the user lets the changes go. */
+export function leaveWhenAllowed(leave: () => void): void {
+  if (!interceptLeave({ preventDefault() {}, currentTarget: null }, leave)) leave();
 }
 
 /** Registers the calling editor's guard while it is mounted. */

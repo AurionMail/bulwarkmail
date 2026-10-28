@@ -18,6 +18,9 @@ interface UseDisplayHoursOptions {
   revealAt?: RevealTime | null;
 }
 
+/** Room above an hour line for the label centred on it, in pixels. */
+export const HOUR_LABEL_ROOM = 8;
+
 /**
  * The height of an hour row: `min`, or more when the hours would leave the
  * pane's bottom empty (a short range on a tall tablet). A pane only a little
@@ -81,7 +84,9 @@ export function useDisplayHours({ scrollRef, minHourHeight, headerRef, revealAt 
       root.scrollTop = 0;
       return;
     }
-    root.scrollTop = Math.max(0, ((now.getHours() - 1) * 60 - startMinutes) / 60 * minHourHeight);
+    // A little above that hour's line: its label sits centred on the line,
+    // and its top half would be under the sticky header.
+    root.scrollTop = Math.max(0, ((now.getHours() - 1) * 60 - startMinutes) / 60 * minHourHeight - HOUR_LABEL_ROOM);
   }, [scrollRef, minHourHeight]);
 
   const revealRef = useRef<number | null>(null);

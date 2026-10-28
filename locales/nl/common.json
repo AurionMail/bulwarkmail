@@ -3715,6 +3715,7 @@
       "title": "Deelnemers",
       "add": "Deelnemer toevoegen",
       "organizer": "Organisator",
+      "organizer_role": "organisator",
       "attendee": "Deelnemer",
       "accepted": "Geaccepteerd",
       "declined": "Geweigerd",
@@ -3989,6 +3990,7 @@
     "management": {
       "title": "Agendabeheer",
       "description": "Maak, hernoem en pas uw agenda's aan. Klik met de rechtermuisknop op een agenda in de zijbalk om snel de kleur te wijzigen.",
+      "description_touch": "Maak, hernoem en pas uw agenda's aan.",
       "name": "Naam",
       "name_placeholder": "Agendanaam",
       "color": "Kleur",
@@ -5067,6 +5069,7 @@
     "placeholder": "Typ een opdracht",
     "no_results": "Geen overeenkomende opdrachten",
     "go_to": "Naar {name}",
+    "go_to_settings_page": "Naar instellingen voor {name}",
     "compose": "Nieuw bericht",
     "search": "E-mail doorzoeken",
     "theme_dark": "Donker thema gebruiken",

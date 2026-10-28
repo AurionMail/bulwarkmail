@@ -3715,6 +3715,7 @@
       "title": "Deltakere",
       "add": "Legg til deltaker",
       "organizer": "Arrangør",
+      "organizer_role": "arrangør",
       "attendee": "Deltaker",
       "accepted": "Godtatt",
       "declined": "Avslått",
@@ -4018,6 +4019,7 @@
     "management": {
       "title": "Administrer kalendere",
       "description": "Opprett, gi nytt navn og tilpass kalenderne dine. Høyreklikk på en kalender i sidefeltet for raskt å endre fargen.",
+      "description_touch": "Opprett, gi nytt navn og tilpass kalenderne dine.",
       "name": "Navn",
       "name_placeholder": "Kalendernavn",
       "color": "Farge",
@@ -5067,6 +5069,7 @@
     "placeholder": "Skriv en kommando",
     "no_results": "Ingen samsvarende kommandoer",
     "go_to": "Gå til {name}",
+    "go_to_settings_page": "Gå til innstillinger for {name}",
     "compose": "Skriv",
     "search": "Søk i e-post",
     "theme_dark": "Bytt til mørkt tema",

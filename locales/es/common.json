@@ -3715,6 +3715,7 @@
       "title": "Participantes",
       "add": "Agregar participante",
       "organizer": "Organizador",
+      "organizer_role": "organizador",
       "attendee": "Participante",
       "accepted": "Aceptado",
       "declined": "Rechazado",
@@ -3989,6 +3990,7 @@
     "management": {
       "title": "Gestión de calendarios",
       "description": "Crea, renombra y personaliza tus calendarios. Haz clic derecho en un calendario en la barra lateral para cambiar su color rápidamente.",
+      "description_touch": "Crea, renombra y personaliza tus calendarios.",
       "name": "Nombre",
       "name_placeholder": "Nombre del calendario",
       "color": "Color",
@@ -5067,6 +5069,7 @@
     "placeholder": "Escribe un comando",
     "no_results": "No hay comandos que coincidan",
     "go_to": "Ir a {name}",
+    "go_to_settings_page": "Ir a la configuración de {name}",
     "compose": "Redactar",
     "search": "Buscar en el correo",
     "theme_dark": "Cambiar al tema oscuro",

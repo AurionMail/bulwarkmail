@@ -3715,6 +3715,7 @@
       "title": "Teilnehmer",
       "add": "Teilnehmer hinzufügen",
       "organizer": "Organisator",
+      "organizer_role": "Organisator",
       "attendee": "Teilnehmer",
       "accepted": "Zugesagt",
       "declined": "Abgelehnt",
@@ -3989,6 +3990,7 @@
     "management": {
       "title": "Kalenderverwaltung",
       "description": "Erstellen, umbenennen und anpassen Ihrer Kalender. Rechtsklick auf einen Kalender in der Seitenleiste, um die Farbe schnell zu ändern.",
+      "description_touch": "Erstellen, benennen und gestalten Sie Ihre Kalender.",
       "name": "Name",
       "name_placeholder": "Kalendername",
       "color": "Farbe",
@@ -5067,6 +5069,7 @@
     "placeholder": "Befehl eingeben",
     "no_results": "Keine passenden Befehle",
     "go_to": "Zu {name} wechseln",
+    "go_to_settings_page": "Zu den Einstellungen für {name} wechseln",
     "compose": "Verfassen",
     "search": "E-Mails durchsuchen",
     "theme_dark": "Dunkles Design verwenden",

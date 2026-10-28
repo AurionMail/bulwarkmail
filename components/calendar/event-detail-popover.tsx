@@ -563,7 +563,7 @@ export function EventDetailPopover({
                       {p.name || p.email}
                       {p.isOrganizer && (
                         <span className="text-muted-foreground ms-1">
-                          ({t("participants.organizer").toLowerCase()})
+                          ({t("participants.organizer_role")})
                         </span>
                       )}
                     </span>

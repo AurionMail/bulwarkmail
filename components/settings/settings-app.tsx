@@ -257,6 +257,9 @@ export interface SettingsAppProps {
   linkSegments?: string[];
 }
 
+/** Settings pages that share their name with an app in the palette's Go to group. */
+const APP_SETTINGS_TABS = new Set(['calendar', 'contacts', 'files']);
+
 export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = {}) {
   // Static Lite build: the route params are empty, read the link from the URL.
   const linkSegments = useLiteLinkSegments('settings', routeSegments);
@@ -786,12 +789,15 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
 
   // Ctrl/⌘+K in Settings: one "Go to <page>" per page shown in the list,
   // found by the same words as the settings search ("out of office", "app
-  // password", "add rule").
+  // password", "add rule"). The pages named after an app say "settings", so
+  // they don't read as the app's own "Go to Calendar" next to them.
   useRegisterCommands(
     tSidebar('settings'),
     visibleTabs.map((tab) => ({
       id: `go-${tab.id}`,
-      label: tPalette('go_to', { name: tab.label }),
+      label: APP_SETTINGS_TABS.has(tab.id)
+        ? tPalette('go_to_settings_page', { name: tab.label })
+        : tPalette('go_to', { name: tab.label }),
       icon: tab.icon,
       keywords: [tabSearchHaystacks[tab.id as Tab] ?? ''],
       run: () => handleTabSelect(tab.id),

@@ -3715,6 +3715,7 @@
       "title": "Uczestnicy",
       "add": "Dodaj uczestnika",
       "organizer": "Organizator",
+      "organizer_role": "organizator",
       "attendee": "Uczestnik",
       "accepted": "Zaakceptowano",
       "declined": "Odrzucono",
@@ -3989,6 +3990,7 @@
     "management": {
       "title": "Zarządzanie kalendarzem",
       "description": "Twórz, zmieniaj nazwy i dostosowuj swoje kalendarze. Kliknij prawym przyciskiem kalendarz na pasku bocznym, aby szybko zmienić jego kolor.",
+      "description_touch": "Twórz, zmieniaj nazwy i dostosowuj swoje kalendarze.",
       "name": "Nazwa",
       "name_placeholder": "Nazwa kalendarza",
       "color": "Kolor",
@@ -5067,6 +5069,7 @@
     "placeholder": "Wpisz polecenie",
     "no_results": "Brak pasujących poleceń",
     "go_to": "Przejdź do: {name}",
+    "go_to_settings_page": "Przejdź do ustawień: {name}",
     "compose": "Napisz",
     "search": "Szukaj w poczcie",
     "theme_dark": "Przełącz na ciemny motyw",

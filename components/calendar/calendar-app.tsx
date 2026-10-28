@@ -87,6 +87,7 @@ import { appPath, buildCalendarPath, parseCalendarPath, type CalendarDeepLink } 
 import { consumePendingDeepLinkEntry, subscribePendingDeepLink } from "@/lib/deep-link-handoff";
 import { useDeepLinkUrl } from "@/hooks/use-deep-link-url";
 import { useCloseOnBack } from "@/hooks/use-close-on-back";
+import { useLeaveGuard } from "@/lib/leave-guard";
 import { useCalendarEventSearch } from "@/hooks/use-calendar-event-search";
 import { CalendarSearchField, CalendarSearchResults } from "@/components/calendar/calendar-search";
 import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
@@ -966,11 +967,26 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     setShowTaskModal(false);
     setEditTask(null);
   }, []);
+  const editorsInView = (showEventModal || showTaskModal) && (isEmbedded ? isFocusedProTab : !proInterfaceActive);
   useCloseOnBack({
-    active: (showEventModal || showTaskModal) && (isEmbedded ? isFocusedProTab : !proInterfaceActive),
+    active: editorsInView,
     shouldHold: () => eventEditorDirtyRef.current || taskEditorDirtyRef.current,
     onBack: () => whenEditorsDiscarded(closeEditors),
   });
+  // The rail, the phone tab bar and the Mountain View top bar ask too,
+  // before they leave the calendar (R5). Only ask there: leaving unmounts
+  // the editor, and clearing it first would let the Back guard above take
+  // its history step back over the navigation.
+  useLeaveGuard(
+    () => editorsInView && (eventEditorDirtyRef.current || taskEditorDirtyRef.current),
+    () => confirmAction({
+      title: t("discard.title"),
+      message: t("discard.message"),
+      confirmText: t("discard.confirm"),
+      cancelText: t("discard.keep"),
+      variant: "destructive",
+    }),
+  );
 
   const handleEditFromDetail = useCallback(() => {
     if (detailEvent) {

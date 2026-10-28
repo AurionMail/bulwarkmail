@@ -3715,6 +3715,7 @@
       "title": "Résztvevők",
       "add": "Résztvevő hozzáadása",
       "organizer": "Szervező",
+      "organizer_role": "szervező",
       "attendee": "Résztvevő",
       "accepted": "Elfogadva",
       "declined": "Elutasítva",
@@ -4018,6 +4019,7 @@
     "management": {
       "title": "Naptár kezelés",
       "description": "Naptárak létrehozása, átnevezése és testreszabása. Kattints jobb gombbal egy naptárra az oldalsávban a szín gyors módosításához.",
+      "description_touch": "Naptárak létrehozása, átnevezése és testreszabása.",
       "name": "Név",
       "name_placeholder": "Naptár neve",
       "color": "Szín",
@@ -5067,6 +5069,7 @@
     "placeholder": "Írjon be egy parancsot",
     "no_results": "Nincs egyező parancs",
     "go_to": "Ugrás ide: {name}",
+    "go_to_settings_page": "Ugrás ide: {name} beállításai",
     "compose": "Új levél",
     "search": "Keresés a levelekben",
     "theme_dark": "Váltás sötét témára",

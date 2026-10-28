@@ -3715,6 +3715,7 @@
       "title": "Participanți",
       "add": "Adăugați un participant",
       "organizer": "Organizator",
+      "organizer_role": "organizator",
       "attendee": "Participant",
       "accepted": "Acceptat",
       "declined": "Respins",
@@ -4018,6 +4019,7 @@
     "management": {
       "title": "Gestionarea calendarului",
       "description": "Creați, redenumiți și personalizați-vă calendarele. Faceți clic dreapta pe un calendar din bara laterală pentru a-i schimba rapid culoarea.",
+      "description_touch": "Creați, redenumiți și personalizați-vă calendarele.",
       "name": "Nume",
       "name_placeholder": "Numele calendarului",
       "color": "Culoare",
@@ -5067,6 +5069,7 @@
     "placeholder": "Tastați o comandă",
     "no_results": "Nicio comandă potrivită",
     "go_to": "Mergi la {name}",
+    "go_to_settings_page": "Mergi la setări: {name}",
     "compose": "Compune",
     "search": "Caută în e-mail",
     "theme_dark": "Comută la tema întunecată",
