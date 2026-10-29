@@ -2,6 +2,7 @@
 
 import { useId, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "@/components/icons";
+import { SearchSnippetText } from "@/components/email/search-snippet-text";
 import { cn } from "@/lib/utils";
 import { isFilterEmpty } from "@/lib/jmap/search-utils";
 import { runPluginAction } from "@/lib/plugin-sandbox/actions";
@@ -153,7 +154,11 @@ export function PluginSearchResults({ surface, onOpenEmail }: PluginSearchResult
                         )}
                       >
                         <span className="w-full truncate text-sm font-medium text-foreground">{r.title}</span>
-                        {r.snippet && <span className="line-clamp-2 text-xs text-muted-foreground">{r.snippet}</span>}
+                        {r.snippet && (
+                          <span className="line-clamp-2 text-xs text-muted-foreground">
+                            <SearchSnippetText snippet={r.snippet} />
+                          </span>
+                        )}
                       </button>
                     </li>
                   );

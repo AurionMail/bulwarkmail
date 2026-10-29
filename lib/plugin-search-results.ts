@@ -7,6 +7,7 @@
 
 import { emailHooks } from './plugin-hooks';
 import type { ExternalSearchResult, SearchResultEmail } from './plugin-types';
+import { parseSearchSnippet } from './search-snippet';
 
 /** An entry as the host keeps it: checked, with the plugin that gave it. */
 export interface ProvidedSearchResult extends ExternalSearchResult {
@@ -28,6 +29,36 @@ function text(value: unknown, max: number): string {
   return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
 }
 
+/** `&`, `<` and `>` escaped as SearchSnippet/get escapes them, so parseSearchSnippet reads the text back as written. */
+function escaped(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * A snippet in SearchSnippet/get's form: text with `<mark>` around what
+ * matched. Flattened and cut to `max` characters of its text as text() cuts,
+ * each mark kept and closed, everything else escaped, so the list renders it
+ * with parseSearchSnippet and never as HTML.
+ */
+function markedText(value: unknown, max: number): string {
+  if (typeof value !== 'string') return '';
+  const segments = parseSearchSnippet(value.replace(/\s+/g, ' ')).filter((segment) => segment.text);
+  if (segments.length > 0) {
+    segments[0] = { ...segments[0], text: segments[0].text.trimStart() };
+    const last = segments.length - 1;
+    segments[last] = { ...segments[last], text: segments[last].text.trimEnd() };
+  }
+  const length = segments.reduce((n, segment) => n + segment.text.length, 0);
+  let left = length > max ? max - 1 : length;
+  let out = '';
+  for (const { text: part, marked } of segments) {
+    const kept = part.slice(0, left);
+    left -= kept.length;
+    if (kept) out += marked ? `<mark>${escaped(kept)}</mark>` : escaped(kept);
+  }
+  return length > max ? `${out}…` : out;
+}
+
 function jmapId(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 && value.length <= MAX_ID ? value : null;
 }
@@ -45,7 +76,7 @@ function email(value: unknown): SearchResultEmail | null {
 
 /**
  * One plugin's answer, checked: a list of entries with a key and a title,
- * plain text cut to its limits, keys unique, at most MAX_RESULTS_PER_PLUGIN.
+ * plain text cut to its limits (the snippet with its marks), keys unique, at most MAX_RESULTS_PER_PLUGIN.
  * Anything else is dropped without failing the rest.
  */
 export function checkSearchResults(pluginId: string, value: unknown): ProvidedSearchResult[] {
@@ -63,7 +94,7 @@ export function checkSearchResults(pluginId: string, value: unknown): ProvidedSe
     const source = text(entry.source, MAX_SOURCE);
     const message = email(entry.email);
     out.push({
-      pluginId, key, title, snippet: text(entry.snippet, MAX_SNIPPET),
+      pluginId, key, title, snippet: markedText(entry.snippet, MAX_SNIPPET),
       ...(source ? { source } : {}),
       ...(message ? { email: message } : {}),
     });

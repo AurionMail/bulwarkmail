@@ -72,6 +72,19 @@ describe('PluginSearchResults', () => {
     expect(screen.getByRole('region', { name: 'Team chat' })).toHaveTextContent('Snippet b');
   });
 
+  it('highlights what a snippet marks, its other text as text', () => {
+    useEmailStore.setState({
+      searchQuery: 'pixel grid',
+      externalSearchResults: [{ ...result('crm', 'a', 'CRM'), snippet: 'The <mark>pixel grid</mark> is &lt;b&gt;coarse&lt;/b&gt;' }],
+    });
+    render(<PluginSearchResults surface="search-results" />);
+
+    const mark = screen.getByText('pixel grid');
+    expect(mark.tagName).toBe('MARK');
+    expect(mark.parentElement).toHaveTextContent('The pixel grid is <b>coarse</b>');
+    expect(mark.parentElement?.querySelector('b')).toBeNull();
+  });
+
   it('sends a click to the plugin that gave the entry, with the query', () => {
     useEmailStore.setState({ searchQuery: 'resolution', externalSearchResults: [result('crm', 'mail-123', 'CRM')] });
     render(<PluginSearchResults surface="search-results" />);
