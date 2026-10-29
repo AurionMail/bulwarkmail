@@ -5353,12 +5353,15 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       highlightWhenSnippetsArrive('snippets' in result ? result.snippets : undefined);
     } catch (error) {
       if (controller.signal.aborted) return;
+      // Plugins still answering this search have nothing to add to an error.
+      providedSearchRun = null;
       set({
         error: error instanceof Error ? error.message : "Failed to search emails",
         searchQuery: typedQuery,
         isLoading: false,
         emails: [],
         externalSearchResults: [],
+        externalSearchPending: [],
         hasMoreEmails: false,
         totalEmails: 0,
         searchAbortController: null,
@@ -5465,11 +5468,14 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       highlightWhenSnippetsArrive('snippets' in result ? result.snippets : undefined);
     } catch (error) {
       if (controller.signal.aborted) return;
+      // Plugins still answering this search have nothing to add to an error.
+      providedSearchRun = null;
       set({
         error: error instanceof Error ? error.message : "Failed to search emails",
         isLoading: false,
         emails: [],
         externalSearchResults: [],
+        externalSearchPending: [],
         hasMoreEmails: false,
         totalEmails: 0,
         searchAbortController: null,

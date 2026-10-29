@@ -150,6 +150,22 @@ describe('onProvideSearchResults', () => {
     expect(useEmailStore.getState().externalSearchPending).toEqual([]);
   });
 
+  it('waits no more for the plugins of a search that failed', async () => {
+    const answer = deferred<ExternalSearchResult[]>();
+    emailHooks.onProvideSearchResults.register('crm', () => answer.promise);
+    vi.mocked(client.searchEmails).mockRejectedValueOnce(new Error('boom'));
+
+    await useEmailStore.getState().searchEmails(client, 'resolution');
+    expect(useEmailStore.getState().error).toBe('boom');
+    expect(useEmailStore.getState().externalSearchPending).toEqual([]);
+
+    answer.resolve([entry('late')]);
+    await answer.promise;
+    await new Promise((r) => setTimeout(r, 0));
+    expect(useEmailStore.getState().externalSearchResults).toEqual([]);
+    expect(useEmailStore.getState().externalSearchPending).toEqual([]);
+  });
+
   it('waits no more for the plugins of a search that was replaced', async () => {
     emailHooks.onProvideSearchResults.register('crm', (_results: ExternalSearchResult[], { query }: { query: string }) =>
       (query === 'one' ? new Promise(() => {}) : [entry('two')]));
