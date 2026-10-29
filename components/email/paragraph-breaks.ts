@@ -1,4 +1,5 @@
-import { SIGNATURE_RANGE_MARKER } from "@/components/email/signature-block";
+import { SIGNATURE_BLOCK_MARKER, SIGNATURE_RANGE_MARKER } from "@/components/email/signature-block";
+import { QUOTED_HTML_MARKER } from "@/components/email/quoted-html";
 
 /**
  * Empty lines in the composer (#1015).
@@ -53,13 +54,60 @@ export function addTrailingParagraphBreaks(root: ParentNode): void {
 const PARAGRAPH_MARGIN = "margin:4px 0;";
 const TABLE_PARAGRAPH_MARGIN = "margin:0;";
 
+/** A paragraph that brings a margin of its own, from the mail it was loaded from. */
+const OWN_MARGIN = /(?:^|;)\s*margin(?:-block)?(?:-start|-end|-top|-bottom)?\s*:/i;
+
 export function addParagraphSpacing(root: ParentNode): void {
   root.querySelectorAll("p").forEach((p) => {
     if (p.hasAttribute(SIGNATURE_RANGE_MARKER)) return;
+    const style = p.getAttribute("style") ?? "";
+    // A paragraph that already states its spacing keeps it: the composer's
+    // own margin would only be overridden by it anyway, and writing both
+    // leaves two margin declarations in every line of the sent mail.
+    if (OWN_MARGIN.test(style)) return;
     const margin = p.closest("table") ? TABLE_PARAGRAPH_MARGIN : PARAGRAPH_MARGIN;
     // Ahead of any style the editor wrote, so an explicit margin still wins.
-    p.setAttribute("style", margin + (p.getAttribute("style") ?? ""));
+    p.setAttribute("style", margin + style);
   });
+}
+
+/**
+ * Spacing of a message the composer did not write (#1416).
+ *
+ * A draft does not have to come from this composer: the JMAP API, another
+ * client, an automation or a template can put one in the Drafts folder, and
+ * its paragraphs carry no style, so every mail client lays them out with the
+ * user agent's 1em margins. The composer shows its own paragraphs 4px apart
+ * and sends that spacing out (#1340), so opening such a draft to proofread it
+ * and pressing Send re-flowed a message nobody meant to re-flow.
+ *
+ * Materialise the spacing a loaded paragraph already has, so the editor shows
+ * the message's own layout and what goes out is what came in. Only paragraphs
+ * with content are stamped: the empty one a new message is scaffolded with has
+ * no spacing to preserve, and the paragraphs the user then writes should
+ * follow the composer like every other line they type.
+ */
+const MAIL_PARAGRAPH_MARGIN = "margin:1em 0;";
+
+export function keepLoadedParagraphSpacing(html: string): string {
+  if (!html.includes("<p")) return html;
+  const root = document.createElement("div");
+  root.innerHTML = html;
+  let stamped = false;
+  root.querySelectorAll("p").forEach((p) => {
+    if (p.hasAttribute(SIGNATURE_RANGE_MARKER)) return;
+    // The quoted original and an embedded signature are held verbatim by
+    // their own nodes - neither is laid out by the composer.
+    if (p.closest(`[${QUOTED_HTML_MARKER}], [${SIGNATURE_BLOCK_MARKER}]`)) return;
+    // A paragraph in a table cell sits flush in the composer and in the mail.
+    if (p.closest("table")) return;
+    if (!(p.textContent ?? "").trim() && !p.querySelector("img")) return;
+    const style = p.getAttribute("style") ?? "";
+    if (OWN_MARGIN.test(style)) return;
+    p.setAttribute("style", MAIL_PARAGRAPH_MARGIN + style);
+    stamped = true;
+  });
+  return stamped ? root.innerHTML : html;
 }
 
 /** A paragraph's `style` without the margin addParagraphSpacing put in front. */
