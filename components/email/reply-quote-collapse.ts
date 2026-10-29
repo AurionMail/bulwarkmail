@@ -5,7 +5,8 @@ import type { Node as PMNode } from '@tiptap/pm/model';
 import { Plugin, PluginKey, Selection } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 
-const START_ATTRIBUTE = 'data-reply-quote-start';
+export const REPLY_QUOTE_START_ATTRIBUTE = 'data-reply-quote-start';
+const START_ATTRIBUTE = REPLY_QUOTE_START_ATTRIBUTE;
 const HEADER_BLOCKS = 'p, h1, h2, h3, h4, h5, h6, table, ul, ol, pre, blockquote';
 
 /** Mark only attribution generated for a reply. Unknown plugin markup stays visible. */

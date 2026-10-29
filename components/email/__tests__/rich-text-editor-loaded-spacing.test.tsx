@@ -56,6 +56,13 @@ describe('RichTextEditor spacing of a loaded message (#1416)', () => {
     expect(serialize(editor)).toBe(saved);
   });
 
+  it('leaves the reply attribution line to the composer (#1405)', async () => {
+    const editor = await setup('<p></p><p data-reply-quote-start="true">On Monday, Anna wrote:</p><blockquote><p>hi</p></blockquote>');
+
+    const attribution = serialize(editor).match(/<p[^>]*data-reply-quote-start[^>]*>/)![0];
+    expect(margins(attribution)).toEqual(['4px 0']);
+  });
+
   it('leaves the quoted original and an embedded signature alone', async () => {
     const editor = await setup(
       '<p>reply</p>'
