@@ -384,7 +384,7 @@ function LoginPageContent() {
   }, []);
 
   useEffect(() => {
-    if (error && error !== prevError.current) {
+    if (error && error !== 'totp_required' && error !== prevError.current) {
       setShakeError(true);
       const timer = setTimeout(() => setShakeError(false), 400);
       return () => clearTimeout(timer);
@@ -1300,17 +1300,26 @@ function LoginPageContent() {
               </div>
             )}
 
-            {/* Error Message */}
+            {/* Error Message. Asking for the code is the next step of a
+                sign-in that worked so far, not a failure (#1422). */}
             {error && (
-              <div className={cn(
-                "mb-5 p-3 rounded-xl border border-destructive/20 bg-destructive/5 flex items-start gap-3",
-                shakeError && "animate-shake"
-              )}>
-                <div className="w-10 h-10 rounded-full bg-destructive/15 text-destructive flex items-center justify-center flex-shrink-0 shadow-sm">
-                  <AlertCircle className="w-5 h-5" />
+              <div
+                className={cn(
+                  "mb-5 p-3 rounded-xl border flex items-start gap-3",
+                  error === 'totp_required' ? "border-info/20 bg-info/5" : "border-destructive/20 bg-destructive/5",
+                  shakeError && "animate-shake"
+                )}
+                data-testid="login-error"
+                role={error === 'totp_required' ? "status" : undefined}
+              >
+                <div className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm",
+                  error === 'totp_required' ? "bg-info/15 text-info" : "bg-destructive/15 text-destructive"
+                )}>
+                  {error === 'totp_required' ? <Info className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
                 </div>
                 <div className="flex-1 min-w-0 self-center">
-                  <p className="text-sm text-destructive leading-relaxed">
+                  <p className={cn("text-sm leading-relaxed", error === 'totp_required' ? "text-info" : "text-destructive")}>
                     {error === 'invalid_credentials' && showTotpField && totpCode
                       ? t('error.totp_invalid')
                       : t(`error.${error}`) || t("error.generic")}

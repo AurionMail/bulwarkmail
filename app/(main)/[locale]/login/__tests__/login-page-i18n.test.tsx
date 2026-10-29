@@ -34,6 +34,7 @@ vi.mock('@/hooks/use-config', () => ({
 }));
 
 const { default: LoginPage } = await import('../page');
+const { useAuthStore } = await import('@/stores/auth-store');
 
 describe('login page translations', () => {
   it('shows the translated subtitle whatever the app is called', async () => {
@@ -61,5 +62,29 @@ describe('login page translations', () => {
     expect(screen.getByRole('button', { name: 'copy' })).toBeInTheDocument();
     act(() => { fireEvent.keyDown(document, { key: 'Escape' }); });
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  }, 30_000);
+});
+
+describe('login page notices', () => {
+  it('asks for the second factor as the next step, not as a failure (#1422)', async () => {
+    render(<LoginPage />);
+    await screen.findByText('subtitle', {}, { timeout: 10000 });
+    // The page clears the error as it mounts; a sign-in attempt sets it after.
+    act(() => { useAuthStore.setState({ error: 'totp_required' }); });
+    const notice = await screen.findByTestId('login-error', {}, { timeout: 10000 });
+    expect(notice).toHaveAttribute('role', 'status');
+    expect(notice.className).toContain('bg-info/5');
+    expect(notice.className).not.toContain('destructive');
+    expect(notice.className).not.toContain('animate-shake');
+  }, 30_000);
+
+  it('keeps a wrong password an error', async () => {
+    render(<LoginPage />);
+    await screen.findByText('subtitle', {}, { timeout: 10000 });
+    // The page clears the error as it mounts; a sign-in attempt sets it after.
+    act(() => { useAuthStore.setState({ error: 'invalid_credentials' }); });
+    const notice = await screen.findByTestId('login-error', {}, { timeout: 10000 });
+    expect(notice).not.toHaveAttribute('role');
+    expect(notice.className).toContain('bg-destructive/5');
   }, 30_000);
 });
