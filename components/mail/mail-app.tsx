@@ -4608,14 +4608,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       <option value={SEARCH_SCOPE_ALL_FOLDERS}>{t("advanced_search.all_folders")}</option>
       {searchScopeFolders.own.map((mb) => (
         <option key={mb.id} value={mb.id}>
-          {"\u00A0".repeat(mb.depth * 3)}{mb.name}
+          {"\u00A0".repeat(mb.depth * 3)}{localizeMailboxName(mb.role, mb.name, (k) => t(`sidebar.mailboxes.${k}`))}
         </option>
       ))}
       {searchScopeFolders.shared.map((group) => (
         <optgroup key={group.ownerId} label={group.label}>
           {group.mailboxes.map((mb) => (
             <option key={mb.id} value={mb.id}>
-              {"\u00A0".repeat(mb.depth * 3)}{mb.name}
+              {"\u00A0".repeat(mb.depth * 3)}{localizeMailboxName(mb.role, mb.name, (k) => t(`sidebar.mailboxes.${k}`))}
             </option>
           ))}
         </optgroup>

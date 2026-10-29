@@ -132,3 +132,16 @@ describe('code warm-up once signed in', () => {
     unmount();
   });
 });
+
+describe('advanced search folder select', () => {
+  it('names system folders in the user language, as the sidebar does (#1429)', () => {
+    const projects = { id: 'projects', name: 'Projects', role: null } as unknown as Mailbox;
+    useEmailStore.setState({ mailboxes: [inbox, projects], isAdvancedSearchOpen: true } as never);
+    render(<MailApp />);
+
+    const options = Array.from(document.querySelectorAll('option')).map((o) => o.textContent);
+    expect(options).toContain('sidebar.mailboxes.inbox');
+    expect(options).toContain('Projects');
+    expect(options).not.toContain('Inbox');
+  });
+});
