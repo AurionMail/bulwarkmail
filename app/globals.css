@@ -780,6 +780,11 @@ optgroup {
   outline: none;
 }
 
+/* View-only quote decorations must survive a node view refreshing its inline styles. */
+.tiptap [data-reply-quote-collapsed] {
+  display: none !important;
+}
+
 .tiptap p {
   margin: 0.25rem 0;
 }

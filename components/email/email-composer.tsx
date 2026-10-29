@@ -56,6 +56,7 @@ import { sanitizeSignatureHtml, sanitizeSignatureHtmlForDisplay, sanitizeEmailHt
 import { buildReplySubject, buildForwardSubject } from "@/lib/subject-prefix";
 import { isFilePreviewable } from "@/lib/file-preview";
 import { isEditableEventTarget } from "@/lib/keyboard";
+import { markReplyQuoteHeader } from "@/components/email/reply-quote-collapse";
 import { buildQuotedHtmlBlock, serializeEditorContent } from "@/components/email/quoted-html";
 import { containsEmbeddedSignature } from "@/components/email/signature-block";
 import {
@@ -729,6 +730,10 @@ export function EmailComposer({
     const { externalContentPolicy, isSenderTrusted } = useSettingsStore.getState();
     const quoteRemoteAllowed = externalContentPolicy === 'allow' || (!!from?.email && isSenderTrusted(from.email));
 
+    const replyHeader = (html: string) => mode === 'reply' || mode === 'replyAll'
+      ? markReplyQuoteHeader(html)
+      : html;
+
     // Plugin override (resolved at composer open via onBuildQuoteHeader).
     if (replyTo.quoteHeaderHtml !== undefined && (mode === 'reply' || mode === 'replyAll' || mode === 'forward')) {
       if (replyTo.htmlBody) {
@@ -739,7 +744,7 @@ export function EmailComposer({
           rewriteCidImagesForEditor(sanitizeEmailHtml(replyTo.htmlBody)),
           { remoteAllowed: quoteRemoteAllowed, showQuoteBorder: replyTo.quoteWrapInBlockquote !== false },
         );
-        return `${prefix}${signatureBlock}<br>${replyTo.quoteHeaderHtml}${island}`;
+        return `${prefix}${signatureBlock}<br>${replyHeader(replyTo.quoteHeaderHtml)}${island}`;
       }
       const escaped = replyTo.body
         ? replyTo.body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')
@@ -748,7 +753,7 @@ export function EmailComposer({
       const bodyHtml = wrap
         ? `<blockquote style="margin:0 0 0 0.8ex;border-left:2px solid #ccc;padding-left:1ex">${escaped}</blockquote>`
         : escaped;
-      return `${prefix}${signatureBlock}<br>${replyTo.quoteHeaderHtml}${bodyHtml}`;
+      return `${prefix}${signatureBlock}<br>${replyHeader(replyTo.quoteHeaderHtml)}${bodyHtml}`;
     }
 
     // Build quoted content as HTML
@@ -766,7 +771,7 @@ export function EmailComposer({
         rewriteCidImagesForEditor(sanitizeEmailHtml(replyTo.htmlBody)),
         { remoteAllowed: quoteRemoteAllowed },
       );
-      return `${prefix}${signatureBlock}<br><div>${quoteHeader}</div>${island}`;
+      return `${prefix}${signatureBlock}<br>${replyHeader(`<div>${quoteHeader}</div>`)}${island}`;
     }
 
     if (replyTo.body) {
@@ -774,7 +779,7 @@ export function EmailComposer({
       if (mode === 'forward') {
         return `${prefix}${signatureBlock}<br><br>${tQuote('forwarded_separator')}<br>${tQuote('from_label')}: ${escapeHtml(fromStrFull)}<br>${tQuote('date_label')}: ${escapeHtml(date)}<br>${tQuote('subject_label')}: ${escapeHtml(replyTo.subject || '')}<br><br>${escapedOriginal}`;
       } else if (mode === 'reply' || mode === 'replyAll') {
-        return `${prefix}${signatureBlock}<br><br>${tQuote('reply_line', { date: escapeHtml(date), from: escapeHtml(fromStrFull) })}<br><blockquote style="margin:0 0 0 0.8ex;border-left:2px solid #ccc;padding-left:1ex">${escapedOriginal}</blockquote>`;
+        return `${prefix}${signatureBlock}<br><br>${replyHeader(`<p>${tQuote('reply_line', { date: escapeHtml(date), from: escapeHtml(fromStrFull) })}<br></p>`)}<blockquote style="margin:0 0 0 0.8ex;border-left:2px solid #ccc;padding-left:1ex">${escapedOriginal}</blockquote>`;
       }
     }
     return prefix;

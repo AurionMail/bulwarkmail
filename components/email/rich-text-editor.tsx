@@ -22,6 +22,7 @@ import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
 import { TableHeader } from "@tiptap/extension-table-header";
 import { TableCell } from "@tiptap/extension-table-cell";
+import { ReplyQuoteCollapse } from "@/components/email/reply-quote-collapse";
 import { QuotedHtml, serializeEditorContent } from "@/components/email/quoted-html";
 import { keepLoadedParagraphSpacing, paragraphStyleWithoutSpacing, trailingParagraphBreakRule } from "@/components/email/paragraph-breaks";
 import { SignatureBlock } from "@/components/email/signature-block";
@@ -225,6 +226,7 @@ export function RichTextEditor({
 }: RichTextEditorProps) {
   const rtlEditingSupport = useSettingsStore((st) => st.rtlEditingSupport);
   const tComposer = useTranslations("email_composer");
+  const tQuote = useTranslations("email_viewer");
   const onImageUploadRef = React.useRef(onImageUpload);
   onImageUploadRef.current = onImageUpload;
   const onEditorReadyRef = React.useRef(onEditorReady);
@@ -287,6 +289,7 @@ export function RichTextEditor({
       // Quoted/forwarded original email body - held verbatim as an atomic
       // node so layout-heavy HTML survives 1:1 (see quoted-html.ts).
       QuotedHtml,
+      ReplyQuoteCollapse.configure({ show: tQuote("show_quoted_text"), hide: tQuote("hide_quoted_text") }),
       // Identity signature - held verbatim as a non-editable atomic node so
       // rich/branded signatures keep their inline styling in the editor and
       // in the sent mail (see signature-block.ts). Double-click unlocks it
