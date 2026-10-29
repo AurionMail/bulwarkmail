@@ -4143,6 +4143,7 @@
       "color": "Farve",
       "change_color": "Skift farve",
       "random_color": "Ny tilfældig farve",
+      "reset_color": "Nulstil farve",
       "add_calendar": "Ny kalender",
       "edit": "Redigér",
       "delete": "Slet",

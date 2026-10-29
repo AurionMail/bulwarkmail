@@ -4117,6 +4117,7 @@
       "color": "색상",
       "change_color": "색상 변경",
       "random_color": "새 무작위 색상",
+      "reset_color": "색상 재설정",
       "add_calendar": "새 캘린더",
       "edit": "수정",
       "delete": "삭제",

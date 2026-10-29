@@ -79,7 +79,7 @@ import { getUserParticipantId, collectUserCalendarAddresses, userOrganizes, getP
 import type { MoveEventHandler } from "@/hooks/use-time-grid-interactions";
 import type { RevealTime } from "@/hooks/use-display-hours";
 import { generateBirthdayEvents, createBirthdayCalendar, BIRTHDAY_CALENDAR_ID } from "@/lib/birthday-calendar";
-import { sharedCalendarColorKey, pickUnusedCalendarColor } from "@/lib/shared-calendar-colors";
+import { sharedCalendarColorKey, autoAssignSharedCalendarColors } from "@/lib/shared-calendar-colors";
 import { debug } from "@/lib/debug";
 import { consumePendingWebcal, hasPendingWebcal, subscribeToPendingWebcal } from "@/lib/protocol-handlers/session";
 import type { ParsedWebcal } from "@/lib/protocol-handlers/webcal";
@@ -1659,31 +1659,18 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       if (!cal.isShared) return cal;
       const override = sharedCalendarColors[sharedCalendarColorKey(cal)];
       if (!override) return cal;
-      return { ...cal, color: override, colorIsLocalOverride: true };
+      return { ...cal, color: override, colorIsLocalOverride: true, serverColor: cal.color };
     });
   }, [calendars, sharedCalendarColors]);
 
   // Auto-assign a random, not-yet-used palette color to any freshly shared
-  // calendar so multiple shared calendars don't collide on one color. Runs
-  // once per calendar (guarded by the presence of an existing key), and the
-  // user can still overwrite it from the sidebar.
+  // calendar the server gives no color, so multiple shared calendars don't
+  // collide on one color. Runs once per calendar (guarded by the presence of
+  // an existing key), and the user can still overwrite it from the sidebar.
   useEffect(() => {
-    const shared = calendars.filter((c) => c.isShared);
-    const missing = shared.filter((c) => !sharedCalendarColors[sharedCalendarColorKey(c)]);
-    if (missing.length === 0) return;
-    // Seed "used" with personal calendar colors plus already-assigned shared
-    // overrides so the picks stay distinct from what's already on screen.
-    const used = new Set<string>();
-    for (const c of calendars) {
-      if (!c.isShared && c.color) used.add(c.color.toLowerCase());
-    }
-    for (const color of Object.values(sharedCalendarColors)) {
-      if (color) used.add(color.toLowerCase());
-    }
-    for (const cal of missing) {
-      const color = pickUnusedCalendarColor(used);
-      used.add(color.toLowerCase());
-      setSharedCalendarColor(sharedCalendarColorKey(cal), color);
+    const assigned = autoAssignSharedCalendarColors(calendars, sharedCalendarColors);
+    for (const [key, color] of Object.entries(assigned)) {
+      setSharedCalendarColor(key, color);
     }
   }, [calendars, sharedCalendarColors, setSharedCalendarColor]);
 
@@ -2155,8 +2142,9 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
                 updateCalendar(client, calendarId, { color });
               } : undefined}
               onResetColor={(cal) => {
-                // Drop the local override; the auto-assign effect picks a
-                // fresh unused color (so it never reverts to a collision).
+                // Drop the local override. A calendar with a server color goes
+                // back to it; one without gets a fresh unused color from the
+                // auto-assign effect (so it never reverts to a collision).
                 removeSharedCalendarColor(sharedCalendarColorKey(cal));
               }}
               onShareCalendar={client ? (cal) => setSharingCalendarId(cal.id) : undefined}

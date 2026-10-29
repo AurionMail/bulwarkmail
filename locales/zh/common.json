@@ -4117,6 +4117,7 @@
       "color": "颜色",
       "change_color": "更改颜色",
       "random_color": "随机新颜色",
+      "reset_color": "重置颜色",
       "add_calendar": "新建日历",
       "edit": "编辑",
       "delete": "删除",

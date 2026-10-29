@@ -4143,6 +4143,7 @@
       "color": "Cor",
       "change_color": "Alterar cor",
       "random_color": "Nova cor aleatória",
+      "reset_color": "Repor cor",
       "add_calendar": "Novo calendário",
       "edit": "Editar",
       "delete": "Excluir",

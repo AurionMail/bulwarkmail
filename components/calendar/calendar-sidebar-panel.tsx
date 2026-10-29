@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useLongPress } from "@/hooks/use-long-press";
 import { IconButton } from "@/components/ui/icon-button";
 import { useTranslations } from "next-intl";
-import { Check, ChevronDown, ChevronRight, Globe, ListTodo, MoreVertical, Pencil, RefreshCw, Share2, Star, Trash2, Cake, User, Users, Plus, Eraser, Palette, Shuffle } from "@/components/icons";
+import { Check, ChevronDown, ChevronRight, Globe, ListTodo, MoreVertical, Pencil, RefreshCw, Share2, Star, Trash2, Cake, User, Users, Plus, Eraser, Palette, RotateCcw, Shuffle } from "@/components/icons";
 import { cn, formatDateTime } from "@/lib/utils";
 import type { Calendar } from "@/lib/jmap/types";
 import { CalendarColorPicker } from "@/components/settings/calendar-management-settings";
@@ -441,8 +441,8 @@ export function CalendarSidebarPanel({
         )}
         {canResetColor && (
           <ContextMenuItem
-            icon={Shuffle}
-            label={tMgmt('random_color')}
+            icon={cal.serverColor ? RotateCcw : Shuffle}
+            label={tMgmt(cal.serverColor ? 'reset_color' : 'random_color')}
             onClick={() => { closeContextMenu(); onResetColor!(cal); }}
           />
         )}

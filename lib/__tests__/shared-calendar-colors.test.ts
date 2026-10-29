@@ -4,6 +4,7 @@ import {
   CALENDAR_COLORS,
   sharedCalendarColorKey,
   pickUnusedCalendarColor,
+  autoAssignSharedCalendarColors,
 } from '../shared-calendar-colors';
 
 function makeCal(overrides: Partial<Calendar>): Calendar {
@@ -73,5 +74,38 @@ describe('pickUnusedCalendarColor', () => {
       expect(CALENDAR_COLORS).toContain(picked);
       expect(picked).not.toBe('#3b82f6');
     }
+  });
+});
+
+describe('autoAssignSharedCalendarColors', () => {
+  const shared = (id: string, color: string | null) =>
+    makeCal({ id, originalId: id, accountId: 'owner', isShared: true, color });
+
+  it('keeps the color the server gives a shared calendar (#1414)', () => {
+    const family = shared('family', '#CD1526');
+    expect(autoAssignSharedCalendarColors([family], {})).toEqual({});
+  });
+
+  it('picks a palette color for a shared calendar without a server color', () => {
+    const cal = shared('plain', null);
+    const assigned = autoAssignSharedCalendarColors([cal], {});
+    expect(Object.keys(assigned)).toEqual([sharedCalendarColorKey(cal)]);
+    expect(CALENDAR_COLORS).toContain(assigned[sharedCalendarColorKey(cal)]);
+  });
+
+  it('leaves calendars with a local override and personal calendars alone', () => {
+    const overridden = shared('mine', null);
+    const personal = makeCal({ id: 'own', color: null });
+    const overrides = { [sharedCalendarColorKey(overridden)]: '#ef4444' };
+    expect(autoAssignSharedCalendarColors([overridden, personal], overrides)).toEqual({});
+  });
+
+  it('avoids colors already on screen, server colors of shared calendars included', () => {
+    // Every palette color but the last is taken by a shared calendar's server
+    // color, so the one calendar without a color must get the last one.
+    const taken = CALENDAR_COLORS.slice(0, -1).map((color, i) => shared(`c${i}`, color));
+    const plain = shared('plain', null);
+    const assigned = autoAssignSharedCalendarColors([...taken, plain], {});
+    expect(assigned).toEqual({ [sharedCalendarColorKey(plain)]: CALENDAR_COLORS[CALENDAR_COLORS.length - 1] });
   });
 });

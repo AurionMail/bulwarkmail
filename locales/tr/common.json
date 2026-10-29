@@ -4143,6 +4143,7 @@
       "color": "Renk",
       "change_color": "Rengi değiştir",
       "random_color": "Yeni rastgele renk",
+      "reset_color": "Rengi sıfırla",
       "add_calendar": "Yeni takvim",
       "edit": "Düzenle",
       "delete": "Sil",

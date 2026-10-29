@@ -3398,6 +3398,7 @@
       "color": "สี",
       "change_color": "เปลี่ยนสี",
       "random_color": "สุ่มสีใหม่",
+      "reset_color": "รีเซ็ตสี",
       "add_calendar": "ปฏิทินใหม่",
       "edit": "แก้ไข",
       "delete": "ลบ",

@@ -4146,6 +4146,7 @@
       "color": "Color",
       "change_color": "Canvia el color",
       "random_color": "Color aleatori nou",
+      "reset_color": "Restableix el color",
       "add_calendar": "Calendari nou",
       "edit": "Edita",
       "delete": "Suprimeix",

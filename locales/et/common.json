@@ -4146,6 +4146,7 @@
       "color": "Värv",
       "change_color": "Muuda värvi",
       "random_color": "Uus juhuslik värv",
+      "reset_color": "Lähtesta värv",
       "add_calendar": "Uus kalender",
       "edit": "Muuda",
       "delete": "Kustuta",

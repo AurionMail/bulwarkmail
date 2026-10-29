@@ -4049,6 +4049,7 @@
       "copy_url": "העתק כתובת URL של CalDAV",
       "url_copied": "כתובת האתר של CalDAV הועתקה ללוח",
       "random_color": "צבע אקראי חדש",
+      "reset_color": "איפוס צבע",
       "set_default": "הגדר כברירת מחדל",
       "default_updated": "לוח שנה ברירת המחדל עודכן",
       "error_default": "נכשל בהגדרת לוח שנה ברירת מחדל",

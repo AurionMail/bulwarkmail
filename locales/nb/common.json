@@ -4146,6 +4146,7 @@
       "color": "Farge",
       "change_color": "Endre farge",
       "random_color": "Ny tilfeldig farge",
+      "reset_color": "Tilbakestill farge",
       "add_calendar": "Ny kalender",
       "edit": "Rediger",
       "delete": "Slett",

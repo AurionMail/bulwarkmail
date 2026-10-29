@@ -4146,6 +4146,7 @@
       "color": "Color",
       "change_color": "Change color",
       "random_color": "New random color",
+      "reset_color": "Reset color",
       "add_calendar": "New calendar",
       "edit": "Edit",
       "delete": "Delete",

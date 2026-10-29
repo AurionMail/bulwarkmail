@@ -4117,6 +4117,7 @@
       "color": "色",
       "change_color": "色を変更",
       "random_color": "新しいランダムな色",
+      "reset_color": "色をリセット",
       "add_calendar": "新しいカレンダー",
       "edit": "編集",
       "delete": "削除",
