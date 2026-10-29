@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { formatBadgeCount, renderBadgedFavicon } from '@/lib/favicon-badge';
 
 const BASE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000pt" height="1000pt"><defs><clipPath id="_clip1"><rect width="1000" height="1000"/></clipPath></defs><g clip-path="url(#_clip1)"><rect width="1000" height="1000" fill="#123456"/></g></svg>`;
@@ -165,9 +165,20 @@ describe('renderBadgedFavicon', () => {
   });
 
   it('returns null rather than throwing when the source contains a lone surrogate', () => {
-    const bad = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><title>abc\uD800def</title></svg>`;
-    expect(() => renderBadgedFavicon(bad, 3)).not.toThrow();
-    expect(renderBadgedFavicon(bad, 3)).toBeNull();
+    // Browsers keep the lone surrogate through parsing and serialising, so
+    // encodeURIComponent throws on it. jsdom swaps it for U+FFFD while
+    // parsing, so hand the serialiser's output the surrogate directly.
+    const serialize = XMLSerializer.prototype.serializeToString;
+    vi.spyOn(XMLSerializer.prototype, 'serializeToString').mockImplementation(function (this: XMLSerializer, node: Node) {
+      return serialize.call(this, node).replace('abc', 'abc\uD800');
+    });
+    const bad = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><title>abcdef</title></svg>`;
+    try {
+      expect(() => renderBadgedFavicon(bad, 3)).not.toThrow();
+      expect(renderBadgedFavicon(bad, 3)).toBeNull();
+    } finally {
+      vi.restoreAllMocks();
+    }
   });
 
   it('sizes the badge to the label, and only "99+" fills the full icon width', () => {
