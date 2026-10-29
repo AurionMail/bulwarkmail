@@ -24,6 +24,35 @@ function json(status: number, body?: unknown): Response {
   });
 }
 
+/**
+ * XMLHttpRequest has no credentials mode, so the upload-with-progress path
+ * can't omit them: records the Authorization header each upload went out with.
+ */
+const xhrAuthHeaders: string[] = [];
+class FakeXHR {
+  status = 0;
+  responseText = '';
+  responseType = '';
+  upload: { onprogress: ((ev: ProgressEvent) => void) | null } = { onprogress: null };
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  onabort: (() => void) | null = null;
+  private headers: Record<string, string> = {};
+  open() {}
+  abort() {}
+  setRequestHeader(name: string, value: string) {
+    this.headers[name] = value;
+  }
+  send() {
+    xhrAuthHeaders.push(this.headers.Authorization);
+    queueMicrotask(() => {
+      this.status = 201;
+      this.responseText = JSON.stringify({ blobId: 'blob-1', size: 3, type: 'text/plain' });
+      this.onload?.();
+    });
+  }
+}
+
 type Client = typeof import('../jmap/client').JMAPClient;
 
 // The build target is read once at import, so each mode needs a fresh module.
@@ -101,5 +130,69 @@ describe('JMAP request credentials mode', () => {
     client.disconnect();
 
     expect((fetchSpy.mock.calls[0][1] as RequestInit).credentials).toBeUndefined();
+  });
+
+  describe('uploads with progress', () => {
+    const file = () => new File(['abc'], 'a.txt', { type: 'text/plain' });
+
+    beforeEach(() => {
+      xhrAuthHeaders.length = 0;
+      vi.stubGlobal('XMLHttpRequest', FakeXHR);
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    });
+
+    it('refreshes an access token that may have expired before the XHR goes out in Lite on Stalwart', async () => {
+      const JMAPClient = clients.lite!;
+      const refresh = vi.fn().mockResolvedValue('fresh-token');
+      fetchSpy.mockResolvedValueOnce(json(200, session));
+      const client = JMAPClient.withBearer('https://mail.example.com', 'expired', 'user@test.com', refresh);
+      await client.connect();
+
+      // Woken from sleep: nothing has confirmed the token for a while.
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(Date.now() + 10 * 60_000);
+      fetchSpy
+        .mockResolvedValueOnce(json(401))
+        .mockResolvedValueOnce(json(200, { methodResponses: [['Core/echo', {}, '0']] }));
+      await client.uploadBlob(file(), { onProgress: () => {} });
+      client.disconnect();
+
+      expect(refresh).toHaveBeenCalledOnce();
+      expect(fetchSpy).toHaveBeenCalledTimes(3);
+      expect((fetchSpy.mock.calls[1][1] as RequestInit).credentials).toBe('omit');
+      expect(xhrAuthHeaders).toEqual(['Bearer fresh-token']);
+    });
+
+    it('sends the XHR straight away when a request just confirmed the token', async () => {
+      const JMAPClient = clients.lite!;
+      fetchSpy.mockResolvedValueOnce(json(200, session));
+      const client = JMAPClient.withBearer('https://mail.example.com', 'token', 'user@test.com', vi.fn());
+      await client.connect();
+
+      await client.uploadBlob(file(), { onProgress: () => {} });
+      client.disconnect();
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(xhrAuthHeaders).toEqual(['Bearer token']);
+    });
+
+    it('sends the XHR straight away in the regular build', async () => {
+      const JMAPClient = clients.regular!;
+      fetchSpy.mockResolvedValueOnce(json(200, session));
+      const client = JMAPClient.withBearer('https://mail.example.com', 'token', 'user@test.com', vi.fn());
+      await client.connect();
+
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(Date.now() + 10 * 60_000);
+      await client.uploadBlob(file(), { onProgress: () => {} });
+      client.disconnect();
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(xhrAuthHeaders).toEqual(['Bearer token']);
+    });
   });
 });

@@ -1478,6 +1478,12 @@ export class JMAPClient implements IJMAPClient {
    * attachment on a slow uplink legitimately outlives the normal deadline.
    */
   private static readonly TRANSFER_TIMEOUT_MS = 300_000;
+  /**
+   * How long an access token counts as good after the server last accepted
+   * it. The keep-alive ping confirms it every 30s while the page is awake,
+   * and the refresh timer renews it a minute before it expires.
+   */
+  private static readonly AUTH_ACCEPTED_FRESH_MS = 30_000;
 
   private serverUrl: string;
   private username: string;
@@ -1486,6 +1492,8 @@ export class JMAPClient implements IJMAPClient {
   private authHeader: string;
   private authMode: 'basic' | 'bearer' = 'basic';
   private onTokenRefresh?: () => Promise<string | null>;
+  /** When the server last answered a request without 401 (epoch ms). */
+  private authAcceptedAt = 0;
   private onTotpRequired?: () => Promise<string | null>;
   private apiUrl: string = "";
   private accountId: string = "";
@@ -1792,6 +1800,7 @@ export class JMAPClient implements IJMAPClient {
       }
     }
 
+    if (response.status !== 401) this.authAcceptedAt = Date.now();
     return response;
   }
 
@@ -5720,6 +5729,19 @@ export class JMAPClient implements IJMAPClient {
     }
   }
 
+  /**
+   * XMLHttpRequest has no credentials mode, so in Lite on Stalwart an upload
+   * with an expired access token still lets the browser act on the Basic
+   * challenge and show its login dialog (#1396). When nothing has confirmed
+   * the token lately (the machine slept, say), check it with a fetch first:
+   * that one omits credentials, and an expired token is refreshed there.
+   */
+  private async confirmTokenBeforeXhr(): Promise<void> {
+    if (JMAP_FETCH_CREDENTIALS !== 'omit' || this.authMode !== 'bearer' || !this.onTokenRefresh) return;
+    if (Date.now() - this.authAcceptedAt < JMAPClient.AUTH_ACCEPTED_FRESH_MS) return;
+    await this.request([['Core/echo', {}, '0']]);
+  }
+
   private xhrUpload(
     url: string,
     file: File,
@@ -5803,6 +5825,7 @@ export class JMAPClient implements IJMAPClient {
     // existing 401/retry behaviour through authenticatedFetch().
     let responseText: string;
     if (opts.onProgress || opts.signal) {
+      await this.confirmTokenBeforeXhr();
       responseText = await this.xhrUpload(
         finalUploadUrl,
         file,
