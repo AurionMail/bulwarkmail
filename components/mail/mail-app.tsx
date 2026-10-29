@@ -3907,6 +3907,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       await blobClient.downloadBlob(blobId, name, type, accountId);
     } catch (error) {
       console.error("Failed to download attachment:", error);
+      toast.error(t("files.download_error"));
     }
   };
 

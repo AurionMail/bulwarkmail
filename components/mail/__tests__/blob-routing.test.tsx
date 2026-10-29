@@ -12,6 +12,8 @@ import { useThemeStore } from '@/stores/theme-store';
 import { DEFAULT_SEARCH_FILTERS } from '@/lib/jmap/search-utils';
 import { useUIStore } from '@/stores/ui-store';
 import { threadKeyFor } from '@/lib/thread-utils';
+import { useToastStore } from '@/stores/toast-store';
+import { ToastContainer } from '@/components/ui/toast';
 
 const device = vi.hoisted(() => ({ mobile: false }));
 
@@ -173,6 +175,122 @@ async function connectDownloadClient(serverUrl: string, username: string, accoun
   await client.connect();
   return client;
 }
+
+describe('standard mail attachment download feedback', () => {
+  const bytes = 'synthetic attachment bytes';
+  const downloadUrl = 'https://mail.example.com/download/nrichmond/same-blob/report.txt?accept=application%2Foctet-stream';
+  const response = () => new Response(bytes, { status: 200, headers: { 'Content-Type': 'application/octet-stream' } });
+
+  function DownloadToasts() {
+    const toasts = useToastStore(state => state.toasts);
+    return <ToastContainer toasts={toasts} onClose={useToastStore.getState().removeToast} />;
+  }
+
+  beforeEach(() => useToastStore.getState().clearToasts());
+  afterEach(() => useToastStore.getState().clearToasts());
+
+  async function openAttachment(action: 'Download button' | 'attachment click') {
+    const client = await connectDownloadClient('https://mail.example.com', 'test-login', 'postal12345');
+    useAuthStore.setState({ client,
+      getClientForAccount: id => id === 'login-primary' ? client : undefined,
+      getAllConnectedClients: () => new Map([['login-primary', client]]),
+    });
+    const selected = message({ attachments: [{ partId: '3', blobId: 'same-blob', name: 'report.txt', type: 'application/octet-stream', size: bytes.length }] });
+    useEmailStore.setState({ selectedEmail: selected, emails: [selected] });
+    // The explicit Download button must also bypass the Preview preference.
+    useSettingsStore.setState({ mailAttachmentAction: action === 'Download button' ? 'preview' : 'download' });
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockReset();
+    fetchMock.mockRejectedValue(new Error('Unexpected network request'));
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const downloads: { href: string; name: string; connected: boolean }[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      downloads.push({ href: this.href, name: this.download, connected: document.body.contains(this) });
+    });
+    render(<><MailApp /><DownloadToasts /></>);
+    const button = (await screen.findAllByTitle('download', {}, { timeout: 5000 }))[0];
+    const chip = button.closest('[data-testid="attachment"]')!;
+    const click = () => fireEvent.click(action === 'Download button' ? button : chip);
+
+    function expectRequests(count: number) {
+      expect(fetchMock).toHaveBeenCalledTimes(count);
+      for (let i = 0; i < count; i++) expectBlobRequest(downloadUrl, 'test-login', i);
+    }
+    async function expectDownload(count: number) {
+      await waitFor(() => expect(downloads).toHaveLength(1), { timeout: 4000 });
+      expectRequests(count);
+      expect(downloads[0]).toEqual({ href: 'blob:test', name: 'report.txt', connected: true });
+      expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+      const blob = vi.mocked(URL.createObjectURL).mock.calls[0][0] as Blob;
+      expect(await blob.text()).toBe(bytes);
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test');
+    }
+    return { click, fetchMock, errors, downloads, button, selected, expectRequests, expectDownload };
+  }
+
+  describe.each(['Download button', 'attachment click'] as const)('%s', action => {
+    it.each(['HTTP 403', 'HTTP 503', 'exhausted network retry'] as const)(
+      'reports %s once and downloads on another click after recovery', async failure => {
+        const { click, fetchMock, errors, downloads, button, selected, expectRequests, expectDownload } = await openAttachment(action);
+        const attempts = failure === 'exhausted network retry' ? 2 : 1;
+        if (failure === 'exhausted network retry') {
+          fetchMock.mockRejectedValueOnce(new TypeError('synthetic offline'))
+            .mockRejectedValueOnce(new TypeError('synthetic offline'));
+        } else {
+          fetchMock.mockResolvedValueOnce(new Response('synthetic refusal', { status: failure === 'HTTP 403' ? 403 : 503 }));
+        }
+        click();
+        await waitFor(() => expect(errors).toHaveBeenCalledWith('Failed to download attachment:', expect.any(Error)), { timeout: 4000 });
+        expectRequests(attempts);
+        expect(downloads).toEqual([]);
+        expect(URL.createObjectURL).not.toHaveBeenCalled();
+        expect(button).toBeEnabled();
+        expect(useEmailStore.getState().selectedEmail).toBe(selected);
+        // The shared next-intl test mock returns translation keys verbatim.
+        expect(useToastStore.getState().toasts).toEqual([
+          expect.objectContaining({ type: 'error', title: 'files.download_error' }),
+        ]);
+        expect(screen.getByText('files.download_error')).toBeVisible();
+
+        // Reuse the same UI node, client, owner and blob without navigation.
+        fetchMock.mockResolvedValueOnce(response());
+        click();
+        await expectDownload(attempts + 1);
+        expect(useEmailStore.getState().selectedEmail).toBe(selected);
+        expect(errors).toHaveBeenCalledTimes(1);
+        expect(useToastStore.getState().toasts).toHaveLength(1);
+      },
+    );
+
+    it('does not notify when the existing automatic network retry recovers', async () => {
+      const { click, fetchMock, errors, selected, expectDownload } = await openAttachment(action);
+      fetchMock.mockRejectedValueOnce(new TypeError('synthetic transient')).mockResolvedValueOnce(response());
+      click();
+      await expectDownload(2);
+      expect(errors).not.toHaveBeenCalled();
+      expect(useToastStore.getState().toasts).toEqual([]);
+      expect(screen.queryByText('files.download_error')).not.toBeInTheDocument();
+      expect(useEmailStore.getState().selectedEmail).toBe(selected);
+    });
+  });
+
+  it('finishes the original attachment download after switching messages', async () => {
+    const { click, fetchMock, errors, downloads, expectDownload } = await openAttachment('Download button');
+    let finish!: (value: Response) => void;
+    fetchMock.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    click();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const next = message({ id: 'next', subject: 'Next', sourceAccountId: 'different-owner', attachments: [] });
+    act(() => useEmailStore.setState({ selectedEmail: next }));
+    expect(screen.queryByText('report.txt')).not.toBeInTheDocument();
+    expect(downloads).toEqual([]);
+    await act(async () => finish(response()));
+    await expectDownload(1);
+    expect(useEmailStore.getState().selectedEmail).toBe(next);
+    expect(useToastStore.getState().toasts).toEqual([]);
+    expect(errors).not.toHaveBeenCalled();
+  });
+});
 
 describe('standard mail UI blob routing', () => {
   it.each([sharedMailbox.id, primaryMailbox.id])('uses the session downloadUrl for %s', async (mailboxId) => {
