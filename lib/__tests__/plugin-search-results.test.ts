@@ -40,6 +40,24 @@ describe('checkSearchResults', () => {
     expect(checked.every((r) => !('email' in r))).toBe(true);
   });
 
+  it('keeps the marks of a snippet and escapes everything else', () => {
+    const [entry] = checkSearchResults('p', [
+      { key: 'a', title: 'A', snippet: ' The <mark>pixel\n grid</mark> &amp; <b>more</b> <mark></mark>' },
+    ]);
+    expect(entry.snippet).toBe('The <mark>pixel grid</mark> &amp; &lt;b&gt;more&lt;/b&gt;');
+  });
+
+  it('escapes a plain snippet, so it reads back as written', () => {
+    expect(checkSearchResults('p', [{ key: 'a', title: 'A', snippet: 'Tom & Jerry <3' }])[0].snippet)
+      .toBe('Tom &amp; Jerry &lt;3');
+  });
+
+  it('cuts a snippet by its text, closing a mark it cuts', () => {
+    const snippet = `${'x'.repeat(290)}<mark>${'y'.repeat(20)}</mark>`;
+    const [entry] = checkSearchResults('p', [{ key: 'a', title: 'A', snippet }]);
+    expect(entry.snippet).toBe(`${'x'.repeat(290)}<mark>${'y'.repeat(9)}</mark>…`);
+  });
+
   it('ignores an answer that is not a list', () => {
     expect(checkSearchResults('p', { key: 'a', title: 'A' })).toEqual([]);
     expect(checkSearchResults('p', undefined)).toEqual([]);

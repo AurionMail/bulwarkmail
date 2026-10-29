@@ -1221,13 +1221,19 @@ export interface ConflictWarning {
  * opens it in the reader, as a click on a row of the list does. Any other
  * click reaches the plugin that returned the entry as `onAction`, with
  * `surface: 'search-results'`, the entry's `key` as `actionId` and the
- * search's `query` in the context. Plain text only; see
+ * search's `query` in the context. Plain text only, but the snippet may
+ * mark what matched as SearchSnippet/get does; see
  * lib/plugin-search-results.ts for the limits.
  */
 export interface ExternalSearchResult {
   /** Unique among the plugin's entries for this search; comes back as actionId. */
   key: string;
   title: string;
+  /**
+   * May wrap what matched in `<mark>`…`</mark>`, highlighted as the list's
+   * own search snippets; `&`, `<`, `>` meant as text escaped as `&amp;`,
+   * `&lt;`, `&gt;`. No other markup: any other tag shows as text.
+   */
   snippet: string;
   /** Group heading, e.g. "CRM", "Slack"; the plugin's name when missing. */
   source?: string;
