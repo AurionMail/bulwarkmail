@@ -58,6 +58,8 @@ beforeEach(() => {
   // Room in the list for every item, or the virtual list draws none of them.
   vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(600);
   vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(600);
+  vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(600);
+  vi.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(600);
   useEmailStore.setState(initialEmailState, true);
   useEmailStore.setState({
     selectedMailbox: 'inbox',
