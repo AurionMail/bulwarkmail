@@ -216,11 +216,18 @@ function hasVerifiedAuthentication(email?: Pick<Email, 'from' | 'authenticationR
   return hasAlignedAuthenticationPass(email?.authenticationResults, getPrimaryAddressEmail(email?.from) ?? undefined);
 }
 
-function hasAuthenticationFailure(email?: Pick<Email, 'authenticationResults'>): boolean {
+/**
+ * A failed check that leaves the From domain unauthenticated. A DMARC fail
+ * always counts; one mechanism failing does not when another aligned pass
+ * vouches for the sender, as when a relay breaks SPF but the author's DKIM
+ * signature still verifies (#1403).
+ */
+function hasAuthenticationFailure(email: Pick<Email, 'authenticationResults'> | undefined, verified: boolean): boolean {
   const authenticationResults = email?.authenticationResults;
+  if (authenticationResults?.dmarc?.result === 'fail') return true;
+  if (verified) return false;
   return Boolean(
-    authenticationResults?.dmarc?.result === 'fail'
-    || authenticationResults?.dkim?.result === 'fail'
+    authenticationResults?.dkim?.result === 'fail'
     || authenticationResults?.dkim?.result === 'policy'
     || authenticationResults?.dkim?.result === 'permerror'
     || authenticationResults?.spf?.result === 'fail'
@@ -416,7 +423,7 @@ export function getInvitationTrustAssessment(
   const attendeeEmail = fromAttendee ? getInvitationActorSummary(event, method)?.email ?? null : null;
   const expectedEmail = fromAttendee ? attendeeEmail : organizerEmail;
   const verifiedAuthentication = hasVerifiedAuthentication(email);
-  const authenticationFailure = hasAuthenticationFailure(email);
+  const authenticationFailure = hasAuthenticationFailure(email, verifiedAuthentication);
   const senderMismatch = Boolean(senderEmail && expectedEmail && senderEmail !== expectedEmail);
   const senderDomain = senderEmail?.split('@').pop();
   const internal = Boolean(email && !email.authenticationResults && senderDomain

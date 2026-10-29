@@ -412,6 +412,31 @@ describe('getInvitationTrustAssessment', () => {
     expect(result.reason).toBe('authentication_failed');
   });
 
+  it('trusts an invitation a relay broke SPF for when DKIM and DMARC still pass (#1403)', () => {
+    const event: Partial<CalendarEvent> = {
+      participants: {
+        org: makeParticipant({ roles: { owner: true }, email: 'alice@example.com' }),
+      },
+    };
+    const from = [{ email: 'alice@example.com' }];
+
+    const relayed = getInvitationTrustAssessment(event, makeEmail({
+      from,
+      authenticationResults: {
+        spf: { result: 'fail', domain: 'example.com' },
+        dkim: { result: 'pass', domain: 'example.com' },
+        dmarc: { result: 'pass', domain: 'example.com' },
+      },
+    }), 'request');
+    expect(relayed.level).toBe('trusted');
+
+    const unsigned = getInvitationTrustAssessment(event, makeEmail({
+      from,
+      authenticationResults: { spf: { result: 'fail', domain: 'example.com' } },
+    }), 'request');
+    expect(unsigned.reason).toBe('authentication_failed');
+  });
+
   it('warns when sender and organizer differ without verified authentication', () => {
     const event: Partial<CalendarEvent> = {
       participants: {
