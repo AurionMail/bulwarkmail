@@ -450,6 +450,7 @@
     "important": "Fontos",
     "download": "Letöltés",
     "download_all": "Összes letöltése",
+    "download_all_partial": "{count, plural, one {# melléklet kimaradt a ZIP-fájlból.} other {# melléklet kimaradt a ZIP-fájlból.}}",
     "from": "Feladó",
     "to": "Címzett",
     "cc": "Másolat",

@@ -450,6 +450,7 @@
     "important": "مهم",
     "download": "تنزيل",
     "download_all": "تنزيل الكل",
+    "download_all_partial": "{count, plural, zero {لم تُحذف أي مرفقات من ملف ZIP.} one {حُذف مرفق واحد من ملف ZIP.} two {حُذف مرفقان من ملف ZIP.} few {حُذفت # مرفقات من ملف ZIP.} many {حُذف # مرفقًا من ملف ZIP.} other {حُذف # مرفق من ملف ZIP.}}",
     "from": "من",
     "to": "إلى",
     "cc": "نسخة",

@@ -450,6 +450,7 @@
     "important": "Important",
     "download": "Descărcați",
     "download_all": "Descărcați tot",
+    "download_all_partial": "{count, plural, one {# atașament a fost omis din ZIP.} few {# atașamente au fost omise din ZIP.} other {# de atașamente au fost omise din ZIP.}}",
     "from": "De la",
     "to": "Către",
     "cc": "CC",

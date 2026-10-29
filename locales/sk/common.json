@@ -450,6 +450,7 @@
     "important": "Dôležité",
     "download": "Stiahnuť",
     "download_all": "Stiahnuť všetko",
+    "download_all_partial": "{count, plural, one {Zo ZIPu bola vynechaná # príloha.} few {Zo ZIPu boli vynechané # prílohy.} many {Zo ZIPu bolo vynechaných # prílohy.} other {Zo ZIPu bolo vynechaných # príloh.}}",
     "from": "Od",
     "to": "Komu",
     "cc": "Kópia",

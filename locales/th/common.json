@@ -1293,6 +1293,7 @@
     "important": "สำคัญ",
     "download": "ดาวน์โหลด",
     "download_all": "ดาวน์โหลดทั้งหมด",
+    "download_all_partial": "ไฟล์แนบ {count} รายการไม่ถูกรวมในไฟล์ ZIP",
     "from": "จาก",
     "to": "ถึง",
     "cc": "สำเนา (CC)",

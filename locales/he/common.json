@@ -399,6 +399,7 @@
     "important": "חָשׁוּב",
     "download": "הורד",
     "download_all": "הורד הכל",
+    "download_all_partial": "{count, plural, one {# קובץ מצורף הושמט מקובץ ה-ZIP.} two {# קבצים מצורפים הושמטו מקובץ ה-ZIP.} other {# קבצים מצורפים הושמטו מקובץ ה-ZIP.}}",
     "from": "מאת",
     "to": "אל",
     "cc": "עותק",

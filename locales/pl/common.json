@@ -450,6 +450,7 @@
     "important": "Ważne",
     "download": "Pobierz",
     "download_all": "Pobierz wszystkie",
+    "download_all_partial": "{count, plural, one {Pominięto # załącznik w archiwum ZIP.} few {Pominięto # załączniki w archiwum ZIP.} many {Pominięto # załączników w archiwum ZIP.} other {Pominięto # załącznika w archiwum ZIP.}}",
     "from": "Od",
     "to": "Do",
     "cc": "DW",

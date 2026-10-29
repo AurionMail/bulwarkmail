@@ -3028,7 +3028,10 @@ export function EmailViewer({
         }
       }
 
-      if (added === 0) return;
+      if (added === 0) {
+        toast.error(tFiles('download_error'));
+        return;
+      }
 
       const zipBlob = await zip.generateAsync({ type: 'blob', mimeType: 'application/zip' });
       const objectUrl = URL.createObjectURL(zipBlob);
@@ -3039,10 +3042,15 @@ export function EmailViewer({
       anchor.click();
       anchor.remove();
       setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      const omitted = effectiveAttachments.length - added;
+      if (omitted > 0) toast.warning(t('download_all_partial', { count: omitted }));
+    } catch (error) {
+      console.error('Failed to download attachments:', error);
+      toast.error(tFiles('download_error'));
     } finally {
       setIsDownloadingAll(false);
     }
-  }, [isDownloadingAll, effectiveAttachments, blobClient, blobAccountId, email]);
+  }, [isDownloadingAll, effectiveAttachments, blobClient, blobAccountId, email, t, tFiles]);
 
   // Shared "Download all" chip, shown only when bundling is worthwhile (2+).
   const downloadAllButton = effectiveAttachments.length > 1 ? (
