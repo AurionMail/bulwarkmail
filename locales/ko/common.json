@@ -927,6 +927,8 @@
     "schedule_send": "보내기 예약",
     "schedule_send_description": "서버가 이 메시지를 보낼 시간을 선택하세요.",
     "schedule_preset": {
+      "this_morning": "오늘 아침",
+      "this_afternoon": "오늘 오후",
       "tomorrow_morning": "내일 오전",
       "tomorrow_afternoon": "내일 오후",
       "monday_morning": "월요일 오전"

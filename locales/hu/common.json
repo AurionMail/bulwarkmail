@@ -927,6 +927,8 @@
     "schedule_send": "Késleltetett küldés",
     "schedule_send_description": "Válaszd ki, mikor küldje el a szerver az üzenetet.",
     "schedule_preset": {
+      "this_morning": "Ma reggel",
+      "this_afternoon": "Ma délután",
       "tomorrow_morning": "Holnap reggel",
       "tomorrow_afternoon": "Holnap délután",
       "monday_morning": "Hétfő reggel"

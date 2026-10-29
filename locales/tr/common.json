@@ -927,6 +927,8 @@
     "schedule_send": "Göndermeyi zamanla",
     "schedule_send_description": "Sunucunun bu iletiyi ne zaman göndereceğini seçin.",
     "schedule_preset": {
+      "this_morning": "Bu sabah",
+      "this_afternoon": "Bu öğleden sonra",
       "tomorrow_morning": "Yarın sabah",
       "tomorrow_afternoon": "Yarın öğleden sonra",
       "monday_morning": "Pazartesi sabah"

@@ -1154,6 +1154,8 @@
     "schedule_send": "กำหนดเวลาส่ง",
     "schedule_send_description": "เลือกเวลาที่ต้องการให้เซิร์ฟเวอร์ส่งข้อความนี้",
     "schedule_preset": {
+      "this_morning": "เช้านี้",
+      "this_afternoon": "บ่ายนี้",
       "tomorrow_morning": "เช้าวันพรุ่งนี้",
       "tomorrow_afternoon": "บ่ายวันพรุ่งนี้",
       "monday_morning": "เช้าวันจันทร์"

@@ -927,6 +927,8 @@
     "schedule_send": "Programa l'enviament",
     "schedule_send_description": "Trieu quan ha d'alliberar el servidor aquest missatge.",
     "schedule_preset": {
+      "this_morning": "Aquest matí",
+      "this_afternoon": "Aquesta tarda",
       "tomorrow_morning": "Demà al matí",
       "tomorrow_afternoon": "Demà a la tarda",
       "monday_morning": "Dilluns al matí"

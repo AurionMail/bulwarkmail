@@ -927,6 +927,8 @@
     "schedule_send": "Senden planen",
     "schedule_send_description": "Wählen Sie, wann der Server diese Nachricht freigeben soll.",
     "schedule_preset": {
+      "this_morning": "Heute früh",
+      "this_afternoon": "Heute Nachmittag",
       "tomorrow_morning": "Morgen früh",
       "tomorrow_afternoon": "Morgen Nachmittag",
       "monday_morning": "Montag früh"

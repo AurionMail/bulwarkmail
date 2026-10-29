@@ -927,6 +927,8 @@
     "schedule_send": "Planlæg afsendelse",
     "schedule_send_description": "Vælg hvornår serveren skal frigive denne besked.",
     "schedule_preset": {
+      "this_morning": "I dag formiddag",
+      "this_afternoon": "I eftermiddag",
       "tomorrow_morning": "I morgen formiddag",
       "tomorrow_afternoon": "I morgen eftermiddag",
       "monday_morning": "Mandag formiddag"

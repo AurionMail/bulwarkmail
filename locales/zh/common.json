@@ -927,6 +927,8 @@
     "schedule_send": "计划发送",
     "schedule_send_description": "选择服务器应何时发送此邮件。",
     "schedule_preset": {
+      "this_morning": "今天早上",
+      "this_afternoon": "今天下午",
       "tomorrow_morning": "明天上午",
       "tomorrow_afternoon": "明天下午",
       "monday_morning": "周一上午"

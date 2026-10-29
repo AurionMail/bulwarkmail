@@ -927,6 +927,8 @@
     "schedule_send": "زمان‌بندی ارسال",
     "schedule_send_description": "زمان انتشار پیام توسط سرور را انتخاب کنید.",
     "schedule_preset": {
+      "this_morning": "امروز صبح",
+      "this_afternoon": "امروز بعدازظهر",
       "tomorrow_morning": "فردا صبح",
       "tomorrow_afternoon": "فردا بعدازظهر",
       "monday_morning": "دوشنبه صبح"

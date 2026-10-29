@@ -929,6 +929,8 @@
     "schedule_send": "Schedule send",
     "schedule_send_description": "Choose when the server should release this message.",
     "schedule_preset": {
+      "this_morning": "This morning",
+      "this_afternoon": "This afternoon",
       "tomorrow_morning": "Tomorrow morning",
       "tomorrow_afternoon": "Tomorrow afternoon",
       "monday_morning": "Monday morning"

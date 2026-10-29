@@ -892,6 +892,8 @@
     "schedule_send": "תזמן שליחה",
     "schedule_send_description": "בחר מתי השרת צריך לשחרר הודעה זו.",
     "schedule_preset": {
+      "this_morning": "הבוקר",
+      "this_afternoon": "היום אחר הצהריים",
       "tomorrow_morning": "מחר בבוקר",
       "tomorrow_afternoon": "מחר אחר הצהריים",
       "monday_morning": "יום שני בבוקר"

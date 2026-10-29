@@ -927,6 +927,8 @@
     "schedule_send": "送信を予約",
     "schedule_send_description": "サーバーがこのメッセージを送信する日時を選択します。",
     "schedule_preset": {
+      "this_morning": "今朝",
+      "this_afternoon": "今日の午後",
       "tomorrow_morning": "明日の朝",
       "tomorrow_afternoon": "明日の午後",
       "monday_morning": "月曜日の朝"

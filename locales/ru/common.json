@@ -927,6 +927,8 @@
     "schedule_send": "Запланировать отправку",
     "schedule_send_description": "Выберите, когда сервер должен отправить это сообщение.",
     "schedule_preset": {
+      "this_morning": "Сегодня утром",
+      "this_afternoon": "Сегодня днём",
       "tomorrow_morning": "Завтра утром",
       "tomorrow_afternoon": "Завтра днём",
       "monday_morning": "В понедельник утром"

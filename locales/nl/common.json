@@ -927,6 +927,8 @@
     "schedule_send": "Verzenden plannen",
     "schedule_send_description": "Kies wanneer de server dit bericht moet vrijgeven.",
     "schedule_preset": {
+      "this_morning": "Vanochtend",
+      "this_afternoon": "Vanmiddag",
       "tomorrow_morning": "Morgenochtend",
       "tomorrow_afternoon": "Morgenmiddag",
       "monday_morning": "Maandagochtend"

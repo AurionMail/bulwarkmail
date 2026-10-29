@@ -927,6 +927,8 @@
     "schedule_send": "Programma invio",
     "schedule_send_description": "Scegli quando il server deve rilasciare questo messaggio.",
     "schedule_preset": {
+      "this_morning": "Stamattina",
+      "this_afternoon": "Oggi pomeriggio",
       "tomorrow_morning": "Domattina",
       "tomorrow_afternoon": "Domani pomeriggio",
       "monday_morning": "Lunedì mattina"

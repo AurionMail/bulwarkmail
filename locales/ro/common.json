@@ -927,6 +927,8 @@
     "schedule_send": "Programează trimiterea",
     "schedule_send_description": "Alegeți momentul în care serverul ar trebui să transmită acest mesaj.",
     "schedule_preset": {
+      "this_morning": "Azi dimineață",
+      "this_afternoon": "Azi după-amiază",
       "tomorrow_morning": "Mâine dimineață",
       "tomorrow_afternoon": "Mâine după-amiază",
       "monday_morning": "Luni dimineață"

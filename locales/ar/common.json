@@ -927,6 +927,8 @@
     "schedule_send": "جدولة الإرسال",
     "schedule_send_description": "اختر متى يجب على الخادم إرسال هذه الرسالة.",
     "schedule_preset": {
+      "this_morning": "هذا الصباح",
+      "this_afternoon": "بعد ظهر اليوم",
       "tomorrow_morning": "صباح الغد",
       "tomorrow_afternoon": "ظهر الغد",
       "monday_morning": "صباح الاثنين"

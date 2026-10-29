@@ -927,6 +927,8 @@
     "schedule_send": "Naplánovat odeslání",
     "schedule_send_description": "Vyberte, kdy má server tuto zprávu odeslat.",
     "schedule_preset": {
+      "this_morning": "Dnes ráno",
+      "this_afternoon": "Dnes odpoledne",
       "tomorrow_morning": "Zítra ráno",
       "tomorrow_afternoon": "Zítra odpoledne",
       "monday_morning": "V pondělí ráno"

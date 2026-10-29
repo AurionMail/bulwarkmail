@@ -927,6 +927,8 @@
     "schedule_send": "Ajasta saatmine",
     "schedule_send_description": "Vali, millal server peaks selle sõnumi välja saatma.",
     "schedule_preset": {
+      "this_morning": "Täna hommikul",
+      "this_afternoon": "Täna pärastlõunal",
       "tomorrow_morning": "Homme hommikul",
       "tomorrow_afternoon": "Homme pärastlõunal",
       "monday_morning": "Esmaspäeva hommikul"

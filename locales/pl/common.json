@@ -927,6 +927,8 @@
     "schedule_send": "Zaplanuj wysyłkę",
     "schedule_send_description": "Wybierz, kiedy serwer ma wysłać tę wiadomość.",
     "schedule_preset": {
+      "this_morning": "Dziś rano",
+      "this_afternoon": "Dziś po południu",
       "tomorrow_morning": "Jutro rano",
       "tomorrow_afternoon": "Jutro po południu",
       "monday_morning": "W poniedziałek rano"

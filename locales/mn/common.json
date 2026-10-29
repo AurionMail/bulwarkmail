@@ -927,6 +927,8 @@
     "schedule_send": "Хуваарь илгээх",
     "schedule_send_description": "Сервер энэ мессежийг хэзээ гаргахыг сонгоно уу.",
     "schedule_preset": {
+      "this_morning": "Өнөө өглөө",
+      "this_afternoon": "Өнөөдөр үдээс хойш",
       "tomorrow_morning": "Маргааш өглөө",
       "tomorrow_afternoon": "Маргааш үдээс хойш",
       "monday_morning": "Даваа гарагийн өглөө"

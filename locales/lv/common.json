@@ -927,6 +927,8 @@
     "schedule_send": "Ieplānot sūtīšanu",
     "schedule_send_description": "Izvēlieties, kad serverim jānosūta šis ziņojums.",
     "schedule_preset": {
+      "this_morning": "Šorīt",
+      "this_afternoon": "Šodien pēcpusdienā",
       "tomorrow_morning": "Rīt no rīta",
       "tomorrow_afternoon": "Rīt pēcpusdienā",
       "monday_morning": "Pirmdien no rīta"

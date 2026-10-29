@@ -24,4 +24,19 @@ describe('schedulePresets', () => {
     const presets = schedulePresets(local(2026, 10, 12, 9));
     expect(presets.find((p) => p.key === 'monday_morning')?.date.getTime()).toBe(local(2026, 10, 19, 8).getTime());
   });
+
+  it('offers this morning and afternoon after midnight, while they are ahead (#1390)', () => {
+    // Thursday 2026-10-15, 01:30
+    const presets = schedulePresets(local(2026, 10, 15, 1, 30));
+    expect(presets.slice(0, 3).map((p) => [p.key, p.date.getTime()])).toEqual([
+      ['this_morning', local(2026, 10, 15, 8).getTime()],
+      ['this_afternoon', local(2026, 10, 15, 13).getTime()],
+      ['tomorrow_morning', local(2026, 10, 16, 8).getTime()],
+    ]);
+  });
+
+  it('drops a time of today that is past or about to be', () => {
+    expect(schedulePresets(local(2026, 10, 15, 9)).map((p) => p.key)[0]).toBe('this_afternoon');
+    expect(schedulePresets(local(2026, 10, 15, 12, 58)).map((p) => p.key)[0]).toBe('tomorrow_morning');
+  });
 });
