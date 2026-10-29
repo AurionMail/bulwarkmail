@@ -316,3 +316,37 @@ describe('reply signature above the quote (#842)', () => {
     expect(sent.body).toMatch(/Original text[\s\S]*Sales team$/);
   });
 });
+
+
+describe('reply quote attribution markers', () => {
+  afterEach(() => {
+    useSettingsStore.setState({ plainTextMode: false, signaturePosition: 'below_quote' });
+  });
+
+  it.each(['reply', 'replyAll'] as const)('marks the HTML original in %s mode', (mode) => {
+    render(<EmailComposer mode={mode} replyTo={TO_ME} />);
+    const html = screen.getByTestId('rich-text-editor').getAttribute('data-html')!;
+    expect(html).toContain('data-reply-quote-start="true"');
+    expect(html).toContain('Original text');
+  });
+
+  it('marks the attribution of a plain-text original composed in rich-text mode', () => {
+    render(<EmailComposer mode="reply" replyTo={{ ...TO_ME, htmlBody: undefined }} />);
+    const html = screen.getByTestId('rich-text-editor').getAttribute('data-html')!;
+    expect(html).toContain('data-reply-quote-start="true"');
+    expect(html).toContain('<blockquote');
+  });
+
+  it('leaves forwarding attribution unmarked', () => {
+    render(<EmailComposer mode="forward" replyTo={TO_ME} />);
+    const html = screen.getByTestId('rich-text-editor').getAttribute('data-html')!;
+    expect(html).not.toContain('data-reply-quote-start');
+    expect(html).toContain('Original text');
+  });
+
+  it('preserves a simple plugin attribution', () => {
+    render(<EmailComposer mode="reply" replyTo={{ ...TO_ME, quoteHeaderHtml: '<p><b>From:</b> Bob</p>', quoteWrapInBlockquote: false }} />);
+    const html = screen.getByTestId('rich-text-editor').getAttribute('data-html')!;
+    expect(html).toContain('<p data-reply-quote-start="true"><b>From:</b> Bob</p>');
+  });
+});

@@ -1,0 +1,151 @@
+"use client";
+
+import { Extension } from '@tiptap/core';
+import type { Node as PMNode } from '@tiptap/pm/model';
+import { Plugin, PluginKey, Selection } from '@tiptap/pm/state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
+
+const START_ATTRIBUTE = 'data-reply-quote-start';
+const HEADER_BLOCKS = 'p, h1, h2, h3, h4, h5, h6, table, ul, ol, pre, blockquote';
+
+/** Mark only attribution generated for a reply. Unknown plugin markup stays visible. */
+export function markReplyQuoteHeader(html: string): string {
+  if (typeof document === 'undefined') return html;
+  // A template is inert: attribution containing an image must not load it here.
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  const first = template.content.firstElementChild;
+  if (!first) return `<p ${START_ATTRIBUTE}="true">${html}</p>`;
+  // The default attribution is a div of inline content, parsed as a paragraph
+  // by the editor. Make that paragraph explicit so its marker round-trips.
+  if (first.tagName === 'DIV' && !first.querySelector(HEADER_BLOCKS)) {
+    const paragraph = document.createElement('p');
+    for (const attribute of first.attributes) paragraph.setAttribute(attribute.name, attribute.value);
+    paragraph.innerHTML = first.innerHTML;
+    first.replaceWith(paragraph);
+    paragraph.setAttribute(START_ATTRIBUTE, 'true');
+  } else if (first.matches(HEADER_BLOCKS)) {
+    first.setAttribute(START_ATTRIBUTE, 'true');
+  } else {
+    return html;
+  }
+  // A leading text node would otherwise remain visible outside the group.
+  if (template.content.firstChild?.nodeType === Node.TEXT_NODE
+    && template.content.firstChild.textContent?.trim()) return html;
+  return template.innerHTML;
+}
+
+interface QuoteRange { from: number; to: number }
+interface QuoteState { expanded: Set<number> }
+const quoteKey = new PluginKey<QuoteState>('replyQuoteCollapse');
+
+function quoteRanges(doc: PMNode): QuoteRange[] {
+  const ranges: QuoteRange[] = [];
+  let start: number | null = null;
+  doc.forEach((node, pos) => {
+    if (node.type.name === 'signatureBlock' || node.attrs['data-signature-block']) start = null;
+    if (node.attrs.replyQuoteStart) start = pos;
+    else if (start !== null && (node.type.name === 'quotedHtml' || node.type.name === 'blockquote')) {
+      if (node.textContent.trim() || String(node.attrs.html ?? '').trim()) {
+        ranges.push({ from: start, to: pos + node.nodeSize });
+      }
+      start = null;
+    } else if (start !== null) {
+      // Do not hide unrelated authored blocks while searching for a quote.
+      start = null;
+    }
+  });
+  return ranges;
+}
+
+/** Visibility is a view decoration, never a document edit or an undo step. */
+export const ReplyQuoteCollapse = Extension.create<{ show: string; hide: string }>({
+  name: 'replyQuoteCollapse',
+
+  addOptions() {
+    return { show: 'Show quoted text', hide: 'Hide quoted text' };
+  },
+
+  addGlobalAttributes() {
+    return [{
+      types: ['paragraph', 'heading', 'table', 'bulletList', 'orderedList', 'codeBlock', 'blockquote'],
+      attributes: {
+        replyQuoteStart: {
+          default: false,
+          parseHTML: (el) => el.getAttribute(START_ATTRIBUTE) === 'true',
+          renderHTML: (attrs) => attrs.replyQuoteStart ? { [START_ATTRIBUTE]: 'true' } : {},
+        },
+      },
+    }];
+  },
+
+  addProseMirrorPlugins() {
+    const labels = this.options;
+    return [new Plugin<QuoteState>({
+      key: quoteKey,
+      state: {
+        init: () => ({ expanded: new Set<number>() }),
+        apply: (tr, previous) => {
+          const expanded = new Set<number>();
+          for (const pos of previous.expanded) {
+            const mapped = tr.mapping.mapResult(pos);
+            if (!mapped.deleted) expanded.add(mapped.pos);
+          }
+          const toggle = tr.getMeta(quoteKey) as { from: number; expanded: boolean } | undefined;
+          if (toggle) {
+            if (toggle.expanded) expanded.add(toggle.from);
+            else expanded.delete(toggle.from);
+          } else if (tr.selectionSet) {
+            // Arrow keys, Find and editor commands must not leave the caret
+            // inside invisible text. Revealing it changes no message content.
+            for (const range of quoteRanges(tr.doc)) {
+              if (tr.selection.from < range.to && tr.selection.to > range.from) expanded.add(range.from);
+            }
+          }
+          return { expanded };
+        },
+      },
+      props: {
+        decorations(state) {
+          const expanded = quoteKey.getState(state)?.expanded ?? new Set<number>();
+          const decorations: Decoration[] = [];
+          for (const range of quoteRanges(state.doc)) {
+            const open = expanded.has(range.from);
+            decorations.push(Decoration.widget(range.from, (view) => {
+              const button = document.createElement('button');
+              button.type = 'button';
+              button.textContent = '•••';
+              button.className = 'my-1 inline-block cursor-pointer rounded-full bg-foreground/10 px-3 py-[3px] text-[11px] leading-none tracking-[2px] text-muted-foreground hover:bg-foreground/20 hover:text-foreground';
+              button.title = open ? labels.hide : labels.show;
+              button.setAttribute('aria-label', button.title);
+              button.setAttribute('aria-expanded', String(open));
+              button.addEventListener('click', () => {
+                const tr = view.state.tr.setMeta(quoteKey, { from: range.from, expanded: !open });
+                if (open) tr.setSelection(Selection.near(tr.doc.resolve(range.from), -1));
+                const restoreFocus = document.activeElement === button;
+                view.dispatch(tr);
+                if (restoreFocus) {
+                  const toggles = view.dom.querySelectorAll<HTMLButtonElement>('[data-reply-quote-toggle]');
+                  toggles.forEach((toggle) => {
+                    if (Number(toggle.dataset.replyQuoteToggle) === range.from) toggle.focus();
+                  });
+                }
+              });
+              button.dataset.replyQuoteToggle = String(range.from);
+              return button;
+            }, { key: `reply-quote-${range.from}-${open}`, side: -1, stopEvent: () => true }));
+            if (!open) {
+              state.doc.nodesBetween(range.from, range.to, (node, pos, parent) => {
+                if (parent === state.doc) {
+                  decorations.push(Decoration.node(pos, pos + node.nodeSize, { 'data-reply-quote-collapsed': 'true' }));
+                }
+                return false;
+              });
+            }
+          }
+          return DecorationSet.create(state.doc, decorations);
+        },
+      },
+    })];
+  },
+});
