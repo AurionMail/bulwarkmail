@@ -262,6 +262,23 @@ describe('retroProperties and toRetroMessage', () => {
     ]);
   });
 
+  it('reads address headers in the Addresses form, which Stalwart accepts', () => {
+    const r = rule([
+      { field: 'from', comparator: 'contains', value: 'acme.com' },
+      { field: 'header', headerName: 'Reply-To', comparator: 'contains', value: 'Anna' },
+    ]);
+    expect(retroProperties(r)).toEqual([
+      'mailboxIds', 'keywords', 'header:From:asAddresses:all', 'header:Reply-To:asAddresses:all',
+    ]);
+    const message = toRetroMessage({
+      id: 'e1',
+      'header:From:asAddresses:all': [[{ name: 'Anna', email: 'anna@acme.com' }, { name: null, email: 'b@acme.com' }]],
+      'header:Reply-To:asAddresses:all': [[{ name: 'Anna', email: 'anna@acme.com' }]],
+    });
+    expect(message.headers.from).toEqual(['Anna <anna@acme.com>, b@acme.com']);
+    expect(ruleMatches(r, message)).toBe(true);
+  });
+
   it('falls back to the raw header where the server has no text form (Stalwart and List-Id)', () => {
     const message = toRetroMessage({
       id: 'e1',
