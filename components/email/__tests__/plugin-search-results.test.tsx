@@ -8,7 +8,11 @@ import type { Email } from '@/lib/jmap/types';
 import { useAuthStore } from '@/stores/auth-store';
 import { useEmailStore } from '@/stores/email-store';
 import { usePluginStore } from '@/stores/plugin-store';
-import { PluginSearchResults } from '../plugin-search-results';
+import { PENDING_GRACE_MS, PluginSearchResults } from '../plugin-search-results';
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => (key === 'more_results_searching' ? 'Searching for more results…' : key),
+}));
 
 // The block above a search's message list with the entries plugins returned
 // from onProvideSearchResults; a click goes back to the plugin as onAction,
@@ -31,7 +35,7 @@ const withEmail = (key: string, email: { id: string; accountId?: string }): Prov
 beforeEach(() => {
   setActionDispatcher(dispatch);
   usePluginStore.setState({ plugins: [{ id: 'chat', name: 'Team chat' }] } as never);
-  useEmailStore.setState({ searchFilters: { ...DEFAULT_SEARCH_FILTERS }, selectedEmail: null });
+  useEmailStore.setState({ searchFilters: { ...DEFAULT_SEARCH_FILTERS }, selectedEmail: null, externalSearchPending: [] });
   useAuthStore.setState({
     activeAccountId: 'login-1',
     getAllConnectedClients: () => new Map([['login-2', client('acc-2')], ['login-1', client('acc-1', ['group-1'])]]),
@@ -39,6 +43,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   setActionDispatcher(null);
   dispatch.mockClear();
 });
@@ -144,5 +149,64 @@ describe('PluginSearchResults', () => {
 
     expect(screen.queryByText('Title a')).toBeNull();
     expect(heading).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('says nothing about a plugin that answers within the grace', () => {
+    vi.useFakeTimers();
+    useEmailStore.setState({ searchQuery: 'resolution', externalSearchResults: [], externalSearchPending: ['crm'] });
+    const { container } = render(<PluginSearchResults surface="search-results" />);
+
+    act(() => vi.advanceTimersByTime(PENDING_GRACE_MS - 1));
+    act(() => useEmailStore.setState({ externalSearchPending: [] }));
+    act(() => vi.advanceTimersByTime(PENDING_GRACE_MS));
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('holds the block\'s place with placeholder rows while a plugin takes longer, then fills it', () => {
+    vi.useFakeTimers();
+    useEmailStore.setState({ searchQuery: 'resolution', externalSearchResults: [], externalSearchPending: ['crm'] });
+    const { container } = render(<PluginSearchResults surface="search-results" />);
+    expect(container).toBeEmptyDOMElement();
+
+    act(() => vi.advanceTimersByTime(PENDING_GRACE_MS));
+    const waiting = screen.getByRole('region', { name: 'Searching for more results…' });
+    expect(waiting).toHaveAttribute('aria-busy', 'true');
+    const block = container.querySelector('[data-plugin-surface]');
+    expect(block).toHaveClass('h-48');
+
+    act(() => useEmailStore.setState({ externalSearchResults: [result('crm', 'a', 'CRM')], externalSearchPending: [] }));
+    expect(screen.queryByRole('region', { name: 'Searching for more results…' })).toBeNull();
+    expect(screen.getByRole('region', { name: 'CRM' })).toHaveTextContent('Title a');
+    // The same height as while it waited: the list below does not move again.
+    expect(container.querySelector('[data-plugin-surface]')).toHaveClass('h-48');
+  });
+
+  it('shows the entries of a plugin that answered beside the one still searching', () => {
+    vi.useFakeTimers();
+    useEmailStore.setState({
+      searchQuery: 'resolution',
+      externalSearchResults: [result('chat', 'b')],
+      externalSearchPending: ['crm'],
+    });
+    render(<PluginSearchResults surface="search-results" />);
+    act(() => vi.advanceTimersByTime(PENDING_GRACE_MS));
+
+    expect(screen.getByRole('region', { name: 'Team chat' })).toHaveTextContent('Title b');
+    expect(screen.getByRole('region', { name: 'Searching for more results…' })).toBeInTheDocument();
+  });
+
+  it('takes the place again at the next search', () => {
+    vi.useFakeTimers();
+    useEmailStore.setState({ searchQuery: 'one', externalSearchResults: [], externalSearchPending: ['crm'] });
+    const { container } = render(<PluginSearchResults surface="search-results" />);
+    act(() => vi.advanceTimersByTime(PENDING_GRACE_MS));
+    act(() => useEmailStore.setState({ externalSearchResults: [result('crm', 'a', 'CRM')], externalSearchPending: [] }));
+
+    // A search the plugin answers at once: the block as without waiting.
+    act(() => useEmailStore.setState({ searchQuery: 'two', externalSearchResults: [], externalSearchPending: ['crm'] }));
+    act(() => useEmailStore.setState({ externalSearchResults: [result('crm', 'c', 'CRM')], externalSearchPending: [] }));
+
+    expect(container.querySelector('[data-plugin-surface]')).not.toHaveClass('h-48');
   });
 });

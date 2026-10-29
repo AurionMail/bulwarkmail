@@ -296,6 +296,7 @@
     "no_emails_description": "This mailbox is empty",
     "no_search_results": "No results found",
     "no_search_results_description": "Try adjusting your search or filters",
+    "more_results_searching": "Searching for more results…",
     "loading": "Loading emails...",
     "unread": "unread",
     "to_me": "To me",

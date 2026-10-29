@@ -296,6 +296,7 @@
     "no_emails_description": "편지함이 비어있어요",
     "no_search_results": "검색 결과가 없어요",
     "no_search_results_description": "검색어나 필터를 변경해 보세요",
+    "more_results_searching": "추가 결과를 검색하는 중…",
     "loading": "메일을 불러오는 중...",
     "unread": "읽지 않음",
     "to_me": "나에게",

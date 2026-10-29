@@ -306,21 +306,25 @@ export class HookBus<T extends (...args: any[]) => any> {
   /**
    * Ask every handler at once, each with the same initial value, and keep
    * each answer with the plugin that gave it, for hooks whose results the
-   * host shows per plugin (onProvideSearchResults). A handler that throws or
-   * runs out of time gives nothing.
+   * host shows per plugin (onProvideSearchResults): the plugins asked, in
+   * their order, each with its answer to come, so the host can show one as
+   * soon as it comes and knows who it still waits for. A handler that throws
+   * or runs out of time answers null.
    */
-  async collect<V>(initial: V, ...rest: unknown[]): Promise<{ pluginId: string; value: unknown }[]> {
+  collect<V>(initial: V, ...rest: unknown[]): { pluginId: string; answer: Promise<{ value: unknown } | null> }[] {
     const asked = this.handlers.filter(({ pluginId }) => !pluginErrorTracker.isDisabled(pluginId));
-    const answers = await Promise.all(asked.map(async ({ pluginId, handler }) => {
-      try {
-        const value: unknown = await withTimeout(pluginId, handler(initial, ...rest), this.timeoutMs);
-        return { pluginId, value };
-      } catch (err) {
-        pluginErrorTracker.record(pluginId, err);
-        return null;
-      }
+    return asked.map(({ pluginId, handler }) => ({
+      pluginId,
+      answer: (async () => {
+        try {
+          const value: unknown = await withTimeout(pluginId, handler(initial, ...rest), this.timeoutMs);
+          return { value };
+        } catch (err) {
+          pluginErrorTracker.record(pluginId, err);
+          return null;
+        }
+      })(),
     }));
-    return answers.filter((a): a is { pluginId: string; value: unknown } => a !== null);
   }
 
   /** Fire handlers as transforms - each receives the output of the previous */

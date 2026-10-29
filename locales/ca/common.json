@@ -296,6 +296,7 @@
     "no_emails_description": "Aquesta bústia és buida",
     "no_search_results": "No s'ha trobat cap resultat",
     "no_search_results_description": "Proveu d'ajustar la cerca o els filtres",
+    "more_results_searching": "S'estan cercant més resultats…",
     "loading": "Carregant els correus...",
     "unread": "no llegit",
     "to_me": "Per a mi",

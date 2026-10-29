@@ -1,7 +1,8 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight } from "@/components/icons";
+import { useEffect, useId, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
+import { ChevronDown, ChevronRight, Loader2 } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { isFilterEmpty } from "@/lib/jmap/search-utils";
 import { runPluginAction } from "@/lib/plugin-sandbox/actions";
@@ -75,6 +76,27 @@ function isOpen(email: SearchResultEmail | undefined, open: Email | null): boole
   return (open.sourceAccountId ?? own) === (email.accountId ?? own);
 }
 
+/** ms a plugin may take before the block holds its place for the entries to come. */
+export const PENDING_GRACE_MS = 300;
+
+/**
+ * Whether the block holds its place for this search: a plugin asked had not
+ * answered after PENDING_GRACE_MS. Kept once the answers came, until the next
+ * search asks again, so the block keeps its height and the list below does
+ * not move a second time. A plugin that answers at once (one that does not
+ * search for this query) shows nothing.
+ */
+function useHeldPlace(pending: boolean): boolean {
+  const [held, setHeld] = useState(false);
+  useEffect(() => {
+    if (!pending) return;
+    setHeld(false);
+    const timer = setTimeout(() => setHeld(true), PENDING_GRACE_MS);
+    return () => clearTimeout(timer);
+  }, [pending]);
+  return held;
+}
+
 interface PluginSearchResultsProps {
   /** Entries plugins return from onProvideSearchResults; a click is the plugin's onAction. */
   surface: "search-results";
@@ -85,15 +107,21 @@ interface PluginSearchResultsProps {
 /**
  * Results from elsewhere for the search that is running (CRM hits, chat
  * messages, ...), above its message list. Renders nothing outside a search or
- * without entries. A click on an entry naming a message the user reaches opens
- * it; any other goes back to the plugin that gave the entry.
+ * without entries. While a plugin takes longer than PENDING_GRACE_MS the block
+ * shows at a fixed height with placeholder rows, which its entries then fill,
+ * so the list moves once, with its own results, not when a slow plugin
+ * answers. A click on an entry naming a message the user reaches opens it; any
+ * other goes back to the plugin that gave the entry.
  */
 export function PluginSearchResults({ surface, onOpenEmail }: PluginSearchResultsProps) {
   const results = useEmailStore((s) => s.externalSearchResults);
   const openEmail = useEmailStore((s) => s.selectedEmail);
   const query = useEmailStore((s) => s.searchQuery);
   const searching = useEmailStore((s) => !!s.searchQuery.trim() || !isFilterEmpty(s.searchFilters));
+  const pending = useEmailStore((s) => s.externalSearchPending.length > 0);
   const plugins = usePluginStore((s) => s.plugins);
+  const held = useHeldPlace(pending);
+  const t = useTranslations('email_list');
   const idPrefix = useId();
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
 
@@ -102,7 +130,8 @@ export function PluginSearchResults({ surface, onOpenEmail }: PluginSearchResult
     [results, plugins],
   );
 
-  if (!searching || groups.length === 0) return null;
+  const waiting = pending && held;
+  if (!searching || (groups.length === 0 && !waiting)) return null;
 
   const click = (r: ProvidedSearchResult) => {
     const reachable = r.email && onOpenEmail ? reachableEmail(r.email) : null;
@@ -119,7 +148,10 @@ export function PluginSearchResults({ surface, onOpenEmail }: PluginSearchResult
     });
 
   return (
-    <div data-plugin-surface={surface} className="max-h-[40%] flex-shrink-0 overflow-y-auto border-b border-border bg-muted/30">
+    <div
+      data-plugin-surface={surface}
+      className={cn("max-h-[40%] flex-shrink-0 overflow-y-auto border-b border-border bg-muted/30", held && "h-48")}
+    >
       {groups.map((group, index) => {
         const open = !collapsed.has(group.id);
         const listId = `${idPrefix}-${index}`;
@@ -163,6 +195,20 @@ export function PluginSearchResults({ surface, onOpenEmail }: PluginSearchResult
           </section>
         );
       })}
+      {waiting && (
+        <section aria-label={t('more_results_searching')} aria-busy="true">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <span className="truncate">{t('more_results_searching')}</span>
+          </div>
+          {[0, 1, 2].map((row) => (
+            <div key={row} className="flex flex-col gap-1.5 px-3 py-2" aria-hidden="true">
+              <div className="h-3 w-3/5 animate-pulse rounded bg-muted" />
+              <div className="h-2.5 w-4/5 animate-pulse rounded bg-muted" />
+            </div>
+          ))}
+        </section>
+      )}
     </div>
   );
 }

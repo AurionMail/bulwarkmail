@@ -71,9 +71,21 @@ export function checkSearchResults(pluginId: string, value: unknown): ProvidedSe
   return out;
 }
 
-/** Ask every plugin for results to a search; each answer checked, in the plugins' order. */
-export async function provideSearchResults(query: string, filters: unknown): Promise<ProvidedSearchResult[]> {
+/**
+ * Ask every plugin for results to a search. Returns the plugins asked, in
+ * their order; each answer goes to `onAnswer` as it comes, checked (empty for
+ * a plugin that throws or runs out of time), so a slow plugin keeps no other
+ * waiting.
+ */
+export function provideSearchResults(
+  query: string,
+  filters: unknown,
+  onAnswer: (pluginId: string, results: ProvidedSearchResult[]) => void,
+): string[] {
   if (emailHooks.onProvideSearchResults.size === 0) return [];
-  const answers = await emailHooks.onProvideSearchResults.collect([] as ExternalSearchResult[], { query, filters });
-  return answers.flatMap(({ pluginId, value }) => checkSearchResults(pluginId, value));
+  const asked = emailHooks.onProvideSearchResults.collect([] as ExternalSearchResult[], { query, filters });
+  for (const { pluginId, answer } of asked) {
+    void answer.then((given) => onAnswer(pluginId, given ? checkSearchResults(pluginId, given.value) : []));
+  }
+  return asked.map(({ pluginId }) => pluginId);
 }
