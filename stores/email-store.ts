@@ -302,6 +302,8 @@ interface EmailStore {
   searchAbortController: AbortController | null;
   /** Plugins' results from elsewhere for the search running (onProvideSearchResults), drawn above its list. */
   externalSearchResults: ProvidedSearchResult[];
+  /** The plugins asked for the search running that have not answered yet, so the block can say more is coming. */
+  externalSearchPending: string[];
 
   // Unified mailbox state
   // Bumped by any action that changes which mailbox/keyword/unified view is
@@ -3230,6 +3232,8 @@ async function pluginSearchResultIds(query: string, filters: unknown, emails: Em
  * Plugins' results for the search that is running (onProvideSearchResults).
  * Asked beside the search, not before its list is shown: a slow plugin never
  * delays the messages, and the answer to a search that was replaced is dropped.
+ * Each plugin's entries show as soon as it answers, in the plugins' order; the
+ * ones still asked are kept as pending.
  */
 let providedSearchRun: object | null = null;
 
@@ -3240,15 +3244,24 @@ function startProvidedSearchResults(
 ): void {
   const run = {};
   providedSearchRun = run;
+  const answers = new Map<string, ProvidedSearchResult[]>();
+  let asked: string[] = [];
   // Written only when it changes: a search without plugin results renders as before.
-  const show = (results: ProvidedSearchResult[]) => {
-    if (results.length > 0 || store.get().externalSearchResults.length > 0) store.set({ externalSearchResults: results });
+  const show = () => {
+    const results = asked.flatMap((id) => answers.get(id) ?? []);
+    const pending = asked.filter((id) => !answers.has(id));
+    const shown = store.get();
+    if (results.length > 0 || pending.length > 0 || shown.externalSearchResults.length > 0 || shown.externalSearchPending.length > 0) {
+      store.set({ externalSearchResults: results, externalSearchPending: pending });
+    }
   };
-  show([]);
-  if (emailHooks.onProvideSearchResults.size === 0) return;
-  void provideSearchResults(query, filters).then((results) => {
-    if (providedSearchRun === run) show(results);
+  show();
+  asked = provideSearchResults(query, filters, (pluginId, results) => {
+    if (providedSearchRun !== run) return;
+    answers.set(pluginId, results);
+    show();
   });
+  show();
 }
 
 export const useEmailStore = create<EmailStore>((set, get) => ({
@@ -3300,6 +3313,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   isAdvancedSearchOpen: false,
   searchAbortController: null,
   externalSearchResults: [],
+  externalSearchPending: [],
 
   // Unified mailbox state
   viewToken: 0,

@@ -296,6 +296,7 @@
     "no_emails_description": "صندوق البريد هذا فارغ",
     "no_search_results": "لم يتم العثور على نتائج",
     "no_search_results_description": "حاول تعديل البحث أو عوامل التصفية",
+    "more_results_searching": "جارٍ البحث عن نتائج أخرى…",
     "loading": "جارٍ تحميل الرسائل...",
     "unread": "غير مقروءة",
     "to_me": "إليّ",

@@ -50,6 +50,7 @@ beforeEach(() => {
     searchFilters: { ...DEFAULT_SEARCH_FILTERS },
     searchAbortController: null,
     externalSearchResults: [],
+    externalSearchPending: [],
     emails: [],
   });
 });
@@ -122,5 +123,41 @@ describe('onProvideSearchResults', () => {
     answer.resolve([entry('m1')]);
     await vi.waitFor(() => expect(useEmailStore.getState().externalSearchResults).toHaveLength(1));
     expect(useEmailStore.getState().externalSearchResults[0].pluginId).toBe('crm');
+  });
+
+  it('keeps the plugins it still waits for as pending, and shows each one\'s entries as soon as it answers', async () => {
+    const slow = deferred<ExternalSearchResult[]>();
+    const fast = deferred<ExternalSearchResult[]>();
+    emailHooks.onProvideSearchResults.register('slow', () => slow.promise);
+    emailHooks.onProvideSearchResults.register('fast', () => fast.promise);
+
+    await useEmailStore.getState().searchEmails(client, 'resolution');
+    expect(useEmailStore.getState().externalSearchPending).toEqual(['slow', 'fast']);
+
+    fast.resolve([entry('f')]);
+    await vi.waitFor(() => expect(useEmailStore.getState().externalSearchPending).toEqual(['slow']));
+    expect(useEmailStore.getState().externalSearchResults.map((r) => r.key)).toEqual(['f']);
+
+    slow.resolve([entry('s')]);
+    await vi.waitFor(() => expect(useEmailStore.getState().externalSearchPending).toEqual([]));
+    // In the plugins' order, not the answers'.
+    expect(useEmailStore.getState().externalSearchResults.map((r) => r.key)).toEqual(['s', 'f']);
+  });
+
+  it('waits for no one without plugins', async () => {
+    await useEmailStore.getState().searchEmails(client, 'resolution');
+
+    expect(useEmailStore.getState().externalSearchPending).toEqual([]);
+  });
+
+  it('waits no more for the plugins of a search that was replaced', async () => {
+    emailHooks.onProvideSearchResults.register('crm', (_results: ExternalSearchResult[], { query }: { query: string }) =>
+      (query === 'one' ? new Promise(() => {}) : [entry('two')]));
+
+    await useEmailStore.getState().searchEmails(client, 'one');
+    await useEmailStore.getState().searchEmails(client, 'two');
+
+    await vi.waitFor(() => expect(useEmailStore.getState().externalSearchResults).toHaveLength(1));
+    expect(useEmailStore.getState().externalSearchPending).toEqual([]);
   });
 });

@@ -73,12 +73,21 @@ describe('checkSearchResults', () => {
   });
 });
 
+/** Asks the plugins, collecting each answer in the order it came. */
+function ask(query = 'q') {
+  const answers: { pluginId: string; keys: string[] }[] = [];
+  const asked = provideSearchResults(query, {}, (pluginId, results) => {
+    answers.push({ pluginId, keys: results.map((r) => r.key) });
+  });
+  return { asked, answers };
+}
+
 describe('provideSearchResults', () => {
-  it('asks no one without handlers', async () => {
-    expect(await provideSearchResults('q', {})).toEqual([]);
+  it('asks no one without handlers', () => {
+    expect(ask().asked).toEqual([]);
   });
 
-  it('asks the plugins at once, each with an empty list', async () => {
+  it('asks the plugins at once, each with an empty list, and hands over each answer as it comes', async () => {
     const order: string[] = [];
     emailHooks.onProvideSearchResults.register('slow', async (initial: unknown[]) => {
       order.push(`slow ${initial.length}`);
@@ -90,27 +99,43 @@ describe('provideSearchResults', () => {
       return [{ key: 'f', title: 'F' }];
     });
 
-    const results = await provideSearchResults('q', {});
+    const { asked, answers } = ask();
 
+    expect(asked).toEqual(['slow', 'fast']);
     expect(order).toEqual(['slow 0', 'fast 0']);
-    expect(results.map((r) => `${r.pluginId}:${r.key}`)).toEqual(['slow:s', 'fast:f']);
+    await vi.waitFor(() => expect(answers).toHaveLength(2));
+    expect(answers).toEqual([{ pluginId: 'fast', keys: ['f'] }, { pluginId: 'slow', keys: ['s'] }]);
   });
 
-  it('leaves out a plugin that throws', async () => {
+  it('checks each answer', async () => {
+    emailHooks.onProvideSearchResults.register('p', () => [{ key: 'a', title: 'A' }, { key: 'a', title: 'twice' }, 'text']);
+
+    const { answers } = ask();
+
+    await vi.waitFor(() => expect(answers).toEqual([{ pluginId: 'p', keys: ['a'] }]));
+  });
+
+  it('answers nothing for a plugin that throws', async () => {
     emailHooks.onProvideSearchResults.register('broken', () => { throw new Error('down'); });
     emailHooks.onProvideSearchResults.register('ok', () => [{ key: 'a', title: 'A' }]);
 
-    expect((await provideSearchResults('q', {})).map((r) => r.pluginId)).toEqual(['ok']);
+    const { answers } = ask();
+
+    await vi.waitFor(() => expect(answers).toHaveLength(2));
+    expect(answers).toContainEqual({ pluginId: 'broken', keys: [] });
+    expect(answers).toContainEqual({ pluginId: 'ok', keys: ['a'] });
   });
 
-  it('leaves out a plugin that runs out of time', async () => {
+  it('answers nothing for a plugin that runs out of time, the others long before', async () => {
     vi.useFakeTimers();
     emailHooks.onProvideSearchResults.register('hung', () => new Promise(() => {}));
     emailHooks.onProvideSearchResults.register('ok', () => [{ key: 'a', title: 'A' }]);
 
-    const pending = provideSearchResults('q', {});
-    await vi.advanceTimersByTimeAsync(10_000);
+    const { answers } = ask();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(answers).toEqual([{ pluginId: 'ok', keys: ['a'] }]);
 
-    expect((await pending).map((r) => r.pluginId)).toEqual(['ok']);
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(answers).toEqual([{ pluginId: 'ok', keys: ['a'] }, { pluginId: 'hung', keys: [] }]);
   });
 });
