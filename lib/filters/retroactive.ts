@@ -26,6 +26,15 @@ export interface RetroMessage {
 
 const ADDRESS_FIELDS = new Set<FilterCondition['field']>(['from', 'to', 'cc']);
 const FIELD_HEADER: Record<string, string> = { from: 'From', to: 'To', cc: 'Cc', subject: 'Subject' };
+/**
+ * Headers RFC 8621 parses as addresses. Their Text form is not allowed
+ * (Stalwart rejects `header:From:asText` as an invalid property), so they are
+ * read in the Addresses form instead.
+ */
+const ADDRESS_HEADERS = new Set([
+  'from', 'sender', 'reply-to', 'to', 'cc', 'bcc',
+  'resent-from', 'resent-sender', 'resent-reply-to', 'resent-to', 'resent-cc', 'resent-bcc',
+]);
 const TEXT_COMPARATORS = new Set<FilterCondition['comparator']>([
   'contains', 'not_contains', 'is', 'not_is', 'starts_with', 'ends_with', 'matches', 'address_is', 'domain_is',
 ]);
@@ -210,7 +219,9 @@ export function retroProperties(rule: FilterRule): string[] {
       const header = conditionHeader(condition);
       // The raw form backs up the text form, which Stalwart answers with null
       // for headers it parses as structured (List-Id).
-      if (header) {
+      if (header && ADDRESS_HEADERS.has(header.toLowerCase())) {
+        properties.add(`header:${header}:asAddresses:all`);
+      } else if (header) {
         properties.add(`header:${header}:asText:all`);
         properties.add(`header:${header}:all`);
       }
@@ -223,7 +234,19 @@ export function retroProperties(rule: FilterRule): string[] {
 export function toRetroMessage(record: Record<string, unknown>): RetroMessage {
   const headers: Record<string, string[]> = {};
   const asList = (value: unknown): unknown[] => (Array.isArray(value) ? value : value == null ? [] : [value]);
+  const formatAddress = (a: unknown): string | null => {
+    const { name, email } = (a ?? {}) as Partial<EmailAddress>;
+    if (!email) return name || null;
+    return name ? `${name} <${email}>` : email;
+  };
   for (const [key, value] of Object.entries(record)) {
+    const addresses = /^header:(.+):asAddresses:all$/.exec(key);
+    if (addresses) {
+      // One entry per occurrence, each read back as `Name <email>, ...`.
+      headers[addresses[1].toLowerCase()] = asList(value)
+        .map(list => asList(list).map(formatAddress).filter((v): v is string => v !== null).join(', '));
+      continue;
+    }
     const m = /^header:(.+):asText:all$/.exec(key);
     if (!m) continue;
     const raw = asList(record[`header:${m[1]}:all`]);
