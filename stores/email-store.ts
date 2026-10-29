@@ -4298,6 +4298,11 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       // Each send leaves a submission record; sweep the ones that can go
       // (throttled per account by the client).
       void client.pruneEmailSubmissions();
+      // The send destroyed the saved draft and filed the message in Sent, but
+      // the folder counts only followed once a push arrived, so Drafts kept
+      // counting the sent draft for a moment after the composer closed
+      // (#1412). Only for the active login: the store's folders are its own.
+      if (useAuthStore.getState().client === client) void get().fetchMailboxes(client);
       // Refresh handled by UI layer for immediate feedback
       set({
         isLoading: false,
