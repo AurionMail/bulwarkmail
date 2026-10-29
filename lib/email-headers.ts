@@ -228,6 +228,11 @@ const DMARC_SEVERITY: Record<string, number> = {
  * DKIM, DMARC and iprev come from the topmost header only, and the others
  * can only escalate SPF to a failure, never supply a pass.
  */
+function identityDomain(identity: string | undefined): string | undefined {
+  const at = identity?.lastIndexOf('@') ?? -1;
+  return identity && at >= 0 && at < identity.length - 1 ? identity.slice(at + 1) : undefined;
+}
+
 export function parseAuthenticationResults(headers: string | readonly string[]): AuthenticationResults {
   const results: AuthenticationResults = {};
   const list = typeof headers === 'string' ? [headers] : headers;
@@ -285,7 +290,9 @@ export function parseAuthenticationResults(headers: string | readonly string[]):
     .filter((info) => info.method === 'dkim')
     .map((info) => ({
       result: info.result as DkimResult,
-      domain: info.props['header.d'],
+      // Some receivers name the signature only by its identity (`header.i`,
+      // `@domain` or `user@domain`, RFC 8601 2.7.1); its domain is the signer's.
+      domain: info.props['header.d'] ?? identityDomain(info.props['header.i']),
       selector: info.props['header.s'],
     }));
   if (dkimResults.length > 0) {

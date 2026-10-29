@@ -434,6 +434,14 @@ describe('getSenderVerification', () => {
     expect(getSenderVerification(parseAuthenticationResults('mx; dmarc=pass header.from=shop.example'), from)).toBeNull();
   });
 
+  it('takes the signing domain from header.i when the receiver writes no header.d (#1420)', () => {
+    const from = 'noreply@example.org';
+    expect(getSenderVerification(parseAuthenticationResults('mx.example.net; dkim=pass header.i=@example.org'), from)).toBeNull();
+    expect(getSenderVerification(parseAuthenticationResults('mx; dkim=pass header.i=bounce@mail.example.org'), from)).toBeNull();
+    expect(getSenderVerification(parseAuthenticationResults('mx; dkim=pass header.i=@other.example'), from))
+      .toEqual({ status: 'unverified', domain: 'example.org' });
+  });
+
   it('does not take a pass for an unrelated domain as verifying the From domain', () => {
     // The sender passes SPF for their own envelope domain (or signs with
     // their own key) and writes someone else's From; the From domain
