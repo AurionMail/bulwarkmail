@@ -9,6 +9,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { useDiscardChanges } from "@/components/settings/use-discard-changes";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { useComposingSurface } from "@/hooks/use-composing-surface";
 import { Input } from "@/components/ui/input";
 import {
   X,
@@ -3143,18 +3144,10 @@ export function EmailComposer({
   // only for one that is not in here.
   const confirmedPlaceholdersRef = useRef<Set<string>>(new Set());
 
-  // Toasts sit in the bottom corner, right over the composer's Send button.
-  // The attribute lifts them clear while a composer is open (see toast.tsx).
-  useEffect(() => {
-    const root = document.documentElement;
-    const open = Number(root.dataset.composerOpen ?? 0) + 1;
-    root.dataset.composerOpen = String(open);
-    return () => {
-      const left = Number(root.dataset.composerOpen ?? 1) - 1;
-      if (left > 0) root.dataset.composerOpen = String(left);
-      else delete root.dataset.composerOpen;
-    };
-  }, []);
+  // Toasts and the install/push cards sit in the bottom corner, right over
+  // the composer's Send button. Toasts lift clear while a composer is open
+  // (see toast.tsx), the cards hide.
+  useComposingSurface();
 
   // "Back to editing" from the placeholder warning selects the first
   // placeholder, so the user can type over it.

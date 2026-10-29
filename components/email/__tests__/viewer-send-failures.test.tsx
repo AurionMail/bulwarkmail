@@ -6,6 +6,7 @@ import { toast } from '@/stores/toast-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useEmailStore } from '@/stores/email-store';
+import { useUIStore } from '@/stores/ui-store';
 import { flushComposers, resetComposeFlushRegistry } from '@/lib/compose-flush-registry';
 
 // Sending from the viewer - quick reply, "Send now" / "Reschedule" of a
@@ -124,6 +125,19 @@ describe('viewer send failures', () => {
     fireEvent.change(screen.getByPlaceholderText('quick_reply_placeholder'), { target: { value: 'On it.' } });
     await act(async () => { await flushComposers(1000); });
     expect(onSaveQuickReplyDraft).toHaveBeenCalledWith('On it.');
+  });
+
+  // The PWA install and push cards hide while this is set (#1411).
+  it('marks an expanded quick reply as composing, so floating cards keep off Send', () => {
+    useUIStore.setState({ composingCount: 0 });
+    render(<EmailViewer email={makeEmail()} mailboxes={mailboxes} selectedMailbox="inbox" currentMailboxRole="inbox" onQuickReply={vi.fn()} />);
+    expect(useUIStore.getState().composingCount).toBe(0);
+
+    fireEvent.focus(screen.getByPlaceholderText('quick_reply_placeholder'));
+    expect(useUIStore.getState().composingCount).toBe(1);
+
+    fireEvent.click(screen.getByText('cancel'));
+    expect(useUIStore.getState().composingCount).toBe(0);
   });
 
   const scheduled = () => makeEmail({

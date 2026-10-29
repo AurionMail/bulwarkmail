@@ -38,6 +38,11 @@ interface UIState {
   // Sidebar collapsed state (desktop)
   sidebarCollapsed: boolean;
 
+  // Open composers and expanded quick replies. Floating cards such as the
+  // PWA install prompt stay hidden while any is open and toasts lift clear,
+  // so neither sits on top of a Send button.
+  composingCount: number;
+
   // Actions
   setActiveView: (view: ActiveView) => void;
   setSidebarOpen: (open: boolean) => void;
@@ -53,6 +58,8 @@ interface UIState {
   persistColumnWidths: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   toggleSidebarCollapsed: () => void;
+  beginComposing: () => void;
+  endComposing: () => void;
 
   // Navigation helpers
   showEmailList: () => void;
@@ -74,6 +81,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   emailListWidth: EMAIL_LIST_DEFAULT,
   emailListHeight: EMAIL_LIST_HEIGHT_DEFAULT,
   sidebarCollapsed: false,
+  composingCount: 0,
 
   // Actions
   setActiveView: (view) => set({ activeView: view }),
@@ -133,6 +141,8 @@ export const useUIStore = create<UIState>((set, get) => ({
 
   setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
   toggleSidebarCollapsed: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+  beginComposing: () => set((state) => ({ composingCount: state.composingCount + 1 })),
+  endComposing: () => set((state) => ({ composingCount: Math.max(0, state.composingCount - 1) })),
 
   // Navigation helpers for mobile
   showEmailList: () => {
@@ -188,6 +198,14 @@ function reportColumnWidths(widths: ColumnWidths): void {
 function deviceType(s: Pick<UIState, "isMobile" | "isTablet">): "mobile" | "tablet" | "desktop" {
   return s.isMobile ? "mobile" : s.isTablet ? "tablet" : "desktop";
 }
+
+// Mirrored on <html> for CSS: toasts lift clear of Send (see toast.tsx).
+useUIStore.subscribe((state, prev) => {
+  if (state.composingCount === prev.composingCount || typeof document === "undefined") return;
+  const root = document.documentElement;
+  if (state.composingCount > 0) root.dataset.composerOpen = String(state.composingCount);
+  else delete root.dataset.composerOpen;
+});
 
 // Plugins hear about layout changes, whichever control or effect made them.
 useUIStore.subscribe((state, prev) => {

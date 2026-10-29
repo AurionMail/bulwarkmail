@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { useConfig } from "@/hooks/use-config";
 import { withBasePath } from "@/lib/browser-navigation";
+import { useUIStore } from "@/stores/ui-store";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -14,6 +15,26 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const DISMISSED_KEY = "pwa-install-dismissed";
+// "Not now" holds the card back for a week, in every account on this browser.
+const SNOOZED_UNTIL_KEY = "pwa-install-snoozed-until";
+const SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
+
+function isDismissed(): boolean {
+  try {
+    if (localStorage.getItem(DISMISSED_KEY)) return true;
+    const snoozedUntil = Number(localStorage.getItem(SNOOZED_UNTIL_KEY));
+    return snoozedUntil > Date.now();
+  } catch {
+    return false;
+  }
+}
+
+function remember(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch { /* localStorage may be unavailable */ }
+}
+
 export const PWA_INSTALL_PROMPT_VISIBILITY_EVENT =
   "bulwark:pwa-install-prompt-visibility";
 
@@ -31,9 +52,12 @@ export function PWAInstallPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
   const { appName, faviconUrl, appLogoLightUrl, appLogoDarkUrl } = useConfig();
   const t = useTranslations("pwa_install");
+  // Stays "visible" for the push prompt's sake while a composer is open, so
+  // that card doesn't take its place over the Send button either.
+  const composing = useUIStore((state) => state.composingCount > 0);
 
   useEffect(() => {
-    if (localStorage.getItem(DISMISSED_KEY)) return;
+    if (isDismissed()) return;
 
     const handler = (e: Event) => {
       e.preventDefault();
@@ -74,15 +98,16 @@ export function PWAInstallPrompt() {
   };
 
   const handleDismiss = () => {
+    remember(SNOOZED_UNTIL_KEY, String(Date.now() + SNOOZE_MS));
     setShowPrompt(false);
   };
 
   const handleDismissForever = () => {
-    localStorage.setItem(DISMISSED_KEY, "1");
+    remember(DISMISSED_KEY, "1");
     setShowPrompt(false);
   };
 
-  if (!showPrompt || !deferredPrompt) {
+  if (!showPrompt || !deferredPrompt || composing) {
     return null;
   }
 

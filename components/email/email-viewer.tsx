@@ -23,6 +23,7 @@ import { EmailContextMenu } from "./email-context-menu";
 import { useMessageActionList, type MessageActionEntry, type MessageActionKey, type MessageActionOptions, type MessageSubmenuKey } from "./message-actions";
 import { useCopyToAccount, useEmailExport, usePrintRequestStore } from "@/hooks/use-message-file-actions";
 import { useBottomControls } from "@/hooks/use-bottom-controls";
+import { useComposingSurface } from "@/hooks/use-composing-surface";
 import { ReaderSelectionMenu, useReaderSelectionMenu, watchBodySelection, watchElementSelection } from "./reader-selection-menu";
 import { onPanelRequest } from "@/lib/plugin-sandbox/panel-requests";
 import { formatFileSize, cn, formatDate, formatDateTime, formatRelativeAgo, generateUUID, cleanPreview, type MailboxNode } from "@/lib/utils";
@@ -1603,6 +1604,8 @@ export function EmailViewer({
   const [quickReplyText, setQuickReplyText] = useState("");
   const [isQuickReplyFocused, setIsQuickReplyFocused] = useState(false);
   const [isSendingQuickReply, setIsSendingQuickReply] = useState(false);
+  // The quick reply's Send button shows once it is focused or has text.
+  useComposingSurface(quickReplyEnabled && (isQuickReplyFocused || quickReplyText.length > 0));
   // An automatic sign-out keeps typed quick-reply text as a draft; text on
   // its way out as a reply needs none. A reply still waiting on the
   // "Send outside your organisation?" question hasn't gone out: the question

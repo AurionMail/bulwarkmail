@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PUSH_NOTIFICATION_PROMPT_DELAY_MS, PushNotificationPrompt } from "../push-notification-prompt";
 import { PWA_INSTALL_PROMPT_VISIBILITY_EVENT } from "../pwa-install-prompt";
 import { jmapSetError } from "@/lib/jmap/jmap-error";
+import { useUIStore } from "@/stores/ui-store";
 
 const mocks = vi.hoisted(() => ({
   pathname: "/en",
@@ -123,6 +124,7 @@ describe("PushNotificationPrompt", () => {
     mocks.resyncWebPush.mockReset().mockResolvedValue(false);
     mocks.waitForWebPushResync.mockReset().mockResolvedValue(undefined);
     setNotificationPermission("default");
+    useUIStore.setState({ composingCount: 0 });
   });
 
   afterEach(() => {
@@ -471,6 +473,18 @@ describe("PushNotificationPrompt", () => {
     await advancePromptDelay();
 
     expect(mocks.isWebPushEnabled).toHaveBeenCalledWith("account-1");
+    expect(screen.getByText("title")).toBeInTheDocument();
+  });
+
+  it("stays off the screen while a composer is open", async () => {
+    render(<PushNotificationPrompt />);
+    await advancePromptDelay();
+    expect(screen.getByText("title")).toBeInTheDocument();
+
+    act(() => useUIStore.getState().beginComposing());
+    expect(screen.queryByText("title")).not.toBeInTheDocument();
+
+    act(() => useUIStore.getState().endComposing());
     expect(screen.getByText("title")).toBeInTheDocument();
   });
 });

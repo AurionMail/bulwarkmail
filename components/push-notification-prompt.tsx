@@ -11,6 +11,7 @@ import { useAccountStore } from "@/stores/account-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { usePolicyStore } from "@/stores/policy-store";
 import { useSettingsStore } from "@/stores/settings-store";
+import { useUIStore } from "@/stores/ui-store";
 import {
   enableWebPush,
   isWebPushEnabled,
@@ -110,6 +111,8 @@ export function PushNotificationPrompt() {
   const policyLoaded = usePolicyStore((state) => state.loaded);
   const policy = usePolicyStore((state) => state.policy);
   const userPushRelayUrl = useSettingsStore((state) => state.pushRelayUrl);
+  // Sits where the install card does: keep off an open composer's Send button.
+  const composing = useUIStore((state) => state.composingCount > 0);
 
   const [showPrompt, setShowPrompt] = useState(false);
   const [isEnabling, setIsEnabling] = useState(false);
@@ -330,7 +333,7 @@ export function PushNotificationPrompt() {
     setShowPrompt(false);
   };
 
-  if (!showPrompt) return null;
+  if (!showPrompt || composing) return null;
 
   return (
     <div className="fixed bottom-4 end-4 z-50 max-w-sm rounded-lg border border-border bg-popover text-popover-foreground shadow-lg p-4 animate-in slide-in-from-bottom-4 max-sm:inset-x-3 max-sm:max-w-none max-sm:bottom-[calc(var(--bottom-controls-height,3.75rem)+0.75rem)]">
