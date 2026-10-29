@@ -450,6 +450,7 @@
     "important": "重要",
     "download": "ダウンロード",
     "download_all": "すべてダウンロード",
+    "download_all_partial": "ZIPに含まれなかった添付ファイルは{count}件です。",
     "from": "送信者",
     "to": "宛先",
     "cc": "CC",

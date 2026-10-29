@@ -450,6 +450,7 @@
     "important": "Önemli",
     "download": "İndir",
     "download_all": "Tümünü indir",
+    "download_all_partial": "ZIP dosyasına {count} ek dahil edilemedi.",
     "from": "Kimden",
     "to": "Kime",
     "cc": "CC",

@@ -450,6 +450,7 @@
     "important": "Belangrijk",
     "download": "Downloaden",
     "download_all": "Alles downloaden",
+    "download_all_partial": "{count, plural, one {# bijlage is weggelaten uit het ZIP-bestand.} other {# bijlagen zijn weggelaten uit het ZIP-bestand.}}",
     "from": "Van",
     "to": "Aan",
     "cc": "CC",

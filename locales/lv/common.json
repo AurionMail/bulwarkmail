@@ -450,6 +450,7 @@
     "important": "Svarīgi",
     "download": "Lejupielādēt",
     "download_all": "Lejupielādēt visu",
+    "download_all_partial": "{count, plural, zero {# pielikumi netika iekļauti ZIP failā.} one {# pielikums netika iekļauts ZIP failā.} other {# pielikumi netika iekļauti ZIP failā.}}",
     "from": "No",
     "to": "Kam",
     "cc": "Kopija",

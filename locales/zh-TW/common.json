@@ -450,6 +450,7 @@
     "important": "重要",
     "download": "下載",
     "download_all": "全部下載",
+    "download_all_partial": "有 {count} 個附件未包含在 ZIP 中。",
     "from": "寄件者",
     "to": "收件者",
     "cc": "副本",

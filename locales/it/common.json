@@ -450,6 +450,7 @@
     "important": "Importante",
     "download": "Scarica",
     "download_all": "Scarica tutto",
+    "download_all_partial": "{count, plural, one {# allegato è stato omesso dallo ZIP.} other {# allegati sono stati omessi dallo ZIP.}}",
     "from": "Da",
     "to": "A",
     "cc": "CC",

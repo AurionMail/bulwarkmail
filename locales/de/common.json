@@ -450,6 +450,7 @@
     "important": "Wichtig",
     "download": "Herunterladen",
     "download_all": "Alle herunterladen",
+    "download_all_partial": "{count, plural, one {# Anhang wurde im ZIP-Archiv ausgelassen.} other {# Anhänge wurden im ZIP-Archiv ausgelassen.}}",
     "from": "Von",
     "to": "An",
     "cc": "CC",

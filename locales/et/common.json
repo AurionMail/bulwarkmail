@@ -450,6 +450,7 @@
     "important": "Oluline",
     "download": "Laadi alla",
     "download_all": "Laadi kõik alla",
+    "download_all_partial": "{count, plural, one {ZIP-failist jäeti välja # manus.} other {ZIP-failist jäeti välja # manust.}}",
     "from": "Saatja",
     "to": "Saaja",
     "cc": "Koopia",

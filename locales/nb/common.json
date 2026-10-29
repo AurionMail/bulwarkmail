@@ -450,6 +450,7 @@
     "important": "Viktig",
     "download": "Last ned",
     "download_all": "Last ned alle",
+    "download_all_partial": "{count, plural, one {# vedlegg ble utelatt fra ZIP-filen.} other {# vedlegg ble utelatt fra ZIP-filen.}}",
     "from": "Fra",
     "to": "Til",
     "cc": "CC",

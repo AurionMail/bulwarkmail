@@ -450,6 +450,7 @@
     "important": "중요",
     "download": "다운로드",
     "download_all": "모두 다운로드",
+    "download_all_partial": "ZIP에 첨부파일 {count}개가 포함되지 않았습니다.",
     "from": "보낸 사람",
     "to": "받는 사람",
     "cc": "참조",

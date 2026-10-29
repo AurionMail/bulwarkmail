@@ -450,6 +450,7 @@
     "important": "Чухал",
     "download": "Татаж авах",
     "download_all": "Бүгдийг нь татаж авах",
+    "download_all_partial": "ZIP файлд {count} хавсралт ороогүй.",
     "from": "",
     "to": "Хэнд",
     "cc": "Хуулбар",

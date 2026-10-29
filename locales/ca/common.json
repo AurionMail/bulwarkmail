@@ -450,6 +450,7 @@
     "important": "Important",
     "download": "Baixa",
     "download_all": "Baixa-ho tot",
+    "download_all_partial": "{count, plural, one {S’ha omès # fitxer adjunt del ZIP.} other {S’han omès # fitxers adjunts del ZIP.}}",
     "from": "De",
     "to": "Per a",
     "cc": "CC",

@@ -450,6 +450,7 @@
     "important": "Important",
     "download": "Download",
     "download_all": "Download all",
+    "download_all_partial": "{count, plural, one {# attachment was omitted from the ZIP.} other {# attachments were omitted from the ZIP.}}",
     "from": "From",
     "to": "To",
     "cc": "CC",

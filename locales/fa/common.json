@@ -450,6 +450,7 @@
     "important": "مهم",
     "download": "دانلود",
     "download_all": "دانلود همه",
+    "download_all_partial": "{count, plural, one {# پیوست از فایل ZIP حذف شد.} other {# پیوست از فایل ZIP حذف شد.}}",
     "from": "از",
     "to": "به",
     "cc": "رونوشت",
