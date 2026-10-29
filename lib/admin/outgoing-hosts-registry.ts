@@ -148,7 +148,7 @@ export const NON_REQUEST_HOSTS: readonly { host: string; files: readonly string[
   { host: 'bulwarkmail.org', why: 'docs links and comments', files: ['app/(main)/admin/_pages/telemetry.tsx', 'components/admin/org/sections/recovery-section.tsx', 'instrumentation.node.ts', 'lib/telemetry/state.ts', 'lib/telemetry/types.ts'] },
   { host: 'bulwarkmail.com', why: 'JMAP capability URI', files: ['lib/jmap/client.ts'] },
   { host: 'extensions.bulwarkmail.org', why: 'signed statement type URIs', files: ['lib/admin/directory-keys.ts'] },
-  { host: 'www.w3.org', why: 'XML namespaces', files: ['app/(main)/setup/page.tsx', 'components/ui/flag-icons.tsx', 'lib/favicon-badge.ts'] },
+  { host: 'www.w3.org', why: 'XML namespaces', files: ['components/ui/flag-icons.tsx', 'lib/favicon-badge.ts'] },
   { host: 'creativecommons.org', why: 'licence metadata inside an SVG', files: ['components/ui/flag-icons.tsx'] },
   { host: 'github.com', why: 'source code link (AGPL) and SVG metadata', files: ['components/settings/about-data-settings.tsx', 'components/ui/flag-icons.tsx'] },
   { host: 'www.rfc-editor.org', why: 'comments', files: ['lib/jmap/client.ts'] },

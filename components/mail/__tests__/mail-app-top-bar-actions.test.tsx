@@ -84,15 +84,15 @@ describe('top-bar-actions in the standard layout', () => {
     expect(container.querySelector('[data-plugin-actions="top-bar-actions"]')).toBeNull();
   });
 
-  it('puts plugin buttons in the search row after refresh', () => {
+  it('puts plugin buttons in the search row after the folder menu', () => {
     act(() => setPluginActions('tr', 'Translator', 'top-bar-actions', [{ id: 'go', label: 'Translate' }]));
     const { container } = render(<MailApp />);
 
     const group = container.querySelector('[data-plugin-actions="top-bar-actions"]')!;
     expect(group).not.toBeNull();
-    const refresh = screen.getByRole('button', { name: 'refresh' });
-    expect(group.parentElement).toBe(refresh.parentElement);
-    expect(refresh.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const folderMenu = screen.getByTestId('mail-folder-menu');
+    expect(group.parentElement).toBe(folderMenu.parentElement);
+    expect(folderMenu.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Translate' })).toBeInTheDocument();
   });
 
