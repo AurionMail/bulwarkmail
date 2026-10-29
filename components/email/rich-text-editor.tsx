@@ -23,7 +23,7 @@ import { TableRow } from "@tiptap/extension-table-row";
 import { TableHeader } from "@tiptap/extension-table-header";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { QuotedHtml, serializeEditorContent } from "@/components/email/quoted-html";
-import { paragraphStyleWithoutSpacing, trailingParagraphBreakRule } from "@/components/email/paragraph-breaks";
+import { keepLoadedParagraphSpacing, paragraphStyleWithoutSpacing, trailingParagraphBreakRule } from "@/components/email/paragraph-breaks";
 import { SignatureBlock } from "@/components/email/signature-block";
 import { styledBlockAttributes } from "@/components/email/styled-block-attributes";
 import { RecipientMention, RecipientMentionList, type RecipientMentionListHandle } from "@/components/email/recipient-mention";
@@ -384,9 +384,13 @@ export function RichTextEditor({
   // Sync external content changes (e.g. template application). Compare against
   // the custom serialization so a doc that only differs inside a QuotedHtml
   // island isn't needlessly re-parsed (which would reset the island DOM).
+  // What comes in keeps the paragraph spacing it was written with, so a draft
+  // from another client is shown and sent the way it was meant (#1416).
   useEffect(() => {
-    if (editor && content !== serializeEditorContent(editor)) {
-      editor.commands.setContent(content, { emitUpdate: false });
+    if (!editor) return;
+    const loaded = keepLoadedParagraphSpacing(content);
+    if (loaded !== serializeEditorContent(editor)) {
+      editor.commands.setContent(loaded, { emitUpdate: false });
     }
   }, [content, editor]);
 

@@ -19,23 +19,40 @@ async function setup(content: string) {
   return editor as unknown as Editor;
 }
 
+// Lines written in the composer: start from the empty paragraph a new message
+// is scaffolded with and type into it. A paragraph loaded from somewhere else
+// keeps the spacing it came with instead (rich-text-editor-loaded-spacing).
+async function compose(...lines: string[]) {
+  const editor = await setup('<p></p>');
+  act(() => {
+    lines.forEach((line, index) => {
+      if (index > 0) editor.commands.splitBlock();
+      editor.commands.insertContent(line);
+    });
+  });
+  return editor;
+}
+
 const serialize = (editor: Editor) => serializeEditorContent(editor).replace(/ dir="auto"/g, '');
 
 describe('RichTextEditor paragraph spacing (#1340)', () => {
   it('sends each line with the 4px margin the composer shows, not the 1em default', async () => {
-    const editor = await setup('<p>one</p><p>two</p>');
+    const editor = await compose('one', 'two');
 
     expect(serialize(editor)).toBe('<p style="margin:4px 0;">one</p><p style="margin:4px 0;">two</p>');
   });
 
   it('keeps the alignment next to the margin', async () => {
-    const editor = await setup('<p style="text-align: center">mid</p>');
+    const editor = await compose('mid');
+    act(() => { editor.commands.setTextAlign('center'); });
 
-    expect(serialize(editor)).toBe('<p style="margin:4px 0;text-align: center;">mid</p>');
+    expect(serialize(editor)).toContain('margin:4px 0;');
+    expect(serialize(editor)).toContain('text-align: center');
   });
 
   it('spaces paragraphs in lists too', async () => {
-    const editor = await setup('<ul><li><p>a</p></li></ul>');
+    const editor = await compose('a');
+    act(() => { editor.commands.toggleBulletList(); });
 
     expect(serialize(editor)).toContain('<li><p style="margin:4px 0;">a</p></li>');
   });
@@ -47,7 +64,8 @@ describe('RichTextEditor paragraph spacing (#1340)', () => {
   });
 
   it('does not stack margins when a saved draft is opened again', async () => {
-    const editor = await setup('<p style="text-align: right">one</p><p>two</p>');
+    const editor = await compose('one', 'two');
+    act(() => { editor.commands.setTextAlign('right'); });
     const saved = serialize(editor);
 
     act(() => { editor.commands.setContent(saved, { emitUpdate: false }); });
